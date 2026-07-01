@@ -20,13 +20,13 @@ export function NotificationNavigationBridge() {
       href,
       pendingTargetPath,
     });
-    acknowledgeTargetPath(pendingTargetPath);
 
     if (href) {
       logNotificationTrace("navigation.replace", {
         href,
       });
       router.replace(href as any);
+      acknowledgeTargetPath(pendingTargetPath);
     }
   }, [acknowledgeTargetPath, isAuthenticated, isBootstrapping, pendingTargetPath]);
 

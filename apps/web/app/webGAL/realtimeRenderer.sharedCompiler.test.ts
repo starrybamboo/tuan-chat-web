@@ -526,8 +526,10 @@ describe("realtimeRenderer shared compiler full render", () => {
     const sceneText = (renderer as any).sceneContextMap.get(10)?.text ?? "";
     expect(sceneText).toContain("changeFigure:role_1/sprite_11.webp");
     expect(sceneText).toContain("changeFigure:role_1/sprite_12.webp");
-    expect(sceneText).toMatch(/changeFigure:role_1\/sprite_11\.webp .* -enterDuration=120 -exitDuration=120 -next;/);
-    expect(sceneText).toMatch(/changeFigure:role_1\/sprite_12\.webp .* -enterDuration=120 -exitDuration=120 -next;/);
+    expect(sceneText).toMatch(/changeFigure:role_1\/sprite_11\.webp .* -next;/);
+    expect(sceneText).toMatch(/changeFigure:role_1\/sprite_12\.webp .* -next;/);
+    expect(sceneText).not.toContain("-enterDuration=");
+    expect(sceneText).not.toContain("-exitDuration=");
     expect(sceneText).toContain("明日香: 笑脸差分 -figureId=1;");
   });
 
@@ -566,7 +568,9 @@ describe("realtimeRenderer shared compiler full render", () => {
     const lines = sceneText.trim().split("\n");
     const changeIndex = lines.findIndex(line => line.startsWith("changeFigure:role_1/sprite_11.webp"));
     expect(changeIndex).toBeGreaterThanOrEqual(0);
-    expect(lines[changeIndex]).toContain("-enterDuration=120 -exitDuration=120 -next;");
+    expect(lines[changeIndex]).toContain("-next;");
+    expect(lines[changeIndex]).not.toContain("-enterDuration=");
+    expect(lines[changeIndex]).not.toContain("-exitDuration=");
     expect(lines[changeIndex + 1]).toBe(
       "setTransition: -target=1 -enter=position/ba-enter-from-left -exit=position/ba-exit-to-right -keepOffset -next;",
     );
@@ -1031,7 +1035,9 @@ describe("realtimeRenderer shared compiler full render", () => {
 
     const sceneText = (renderer as any).sceneContextMap.get(10)?.text ?? "";
     expect(sceneText).toContain("\"alpha\":0.6");
-    expect(sceneText).toContain("-enterDuration=120 -exitDuration=120 -next;");
+    expect(sceneText).toContain("changeFigure:role_1/sprite_11.webp");
+    expect(sceneText).not.toContain("-enterDuration=");
+    expect(sceneText).not.toContain("-exitDuration=");
     expect(sceneText).not.toContain("\"rgl\"");
   });
 

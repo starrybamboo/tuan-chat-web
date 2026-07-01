@@ -16,6 +16,7 @@ export type RealtimeWebgalDefaultLanguage = "" | "zh_CN" | "zh_TW" | "en" | "ja"
 export type RealtimeWebgalBaseTemplate = "none" | "black" | "tuanchat";
 const DEFAULT_TYPING_SOUND_INTERVAL = 1.5;
 const DEFAULT_TYPING_SOUND_PUNCTUATION_PAUSE = 100;
+const DEFAULT_FIGURE_TRANSITION_DURATION = 100;
 export const DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD = 78;
 export const MIN_ROOM_CONTENT_ALERT_THRESHOLD = 20;
 export const MAX_ROOM_CONTENT_ALERT_THRESHOLD = 1024;
@@ -63,6 +64,10 @@ export type RealtimeWebgalGameConfig = {
   enableAppreciation: boolean;
   /** 是否开启打字音（TypingSoundEnabled） */
   typingSoundEnabled: boolean;
+  /** 默认角色立绘入场时长（Figure_Default_Enter_Duration） */
+  figureDefaultEnterDuration: number;
+  /** 默认角色立绘出场时长（Figure_Default_Exit_Duration） */
+  figureDefaultExitDuration: number;
   /** 打字音播放间隔（每隔多少个字符播放一次） */
   typingSoundInterval: number;
   /** 标点符号额外停顿（毫秒） */
@@ -93,6 +98,8 @@ const DEFAULT_REALTIME_WEBGAL_GAME_CONFIG: RealtimeWebgalGameConfig = {
   defaultLanguage: "",
   enableAppreciation: true,
   typingSoundEnabled: false,
+  figureDefaultEnterDuration: DEFAULT_FIGURE_TRANSITION_DURATION,
+  figureDefaultExitDuration: DEFAULT_FIGURE_TRANSITION_DURATION,
   typingSoundInterval: DEFAULT_TYPING_SOUND_INTERVAL,
   typingSoundPunctuationPause: DEFAULT_TYPING_SOUND_PUNCTUATION_PAUSE,
   typingSoundSeUrl: "",
@@ -241,6 +248,14 @@ function normalizeTypingSoundPunctuationPause(value: unknown): number {
   return Math.max(0, Math.min(5000, Math.floor(raw)));
 }
 
+function normalizeFigureTransitionDuration(value: unknown): number {
+  const raw = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(raw)) {
+    return DEFAULT_FIGURE_TRANSITION_DURATION;
+  }
+  return Math.max(0, Math.min(5000, Math.floor(raw)));
+}
+
 function normalizeRoomContentAlertThreshold(value: unknown): number {
   const raw = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(raw)) {
@@ -281,6 +296,8 @@ export function buildRealtimeRenderCloudSettingsSnapshot(state: RealtimeRenderCl
     defaultLanguage: state.gameConfig.defaultLanguage,
     enableAppreciation: state.gameConfig.enableAppreciation,
     typingSoundEnabled: state.gameConfig.typingSoundEnabled,
+    figureDefaultEnterDuration: state.gameConfig.figureDefaultEnterDuration,
+    figureDefaultExitDuration: state.gameConfig.figureDefaultExitDuration,
     typingSoundInterval: state.gameConfig.typingSoundInterval,
     typingSoundPunctuationPause: state.gameConfig.typingSoundPunctuationPause,
     typingSoundSeUrl: cloudLegacyUrl(state.gameConfig.typingSoundSeUrl, state.gameConfig.typingSoundSeFileId),
@@ -410,6 +427,8 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       && current.defaultLanguage === merged.defaultLanguage
       && current.enableAppreciation === merged.enableAppreciation
       && current.typingSoundEnabled === merged.typingSoundEnabled
+      && current.figureDefaultEnterDuration === merged.figureDefaultEnterDuration
+      && current.figureDefaultExitDuration === merged.figureDefaultExitDuration
       && current.typingSoundInterval === merged.typingSoundInterval
       && current.typingSoundPunctuationPause === merged.typingSoundPunctuationPause
       && current.typingSoundSeUrl === merged.typingSoundSeUrl
@@ -485,6 +504,8 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       const persistedDefaultLanguage = persisted?.defaultLanguage;
       const persistedEnableAppreciation = persisted?.enableAppreciation;
       const persistedTypingSoundEnabled = persisted?.typingSoundEnabled;
+      const persistedFigureDefaultEnterDuration = persisted?.figureDefaultEnterDuration;
+      const persistedFigureDefaultExitDuration = persisted?.figureDefaultExitDuration;
       const persistedTypingSoundInterval = persisted?.typingSoundInterval;
       const persistedTypingSoundPunctuationPause = persisted?.typingSoundPunctuationPause;
       const persistedTypingSoundSeUrl = persisted?.typingSoundSeUrl;
@@ -553,6 +574,8 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
         typingSoundEnabled: typeof persistedTypingSoundEnabled === "boolean"
           ? persistedTypingSoundEnabled
           : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.typingSoundEnabled,
+        figureDefaultEnterDuration: normalizeFigureTransitionDuration(persistedFigureDefaultEnterDuration),
+        figureDefaultExitDuration: normalizeFigureTransitionDuration(persistedFigureDefaultExitDuration),
         typingSoundInterval: normalizeTypingSoundInterval(persistedTypingSoundInterval),
         typingSoundPunctuationPause: normalizeTypingSoundPunctuationPause(persistedTypingSoundPunctuationPause),
         typingSoundSeUrl: typeof persistedTypingSoundSeUrl === "string"

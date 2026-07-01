@@ -19,6 +19,7 @@
     "./open-api-result": "./src/open-api-result.ts",
     "./role-api-error": "./src/role-api-error.ts",
     "./room-identity": "./src/room-identity.ts",
+    "./sidebar-tree": "./src/sidebar-tree.ts",
     "./state-command": "./src/stateCommand.ts",
     "./state-event": "./src/state-event.ts",
     "./state-runtime": "./src/state-runtime/index.ts",

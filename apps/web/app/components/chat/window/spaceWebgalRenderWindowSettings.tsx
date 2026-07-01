@@ -36,6 +36,8 @@ type SpaceWebgalRenderWindowSettingsProps = {
   gameConfig: RealtimeGameConfig;
   descriptionInput: string;
   packageNameInput: string;
+  figureDefaultEnterDurationInput: string;
+  figureDefaultExitDurationInput: string;
   typingSoundIntervalInput: string;
   typingSoundPunctuationPauseInput: string;
   typingSoundDetailExpanded: boolean;
@@ -58,6 +60,8 @@ type SpaceWebgalRenderWindowSettingsProps = {
   setGameConfig: (config: Partial<RealtimeGameConfig>) => void;
   setDescriptionInput: (value: string) => void;
   setPackageNameInput: (value: string) => void;
+  setFigureDefaultEnterDurationInput: (value: string) => void;
+  setFigureDefaultExitDurationInput: (value: string) => void;
   setTypingSoundIntervalInput: (value: string) => void;
   setTypingSoundPunctuationPauseInput: (value: string) => void;
   setTypingSoundDetailExpanded: Dispatch<SetStateAction<boolean>>;
@@ -66,6 +70,8 @@ type SpaceWebgalRenderWindowSettingsProps = {
   handleSaveTtsApi: () => void;
   handleSaveDescription: () => void;
   handleSavePackageName: () => void;
+  handleSaveFigureDefaultEnterDuration: () => void;
+  handleSaveFigureDefaultExitDuration: () => void;
   handleSaveTypingSoundInterval: () => void;
   handleSaveTypingSoundPunctuationPause: () => void;
   handlePickTypingSoundSe: () => void;
@@ -93,6 +99,8 @@ export function SpaceWebgalRenderWindowSettings({
   gameConfig,
   descriptionInput,
   packageNameInput,
+  figureDefaultEnterDurationInput,
+  figureDefaultExitDurationInput,
   typingSoundIntervalInput,
   typingSoundPunctuationPauseInput,
   typingSoundDetailExpanded,
@@ -115,6 +123,8 @@ export function SpaceWebgalRenderWindowSettings({
   setGameConfig,
   setDescriptionInput,
   setPackageNameInput,
+  setFigureDefaultEnterDurationInput,
+  setFigureDefaultExitDurationInput,
   setTypingSoundIntervalInput,
   setTypingSoundPunctuationPauseInput,
   setTypingSoundDetailExpanded,
@@ -123,6 +133,8 @@ export function SpaceWebgalRenderWindowSettings({
   handleSaveTtsApi,
   handleSaveDescription,
   handleSavePackageName,
+  handleSaveFigureDefaultEnterDuration,
+  handleSaveFigureDefaultExitDuration,
   handleSaveTypingSoundInterval,
   handleSaveTypingSoundPunctuationPause,
   handlePickTypingSoundSe,
@@ -317,6 +329,8 @@ export function SpaceWebgalRenderWindowSettings({
                 gameConfig={gameConfig}
                 descriptionInput={descriptionInput}
                 packageNameInput={packageNameInput}
+                figureDefaultEnterDurationInput={figureDefaultEnterDurationInput}
+                figureDefaultExitDurationInput={figureDefaultExitDurationInput}
                 typingSoundIntervalInput={typingSoundIntervalInput}
                 typingSoundPunctuationPauseInput={typingSoundPunctuationPauseInput}
                 typingSoundDetailExpanded={typingSoundDetailExpanded}
@@ -330,11 +344,15 @@ export function SpaceWebgalRenderWindowSettings({
                 setGameConfig={setGameConfig}
                 setDescriptionInput={setDescriptionInput}
                 setPackageNameInput={setPackageNameInput}
+                setFigureDefaultEnterDurationInput={setFigureDefaultEnterDurationInput}
+                setFigureDefaultExitDurationInput={setFigureDefaultExitDurationInput}
                 setTypingSoundIntervalInput={setTypingSoundIntervalInput}
                 setTypingSoundPunctuationPauseInput={setTypingSoundPunctuationPauseInput}
                 setTypingSoundDetailExpanded={setTypingSoundDetailExpanded}
                 handleSaveDescription={handleSaveDescription}
                 handleSavePackageName={handleSavePackageName}
+                handleSaveFigureDefaultEnterDuration={handleSaveFigureDefaultEnterDuration}
+                handleSaveFigureDefaultExitDuration={handleSaveFigureDefaultExitDuration}
                 handleSaveTypingSoundInterval={handleSaveTypingSoundInterval}
                 handleSaveTypingSoundPunctuationPause={handleSaveTypingSoundPunctuationPause}
                 handlePickTypingSoundSe={handlePickTypingSoundSe}

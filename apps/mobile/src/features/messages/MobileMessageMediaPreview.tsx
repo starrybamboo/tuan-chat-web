@@ -9,7 +9,7 @@ import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { File, PauseCircle, PlayCircle } from "phosphor-react-native";
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Linking, Modal, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Modal, Pressable, StyleSheet, View } from "react-native";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
@@ -42,6 +42,21 @@ const styles = StyleSheet.create({
   image: {
     borderRadius: Radius.md,
     marginTop: Spacing.xs,
+  },
+  imageFrame: {
+    marginTop: Spacing.xs,
+    position: "relative",
+  },
+  imageUploadingOverlay: {
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.42)",
+    borderRadius: Radius.md,
+    bottom: 0,
+    justifyContent: "center",
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
   },
   mediaCard: {
     alignItems: "center",
@@ -293,6 +308,16 @@ type MobileMessageMediaPreviewProps = {
   messageType?: number | null;
 };
 
+type LocalAttachmentPreviewMeta = {
+  localUri?: string;
+  uploadState?: string;
+};
+
+function getLocalAttachmentPreview(extra: unknown): LocalAttachmentPreviewMeta | null {
+  const preview = (extra as { tcLocalAttachmentPreview?: LocalAttachmentPreviewMeta } | null | undefined)?.tcLocalAttachmentPreview;
+  return preview && typeof preview === "object" ? preview : null;
+}
+
 export function MobileMessageMediaPreview({
   compact = false,
   content,
@@ -303,11 +328,13 @@ export function MobileMessageMediaPreview({
   const theme = useTheme();
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [activatedPlayableMediaKey, setActivatedPlayableMediaKey] = useState<string | null>(null);
+  const localAttachmentPreview = getLocalAttachmentPreview(extra);
 
   if (messageType === MESSAGE_TYPE.IMG) {
     const image = getImageMessageExtra(extra);
-    const thumbUrl = resolveMessageMediaUrl(image, "medium", "image");
-    const fullSizeUrl = resolveMessageMediaUrl(image, "original", "image");
+    const localImageUrl = typeof localAttachmentPreview?.localUri === "string" ? localAttachmentPreview.localUri : "";
+    const thumbUrl = localImageUrl || resolveMessageMediaUrl(image, "medium", "image");
+    const fullSizeUrl = localImageUrl || resolveMessageMediaUrl(image, "original", "image");
     if (!image || !thumbUrl || !fullSizeUrl)
       return null;
     const rawWidth = image.width && image.width > 0 ? image.width : MAX_IMAGE_WIDTH;
@@ -319,11 +346,20 @@ export function MobileMessageMediaPreview({
     return (
       <>
         <Pressable onPress={() => setPreviewImageUrl(fullSizeUrl)}>
-          <CachedImage
-            uri={thumbUrl}
-            style={[styles.image, { height, width }]}
-            contentFit="cover"
-          />
+          <View style={[styles.imageFrame, { height, width }]}>
+            <CachedImage
+              uri={thumbUrl}
+              style={[styles.image, { height, width, marginTop: 0, opacity: localAttachmentPreview ? 0.72 : 1 }]}
+              contentFit="cover"
+            />
+            {localAttachmentPreview
+              ? (
+                  <View style={styles.imageUploadingOverlay}>
+                    <ActivityIndicator color="#fff" />
+                  </View>
+                )
+              : null}
+          </View>
         </Pressable>
         <Modal
           animationType="fade"

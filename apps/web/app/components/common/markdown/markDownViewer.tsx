@@ -61,6 +61,13 @@ const MARKDOWN_STYLES = `
   [&_input]:text-gray-900 [&_input]:dark:text-gray-100
 `;
 
+function parseFileEmbedSource(src: string) {
+  const [rawSource, ...nameParts] = src.split("|");
+  const source = rawSource?.trim() ?? "";
+  const fileName = nameParts.join("|").trim() || "下载附件";
+  return { fileName, source };
+}
+
 /**
  * 嵌入markdown渲染器中的组件
  * @param type 媒体类型
@@ -111,6 +118,25 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
           />
         </div>
       );
+    case "file": {
+      const { fileName, source } = parseFileEmbedSource(src);
+      const href = resolveMediaContentSource(source, "other", "original") || source;
+      return (
+        <a
+          className="
+            my-3 inline-flex max-w-full items-center rounded-md border border-base-300
+            bg-base-100 px-3 py-2 text-sm font-medium no-underline
+            hover:bg-base-200
+          "
+          href={href}
+          download={fileName}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span className="truncate">{fileName}</span>
+        </a>
+      );
+    }
     case "youtube":
       return (
         <div className="my-4 aspect-video w-full max-w-2xl">

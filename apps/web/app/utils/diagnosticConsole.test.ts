@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  buildDiagnosticConsoleFileContent,
   buildDiagnosticConsoleFileName,
   buildDiagnosticConsoleReport,
   installDiagnosticConsoleCapture,
@@ -73,5 +74,15 @@ describe("diagnosticConsole", () => {
   it("会生成稳定可读的诊断文件名", () => {
     const fileName = buildDiagnosticConsoleFileName(new Date("2026-05-07T12:34:56.789Z"));
     expect(fileName).toBe("tuanchat-console-2026-05-07T12-34-56-789Z.json");
+  });
+
+  it("会生成可复用到下载文件和反馈正文的格式化 JSON", () => {
+    recordDiagnosticConsoleEntry("error", ["boom"]);
+
+    const content = buildDiagnosticConsoleFileContent(buildDiagnosticConsoleReport());
+
+    expect(content).toContain('"source": "tuanchat-web-console"');
+    expect(content).toContain('"message": "boom"');
+    expect(content).toContain("\n  ");
   });
 });

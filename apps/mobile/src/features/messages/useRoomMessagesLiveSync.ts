@@ -2,6 +2,7 @@ import type { ApiResultRoomListResponse } from "@tuanchat/openapi-client/models/
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 import type { NotificationItemResponse } from "@tuanchat/openapi-client/models/NotificationItemResponse";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import { getDirectContactId, getDirectMessagePreviewText, isDirectReadLineMessage } from "@tuanchat/domain/direct-message";
@@ -69,6 +70,10 @@ type RoomNotificationMeta = {
   spaceId: number | null;
 };
 
+type CachedRoomRolesData = {
+  allRoles?: readonly UserRole[];
+} | readonly UserRole[];
+
 function isPositiveRoomId(roomId: number | null): roomId is number {
   return typeof roomId === "number" && Number.isInteger(roomId) && roomId > 0;
 }
@@ -133,11 +138,43 @@ function getRoomNotificationMeta(
 }
 
 function getRoomNotificationTargetPath(roomId: number, meta: RoomNotificationMeta) {
-  return meta.spaceId ? `/chat/${meta.spaceId}/${roomId}` : "/chat";
+  return meta.spaceId ? `/chat/${meta.spaceId}/${roomId}` : `/chat/room/${roomId}`;
 }
 
-function getRoomMessageSpeakerLabel(message: ChatMessageResponse["message"]) {
-  return readString(message.customRoleName) ?? (isPositiveId(message.userId) ? `用户 #${message.userId}` : null);
+function readRolesFromCachedRoomRoles(data: CachedRoomRolesData | undefined): readonly UserRole[] {
+  if (Array.isArray(data)) {
+    return data;
+  }
+  return data && "allRoles" in data ? data.allRoles ?? [] : [];
+}
+
+function getCachedRoomRoleName(
+  queryClient: QueryClient,
+  roomId: number | null | undefined,
+  roleId: number | null | undefined,
+) {
+  if (!isPositiveId(roomId) || !isPositiveId(roleId)) {
+    return null;
+  }
+
+  for (const [, data] of queryClient.getQueriesData<CachedRoomRolesData>({ queryKey: ["roomRoles", roomId] })) {
+    for (const role of readRolesFromCachedRoomRoles(data)) {
+      if (role.roleId === roleId) {
+        const roleName = readString(role.roleName);
+        if (roleName) {
+          return roleName;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+function getRoomMessageSpeakerLabel(queryClient: QueryClient, message: ChatMessageResponse["message"]) {
+  return readString(message.customRoleName)
+    ?? getCachedRoomRoleName(queryClient, message.roomId, message.roleId)
+    ?? (isPositiveId(message.userId) ? `用户 #${message.userId}` : null);
 }
 
 function shouldNotifyDirectMessage(
@@ -575,7 +612,7 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
           messageRoomId,
           messageRoomId === resolvedRoomId ? spaceSelection : null,
         );
-        const speaker = getRoomMessageSpeakerLabel(latestMessage.message);
+        const speaker = getRoomMessageSpeakerLabel(queryClient, latestMessage.message);
         const preview = getMessagePreviewText(latestMessage.message).trim() || "你收到一条新消息";
         const body = roomMessages.length > 1
           ? `${speaker ? `${speaker}: ` : ""}${preview} 等 ${roomMessages.length} 条新消息`

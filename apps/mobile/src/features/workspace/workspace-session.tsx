@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
 
-import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
+import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useAuthSession } from "@/features/auth/auth-session";
 
@@ -15,6 +15,7 @@ type WorkspaceSessionContextValue = {
   selectedSpaceId: number | null;
   selectedRoomId: number | null;
   setActiveDirectContactId: (contactId: number | null) => void;
+  setWorkspaceSelection: (spaceId: number | null, roomId: number | null) => void;
   setSelectedSpaceId: (spaceId: number | null) => void;
   setSelectedRoomId: (roomId: number | null) => void;
   clearWorkspaceSelection: () => void;
@@ -31,6 +32,7 @@ export function WorkspaceSessionProvider({ children }: PropsWithChildren) {
   const [activeDirectContactId, setActiveDirectContactId] = useState<number | null>(null);
   const [hasHydratedSelection, setHasHydratedSelection] = useState(false);
   const [chatTabBarHidden, setChatTabBarHidden] = useState(false);
+  const workspaceSelectionOverrideRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,6 +48,7 @@ export function WorkspaceSessionProvider({ children }: PropsWithChildren) {
       queueMicrotask(() => setSelectedRoomIdState(null));
       queueMicrotask(() => setActiveDirectContactId(null));
       queueMicrotask(() => setHasHydratedSelection(false));
+      workspaceSelectionOverrideRef.current = false;
       void clearStoredWorkspaceSelection();
       return () => {
         cancelled = true;
@@ -61,6 +64,11 @@ export function WorkspaceSessionProvider({ children }: PropsWithChildren) {
     void (async () => {
       const storedSelection = await readStoredWorkspaceSelection();
       if (cancelled) {
+        return;
+      }
+
+      if (workspaceSelectionOverrideRef.current) {
+        setHasHydratedSelection(true);
         return;
       }
 
@@ -94,6 +102,13 @@ export function WorkspaceSessionProvider({ children }: PropsWithChildren) {
     setSelectedRoomIdState(roomId);
   }, []);
 
+  const setWorkspaceSelection = useCallback((spaceId: number | null, roomId: number | null) => {
+    workspaceSelectionOverrideRef.current = true;
+    setHasHydratedSelection(true);
+    setSelectedSpaceIdState(spaceId);
+    setSelectedRoomIdState(roomId);
+  }, []);
+
   const clearWorkspaceSelection = useCallback(() => {
     setSelectedSpaceIdState(null);
     setSelectedRoomIdState(null);
@@ -105,12 +120,13 @@ export function WorkspaceSessionProvider({ children }: PropsWithChildren) {
     selectedSpaceId,
     selectedRoomId,
     setActiveDirectContactId,
+    setWorkspaceSelection,
     setSelectedSpaceId,
     setSelectedRoomId,
     clearWorkspaceSelection,
     chatTabBarHidden,
     setChatTabBarHidden,
-  }), [activeDirectContactId, chatTabBarHidden, clearWorkspaceSelection, selectedRoomId, selectedSpaceId, setSelectedRoomId, setSelectedSpaceId]);
+  }), [activeDirectContactId, chatTabBarHidden, clearWorkspaceSelection, selectedRoomId, selectedSpaceId, setSelectedRoomId, setSelectedSpaceId, setWorkspaceSelection]);
 
   return (
     <WorkspaceSessionContext value={value}>

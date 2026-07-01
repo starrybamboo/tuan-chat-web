@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canReuseAvatarMediaForVariantConfig,
   createAvatarCropContextFromImage,
   createAvatarCropContextFromSource,
   createAvatarCropContextFromVariantConfig,
@@ -231,5 +232,113 @@ describe("avatarCropContext", () => {
     expect(isImageCompatibleWithVariantConfig(config, { naturalWidth: 1000, naturalHeight: 1600 })).toBe(true);
     expect(isImageCompatibleWithVariantConfig(config, { naturalWidth: 1024, naturalHeight: 1600 })).toBe(false);
     expect(createPixelCropFromVariantConfig(config, { naturalWidth: 1024, naturalHeight: 1600, width: 512, height: 800 })).toBeUndefined();
+  });
+
+  it("应用到已有立绘组时可复用裁剪参数一致的已有媒体", () => {
+    const config = {
+      canvas: { width: 1000, height: 1600 },
+      avatarSlot: { x: 20, y: 40, width: 200, height: 240 },
+      spriteCrop: {
+        sourceOriginFileId: 2001,
+        sourceWidth: 1200,
+        sourceHeight: 1800,
+        crop: { x: 100, y: 120, width: 1000, height: 1600 },
+        outputWidth: 1000,
+        outputHeight: 1600,
+      },
+      spriteTransform: { positionX: 10, positionY: -5, scale: 1.25, alpha: 0.8, rotation: 3 },
+    };
+
+    expect(canReuseAvatarMediaForVariantConfig({
+      avatarFileId: 401,
+      spriteFileId: 402,
+      avatarCropContext: {
+        sourceSpriteFileId: 9999,
+        sourceWidth: 1000,
+        sourceHeight: 1600,
+        crop: { x: 20, y: 40, width: 200, height: 240 },
+      },
+      spriteCropContext: {
+        sourceOriginFileId: 8888,
+        sourceWidth: 1200,
+        sourceHeight: 1800,
+        crop: { x: 100, y: 120, width: 1000, height: 1600 },
+        outputWidth: 1000,
+        outputHeight: 1600,
+      },
+      spriteTransform: { positionX: 10.00005, positionY: -5, scale: 1.25, alpha: 0.8, rotation: 3 },
+    }, config)).toBe(true);
+  });
+
+  it("应用到已有立绘组时缺少现有媒体不会复用", () => {
+    const config = {
+      canvas: { width: 1000, height: 1600 },
+      avatarSlot: { x: 20, y: 40, width: 200, height: 240 },
+      spriteCrop: {
+        sourceWidth: 1200,
+        sourceHeight: 1800,
+        crop: { x: 100, y: 120, width: 1000, height: 1600 },
+        outputWidth: 1000,
+        outputHeight: 1600,
+      },
+    };
+
+    expect(canReuseAvatarMediaForVariantConfig({
+      avatarFileId: 401,
+      avatarCropContext: {
+        sourceWidth: 1000,
+        sourceHeight: 1600,
+        crop: { x: 20, y: 40, width: 200, height: 240 },
+      },
+      spriteCropContext: {
+        sourceWidth: 1200,
+        sourceHeight: 1800,
+        crop: { x: 100, y: 120, width: 1000, height: 1600 },
+      },
+    }, config)).toBe(false);
+  });
+
+  it("应用到已有立绘组时裁剪或变换不一致不会复用", () => {
+    const config = {
+      canvas: { width: 1000, height: 1600 },
+      avatarSlot: { x: 20, y: 40, width: 200, height: 240 },
+      spriteCrop: {
+        sourceWidth: 1200,
+        sourceHeight: 1800,
+        crop: { x: 100, y: 120, width: 1000, height: 1600 },
+        outputWidth: 1000,
+        outputHeight: 1600,
+      },
+      spriteTransform: { positionX: 0, positionY: 0, scale: 1, alpha: 1, rotation: 0 },
+    };
+    const matchingAvatar = {
+      avatarFileId: 401,
+      spriteFileId: 402,
+      avatarCropContext: {
+        sourceWidth: 1000,
+        sourceHeight: 1600,
+        crop: { x: 20, y: 40, width: 200, height: 240 },
+      },
+      spriteCropContext: {
+        sourceWidth: 1200,
+        sourceHeight: 1800,
+        crop: { x: 100, y: 120, width: 1000, height: 1600 },
+        outputWidth: 1000,
+        outputHeight: 1600,
+      },
+      spriteTransform: { positionX: 0, positionY: 0, scale: 1, alpha: 1, rotation: 0 },
+    };
+
+    expect(canReuseAvatarMediaForVariantConfig({
+      ...matchingAvatar,
+      avatarCropContext: {
+        ...matchingAvatar.avatarCropContext,
+        crop: { x: 21, y: 40, width: 200, height: 240 },
+      },
+    }, config)).toBe(false);
+    expect(canReuseAvatarMediaForVariantConfig({
+      ...matchingAvatar,
+      spriteTransform: { positionX: 1, positionY: 0, scale: 1, alpha: 1, rotation: 0 },
+    }, config)).toBe(false);
   });
 });

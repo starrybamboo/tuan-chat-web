@@ -63,12 +63,10 @@ type RightDrawerPanelProps = {
   currentUserId: number | null;
   currentRoleId: number | null;
   isKP: boolean;
-  isStateCommandMode: boolean;
   messageResponses: ChatMessageResponse[];
   messages: Message[];
   onClose: () => void;
   onChangeActiveTab: (tab: RightDrawerTabKey) => void;
-  onEnterStateCommandMode: () => void;
   roomId: number | null;
   roomRoles: UserRole[];
   roomStateRuntime?: RoomStateRuntimeValue;
@@ -97,12 +95,10 @@ function RightDrawerPanelWithRuntime({
   currentRoleId,
   currentUserId,
   isKP,
-  isStateCommandMode,
   messageResponses,
   messages,
   onChangeActiveTab,
   onClose,
-  onEnterStateCommandMode,
   roomId,
   roomRoles,
   ruleId,
@@ -123,12 +119,10 @@ function RightDrawerPanelWithRuntime({
       currentRoleId={currentRoleId}
       currentUserId={currentUserId}
       isKP={isKP}
-      isStateCommandMode={isStateCommandMode}
       messageResponses={messageResponses}
       messages={messages}
       onChangeActiveTab={onChangeActiveTab}
       onClose={onClose}
-      onEnterStateCommandMode={onEnterStateCommandMode}
       roomId={roomId}
       roomRoles={roomRoles}
       roomStateRuntime={roomStateRuntime}
@@ -145,12 +139,10 @@ function RightDrawerPanelContent({
   currentUserId,
   currentRoleId,
   isKP,
-  isStateCommandMode,
   messageResponses,
   messages,
   onChangeActiveTab,
   onClose: _onClose,
-  onEnterStateCommandMode,
   roomId,
   roomRoles,
   roomStateRuntime,
@@ -187,9 +179,7 @@ function RightDrawerPanelContent({
         >
           <CombatPanel
             currentRoleId={currentRoleId}
-            isStateCommandMode={isStateCommandMode}
             messages={messages}
-            onEnterStateCommandMode={onEnterStateCommandMode}
             roomRoles={roomRoles}
             roomStateRuntime={roomStateRuntime}
             ruleId={ruleId}

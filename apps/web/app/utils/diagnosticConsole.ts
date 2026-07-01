@@ -62,7 +62,7 @@ type DiagnosticRuntime = typeof globalThis & {
 };
 
 type DiagnosticExportResult
-  = | { ok: true; fileName: string; entryCount: number }
+  = | { ok: true; fileName: string; entryCount: number; fileContent: string }
     | { ok: false; error: string };
 
 const MAX_LOG_ENTRIES = 500;
@@ -318,6 +318,10 @@ export function buildDiagnosticConsoleFileName(date = new Date()) {
   return `tuanchat-console-${timestamp}.json`;
 }
 
+export function buildDiagnosticConsoleFileContent(report: DiagnosticConsoleReport) {
+  return JSON.stringify(report, null, 2);
+}
+
 export function exportDiagnosticConsoleFile(runtime: DiagnosticRuntime = getRuntime()): DiagnosticExportResult {
   const documentRef = runtime.document;
   if (!documentRef)
@@ -325,7 +329,8 @@ export function exportDiagnosticConsoleFile(runtime: DiagnosticRuntime = getRunt
 
   const report = buildDiagnosticConsoleReport(runtime);
   const fileName = buildDiagnosticConsoleFileName();
-  const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json;charset=utf-8" });
+  const fileContent = buildDiagnosticConsoleFileContent(report);
+  const blob = new Blob([fileContent], { type: "application/json;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const anchor = documentRef.createElement("a");
   anchor.href = url;
@@ -340,6 +345,7 @@ export function exportDiagnosticConsoleFile(runtime: DiagnosticRuntime = getRunt
     ok: true,
     fileName,
     entryCount: report.entries.length,
+    fileContent,
   };
 }
 

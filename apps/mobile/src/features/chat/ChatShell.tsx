@@ -1,4 +1,6 @@
 import type { ClueFolderScope } from "@tuanchat/domain/clue-folder";
+import type { QueryClient } from "@tanstack/react-query";
+import type { ApiResultRoomListResponse } from "@tuanchat/openapi-client/models/ApiResultRoomListResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
@@ -10,9 +12,16 @@ import { canManageMemberPermissions, canManageRoomRoles, SPACE_MEMBER_TYPE } fro
 import { buildMessageDraftsFromUploadedMedia } from "@tuanchat/domain/message-draft";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { resolveSendIdentity } from "@tuanchat/domain/room-identity";
+import {
+  appendSidebarNodeToCategory,
+  buildDefaultSidebarTree,
+  buildSidebarRoomNode,
+  parseSidebarTree,
+} from "@tuanchat/domain/sidebar-tree";
 import { useCopyMessageToClueFolderMutation } from "@tuanchat/query/clue-folder";
 import { getRoomMembersQueryKey, getSpaceMembersQueryKey } from "@tuanchat/query/members";
 import { selectVisibleMainRoomMessages } from "@tuanchat/query/room-message";
+import { getSpaceSidebarTreeQueryKey } from "@tuanchat/query/sidebar-tree";
 import { getUserActiveSpacesQueryKey, getUserRoomsQueryKey, upsertUserActiveSpaceQueryData, upsertUserRoomQueryData } from "@tuanchat/query/spaces";
 import { router, useLocalSearchParams, usePathname } from "expo-router";
 import { LightbulbIcon, MapPinLineIcon, SwordIcon } from "phosphor-react-native";
@@ -51,6 +60,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/auth-session";
 import { LeftDrawer } from "@/features/drawer/LeftDrawer";
+import { useSpaceSidebarTreeQuery } from "@/features/drawer/use-space-sidebar-tree-query";
 import { DmChatView } from "@/features/friends/DmChatView";
 import { DmContactDrawer } from "@/features/friends/DmContactDrawer";
 import {
@@ -74,6 +84,11 @@ import {
   pickMobileMessageAttachments,
 } from "@/features/messages/mobileMessageAttachment";
 import { uploadMobileMessageAttachments } from "@/features/messages/mobileMessageAttachmentUpload";
+import {
+  alignOptimisticMessagesToMediaDrafts,
+  buildOptimisticAttachmentRequests,
+  filterOptimisticMessagesForUploadedAttachments,
+} from "@/features/messages/mobileMessageAttachmentOptimistic";
 import {
   canMobileMessageModeUseAttachments,
   MOBILE_MESSAGE_MODE,
@@ -122,6 +137,7 @@ import {
   getMobileNavigableRooms,
   getMobileVisibleClueRooms,
   resolveAutoSelectedSpaceId,
+  resolveRoomOnlyTargetSpaceId,
   shouldClearStaleRouteRoom,
 } from "./mobileRouteSelection";
 import { MobileStShowCardSheet } from "./MobileStShowCardSheet";
@@ -144,6 +160,26 @@ function parsePositiveIntegerSearchParam(value: string | string[] | undefined): 
   }
   const parsed = Number.parseInt(rawValue, 10);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function readPositiveInteger(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
+}
+
+function findCachedRoomSpaceId(queryClient: QueryClient, roomId: number): number | null {
+  for (const [queryKey, data] of queryClient.getQueriesData<ApiResultRoomListResponse>({ queryKey: ["getUserRooms"] })) {
+    const response = data?.data;
+    const room = response?.rooms?.find(item => item.roomId === roomId);
+    if (!room) {
+      continue;
+    }
+
+    return readPositiveInteger(room.spaceId)
+      ?? readPositiveInteger(response?.spaceId)
+      ?? (Array.isArray(queryKey) ? readPositiveInteger(queryKey[1]) : null);
+  }
+
+  return null;
 }
 
 type ProfileSheetState = {
@@ -220,7 +256,7 @@ export default function ChatShell() {
   const queryClient = useQueryClient();
   const { session } = useAuthSession();
   const currentUserId = session?.userId ?? null;
-  const { selectedSpaceId, selectedRoomId, setActiveDirectContactId, setChatTabBarHidden, setSelectedRoomId, setSelectedSpaceId } = useWorkspaceSession();
+  const { selectedSpaceId, selectedRoomId, setActiveDirectContactId, setChatTabBarHidden, setSelectedRoomId, setSelectedSpaceId, setWorkspaceSelection } = useWorkspaceSession();
   const searchParams = useLocalSearchParams();
   const {
     panGesture,
@@ -249,11 +285,13 @@ export default function ChatShell() {
 
   const spacesQuery = useUserActiveSpacesQuery();
   const roomsQuery = useUserRoomsQuery(selectedSpaceId);
+  const sidebarTreeQuery = useSpaceSidebarTreeQuery(selectedSpaceId);
   const spaceMembersQuery = useSpaceMembersQuery(selectedSpaceId);
   const roomMembersQuery = useRoomMembersQuery(selectedRoomId);
   const roomMessagesQuery = useRoomMessagesQuery(selectedRoomId);
   const { refetch: refetchSpaces } = spacesQuery;
   const { refetch: refetchRooms } = roomsQuery;
+  const { refetch: refetchSidebarTree } = sidebarTreeQuery;
   const { refetch: refetchSpaceMembers } = spaceMembersQuery;
   const { refetch: refetchRoomMembers } = roomMembersQuery;
   const { refetch: refetchRoomMessages } = roomMessagesQuery;
@@ -356,6 +394,23 @@ export default function ChatShell() {
   const availableRooms = useMemo(() => {
     return getMobileNavigableRooms(allAvailableRooms, currentUserId);
   }, [allAvailableRooms, currentUserId]);
+  const sidebarTree = useMemo(() => {
+    return parseSidebarTree(sidebarTreeQuery.data?.data?.treeJson);
+  }, [sidebarTreeQuery.data?.data?.treeJson]);
+  const sidebarTreeVersion = sidebarTreeQuery.data?.data?.version ?? 0;
+  const resolvedPendingTargetSpaceId = useMemo(() => {
+    if (pendingTargetRoomId == null) {
+      return pendingTargetSpaceId;
+    }
+
+    return resolveRoomOnlyTargetSpaceId({
+      activeSpaces,
+      availableRooms,
+      pendingTargetRoomId,
+      pendingTargetSpaceId,
+      selectedSpaceId,
+    }) ?? findCachedRoomSpaceId(queryClient, pendingTargetRoomId);
+  }, [activeSpaces, availableRooms, pendingTargetRoomId, pendingTargetSpaceId, queryClient, selectedSpaceId]);
   const clueRooms = useMemo(() => {
     return getMobileVisibleClueRooms(allAvailableRooms, currentUserId);
   }, [allAvailableRooms, currentUserId]);
@@ -512,12 +567,13 @@ export default function ChatShell() {
     const nextSpaceId = resolveAutoSelectedSpaceId({
       activeSpaces,
       hasExplicitTarget,
+      selectedRoomId,
       selectedSpaceId,
     });
     if (nextSpaceId !== undefined) {
       startTransition(() => setSelectedSpaceId(nextSpaceId));
     }
-  }, [activeSpaces, hasExplicitTarget, selectedSpaceId, setSelectedSpaceId]);
+  }, [activeSpaces, hasExplicitTarget, selectedRoomId, selectedSpaceId, setSelectedSpaceId]);
 
   // Clear stale room selection if room no longer exists in current space.
   useEffect(() => {
@@ -554,11 +610,12 @@ export default function ChatShell() {
       else if (pendingTargetSpaceId != null || pendingTargetRoomId != null) {
         setCurrentContactId(null);
         consumedNotificationTarget = true;
-        if (pendingTargetSpaceId != null && pendingTargetSpaceId !== selectedSpaceId) {
-          startTransition(() => setSelectedSpaceId(pendingTargetSpaceId));
+
+        if (pendingTargetRoomId != null) {
+          startTransition(() => setWorkspaceSelection(resolvedPendingTargetSpaceId, pendingTargetRoomId));
         }
-        if (pendingTargetRoomId != null && pendingTargetRoomId !== selectedRoomId) {
-          startTransition(() => setSelectedRoomId(pendingTargetRoomId));
+        else if (pendingTargetSpaceId != null) {
+          startTransition(() => setWorkspaceSelection(pendingTargetSpaceId, null));
         }
       }
 
@@ -573,11 +630,37 @@ export default function ChatShell() {
     pendingTargetContactId,
     pendingTargetRoomId,
     pendingTargetSpaceId,
+    resolvedPendingTargetSpaceId,
     selectedRoomId,
     selectedSpaceId,
-    setSelectedRoomId,
-    setSelectedSpaceId,
+    setWorkspaceSelection,
   ]);
+
+  useEffect(() => {
+    if (selectedRoomId == null || selectedSpaceId != null) {
+      return undefined;
+    }
+
+    let disposed = false;
+    void mobileApiClient.roomController.getRoomInfo(selectedRoomId)
+      .then((response) => {
+        if (disposed) {
+          return;
+        }
+
+        const spaceId = readPositiveInteger(response.data?.spaceId);
+        if (spaceId != null) {
+          startTransition(() => setWorkspaceSelection(spaceId, selectedRoomId));
+        }
+      })
+      .catch(() => {
+        // roomId 已经足够打开消息流；空间补齐失败时保留当前房间，避免再次丢目标。
+      });
+
+    return () => {
+      disposed = true;
+    };
+  }, [selectedRoomId, selectedSpaceId, setWorkspaceSelection]);
 
   // Reset state on room change
   useEffect(() => {
@@ -666,17 +749,6 @@ export default function ChatShell() {
     setShouldRenderRightDrawer(true);
     open();
   }, [open]);
-
-  const handleEnterStateMode = useCallback(() => {
-    setMessageError(null);
-    setMessageMode(currentMode => (
-      currentMode === MOBILE_MESSAGE_MODE.STATE_EVENT
-        ? MOBILE_MESSAGE_MODE.TEXT
-        : MOBILE_MESSAGE_MODE.STATE_EVENT
-    ));
-  }, []);
-
-  const isStateCommandMode = messageMode === MOBILE_MESSAGE_MODE.STATE_EVENT;
 
   const rightDrawerShortcutActions = useMemo<readonly ChatComposerShortcutAction[]>(() => RIGHT_DRAWER_SHORTCUTS.map(item => ({
     Icon: item.Icon,
@@ -824,13 +896,14 @@ export default function ChatShell() {
   const handleRefreshWorkspace = useCallback(async () => {
     await refetchSpaces();
     if (selectedSpaceId)
-      await Promise.all([refetchRooms(), refetchSpaceMembers()]);
+      await Promise.all([refetchRooms(), refetchSidebarTree(), refetchSpaceMembers()]);
     if (selectedRoomId)
       await Promise.all([refetchRoomMembers(), refetchRoomMessages()]);
   }, [
     refetchRoomMembers,
     refetchRoomMessages,
     refetchRooms,
+    refetchSidebarTree,
     refetchSpaceMembers,
     refetchSpaces,
     selectedRoomId,
@@ -847,6 +920,7 @@ export default function ChatShell() {
     const submittedMessageAnchorId = messageAnchorId;
     const submittedMessageAttachments = messageAttachments;
     const submittedMessageMode = messageMode;
+    let optimisticAttachmentMessages: ReturnType<typeof sendRoomMessageMutation.insertLocalOptimisticMessages> = [];
     messageSendInFlightRef.current = true;
     setMessageSendInFlight(true);
     setMessageError(null);
@@ -906,6 +980,12 @@ export default function ChatShell() {
           }
         }
         if (submittedMessageAttachments.length > 0) {
+          const optimisticAttachmentRequests = buildOptimisticAttachmentRequests(submittedMessageAttachments, {
+            context: messageContext,
+            inputText: resolvedDraftMessage,
+            roomId: selectedRoomId ?? -1,
+          });
+          optimisticAttachmentMessages = sendRoomMessageMutation.insertLocalOptimisticMessages(optimisticAttachmentRequests);
           const uploaded = await uploadMobileMessageAttachments(mobileApiClient, submittedMessageAttachments, { allowPartialSuccess: true });
           const drafts = buildMessageDraftsFromUploadedMedia({
             inputText: resolvedDraftMessage,
@@ -924,9 +1004,18 @@ export default function ChatShell() {
             throw firstFailure ?? new Error("附件上传失败。");
           }
           if (drafts.length === 0) {
+            sendRoomMessageMutation.discardLocalOptimisticMessages(optimisticAttachmentMessages);
             throw new Error("消息内容不能为空。");
           }
-          await sendRoomMessageMutation.sendDraftMessages(drafts, messageContext);
+          const successfulOptimisticMessages = filterOptimisticMessagesForUploadedAttachments(
+            optimisticAttachmentMessages,
+            uploaded,
+          );
+          const failedOptimisticMessages = optimisticAttachmentMessages.filter(message => !successfulOptimisticMessages.includes(message));
+          sendRoomMessageMutation.discardLocalOptimisticMessages(failedOptimisticMessages);
+          await sendRoomMessageMutation.sendDraftMessages(drafts, messageContext, {
+            optimisticMessages: alignOptimisticMessagesToMediaDrafts(successfulOptimisticMessages, drafts),
+          });
           if (uploaded.failedAttachments.length > 0) {
             const failedAttachments = uploaded.failedAttachments.map(failure => failure.attachment);
             messageAttachmentsRef.current = failedAttachments;
@@ -962,12 +1051,10 @@ export default function ChatShell() {
       else if (submittedMessageMode === MOBILE_MESSAGE_MODE.COMMAND_REQUEST) {
         await sendRoomMessageMutation.sendCommandRequestMessage({ command: resolvedDraftMessage, ...messageContext });
       }
-      else {
-        await sendRoomMessageMutation.sendStateEventMessage({ content: resolvedDraftMessage, ...messageContext });
-      }
 
     }
     catch (error) {
+      sendRoomMessageMutation.discardLocalOptimisticMessages(optimisticAttachmentMessages);
       setMessageError(getErrorMessage(error, "发送消息失败。"));
       const canRestoreSubmittedDraft = draftMessageRef.current.length === 0
         && draftRoleIdInputRef.current.length === 0
@@ -1446,8 +1533,35 @@ export default function ChatShell() {
     upsertUserRoomQueryData(queryClient, selectedSpaceId, room);
     if (room.roomId)
       startTransition(() => setSelectedRoomId(room.roomId!));
+
+    if (room.roomId) {
+      const existingRoomsForTree = availableRooms.filter(item => item.roomId !== room.roomId);
+      const baseTree = sidebarTree ?? buildDefaultSidebarTree({
+        roomsInSpace: existingRoomsForTree,
+        docMetas: [],
+        includeDocs: false,
+      });
+      const nextTree = appendSidebarNodeToCategory({
+        tree: baseTree,
+        categoryId: baseTree.categories[0]?.categoryId ?? "cat:channels",
+        node: buildSidebarRoomNode(room.roomId, room.name ?? String(room.roomId)),
+      });
+      if (JSON.stringify(nextTree) !== JSON.stringify(baseTree)) {
+        void mobileApiClient.spaceSidebarTreeController.setSidebarTree({
+          spaceId: selectedSpaceId,
+          expectedVersion: sidebarTreeVersion,
+          treeJson: JSON.stringify(nextTree),
+        })
+          .catch((error) => {
+            console.warn("[ChatShell] 同步移动端新房间到 sidebarTree 失败:", error);
+          })
+          .finally(() => {
+            void queryClient.invalidateQueries({ queryKey: getSpaceSidebarTreeQueryKey(selectedSpaceId) });
+          });
+      }
+    }
     void refetchRooms();
-  }, [queryClient, refetchRooms, selectedSpaceId, setSelectedRoomId]);
+  }, [availableRooms, queryClient, refetchRooms, selectedSpaceId, setSelectedRoomId, sidebarTree, sidebarTreeVersion]);
 
   const handleCloseProfileSheet = useCallback(() => {
     setProfileSheetState(null);
@@ -1487,6 +1601,7 @@ export default function ChatShell() {
                     roomsError={roomsQuery.error}
                     roomsIsError={roomsQuery.isError}
                     roomsIsPending={roomsQuery.isPending}
+                    sidebarTree={sidebarTree}
                     spacesError={spacesQuery.error}
                     spacesIsError={spacesQuery.isError}
                     spacesIsPending={spacesQuery.isPending}
@@ -1654,12 +1769,10 @@ export default function ChatShell() {
                             currentUserId={currentUserId}
                             currentRoleId={draftRoleId ?? currentRole?.roleId ?? null}
                             isKP={isSpaceOwner}
-                            isStateCommandMode={isStateCommandMode}
                             messageResponses={roomMessagesQuery.messages}
                             messages={roomMessageModels}
                             onChangeActiveTab={setRightDrawerTab}
                             onClose={close}
-                            onEnterStateCommandMode={handleEnterStateMode}
                             roomId={selectedRoomId}
                             roomRoles={roomRoles}
                             ruleId={selectedRuleId}

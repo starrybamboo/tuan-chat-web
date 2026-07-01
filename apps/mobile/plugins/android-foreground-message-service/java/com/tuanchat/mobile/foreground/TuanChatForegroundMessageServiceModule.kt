@@ -15,6 +15,7 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.WritableNativeMap
+import org.json.JSONObject
 
 class TuanChatForegroundMessageServiceModule(
   private val reactContext: ReactApplicationContext
@@ -86,6 +87,23 @@ class TuanChatForegroundMessageServiceModule(
       promise.resolve(true)
     } catch (error: Exception) {
       promise.reject("E_TUANCHAT_FG_SERVICE_APP_ACTIVE", error)
+    }
+  }
+
+  @ReactMethod
+  fun syncRoomRoleNames(roomId: Double, roleNamesJson: String, promise: Promise) {
+    try {
+      val resolvedRoomId = roomId.toLong()
+      if (resolvedRoomId <= 0L) {
+        promise.resolve(false)
+        return
+      }
+
+      val normalizedJson = JSONObject(roleNamesJson).toString()
+      TuanChatForegroundMessageService.syncRoomRoleNames(reactContext, resolvedRoomId, normalizedJson)
+      promise.resolve(true)
+    } catch (error: Exception) {
+      promise.reject("E_TUANCHAT_FG_SERVICE_ROLE_NAMES", error)
     }
   }
 

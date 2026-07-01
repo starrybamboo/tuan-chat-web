@@ -1,5 +1,7 @@
 import { NativeModules, Platform } from "react-native";
 
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+
 import type { AndroidBackgroundPushDiagnostics } from "./androidBackgroundPushGuidance";
 
 import { logNotificationTrace, logNotificationTraceError } from "./notificationTrace";
@@ -32,6 +34,7 @@ type NativeForegroundMessageServiceModule = {
   getStatus: () => Promise<AndroidForegroundMessageServiceStatus>;
   openBackgroundPushSetting?: (target: AndroidBackgroundPushSettingTarget) => Promise<boolean>;
   setAppActive: (active: boolean) => Promise<boolean>;
+  syncRoomRoleNames?: (roomId: number, roleNamesJson: string) => Promise<boolean>;
   start: (config: {
     appActive: boolean;
     token: string;
@@ -157,6 +160,39 @@ export async function openAndroidBackgroundPushSetting(target: AndroidBackground
   }
   catch (error) {
     logNotificationTraceError("fg-service.background-setting.error", error, { target });
+    return false;
+  }
+}
+
+export async function syncAndroidForegroundMessageServiceRoomRoleNames(
+  roomId: number | null | undefined,
+  roles: readonly Pick<UserRole, "roleId" | "roleName">[],
+) {
+  const resolvedRoomId = typeof roomId === "number" && Number.isInteger(roomId) && roomId > 0 ? roomId : null;
+  if (!nativeModule?.syncRoomRoleNames || resolvedRoomId == null) {
+    return false;
+  }
+
+  const roleNames: Record<string, string> = {};
+  for (const role of roles) {
+    const roleId = role.roleId;
+    const roleName = role.roleName?.trim();
+    if (Number.isInteger(roleId) && Number(roleId) > 0 && roleName) {
+      roleNames[String(roleId)] = roleName;
+    }
+  }
+
+  try {
+    const result = await nativeModule.syncRoomRoleNames(resolvedRoomId, JSON.stringify(roleNames));
+    logNotificationTrace("fg-service.room-role-names.sync", {
+      result,
+      roleCount: Object.keys(roleNames).length,
+      roomId: resolvedRoomId,
+    });
+    return result;
+  }
+  catch (error) {
+    logNotificationTraceError("fg-service.room-role-names.error", error, { roomId: resolvedRoomId });
     return false;
   }
 }

@@ -95,6 +95,8 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   const [ttsApiInput, setTtsApiInput] = useState("");
   const [descriptionInput, setDescriptionInput] = useState("");
   const [packageNameInput, setPackageNameInput] = useState("");
+  const [figureDefaultEnterDurationInput, setFigureDefaultEnterDurationInput] = useState("");
+  const [figureDefaultExitDurationInput, setFigureDefaultExitDurationInput] = useState("");
   const [typingSoundIntervalInput, setTypingSoundIntervalInput] = useState("");
   const [typingSoundPunctuationPauseInput, setTypingSoundPunctuationPauseInput] = useState("");
   const [typingSoundDetailExpanded, setTypingSoundDetailExpanded] = useState(false);
@@ -126,6 +128,14 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   useEffect(() => {
     setPackageNameInput(gameConfig.packageName);
   }, [gameConfig.packageName]);
+
+  useEffect(() => {
+    setFigureDefaultEnterDurationInput(String(gameConfig.figureDefaultEnterDuration));
+  }, [gameConfig.figureDefaultEnterDuration]);
+
+  useEffect(() => {
+    setFigureDefaultExitDurationInput(String(gameConfig.figureDefaultExitDuration));
+  }, [gameConfig.figureDefaultExitDuration]);
 
   useEffect(() => {
     setTypingSoundIntervalInput(String(gameConfig.typingSoundInterval));
@@ -543,6 +553,30 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     toast.success("游戏包名已保存");
   }, [packageNameInput, setGameConfig]);
 
+  const handleSaveFigureDefaultEnterDuration = useCallback(() => {
+    const parsed = Number(figureDefaultEnterDurationInput.trim());
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      toast.error("请输入大于等于 0 的毫秒数");
+      return;
+    }
+    const normalized = Math.max(0, Math.min(5000, Math.floor(parsed)));
+    setGameConfig({ figureDefaultEnterDuration: normalized });
+    setFigureDefaultEnterDurationInput(String(normalized));
+    toast.success("立绘默认入场时长已保存");
+  }, [figureDefaultEnterDurationInput, setGameConfig]);
+
+  const handleSaveFigureDefaultExitDuration = useCallback(() => {
+    const parsed = Number(figureDefaultExitDurationInput.trim());
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      toast.error("请输入大于等于 0 的毫秒数");
+      return;
+    }
+    const normalized = Math.max(0, Math.min(5000, Math.floor(parsed)));
+    setGameConfig({ figureDefaultExitDuration: normalized });
+    setFigureDefaultExitDurationInput(String(normalized));
+    toast.success("立绘默认出场时长已保存");
+  }, [figureDefaultExitDurationInput, setGameConfig]);
+
   const handleSaveTypingSoundInterval = useCallback(() => {
     const parsed = Number(typingSoundIntervalInput.trim());
     if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -839,6 +873,8 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
           gameConfig={gameConfig}
           descriptionInput={descriptionInput}
           packageNameInput={packageNameInput}
+          figureDefaultEnterDurationInput={figureDefaultEnterDurationInput}
+          figureDefaultExitDurationInput={figureDefaultExitDurationInput}
           typingSoundIntervalInput={typingSoundIntervalInput}
           typingSoundPunctuationPauseInput={typingSoundPunctuationPauseInput}
           typingSoundDetailExpanded={typingSoundDetailExpanded}
@@ -861,6 +897,8 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
           setGameConfig={setGameConfig}
           setDescriptionInput={setDescriptionInput}
           setPackageNameInput={setPackageNameInput}
+          setFigureDefaultEnterDurationInput={setFigureDefaultEnterDurationInput}
+          setFigureDefaultExitDurationInput={setFigureDefaultExitDurationInput}
           setTypingSoundIntervalInput={setTypingSoundIntervalInput}
           setTypingSoundPunctuationPauseInput={setTypingSoundPunctuationPauseInput}
           setTypingSoundDetailExpanded={setTypingSoundDetailExpanded}
@@ -869,6 +907,8 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
           handleSaveTtsApi={handleSaveTtsApi}
           handleSaveDescription={handleSaveDescription}
           handleSavePackageName={handleSavePackageName}
+          handleSaveFigureDefaultEnterDuration={handleSaveFigureDefaultEnterDuration}
+          handleSaveFigureDefaultExitDuration={handleSaveFigureDefaultExitDuration}
           handleSaveTypingSoundInterval={handleSaveTypingSoundInterval}
           handleSaveTypingSoundPunctuationPause={handleSaveTypingSoundPunctuationPause}
           handlePickTypingSoundSe={handlePickTypingSoundSe}

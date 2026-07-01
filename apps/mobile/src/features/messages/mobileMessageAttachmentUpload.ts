@@ -211,7 +211,7 @@ function inferMimeTypeFromName(fileName: string): string | undefined {
   return extension ? MIME_BY_EXTENSION[extension] : undefined;
 }
 
-function resolveAttachmentMimeType(attachment: MobileMessageAttachment): string {
+export function resolveAttachmentMimeTypeForUpload(attachment: MobileMessageAttachment): string {
   const declared = normalizeMimeType(attachment.mimeType);
   if (!isGenericMimeType(declared)) {
     return declared;
@@ -279,7 +279,7 @@ async function readAttachmentWebBlob(attachment: MobileMessageAttachment): Promi
 async function resolveWebAttachmentUploadPayload(attachment: MobileMessageAttachment): Promise<AttachmentUploadPayload> {
   const webBlob = await readAttachmentWebBlob(attachment);
   const bytes = new Uint8Array(await webBlob.arrayBuffer());
-  const mimeType = resolveAttachmentMimeType(attachment);
+  const mimeType = resolveAttachmentMimeTypeForUpload(attachment);
   return {
     fileName: attachment.fileName,
     mimeType,
@@ -299,7 +299,7 @@ async function resolveNativeAttachmentUploadPayload(attachment: MobileMessageAtt
     throw new Error("附件文件不存在。");
   }
 
-  const mimeType = resolveAttachmentMimeType(attachment);
+  const mimeType = resolveAttachmentMimeTypeForUpload(attachment);
   return {
     fileName: attachment.fileName,
     mimeType,
@@ -646,7 +646,7 @@ async function resolveImagePayload(result: ImageDerivativeResult): Promise<Attac
 }
 
 async function resolveUploadMedia(attachment: MobileMessageAttachment): Promise<ResolvedUploadMedia> {
-  const mimeType = resolveAttachmentMimeType(attachment);
+  const mimeType = resolveAttachmentMimeTypeForUpload(attachment);
   const mediaType = inferMediaTypeFromMimeType(mimeType);
   if (mediaType !== "image") {
     return {

@@ -1,5 +1,6 @@
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { Space } from "@tuanchat/openapi-client/models/Space";
+import type { SidebarTree } from "@tuanchat/domain/sidebar-tree";
 
 import { CaretDown, CaretRight, ChatCircle, Plus } from "phosphor-react-native";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
@@ -25,6 +26,7 @@ import { SPACE_RAIL_WIDTH } from "@/lib/layout-constants";
 import { avatarThumbUrl } from "@/lib/media-url";
 
 import { getLeftDrawerLayoutState } from "./leftDrawerLayout";
+import { buildRoomListItems, type RoomListItem } from "./leftDrawerRoomList";
 import { getSpaceRailIds, moveSpaceRailId } from "./spaceRailOrder";
 import { useSpaceRailOrder } from "./useSpaceRailOrder";
 
@@ -39,23 +41,6 @@ const UNREAD_BADGE_SIZE = 16;
 const DRAWER_INITIAL_RENDER_COUNT = 12;
 const DRAWER_RENDER_BATCH_SIZE = 8;
 const DRAWER_WINDOW_SIZE = 7;
-
-const ROOM_TYPE_ALL_MEMBER = 2;
-const ROOM_TYPE_GAME = 1;
-
-const ROOM_TYPE_LABELS: Record<number, string> = {
-  [ROOM_TYPE_ALL_MEMBER]: "全员房间",
-  [ROOM_TYPE_GAME]: "游戏房间",
-};
-
-/** Ordered list of room type groups to display */
-const ROOM_TYPE_ORDER = [ROOM_TYPE_ALL_MEMBER, ROOM_TYPE_GAME];
-
-type RoomListItem
-  = | { key: string; type: "state"; message: string; tone: "danger" | "muted"; retry?: boolean }
-    | { key: string; type: "section"; roomType: number; label: string; collapsed: boolean }
-    | { key: string; type: "room"; room: Room }
-    | { key: string; type: "create-room" };
 
 const styles = StyleSheet.create({
   container: { flex: 1, flexDirection: "row" },
@@ -283,6 +268,7 @@ type LeftDrawerProps = {
   roomsError?: unknown;
   roomsIsError?: boolean;
   roomsIsPending: boolean;
+  sidebarTree?: SidebarTree | null;
   spacesError?: unknown;
   spacesIsError?: boolean;
   spacesIsPending: boolean;
@@ -294,86 +280,6 @@ function getErrorMessage(error: unknown, fallback: string) {
     return error.message.trim();
   }
   return fallback;
-}
-
-function buildRoomListItems(options: {
-  collapsedSections: Record<number, boolean>;
-  currentSpaceId: number | null;
-  groupedRooms: Record<number, Room[]>;
-  onCreateRoom?: () => void;
-  roomsError?: unknown;
-  roomsIsError: boolean;
-  roomsIsPending: boolean;
-  totalRooms: number;
-}): RoomListItem[] {
-  const {
-    collapsedSections,
-    currentSpaceId,
-    groupedRooms,
-    onCreateRoom,
-    roomsError,
-    roomsIsError,
-    roomsIsPending,
-    totalRooms,
-  } = options;
-  const items: RoomListItem[] = [];
-
-  if (roomsIsPending) {
-    items.push({ key: "state:pending", type: "state", tone: "muted", message: "加载房间…" });
-  }
-  else if (roomsIsError) {
-    items.push({
-      key: "state:error",
-      type: "state",
-      tone: "danger",
-      retry: true,
-      message: getErrorMessage(roomsError, "加载房间失败"),
-    });
-  }
-  else if (totalRooms === 0) {
-    items.push({ key: "state:empty", type: "state", tone: "muted", message: "暂无房间" });
-  }
-  else {
-    const orderedTypes = [
-      ...ROOM_TYPE_ORDER,
-      ...Object.keys(groupedRooms)
-        .map(Number)
-        .filter(type => !ROOM_TYPE_ORDER.includes(type))
-        .sort((a, b) => a - b),
-    ];
-
-    for (const roomType of orderedTypes) {
-      const rooms = groupedRooms[roomType] ?? [];
-      if (rooms.length === 0) {
-        continue;
-      }
-
-      const collapsed = !!collapsedSections[roomType];
-      items.push({
-        key: `section:${roomType}`,
-        type: "section",
-        roomType,
-        label: ROOM_TYPE_LABELS[roomType] ?? (ROOM_TYPE_ORDER.includes(roomType) ? `类型 ${roomType}` : "其他房间"),
-        collapsed,
-      });
-
-      if (!collapsed) {
-        rooms.forEach((room, index) => {
-          items.push({
-            key: `room:${room.roomId ?? `${roomType}:${index}:${room.name ?? ""}`}`,
-            type: "room",
-            room,
-          });
-        });
-      }
-    }
-  }
-
-  if (onCreateRoom && currentSpaceId) {
-    items.push({ key: "create-room", type: "create-room" });
-  }
-
-  return items;
 }
 
 function LeftDrawerInner({
@@ -397,6 +303,7 @@ function LeftDrawerInner({
   roomsError,
   roomsIsError = false,
   roomsIsPending,
+  sidebarTree,
   spacesError,
   spacesIsError = false,
   spacesIsPending,
@@ -404,7 +311,7 @@ function LeftDrawerInner({
 }: LeftDrawerProps) {
   const theme = useTheme();
   const friendRequestsQuery = useFriendRequestsQuery();
-  const [collapsedSections, setCollapsedSections] = useState<Record<number, boolean>>({});
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [draggingSpaceId, setDraggingSpaceId] = useState<number | null>(null);
   const [dragOffsetY, setDragOffsetY] = useState(0);
   const [dragTargetIndex, setDragTargetIndex] = useState(-1);
@@ -428,30 +335,19 @@ function LeftDrawerInner({
   );
   const dmRailBadgeCount = dmUnreadTotal + (friendRequestsQuery.data?.length ?? 0);
 
-  // Group rooms by roomType
-  const groupedRooms = useMemo(() => {
-    const groups: Record<number, Room[]> = {};
-    for (const room of availableRooms) {
-      const type = room.roomType ?? 0;
-      if (!groups[type])
-        groups[type] = [];
-      groups[type].push(room);
-    }
-    return groups;
-  }, [availableRooms]);
   const roomListItems = useMemo(() => buildRoomListItems({
     collapsedSections,
     currentSpaceId,
-    groupedRooms,
     onCreateRoom,
+    rooms: availableRooms,
     roomsError,
     roomsIsError,
     roomsIsPending,
-    totalRooms: availableRooms.length,
-  }), [availableRooms.length, collapsedSections, currentSpaceId, groupedRooms, onCreateRoom, roomsError, roomsIsError, roomsIsPending]);
+    sidebarTree,
+  }), [availableRooms, collapsedSections, currentSpaceId, onCreateRoom, roomsError, roomsIsError, roomsIsPending, sidebarTree]);
 
-  const toggleSection = useCallback((type: number) => {
-    setCollapsedSections(prev => ({ ...prev, [type]: !prev[type] }));
+  const toggleSection = useCallback((categoryId: string, collapsed: boolean) => {
+    setCollapsedSections(prev => ({ ...prev, [categoryId]: !collapsed }));
   }, []);
 
   const updateSpaceDragPosition = useCallback((dy: number, scrollOffset: number) => {
@@ -747,7 +643,7 @@ function LeftDrawerInner({
     if (item.type === "section") {
       return (
         <Pressable
-          onPress={() => toggleSection(item.roomType)}
+          onPress={() => toggleSection(item.categoryId, item.collapsed)}
           style={styles.sectionHeader}
         >
           {item.collapsed

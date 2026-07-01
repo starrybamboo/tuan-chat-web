@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import type { MinimalDocMeta, SidebarLeafNode, SidebarTree } from "@/components/chat/room/sidebarTree";
 
 import { upsertSpaceDocMetaCacheEntry } from "@/components/chat/infra/doc/space/spaceDocMetaPersistence";
-import { buildDefaultSidebarTree } from "@/components/chat/room/sidebarTree";
+import { appendSidebarNodeToCategory, buildDefaultSidebarTree } from "@/components/chat/room/sidebarTree";
 import { tuanchat } from "api/instance";
 
 import type { Room } from "../../../../api";
@@ -50,18 +50,7 @@ export default function useSpaceSidebarTreeActions({
     tree: SidebarTree;
     categoryId: string;
     node: SidebarLeafNode;
-  }): SidebarTree => {
-    const next = JSON.parse(JSON.stringify(params.tree)) as SidebarTree;
-    const categories = Array.isArray(next.categories) ? next.categories : [];
-    const target = categories.find(c => c?.categoryId === params.categoryId) ?? categories[0];
-    if (!target)
-      return next;
-    target.items = Array.isArray(target.items) ? target.items : [];
-    if (target.items.some(i => i?.nodeId === params.node.nodeId))
-      return next;
-    target.items.push(params.node);
-    return next;
-  }, []);
+  }): SidebarTree => appendSidebarNodeToCategory(params), []);
 
   const resetSidebarTreeToDefault = useCallback(async () => {
     if (!activeSpaceId || activeSpaceId <= 0)

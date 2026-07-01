@@ -8,6 +8,7 @@ import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { buildMessageExtraForRequest } from "@tuanchat/domain/message-draft";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { parseSimpleStateCommand } from "@tuanchat/domain/state-command";
 import {
   buildCommandStateEventExtra,
   formatStateEventAtomDetail,
@@ -58,6 +59,8 @@ type ParsedCommand = {
   name: string;
 };
 
+const DIRECT_SIMPLE_STATE_COMMAND_RE = /^[.。/](?:next\b|combat\b|startcombat\b|start-combat\b|endcombat\b|end-combat\b)/i;
+
 type MobileSendRoomMessageMutation = {
   sendRequest: (request: ChatMessageRequest) => Promise<{ data?: Message | null }>;
   sendRequests: (requests: ChatMessageRequest[]) => Promise<Array<{ data?: Message | null }>>;
@@ -95,6 +98,36 @@ function parseCommand(input: string): ParsedCommand {
     .filter(Boolean);
 
   return { args, name };
+}
+
+function isDirectStateCommandAtom(event: StateEventAtom): boolean {
+  return event.type === "nextTurn" || event.type === "combatRoundStart" || event.type === "combatRoundEnd";
+}
+
+function parseDirectStateCommand(input: {
+  commandText: string;
+  originText: string;
+  roleId: number | undefined;
+  mentionedRoleCount: number;
+}) {
+  if (!DIRECT_SIMPLE_STATE_COMMAND_RE.test(input.commandText)) {
+    return null;
+  }
+  const parsed = parseSimpleStateCommand({
+    curRoleId: input.roleId ?? -1,
+    inputText: input.originText,
+    inputTextWithoutMentions: input.commandText,
+    mentionedRoleCount: input.mentionedRoleCount,
+  });
+  if (!parsed || !parsed.stateEvent.events.every(isDirectStateCommandAtom)) {
+    return null;
+  }
+  return {
+    content: parsed.content,
+    stateEvent: parsed.stateEvent.source.kind === "ui"
+      ? buildCommandStateEventExtra("combat", parsed.stateEvent.events)
+      : parsed.stateEvent,
+  };
 }
 
 function requirePositiveId(value: number | null | undefined, fallback: string): number {
@@ -392,6 +425,25 @@ export async function executeMobileDicerCommand(params: ExecuteMobileDicerComman
   const originDiceContent = params.command.trim();
   const mentionParsed = stripMobileMentions(originDiceContent, params.roomRoles);
   const commandForExecution = mentionParsed.command;
+  const directStateCommand = parseDirectStateCommand({
+    commandText: commandForExecution,
+    originText: originDiceContent,
+    roleId: params.sendIdentity.roleId,
+    mentionedRoleCount: mentionParsed.mentionedRoles.length,
+  });
+  if (directStateCommand) {
+    await params.sendRoomMessageMutation.sendRequest({
+      roomId,
+      messageType: MESSAGE_TYPE.STATE_EVENT,
+      content: directStateCommand.content,
+      roleId: params.sendIdentity.roleId,
+      avatarId: params.sendIdentity.avatarId,
+      customRoleName: params.sendIdentity.customRoleName,
+      replayMessageId: params.replyMessageId ?? undefined,
+      extra: toApiMessageExtraWithStateEvent(directStateCommand.stateEvent),
+    });
+    return;
+  }
   const { args, name: cmdPart } = parseCommand(commandForExecution);
   if (!cmdPart) {
     throw new Error("无法识别指令。");

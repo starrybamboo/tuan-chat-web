@@ -12,6 +12,8 @@ import type { CloudflareWebAnalyticsStatus } from "@/utils/cloudflareWebAnalytic
 import { installMediaDebugBridge } from "@/components/chat/infra/media/mediaDebug";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
+import { writeFeedbackAttachmentDraft } from "@/components/feedback/feedbackAttachmentDraft";
+import { buildDiagnosticLogFile, buildRouteErrorFeedbackDraft } from "@/components/feedback/feedbackDiagnosticDraft";
 import { writeFeedbackDraft } from "@/components/feedback/feedbackDraft";
 import { GlobalContextProvider } from "@/components/globalContextProvider";
 import StartupNoticeCenter from "@/components/startupNotice/startupNoticeCenter";
@@ -20,6 +22,9 @@ import { checkAuthStatus } from "@/utils/auth/authapi";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
 import { cloudflareWebAnalytics } from "@/utils/cloudflareWebAnalytics";
 import {
+  buildDiagnosticConsoleFileContent,
+  buildDiagnosticConsoleFileName,
+  buildDiagnosticConsoleReport,
   exportDiagnosticConsoleFile,
   installDiagnosticConsoleCapture,
   recordDiagnosticConsoleEntry,
@@ -320,31 +325,32 @@ function ErrorBoundary({ error }: { error: Error }) {
     const result = exportDiagnosticConsoleFile();
     if (!result.ok) {
       toast.error(`诊断日志下载失败：${result.error}`);
-      return false;
+      return result;
     }
 
     toast.success(`已下载诊断日志：${result.fileName}`);
-    return true;
+    return result;
   }, []);
 
   const handleOpenFeedback = React.useCallback(() => {
-    handleDownloadDiagnosticLog();
-    writeFeedbackDraft({
-      title: `页面报错：${message}`,
-      content: [
-        "【问题现象】",
-        details,
-        "",
-        "【出错页面】",
-        typeof window === "undefined" ? "未知页面" : window.location.href,
-        "",
-        "【诊断日志】",
-        "已从报错页下载诊断日志文件，请在反馈中一并上传。",
-      ].join("\n"),
-      issueType: 1,
-    });
+    const report = buildDiagnosticConsoleReport();
+    const diagnosticFileName = buildDiagnosticConsoleFileName();
+    const diagnosticFile = buildDiagnosticLogFile(
+      diagnosticFileName,
+      buildDiagnosticConsoleFileContent(report),
+    );
+    const attachmentWritten = writeFeedbackAttachmentDraft([diagnosticFile]);
+    const draftWritten = writeFeedbackDraft(buildRouteErrorFeedbackDraft({
+      message,
+      details,
+      pageUrl: typeof window === "undefined" ? undefined : window.location.href,
+      diagnosticFileName,
+    }));
+    if (!draftWritten || !attachmentWritten) {
+      toast.error("反馈草稿写入失败，请先下载诊断日志后手动补充。");
+    }
     void navigate({ to: "/feedback" });
-  }, [details, handleDownloadDiagnosticLog, message, navigate]);
+  }, [details, message, navigate]);
 
   return (
     <main className="

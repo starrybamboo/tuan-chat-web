@@ -40,6 +40,7 @@ import {
   toSpriteTransformPayload,
 } from "../utils";
 import { useImageCropWorker } from "../worker/useImageCropWorker";
+import { resolveSpriteCropperOperationMode } from "./spriteCropperMode";
 import "react-image-crop/dist/ReactCrop.css";
 
 function isLocalImageSource(url: string): boolean {
@@ -220,6 +221,8 @@ type SpriteCropperProps = {
   // 正在编辑立绘组目录时，允许组内头像绕过单头像锁定并批量应用。
   allowVariantGroupEditing?: boolean;
   editingVariantGroup?: RoleAvatarVariant;
+  // 立绘组是一个批量配置单元，只有一张图时也不能退回普通单体裁剪。
+  forceBatchMode?: boolean;
   // 立绘组初始化模式：裁剪完成后由外层创建并绑定 variant
   variantInitialization?: {
     active: boolean;
@@ -229,6 +232,7 @@ type SpriteCropperProps = {
   };
   onBatchSpriteCropApplied?: (result: BatchSpriteCropApplyResult) => void;
   onSingleSpriteCropApplied?: (result: BatchSpriteCropApplyResult) => void;
+  onAvatarCropApplied?: (result: BatchSpriteCropApplyResult) => void;
 }
 
 /**
@@ -254,9 +258,11 @@ export function SpriteCropper({
   availableVariants = EMPTY_VARIANTS,
   allowVariantGroupEditing = false,
   editingVariantGroup,
+  forceBatchMode = false,
   variantInitialization,
   onBatchSpriteCropApplied,
   onSingleSpriteCropApplied,
+  onAvatarCropApplied,
 }: SpriteCropperProps) {
   const isMobile = isMobileScreen();
   const actionButtonSizeClass = isMobile ? "btn-sm" : "";
@@ -294,7 +300,11 @@ export function SpriteCropper({
 
   // 操作模式：根据外部多选状态自动确定
   // 如果处于多选模式且选中了多个头像，则为批量模式
-  const operationMode = isMultiSelectMode && selectedIndices.size > 1 ? "batch" : "single";
+  const operationMode = resolveSpriteCropperOperationMode({
+    isMultiSelectMode,
+    selectedCount: selectedIndices.size,
+    forceBatchMode,
+  });
   const selectedAvatarIndices = Array.from(selectedIndices)
     .filter(index => index >= 0 && index < filteredAvatars.length)
     .sort((a, b) => a - b);
@@ -682,6 +692,7 @@ export function SpriteCropper({
   async function handleApplyCrop(applyTransform: boolean = false) {
     try {
       setIsCropping(true);
+      let appliedAvatarResult: RoleAvatar | null = null;
 
       const currentAvatar = isMutiAvatars
         ? filteredAvatars[currentSpriteIndex]
@@ -721,11 +732,13 @@ export function SpriteCropper({
           avatarCropContext,
           variantId: currentAvatar.variantId,
         });
+        const updatedAvatar = updateRes?.data ?? { ...currentAvatar, avatarCropContext };
+        appliedAvatarResult = updatedAvatar;
         if (isVariantGroupEditingMode) {
           const nextCompositionConfig = withFallbackSpriteCrop(
             createVariantCompositionConfigFromAvatarCropContext(
               avatarCropContext,
-              updateRes?.data?.spriteCropContext ?? currentAvatar.spriteCropContext,
+              updatedAvatar.spriteCropContext ?? currentAvatar.spriteCropContext,
               currentCompositionConfig?.spriteTransform,
             ),
             currentCompositionConfig,
@@ -742,10 +755,10 @@ export function SpriteCropper({
             throw new Error("无法生成立绘组合成配置");
           }
           await variantInitialization?.onComplete({
-            baseAvatar: updateRes?.data ?? { ...currentAvatar, avatarCropContext },
+            baseAvatar: updatedAvatar,
             compositionConfig,
             croppedAvatars: [{
-              avatar: updateRes?.data ?? { ...currentAvatar, avatarCropContext },
+              avatar: updatedAvatar,
               avatarCropContext,
             }],
           });
@@ -790,6 +803,14 @@ export function SpriteCropper({
       }
 
       // --- 共同的回调逻辑 ---
+      if (isAvatarMode && appliedAvatarResult) {
+        onAvatarCropApplied?.({
+          avatars: [appliedAvatarResult],
+          totalCount: 1,
+          successCount: 1,
+          failedCount: 0,
+        });
+      }
       if (onCropComplete) {
         onCropComplete(await blobToDataUrl(croppedBlob));
       }
@@ -1158,6 +1179,14 @@ export function SpriteCropper({
       if (!isAvatarMode && uploadSuccessCount > 0) {
         onBatchSpriteCropApplied?.({
           avatars: uploadedSpriteCropResults,
+          totalCount,
+          successCount: uploadSuccessCount,
+          failedCount: totalFail,
+        });
+      }
+      if (isAvatarMode && uploadSuccessCount > 0) {
+        onAvatarCropApplied?.({
+          avatars: uploadedAvatarCropResults.map(item => item.avatar),
           totalCount,
           successCount: uploadSuccessCount,
           failedCount: totalFail,

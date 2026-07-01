@@ -327,8 +327,7 @@ class TuanChatForegroundMessageService : Service() {
       return
     }
 
-    val speaker = message.optCleanString("customRoleName")
-      ?: senderId?.let { "用户 #$it" }
+    val speaker = resolveRoomMessageSpeaker(message, roomId, senderId)
     val body = listOfNotNull(speaker, resolveMessageBody(messageType, content))
       .joinToString(": ")
     showMessageNotification(
@@ -337,6 +336,24 @@ class TuanChatForegroundMessageService : Service() {
       body = body,
       deepLink = roomId?.let { "tuanchat://chat/room/$it" } ?: "tuanchat://chat"
     )
+  }
+
+  private fun resolveRoomMessageSpeaker(message: JSONObject, roomId: Long?, senderId: Long?): String? {
+    return message.optCleanString("customRoleName")
+      ?: readCachedRoomRoleName(roomId, message.optLongOrNull("roleId"))
+      ?: senderId?.let { "用户 #$it" }
+  }
+
+  private fun readCachedRoomRoleName(roomId: Long?, roleId: Long?): String? {
+    if (roomId == null || roleId == null) {
+      return null
+    }
+    val rawRoleNames = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+      .getString(roomRoleNamesPrefKey(roomId), null)
+      ?: return null
+    return runCatching {
+      JSONObject(rawRoleNames).optCleanString(roleId.toString())
+    }.getOrNull()
   }
 
   private fun handleRoomMessageBatch(items: JSONArray?) {
@@ -593,6 +610,14 @@ class TuanChatForegroundMessageService : Service() {
       }
     }
 
+    fun syncRoomRoleNames(context: Context, roomId: Long, roleNamesJson: String) {
+      context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+        .putString(roomRoleNamesPrefKey(roomId), roleNamesJson)
+        .apply()
+    }
+
+    private fun roomRoleNamesPrefKey(roomId: Long): String = "$PREF_ROOM_ROLE_NAMES_PREFIX$roomId"
+
     @Synchronized
     fun registerAppVisibilityCallbacks(application: Application) {
       if (visibilityCallbacksRegistered) {
@@ -651,6 +676,7 @@ class TuanChatForegroundMessageService : Service() {
     private const val PREF_WS_URL = "wsUrl"
     private const val PREF_USER_ID = "userId"
     private const val PREF_USERNAME = "username"
+    private const val PREF_ROOM_ROLE_NAMES_PREFIX = "roomRoleNames:"
     private const val SERVICE_CHANNEL_ID = "tuanchat-mobile-online-service"
     private const val MESSAGE_CHANNEL_ID = "tuanchat-mobile-chat"
     private const val SERVICE_NOTIFICATION_ID = 91001

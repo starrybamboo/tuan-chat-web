@@ -60,6 +60,10 @@ export type RealtimeGameConfig = {
   enableAppreciation: boolean;
   /** 是否开启打字音（TypingSoundEnabled） */
   typingSoundEnabled: boolean;
+  /** 默认角色立绘入场时长（Figure_Default_Enter_Duration） */
+  figureDefaultEnterDuration: number;
+  /** 默认角色立绘出场时长（Figure_Default_Exit_Duration） */
+  figureDefaultExitDuration: number;
   /** 打字音播放间隔（每隔多少个字符播放一次） */
   typingSoundInterval: number;
   /** 标点符号额外停顿（毫秒） */
@@ -90,7 +94,17 @@ export const DEFAULT_REALTIME_GAME_CONFIG: RealtimeGameConfig = {
   defaultLanguage: "",
   enableAppreciation: true,
   typingSoundEnabled: false,
+  figureDefaultEnterDuration: 100,
+  figureDefaultExitDuration: 100,
   typingSoundInterval: 1.5,
   typingSoundPunctuationPause: 100,
   typingSoundSeUrl: "",
 };
+
+export function normalizeFigureDefaultTransitionDuration(value: unknown): number {
+  const raw = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(raw)) {
+    return 100;
+  }
+  return Math.max(0, Math.min(5000, Math.floor(raw)));
+}

@@ -4,7 +4,7 @@ import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import { formatStateKeyLabel, formatStateScopeLabel } from "@tuanchat/domain/state-event";
 import { compareStateValueText } from "@tuanchat/domain/state-runtime";
 import { memo, useMemo } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
@@ -31,18 +31,6 @@ const PRIMARY_STAT_KEYS = new Set(["hp", "HP", "mp", "MP", "san", "SAN", "sp", "
 
 const styles = StyleSheet.create({
   avatar: { borderRadius: Radius.full, height: 28, width: 28 },
-  button: {
-    alignItems: "center",
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 40,
-    minWidth: 104,
-    paddingHorizontal: Spacing.lg,
-  },
-  buttonText: {
-    textAlign: "center",
-  },
   container: { flex: 1, paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl },
   scrollContent: { paddingBottom: Spacing.xxl },
   currentBadge: {
@@ -86,9 +74,7 @@ const styles = StyleSheet.create({
 
 type CombatPanelProps = {
   currentRoleId: number | null;
-  isStateCommandMode: boolean;
   messages: Message[];
-  onEnterStateCommandMode: () => void;
   roomRoles: UserRole[];
   roomStateRuntime?: RoomStateRuntimeValue;
   ruleId: number | null | undefined;
@@ -138,8 +124,6 @@ function CombatPanelWithRuntime({ roomStateRuntime: _roomStateRuntime, ...props 
 
 function CombatPanelContent({
   currentRoleId,
-  isStateCommandMode,
-  onEnterStateCommandMode,
   runtime,
   roomRoles,
 }: CombatPanelContentProps) {
@@ -217,25 +201,6 @@ function CombatPanelContent({
               </View>
             </View>
           </View>
-
-          <Pressable
-            onPress={onEnterStateCommandMode}
-            style={[
-              styles.button,
-              {
-                backgroundColor: isStateCommandMode ? theme.accentMuted : theme.surface,
-                borderColor: isStateCommandMode ? theme.accent : theme.border,
-              },
-            ]}
-          >
-            <ThemedText
-              numberOfLines={1}
-              style={[styles.buttonText, { color: isStateCommandMode ? theme.accent : theme.textSecondary }]}
-              type="smallBold"
-            >
-              状态指令
-            </ThemedText>
-          </Pressable>
 
           {roomDisplayKeys.length > 0 && (
             <View style={styles.pillRow}>

@@ -33,7 +33,7 @@ publishable 能力必须走共享编译层：
 3. 启动阶段：`useRealtimeRender.start()` 会先并发补齐角色默认头像元数据，再完成 renderer 初始化、场景创建、资源预载、WebSocket 建连。  
 4. 历史导入：编排器在 renderer `isActive` 后触发历史消息渲染（不再要求 `status === connected`）；历史导入前会先并发补齐消息涉及的头像元数据，并预热本轮需要的立绘 / 小头像资源。  
 5. 增量更新：新消息进入后优先走增量追加；同序更新先尝试局部 self / suffix 重渲染，无法安全局部处理时再全量重建；插入/删除/重排仍走全量重建。  
-6. 角色立绘 `changeFigure` 默认追加较短的 `-enterDuration=120 -exitDuration=120`，压住 WebGAL 内置长淡入淡出但不做硬切；入场/退场标注会在实际 `changeFigure` 后紧跟 `setTransition`，保证 WebGAL 能把 transition 绑定到本次立绘切换；`figure.clear` 同时带退场标注时，会先输出 `setTransition -exit=...` 再清除立绘；动作类标注继续使用 `setAnimation`。
+6. 角色立绘默认进出场时长由 WebGAL `config.txt` 的 `Figure_Default_Enter_Duration=100` / `Figure_Default_Exit_Duration=100` 控制，生成的 `changeFigure` 不再逐句追加默认时长参数；入场/退场标注会在实际 `changeFigure` 后紧跟 `setTransition`，保证 WebGAL 能把 transition 绑定到本次立绘切换；`figure.clear` 同时带退场标注时，会先输出 `setTransition -exit=...` 再清除立绘；动作类标注继续使用 `setAnimation`。
 
 ## 2. 流程图（roomMap）到场景跳转规则
 
@@ -124,7 +124,7 @@ publishable 能力必须走共享编译层：
   - `autoFigureEnabled = true` -> 默认 `left`
   - `autoFigureEnabled = false` -> 不显示立绘
 - 立绘不会因普通消息自动清空，需显式清理。
-- 角色立绘切换默认在 `changeFigure` 上追加较短的 `-enterDuration=120 -exitDuration=120`，避免 WebGAL 默认长淡入淡出。
+- 角色立绘切换默认时长由 `config.txt` 的 `Figure_Default_Enter_Duration` / `Figure_Default_Exit_Duration` 提供，团剧共创默认写入 `120`，用较短过渡压住 WebGAL 默认长动画，同时避免硬切闪烁。
 - 入场/退场类标注（如 `figure.anim.enter`、`figure.anim.ba-exit-to-left`）在本条消息实际输出 `changeFigure` 时输出紧随其后的 `setTransition`；`figure.clear` 同时带退场标注时，会在 `changeFigure:none` 前为目标槽位补 `setTransition -exit=...`；动作类标注（如跳跃、摇晃）输出 `setAnimation`。
 
 3. 对话拼接控制
