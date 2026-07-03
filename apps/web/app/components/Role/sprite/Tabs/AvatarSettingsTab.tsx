@@ -6,6 +6,7 @@ import { useSetDefaultRoleAvatarMutation, useUpdateRoleAvatarMutation } from "ap
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
+import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { MediaImage } from "@/components/common/mediaImage";
 import { DisplayChatBubble } from "@/components/Role/Preview/displayChatBubble";
@@ -406,34 +407,23 @@ function WebgalSpritePreview({ characterName, imageUrl, transform }: SpritePrevi
 }
 
 function ChatAvatarPreview({ characterName, imageUrl }: PreviewProps) {
+  const useChatBubbleStyle = useRoomPreferenceStore(state => state.useChatBubbleStyle);
+
   return (
     <section
       className="min-w-0 overflow-hidden pt-3"
       aria-label="头像预览"
     >
-      <div className="flex min-w-0 flex-col gap-2 overflow-hidden">
-        <div className="
-          min-w-0 overflow-hidden rounded-md border border-base-300/70 bg-base-100/45
-          px-3 pt-3
-        ">
-          <DisplayChatBubble
-            roleName={characterName}
-            avatarUrl={imageUrl}
-            content={AVATAR_PREVIEW_MESSAGES[0]}
-            useChatBubbleStyle
-          />
-        </div>
-        <div className="
-          min-w-0 overflow-hidden rounded-md border border-base-300/70 bg-base-100/45
-          px-3 pt-3
-        ">
-          <DisplayChatBubble
-            roleName={characterName}
-            avatarUrl={imageUrl}
-            content={AVATAR_PREVIEW_MESSAGES[0]}
-            useChatBubbleStyle={false}
-          />
-        </div>
+      <div className="
+        min-w-0 overflow-hidden rounded-md border border-base-300/70 bg-base-100/45
+        px-3 pt-3
+      ">
+        <DisplayChatBubble
+          roleName={characterName}
+          avatarUrl={imageUrl}
+          content={AVATAR_PREVIEW_MESSAGES[0]}
+          useChatBubbleStyle={useChatBubbleStyle}
+        />
       </div>
     </section>
   );
