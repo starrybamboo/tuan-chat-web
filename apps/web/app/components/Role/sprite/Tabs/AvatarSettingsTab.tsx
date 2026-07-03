@@ -415,7 +415,7 @@ function ChatAvatarPreview({ characterName, imageUrl }: PreviewProps) {
       aria-label="头像预览"
     >
       <div className="
-        min-w-0 overflow-hidden rounded-md border border-base-300/70 bg-base-100/45
+        ml-auto min-w-0 w-5/6 overflow-hidden rounded-md border
         px-3 pt-3
       ">
         <DisplayChatBubble
@@ -996,4 +996,5 @@ export function AvatarSettingsTab({
     </div>
   );
 }
+
 
