@@ -1,5 +1,6 @@
 import React from "react";
 
+import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 
@@ -56,11 +57,8 @@ function AvatarPreviewComponent({
   // 不在渲染路径中导出 canvas 的 dataURL，改为直接在聊天气泡中使用源 canvas（通过 ref 复制）
   // displayAvatarUrl 仍可用作 image 模式的后备
   const displayAvatarUrl = currentAvatarUrl || ROLE_DEFAULT_AVATAR_URL;
-
-  // 本地状态：在气泡样式和传统样式之间切换（当两者都可用时）
-  const [selectedStyle, setSelectedStyle] = React.useState<"bubble" | "traditional">(() =>
-    showBubbleStyle ? "bubble" : "traditional",
-  );
+  const roomUseChatBubbleStyle = useRoomPreferenceStore(state => state.useChatBubbleStyle);
+  const activeUseChatBubbleStyle = roomUseChatBubbleStyle ? showBubbleStyle : !showTraditionalStyle;
 
   // 渲染图片预览
   const renderImagePreview = () => (
@@ -94,7 +92,6 @@ function AvatarPreviewComponent({
     <div className={`
       ${className}
     `}>
-      {/* 多条chat bubble预览：使用 DisplayChatBubble（从 preview canvas 复制） */}
       {chatMessages.map(message => (
         <DisplayChatBubble
           key={`chat-${message}`}
@@ -103,7 +100,7 @@ function AvatarPreviewComponent({
           avatarUrl={displayAvatarUrl}
           renderKey={previewRenderKey}
           content={message}
-          useChatBubbleStyle={true}
+          useChatBubbleStyle={activeUseChatBubbleStyle}
         />
       ))}
     </div>
@@ -111,38 +108,18 @@ function AvatarPreviewComponent({
 
   // 渲染完整预览
   const renderFullPreview = () => {
-    // 渲染气泡样式内容
-    const bubbleContent = showBubbleStyle && (
+    const previewContent = (
       <div className="
         rounded-lg border border-base-300 bg-base-100/50 p-4 space-y-2
       ">
         {chatMessages.map(message => (
           <DisplayChatBubble
-            key={`bubble-${message}`}
+            key={`preview-${message}`}
             roleName={characterName}
             avatarCanvasRef={previewCanvasRef}
             avatarUrl={displayAvatarUrl}
             content={message}
-            useChatBubbleStyle={true}
-            renderKey={previewRenderKey}
-          />
-        ))}
-      </div>
-    );
-
-    // 渲染传统样式内容
-    const traditionalContent = showTraditionalStyle && (
-      <div className="
-        rounded-lg border border-base-300 bg-base-100/50 p-4 space-y-2
-      ">
-        {chatMessages.map(message => (
-          <DisplayChatBubble
-            key={`traditional-${message}`}
-            roleName={characterName}
-            avatarCanvasRef={previewCanvasRef}
-            avatarUrl={displayAvatarUrl}
-            content={message}
-            useChatBubbleStyle={false}
+            useChatBubbleStyle={activeUseChatBubbleStyle}
             renderKey={previewRenderKey}
           />
         ))}
@@ -164,63 +141,23 @@ function AvatarPreviewComponent({
         {/* 根据 layout 模式渲染不同布局 */}
         {layout === "toggle" && (
           <div className="relative w-full">
-            {showBubbleStyle && showTraditionalStyle && (
-              <button
-                type="button"
-                className="
-                  btn btn-xs btn-ghost self-end mb-2
-                  sm:btn-sm sm:mb-0 sm:absolute sm:right-2 sm:top-2
-                  z-10
-                "
-                data-no-crop-modal="true"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setSelectedStyle(selectedStyle === "bubble" ? "traditional" : "bubble");
-                }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="size-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
-                </svg>
-                切换
-                {selectedStyle === "bubble" ? "传统" : "气泡"}
-                样式
-              </button>
-            )}
-
-            {((showBubbleStyle && !showTraditionalStyle) || (showBubbleStyle && showTraditionalStyle && selectedStyle === "bubble")) && bubbleContent}
-            {((showTraditionalStyle && !showBubbleStyle) || (showBubbleStyle && showTraditionalStyle && selectedStyle === "traditional")) && traditionalContent}
+            {previewContent}
           </div>
         )}
 
         {layout === "horizontal" && (
           <div className="flex gap-4 w-full">
-            {showBubbleStyle && (
-              <div className="flex-1">
-                <h3 className="text-sm font-semibold mb-2">气泡样式</h3>
-                {bubbleContent}
-              </div>
-            )}
-            {showTraditionalStyle && (
-              <div className="flex-1">
-                <h3 className="text-sm font-semibold mb-2">log样式</h3>
-                {traditionalContent}
-              </div>
-            )}
+            <div className="flex-1">
+              {previewContent}
+            </div>
           </div>
         )}
 
         {layout === "vertical" && (
           <div className="flex flex-col gap-4 w-full">
-            {showBubbleStyle && (
-              <div>
-                {bubbleContent}
-              </div>
-            )}
-            {showTraditionalStyle && (
-              <div>
-                {traditionalContent}
-              </div>
-            )}
+            <div>
+              {previewContent}
+            </div>
           </div>
         )}
       </>
