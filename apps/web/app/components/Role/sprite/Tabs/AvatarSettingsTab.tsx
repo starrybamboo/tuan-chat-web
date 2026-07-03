@@ -228,8 +228,8 @@ function CalibrationPreviewShell({
       <span className="pointer-events-none block">{children}</span>
       <span
         className={`
-          pointer-events-none absolute inset-0 flex items-center justify-center
-          bg-black/0 opacity-0 transition
+            pointer-events-none absolute inset-y-0 right-0 flex w-9/10 items-center justify-center
+            bg-black/0 opacity-0 transition
           ${isInteractive ? "group-hover:bg-black/35 group-hover:opacity-100 group-focus-visible:bg-black/35 group-focus-visible:opacity-100" : ""}
         `}
       >
@@ -415,7 +415,7 @@ function ChatAvatarPreview({ characterName, imageUrl }: PreviewProps) {
       aria-label="头像预览"
     >
       <div className="
-        ml-auto min-w-0 w-5/6 overflow-hidden rounded-md border
+        ml-auto min-w-0 w-9/10 overflow-hidden rounded-md border
         px-3 pt-3
       ">
         <DisplayChatBubble
@@ -996,5 +996,6 @@ export function AvatarSettingsTab({
     </div>
   );
 }
+
 
 
