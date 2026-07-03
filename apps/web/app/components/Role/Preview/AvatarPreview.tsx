@@ -110,7 +110,7 @@ function AvatarPreviewComponent({
   const renderFullPreview = () => {
     const previewContent = (
       <div className="
-        w-5/6 rounded-lg border border-base-300 bg-base-100/50 p-4
+        ml-auto w-5/6 rounded-lg border border-base-300 bg-base-100/50 p-4
         space-y-2
       ">
         {chatMessages.map(message => (
@@ -178,4 +178,5 @@ function AvatarPreviewComponent({
 }
 
 export const AvatarPreview = React.memo(AvatarPreviewComponent);
+
 
