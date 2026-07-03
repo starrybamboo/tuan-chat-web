@@ -996,3 +996,4 @@ export function AvatarSettingsTab({
     </div>
   );
 }
+
