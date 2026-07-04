@@ -222,7 +222,7 @@ export default function MessageContentRenderer({
                     cacheKey={`${resolvedCacheKeyBase}:video`}
                     url={videoUrl}
                     className="
-                      block max-h-[360px] w-full bg-black object-contain
+                      block max-h-[360px] w-full bg-transparent object-contain
                     "
                   />
                   <div className="

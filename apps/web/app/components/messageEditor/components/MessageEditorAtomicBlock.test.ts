@@ -100,7 +100,7 @@ describe("messageEditorAtomicBlock", () => {
     expect(html).toContain("删除");
     expect(html).toContain("拖拽缩放视频");
     expect(html).toContain("https://media.tuan.chat/media/v1/files/047/47/video/low.webm");
-    expect(normalizedHtml).toContain("class=\" block h-auto w-full max-w-full bg-black object-contain \"");
+    expect(normalizedHtml).toContain("class=\" block h-auto w-full max-w-full bg-transparent object-contain \"");
   });
 
   it("restores the persisted resized width for image and video blocks", () => {

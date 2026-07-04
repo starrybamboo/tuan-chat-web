@@ -583,7 +583,7 @@ export function MessageEditorAtomicBlock({
                         cacheKey={`${blockId}:video`}
                         url={uploadedMediaUrl}
                         className="
-                          block h-auto w-full max-w-full bg-black object-contain
+                          block h-auto w-full max-w-full bg-transparent object-contain
                         "
                       />
                     )}
