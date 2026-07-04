@@ -100,6 +100,7 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, onPre
                 className="h-full w-full object-cover"
                 draggable={false}
                 fallbackSrc={fallbackAvatar}
+                loadTransition={true}
                 onError={() => {
                   if (isDev) {
                     console.warn("[SpaceButton] avatar load failed after derivative/original fallback", {
