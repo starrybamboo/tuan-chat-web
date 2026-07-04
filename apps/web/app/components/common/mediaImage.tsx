@@ -164,9 +164,9 @@ export function MediaImage({
   const isLoadingEffectVisible = loadTransition && !isImageLoaded && shouldShowLoadingEffect;
   const loadTransitionClassName = loadTransition
     ? `
-      transition-[filter,opacity] duration-300 ease-out
+      transition-opacity duration-300 ease-out
       motion-reduce:transition-none
-      ${isLoadingEffectVisible ? "blur-sm opacity-85" : "blur-0 opacity-100"}
+      ${isLoadingEffectVisible ? "opacity-85" : "opacity-100"}
     `
     : "";
 
