@@ -10,6 +10,7 @@ import process from "node:process";
 import { ELECTRON_IPC_CHANNELS } from "../../common/ipc";
 
 const WEBGAL_EXE_CANDIDATES = ["WebGAL_Terre.exe", "WebGAL_Teree.exe"];
+const WEBGAL_PACKAGED_RUNTIME_DIR = "webgal-terre";
 const WEBGAL_PORT = 3001;
 const WEBGAL_HEALTHCHECK_PATH = "/api/test";
 const WEBGAL_BOOT_TIMEOUT_MS = 20_000;
@@ -156,11 +157,28 @@ async function waitForWebGALHealthy(
   return false;
 }
 
+function resolveWebGALReleaseDirFromEnv(app: App) {
+  const rawDir = String(process.env.WEBGAL_TERRE_RELEASE_DIR || "").trim();
+  if (!rawDir)
+    return "";
+
+  return path.isAbsolute(rawDir) ? rawDir : path.resolve(app.getAppPath(), rawDir);
+}
+
+function getLocalWebGALReleaseDir(app: App) {
+  return path.resolve(app.getAppPath(), "..", "..", "..", "WebGAL_Terre", "release");
+}
+
 function getWebGALBaseDir(app: App) {
+  const envReleaseDir = resolveWebGALReleaseDirFromEnv(app);
+  if (envReleaseDir)
+    return envReleaseDir;
+
   if (app.isPackaged) {
-    return path.join(process.resourcesPath, "extraResources");
+    return path.join(process.resourcesPath, WEBGAL_PACKAGED_RUNTIME_DIR);
   }
-  return path.join(app.getAppPath(), "extraResources");
+
+  return getLocalWebGALReleaseDir(app);
 }
 
 function getWebGALPath(app: App) {

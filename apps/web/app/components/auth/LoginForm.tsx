@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { ArrowRightIcon, IdentificationCardIcon, UserIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 
@@ -13,23 +13,8 @@ type LoginFormProps = {
   setPassword: (value: string) => void;
   handleSubmit: (e: React.FormEvent) => void;
   isLoading: boolean;
-  loginMethod: "username" | "userId";
-  setLoginMethod: (method: "username" | "userId") => void;
   turnstile?: ReactNode;
 }
-
-const LOGIN_METHOD_OPTIONS = [
-  {
-    value: "username" as const,
-    label: "用户名登录",
-    icon: UserIcon,
-  },
-  {
-    value: "userId" as const,
-    label: "用户 ID 登录",
-    icon: IdentificationCardIcon,
-  },
-] as const;
 
 export function LoginForm({
   username = "",
@@ -38,29 +23,25 @@ export function LoginForm({
   setPassword,
   handleSubmit,
   isLoading,
-  loginMethod,
-  setLoginMethod,
   turnstile,
 }: LoginFormProps) {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
-  const accountInputName = loginMethod === "username" ? "login_username" : "login_user_id";
-  const accountAutocomplete = loginMethod === "username"
-    ? "section-login-username username"
-    : "section-login-userid username";
-  const passwordInputName = loginMethod === "username" ? "login_password_username" : "login_password_userid";
-  const passwordAutocomplete = loginMethod === "username"
-    ? "section-login-username current-password"
-    : "section-login-userid current-password";
+  const accountInputId = "login-username";
+  const accountInputName = "login_username";
+  const accountAutocomplete = "section-login-username username";
+  const passwordInputId = "login-password";
+  const passwordInputName = "login_password_username";
+  const passwordAutocomplete = "section-login-username current-password";
 
   useEffect(() => {
     setIsPasswordVisible(false);
-  }, [loginMethod]);
+  }, []);
 
   const inputClassName = `
     input input-bordered w-full bg-base-200 text-base-content
     placeholder:text-base-content/55 transition-colors
-    focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20
+    focus:border-info focus:outline-none focus:ring-2 focus:ring-info/20
     dark:bg-base-300
   `;
 
@@ -70,57 +51,19 @@ export function LoginForm({
         className="space-y-2"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25, delay: 0.02 }}
-      >
-        <div className="grid grid-cols-2 gap-2 rounded-box border border-base-300 bg-base-200/80 p-1 dark:border-base-200 dark:bg-base-300/80">
-          {LOGIN_METHOD_OPTIONS.map((option) => {
-            const selected = loginMethod === option.value;
-            const Icon = option.icon;
-
-            return (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={selected}
-                className={`
-                  inline-flex h-10 items-center justify-center gap-2 rounded-md px-3
-                  text-sm font-medium transition-colors
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20
-                  ${
-                    selected
-                      ? "border border-primary/25 bg-base-100 text-primary shadow-sm"
-                      : "border border-transparent bg-transparent text-base-content/70 hover:border-base-300 hover:bg-base-100/70 hover:text-base-content"
-                  }
-                `}
-                onClick={() => {
-                  setLoginMethod(option.value);
-                  setUsername("");
-                }}
-              >
-                <Icon className="size-4 shrink-0" weight="bold" />
-                <span>{option.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </motion.div>
-
-      <motion.div
-        className="space-y-2"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25, delay: 0.08 }}
       >
-        <label className="text-xs font-medium uppercase tracking-[0.08em] text-base-content/55">
-          {loginMethod === "username" ? "用户名" : "用户 ID"}
+        <label className="text-xs font-medium uppercase tracking-[0.08em] text-base-content/55" htmlFor={accountInputId}>
+          用户名 / 用户 ID
         </label>
         <input
+          id={accountInputId}
           type="text"
           name={accountInputName}
           autoComplete={accountAutocomplete}
           autoCapitalize="none"
           spellCheck={false}
-          placeholder={loginMethod === "username" ? "请输入用户名" : "请输入用户 ID"}
+          placeholder="请输入用户名或用户 ID"
           className={inputClassName}
           value={username}
           onChange={e => setUsername(e.target.value)}
@@ -133,11 +76,12 @@ export function LoginForm({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25, delay: 0.14 }}
       >
-        <label className="text-xs font-medium uppercase tracking-[0.08em] text-base-content/55">
+        <label className="text-xs font-medium uppercase tracking-[0.08em] text-base-content/55" htmlFor={passwordInputId}>
           密码
         </label>
         <div className="relative">
           <input
+            id={passwordInputId}
             type={isPasswordVisible ? "text" : "password"}
             name={passwordInputName}
             autoComplete={passwordAutocomplete}
@@ -155,7 +99,7 @@ export function LoginForm({
               btn btn-ghost btn-sm btn-square absolute right-1 top-1/2
               -translate-y-1/2 text-base-content/60
               hover:bg-base-200 hover:text-base-content
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/20
             "
             onClick={() => setIsPasswordVisible(visible => !visible)}
           >
@@ -187,7 +131,7 @@ export function LoginForm({
               )
             : (
                 <>
-                  <ArrowRightIcon className="size-4" weight="bold" />
+                  <ArrowRightIcon className="size-4" weight="regular" />
                   登录
                 </>
               )}

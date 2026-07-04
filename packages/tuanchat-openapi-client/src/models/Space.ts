@@ -38,6 +38,10 @@ export type Space = {
      * 状态：0正常 1删除 2归档
      */
     status?: number;
+    /**
+     * 空间禁言状态 0未禁言 1全员禁言(裁判除外)
+     */
+    muteStatus?: number;
     repositoryId?: number;
     /**
      * 克隆来源的base commitId（用于fork追踪）

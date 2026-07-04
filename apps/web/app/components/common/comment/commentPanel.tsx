@@ -143,7 +143,7 @@ export default function CommentPanel({
               <div className="border-t border-base-300/80 pt-4">
                 <div className="
                   mb-3 text-xs font-medium uppercase tracking-[0.18em]
-                  text-base-content/45
+                  text-base-content/50
                 ">
                   参与讨论
                 </div>
@@ -170,7 +170,7 @@ export default function CommentPanel({
               ">
                 <div className="
                   mb-3 text-xs font-medium uppercase tracking-[0.18em]
-                  text-base-content/45
+                  text-base-content/50
                 ">
                   参与讨论
                 </div>

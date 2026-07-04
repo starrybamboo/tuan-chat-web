@@ -22,31 +22,31 @@ type HighlightEmphasisTextareaProps = {
 const NUMERIC_EMPHASIS_PATTERN = /^-?(?:\d+(?:\.\d+)?|\.\d+)::/;
 // The overlay must keep identical text metrics to the real textarea, otherwise
 // emphasized spans change width and the caret appears to drift while typing.
-const COMMENT_CLASS_NAME = "text-base-content/45 dark:text-base-content/45";
+const COMMENT_CLASS_NAME = "text-base-content/50 dark:text-base-content/50";
 const NUMERIC_CLOSE_CLASS_NAME = "bg-emerald-400/82 text-emerald-950 dark:bg-emerald-400/36 dark:text-emerald-50";
 
 const SEGMENT_CLASS_MAP: Record<SegmentTone, Record<0 | 1 | 2 | 3, { syntax: string; text: string }>> = {
   neutral: {
     0: {
-      syntax: "text-base-content/35 dark:text-base-content/35",
+      syntax: "text-base-content/50 dark:text-base-content/50",
       text: "text-base-content/90 dark:text-base-content/90",
     },
     1: {
-      syntax: "text-base-content/35 dark:text-base-content/35",
+      syntax: "text-base-content/50 dark:text-base-content/50",
       text: "text-base-content/90 dark:text-base-content/90",
     },
     2: {
-      syntax: "text-base-content/35 dark:text-base-content/35",
+      syntax: "text-base-content/50 dark:text-base-content/50",
       text: "text-base-content/90 dark:text-base-content/90",
     },
     3: {
-      syntax: "text-base-content/35 dark:text-base-content/35",
+      syntax: "text-base-content/50 dark:text-base-content/50",
       text: "text-base-content/90 dark:text-base-content/90",
     },
   },
   strengthen: {
     0: {
-      syntax: "text-base-content/35 dark:text-base-content/35",
+      syntax: "text-base-content/50 dark:text-base-content/50",
       text: "text-base-content/90 dark:text-base-content/90",
     },
     1: {
@@ -64,7 +64,7 @@ const SEGMENT_CLASS_MAP: Record<SegmentTone, Record<0 | 1 | 2 | 3, { syntax: str
   },
   weaken: {
     0: {
-      syntax: "text-base-content/35 dark:text-base-content/35",
+      syntax: "text-base-content/50 dark:text-base-content/50",
       text: "text-base-content/90 dark:text-base-content/90",
     },
     1: {
@@ -82,7 +82,7 @@ const SEGMENT_CLASS_MAP: Record<SegmentTone, Record<0 | 1 | 2 | 3, { syntax: str
   },
   inverse: {
     0: {
-      syntax: "text-base-content/35 dark:text-base-content/35",
+      syntax: "text-base-content/50 dark:text-base-content/50",
       text: "text-base-content/90 dark:text-base-content/90",
     },
     1: {
@@ -366,12 +366,12 @@ export function HighlightEmphasisTextarea({
           ${contentClassName}
           whitespace-pre-wrap break-words relative z-10 block w-full resize-none
           overflow-hidden bg-transparent
-          focus:outline-none
+          focus:outline-none focus:ring-2 focus:ring-info/30
           ${
           highlightEnabled
             ? `
               text-transparent caret-base-content
-              selection:bg-primary/20
+              selection:bg-info/20
               placeholder:text-transparent
             `
             : "text-base-content"

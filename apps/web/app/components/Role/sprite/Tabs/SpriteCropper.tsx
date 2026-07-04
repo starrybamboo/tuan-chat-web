@@ -1307,7 +1307,7 @@ export function SpriteCropper({
             flex flex-wrap items-center justify-end gap-2
           ">
             {isMultiSelectMode && selectedIndices.size > 1 && (
-              <div className="badge badge-primary">
+              <div className="badge badge-info">
                 选中
                 {selectedIndices.size}
                 个头像

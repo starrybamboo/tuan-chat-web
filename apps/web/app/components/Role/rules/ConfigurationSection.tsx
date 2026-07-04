@@ -140,19 +140,19 @@ export function ConfigurationSection({
         ${sectionHeaderClassName}
         group w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left
         transition-colors hover:bg-base-content/5
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/25
       `}
       title={isOpen ? "收起" : "展开"}
     >
       <ChevronRightIcon
         className={`
           size-4 shrink-0 text-base-content/45 transition-transform
-          group-hover:text-primary
+          group-hover:text-info
           ${isOpen ? "rotate-90" : ""}
         `}
         aria-hidden="true"
       />
-      <Icon className="size-5 shrink-0 text-base-content/80" weight="bold" aria-hidden="true" />
+      <Icon className="size-5 shrink-0 text-base-content/80" weight="regular" aria-hidden="true" />
       <span className="text-lg font-semibold">
         {labelPrefix}
         {customLabel}

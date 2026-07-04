@@ -132,7 +132,7 @@ export function SpaceWebgalGameConfigSection({
               />
               <input
                 type="checkbox"
-                className="toggle toggle-sm toggle-primary"
+                className="toggle toggle-sm toggle-info"
                 checked={gameConfig.coverFromRoomAvatarEnabled}
                 onChange={event => setGameConfig({ coverFromRoomAvatarEnabled: event.target.checked })}
               />
@@ -147,7 +147,7 @@ export function SpaceWebgalGameConfigSection({
               />
               <input
                 type="checkbox"
-                className="toggle toggle-sm toggle-primary"
+                className="toggle toggle-sm toggle-info"
                 checked={gameConfig.startupLogoFromRoomAvatarEnabled}
                 onChange={event => setGameConfig({ startupLogoFromRoomAvatarEnabled: event.target.checked })}
               />
@@ -162,7 +162,7 @@ export function SpaceWebgalGameConfigSection({
               />
               <input
                 type="checkbox"
-                className="toggle toggle-sm toggle-primary"
+                className="toggle toggle-sm toggle-info"
                 checked={gameConfig.gameIconFromRoomAvatarEnabled}
                 onChange={event => setGameConfig({ gameIconFromRoomAvatarEnabled: event.target.checked })}
               />
@@ -177,7 +177,7 @@ export function SpaceWebgalGameConfigSection({
               />
               <input
                 type="checkbox"
-                className="toggle toggle-sm toggle-primary"
+                className="toggle toggle-sm toggle-info"
                 checked={gameConfig.gameNameFromRoomNameEnabled}
                 onChange={event => setGameConfig({ gameNameFromRoomNameEnabled: event.target.checked })}
               />
@@ -192,7 +192,7 @@ export function SpaceWebgalGameConfigSection({
               />
               <input
                 type="checkbox"
-                className="toggle toggle-sm toggle-primary"
+                className="toggle toggle-sm toggle-info"
                 checked={gameConfig.showPanicEnabled}
                 onChange={event => setGameConfig({ showPanicEnabled: event.target.checked })}
               />
@@ -207,7 +207,7 @@ export function SpaceWebgalGameConfigSection({
               />
               <input
                 type="checkbox"
-                className="toggle toggle-sm toggle-primary"
+                className="toggle toggle-sm toggle-info"
                 checked={gameConfig.enableAppreciation}
                 onChange={event => setGameConfig({ enableAppreciation: event.target.checked })}
               />
@@ -222,7 +222,7 @@ export function SpaceWebgalGameConfigSection({
               />
               <input
                 type="checkbox"
-                className="toggle toggle-sm toggle-primary"
+                className="toggle toggle-sm toggle-info"
                 checked={gameConfig.allowOpenFullSettings}
                 onChange={event => setGameConfig({ allowOpenFullSettings: event.target.checked })}
               />
@@ -237,7 +237,7 @@ export function SpaceWebgalGameConfigSection({
               />
               <input
                 type="checkbox"
-                className="toggle toggle-sm toggle-primary"
+                className="toggle toggle-sm toggle-info"
                 checked={gameConfig.speakerFocusEnabled}
                 onChange={event => setGameConfig({ speakerFocusEnabled: event.target.checked })}
               />
@@ -260,7 +260,7 @@ export function SpaceWebgalGameConfigSection({
                     <span>打字音</span>
                     <input
                       type="checkbox"
-                      className="toggle toggle-xs toggle-primary"
+                      className="toggle toggle-xs toggle-info"
                       checked={gameConfig.typingSoundEnabled}
                       onChange={event => setGameConfig({ typingSoundEnabled: event.target.checked })}
                     />
@@ -494,6 +494,8 @@ export function SpaceWebgalGameConfigSection({
               <div className="flex gap-2">
                 <input
                   type="text"
+                  autoComplete="off"
+                  aria-label="游戏简介"
                   className="input input-bordered input-sm flex-1"
                   placeholder="留空则不设定"
                   value={descriptionInput}
@@ -522,6 +524,8 @@ export function SpaceWebgalGameConfigSection({
               <div className="flex gap-2">
                 <input
                   type="text"
+                  autoComplete="off"
+                  aria-label="游戏包名"
                   className="input input-bordered input-sm flex-1"
                   placeholder="如 com.openwebgal.demo"
                   value={packageNameInput}

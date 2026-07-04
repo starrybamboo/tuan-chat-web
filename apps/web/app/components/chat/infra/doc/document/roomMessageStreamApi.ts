@@ -76,6 +76,11 @@ function isRuntimeMessage(value: unknown): value is Message {
 
 type RoomMessageApiResponseItem = Message | ChatMessageResponse;
 
+const DEFAULT_DOC_PATCH_MUTATION_META: RoomMessageMutationMeta = {
+  operationCause: "normal",
+  sourceSurface: "doc_view",
+};
+
 function extractRoomMessage(value: unknown): Message | null {
   if (isRuntimeMessage(value)) {
     return value;
@@ -122,9 +127,9 @@ export async function patchRemoteRoomMessageStream(params: {
     return [];
   }
   const result = await tuanchat.chatController.patchRoomMessages({
+    mutationMeta: params.mutationMeta ?? DEFAULT_DOC_PATCH_MUTATION_META,
     roomId: params.roomId,
     operations,
-    ...(params.mutationMeta ? { mutationMeta: params.mutationMeta } : {}),
   });
   return readRoomMessageStreamMessages(unwrapApiResult(result, "批量变更房间消息列表失败"));
 }

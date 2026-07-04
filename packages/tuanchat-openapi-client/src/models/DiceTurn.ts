@@ -5,9 +5,9 @@
 import type { DiceTurnReply } from './DiceTurnReply';
 export type DiceTurn = {
     /**
-     * 命令文本；兼容旧消息时可为空
+     * 命令文本
      */
-    command?: string;
+    command: string;
     /**
      * 骰娘回复列表
      */

@@ -69,7 +69,7 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
             {
               id: "create-dicer",
               label: isSaving ? "创建中..." : "创建骰娘",
-              icon: <Plus className="size-4" weight="bold" />,
+              icon: <Plus className="size-4" weight="regular" />,
               onClick: handleSubmit,
               disabled: !canSubmit,
               variant: "primary",
@@ -109,7 +109,7 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
                 ? <span className="loading loading-spinner loading-xs"></span>
                 : (
                     <span className="flex items-center gap-1">
-                      <Plus className="size-4" weight="bold" />
+                      <Plus className="size-4" weight="regular" />
                       创建骰娘
                     </span>
                   )}
@@ -140,11 +140,13 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
                   </div>
                   <input
                     type="text"
+                    autoComplete="off"
+                    aria-label="骰娘名称"
                     className="
                       input input-bordered bg-base-200 rounded-md w-full
                       transition
-                      focus:outline-none focus:ring-2 focus:ring-primary/20
-                      focus:border-primary
+                      focus:outline-none focus:ring-2 focus:ring-info/20
+                      focus:border-info
                     "
                     placeholder="输入骰娘名称"
                     value={name}
@@ -172,9 +174,11 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
                     className="
                       textarea textarea-bordered bg-base-200 rounded-md min-h-30
                       resize-y w-full transition
-                      focus:outline-none focus:ring-2 focus:ring-primary/20
-                      focus:border-primary
+                      focus:outline-none focus:ring-2 focus:ring-info/20
+                      focus:border-info
                     "
+                    autoComplete="off"
+                    aria-label="骰娘简介"
                     placeholder="描述这个骰娘的背景故事、性格特点、说话风格等"
                     value={description}
                     onChange={e => setDescription(e.target.value)}

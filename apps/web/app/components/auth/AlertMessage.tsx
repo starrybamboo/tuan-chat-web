@@ -15,7 +15,7 @@ export function AlertMessage({ errorMessage, successMessage }: AlertMessageProps
           aria-atomic="true"
           className="alert alert-error items-start gap-3 shadow-lg"
         >
-          <WarningCircleIcon className="mt-0.5 size-5 shrink-0" weight="bold" />
+          <WarningCircleIcon className="mt-0.5 size-5 shrink-0" weight="regular" />
           <span className="text-sm leading-6">{errorMessage}</span>
         </div>
       )}
@@ -26,7 +26,7 @@ export function AlertMessage({ errorMessage, successMessage }: AlertMessageProps
           aria-atomic="true"
           className="alert alert-success items-start gap-3 shadow-lg"
         >
-          <CheckCircleIcon className="mt-0.5 size-5 shrink-0" weight="bold" />
+          <CheckCircleIcon className="mt-0.5 size-5 shrink-0" weight="regular" />
           <span className="text-sm leading-6">{successMessage}</span>
         </div>
       )}

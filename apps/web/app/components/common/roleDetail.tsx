@@ -3,12 +3,10 @@ import { use, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
-import ConfirmModal from "@/components/common/comfirmModel";
-import { MediaImage } from "@/components/common/mediaImage";
-import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import ExpansionModule from "@/components/Role/rules/ExpansionModule";
-import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 
 import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery, useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
@@ -42,7 +40,6 @@ export function RoleDetail({
   const shouldFetchRole = roleStateHint == null || roleStateHint === 0;
   const roleQuery = useGetRoleQuery(shouldFetchRole ? roleId : -1);
   const role = roleQuery.data?.data;
-  const avatarUrl = useResolvedRoleAvatarUrl(role, "");
   const user = role?.userId ?? -1;
   const userName = useGetUserInfoQuery(user).data?.data?.username || "未知用户";
 
@@ -96,7 +93,7 @@ export function RoleDetail({
               <div className="shrink-0">
                 <div className="avatar">
                   <div className="
-                    w-20 h-20 rounded-full ring ring-primary
+                    w-20 h-20 rounded-full ring ring-info
                     ring-offset-base-100 ring-offset-2 overflow-hidden
                   ">
                     {roleQuery.isLoading
@@ -108,11 +105,12 @@ export function RoleDetail({
                             bg-neutral text-neutral-content flex items-center
                             justify-center text-3xl
                           ">
-                            <MediaImage
-                              src={avatarUrl}
+                            <RoleAvatarByRole
+                              role={role}
+                              width={20}
+                              isRounded={true}
+                              stopToastWindow={true}
                               alt="avatar"
-                              className="w-20 h-20 object-cover"
-                              fallbackSrc={ROLE_DEFAULT_AVATAR_URL}
                             />
                           </div>
                         )}
@@ -179,7 +177,7 @@ export function RoleDetail({
                             </span>
                           )}
                           {hasHostAccess && (
-                            <span className="badge badge-primary badge-xs">
+                            <span className="badge badge-info badge-xs">
                               你有主持权限
                             </span>
                           )}
@@ -236,14 +234,14 @@ export function RoleDetail({
       )}
 
       {/* 踢出角色确认弹窗 */}
-      <ConfirmModal
-        isOpen={isKickConfirmOpen}
-        onClose={() => setIsKickConfirmOpen(false)}
+      <ConfirmDialog
+        open={isKickConfirmOpen}
+        onOpenChange={() => setIsKickConfirmOpen(false)}
         title="确认踢出角色"
-        message="确定要将该角色从当前房间移除吗？此操作将解除该角色与房间的关联。"
+        description="确定要将该角色从当前房间移除吗？此操作将解除该角色与房间的关联。"
         onConfirm={handleRemoveRole}
-        confirmText="确认踢出"
-        cancelText="取消"
+        confirmLabel="确认踢出"
+        cancelLabel="取消"
         variant="warning"
       />
     </div>

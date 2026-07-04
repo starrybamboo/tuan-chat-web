@@ -68,7 +68,6 @@ export default function useRoomSidebarDocCopy({
         docId: String(sourceDocRoomId),
         ...(docRef.spaceId ? { spaceId: docRef.spaceId } : {}),
         title: docRef.title,
-        imageUrl: docRef.imageUrl,
         imageFileId: docRef.imageFileId,
         originalImageFileId: docRef.originalImageFileId,
         imageMediaType: docRef.imageMediaType,
@@ -78,7 +77,6 @@ export default function useRoomSidebarDocCopy({
         sourceDocId: String(sourceDocRoomId),
         sourceSpaceId: cleanDocRef.spaceId,
         title: cleanDocRef.title,
-        imageUrl: cleanDocRef.imageUrl,
         imageFileId: cleanDocRef.imageFileId,
         originalImageFileId: cleanDocRef.originalImageFileId,
         imageMediaType: cleanDocRef.imageMediaType,
@@ -87,7 +85,6 @@ export default function useRoomSidebarDocCopy({
       const newMeta: MinimalDocMeta = {
         id: res.newDocId,
         title: res.title,
-        ...(cleanDocRef.imageUrl ? { imageUrl: cleanDocRef.imageUrl } : {}),
         ...(cleanDocRef.imageFileId ? { imageFileId: cleanDocRef.imageFileId } : {}),
         ...(cleanDocRef.originalImageFileId ? { originalImageFileId: cleanDocRef.originalImageFileId } : {}),
         ...(cleanDocRef.imageMediaType ? { imageMediaType: cleanDocRef.imageMediaType } : {}),
@@ -109,7 +106,6 @@ export default function useRoomSidebarDocCopy({
           type: "doc",
           targetId: res.newDocId,
           fallbackTitle: res.title,
-          ...(cleanDocRef.imageUrl ? { fallbackImageUrl: cleanDocRef.imageUrl } : {}),
           ...(cleanDocRef.imageFileId ? { fallbackImageFileId: cleanDocRef.imageFileId } : {}),
           ...(cleanDocRef.originalImageFileId ? { fallbackOriginalImageFileId: cleanDocRef.originalImageFileId } : {}),
           ...(cleanDocRef.imageMediaType ? { fallbackImageMediaType: cleanDocRef.imageMediaType } : {}),
@@ -124,7 +120,6 @@ export default function useRoomSidebarDocCopy({
             continue;
           const coverFields = buildDocCardReferencePayload({
             docId: id,
-            imageUrl: m.imageUrl,
             imageFileId: m.imageFileId,
             originalImageFileId: m.originalImageFileId,
             imageMediaType: m.imageMediaType,
@@ -133,7 +128,6 @@ export default function useRoomSidebarDocCopy({
             map.set(id, {
               id,
               ...(m.title ? { title: m.title } : {}),
-              ...(coverFields.imageUrl ? { imageUrl: coverFields.imageUrl } : {}),
               ...(coverFields.imageFileId ? { imageFileId: coverFields.imageFileId } : {}),
               ...(coverFields.originalImageFileId ? { originalImageFileId: coverFields.originalImageFileId } : {}),
               ...(coverFields.imageMediaType ? { imageMediaType: coverFields.imageMediaType } : {}),
@@ -146,14 +140,9 @@ export default function useRoomSidebarDocCopy({
           }
           if (!existing.imageFileId && coverFields.imageFileId) {
             existing.imageFileId = coverFields.imageFileId;
-            delete existing.imageUrl;
           }
           if (!existing.originalImageFileId && coverFields.originalImageFileId) {
             existing.originalImageFileId = coverFields.originalImageFileId;
-            delete existing.imageUrl;
-          }
-          if (!existing.imageUrl && coverFields.imageUrl && !existing.imageFileId && !existing.originalImageFileId) {
-            existing.imageUrl = coverFields.imageUrl;
           }
           if (!existing.imageMediaType && coverFields.imageMediaType) {
             existing.imageMediaType = coverFields.imageMediaType;

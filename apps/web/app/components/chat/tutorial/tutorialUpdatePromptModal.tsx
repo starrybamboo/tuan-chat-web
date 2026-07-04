@@ -78,9 +78,9 @@ export default function TutorialUpdatePromptModal({
               type="checkbox"
               className="
                 checkbox checkbox-xs rounded-sm border-base-content/30
-                checked:border-primary
-                [--chkbg:var(--color-primary)]
-                [--chkfg:var(--color-primary-content)]
+                checked:border-info
+                [--chkbg:var(--color-info)]
+                [--chkfg:var(--color-info-content)]
               "
               checked={suppress}
               onChange={e => setSuppress(e.target.checked)}

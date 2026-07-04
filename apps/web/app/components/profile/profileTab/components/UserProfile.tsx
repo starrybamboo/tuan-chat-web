@@ -71,6 +71,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                       <div className="flex items-center gap-2">
                         <input
                           type="text"
+                          autoComplete="off"
+                          aria-label="用户名"
                           value={editingUsername}
                           onChange={e => setEditingUsername(e.target.value)}
                           onKeyDown={(e) => {
@@ -98,7 +100,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                               <>
                                 {user.username}
                                 {" "}
-                                <span className="text-sm text-gray-400 block">
+                                <span className="text-sm text-base-content/50 block">
                                   UID:
                                   {" "}
                                   {userId}
@@ -120,6 +122,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
+                        autoComplete="off"
+                        aria-label="用户名"
                         value={editingUsername}
                         onChange={e => setEditingUsername(e.target.value)}
                         onKeyDown={(e) => {
@@ -155,7 +159,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                               {user.username}
                               {" "}
                               <span className={`
-                                text-sm text-gray-400
+                                text-sm text-base-content/50
                                 ${isMobile ? `inline` : `block`}
                               `}>
                                 UID:
@@ -178,6 +182,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           ? (
               <div className="space-y-2">
                 <textarea
+                  autoComplete="off"
+                  aria-label="个人描述"
                   value={editingDescription}
                   onChange={e => setEditingDescription(e.target.value)}
                   onKeyDown={(e) => {
@@ -270,7 +276,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                   <button
                     onClick={() => setIsExpanded(prev => !prev)}
                     className={`
-                      text-blue-400 text-xs
+                      text-info text-xs
                       hover:underline
                       transition-colors duration-200
                       ${

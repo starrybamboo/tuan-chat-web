@@ -171,9 +171,9 @@ export function DoubleClickEditableText<T = string>({
   };
   const { className: displayPropsClassName, ...restDisplayProps } = displayProps ?? {};
   const { className: inputPropsClassName, ...restInputProps } = inputProps ?? {};
-  const baseDisplayClassName = disabled ? "" : "transition-colors duration-150 hover:text-primary";
+  const baseDisplayClassName = disabled ? "" : "transition-colors duration-150 hover:text-info";
   const mergedDisplayClassName = [baseDisplayClassName, displayPropsClassName, displayClassName].filter(Boolean).join(" ");
-  const baseInputClassName = "transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
+  const baseInputClassName = "transition focus:outline-none focus:ring-2 focus:ring-info/20 focus:border-info";
   const mergedInputClassName = [inputPropsClassName, inputClassName, baseInputClassName].filter(Boolean).join(" ");
 
   if (isEditing) {

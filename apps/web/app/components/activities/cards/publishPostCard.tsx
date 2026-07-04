@@ -5,8 +5,8 @@ import React, { useEffect, useRef, useState } from "react";
 import StickerWindow from "@/components/chat/window/StickerWindow";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
+import { UserAvatarByUser } from "@/components/common/userAccess";
 import { EmojiIconWhite, Image2Fill, XMarkICon } from "@/icons";
-import { imageLowUrl } from "@/utils/media/mediaUrl";
 import { UploadUtils } from "@/utils/media/UploadUtils";
 
 import type { PublishPostImageAsset } from "./publishPostMedia";
@@ -215,15 +215,13 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
     ">
       <div className="flex items-start space-x-4">
         <div className="pointer-events-none relative flex-shrink-0">
-          <MediaImage
-            src={imageLowUrl(user?.avatarFileId) || undefined}
-            alt={user?.username}
-            className="
-              mask mask-circle w-12 h-12
-              sm:w-14 sm:h-14
-              object-cover
-            "
-            fallbackSrc="/favicon.ico"
+          <UserAvatarByUser
+            user={user}
+            fallbackUserId={loginUserId}
+            width={14}
+            isRounded={true}
+            stopToastWindow={true}
+            clickEnterProfilePage={false}
           />
         </div>
 
@@ -232,11 +230,13 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
             <textarea
               value={content}
               onChange={e => setContent(e.target.value)}
+              autoComplete="off"
+              aria-label="发布动态"
               placeholder="有什么新鲜事想告诉大家？"
               className="
                 w-full p-3 border border-base-300 rounded-lg resize-none
-                focus:outline-none focus:ring-2 focus:ring-primary
-                focus:border-primary
+                focus:outline-none focus:ring-2 focus:ring-info
+                focus:border-info
                 transition-all duration-200
               "
               rows={rows}
@@ -249,7 +249,7 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
                 absolute inset-0 bg-base-100/80 rounded-lg flex items-center
                 justify-center
               ">
-                <div className="loading loading-spinner loading-sm text-primary"></div>
+                <div className="loading loading-spinner loading-sm text-info"></div>
               </div>
             )}
           </div>
@@ -336,7 +336,7 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
               <button
                 className="
                   text-base-content/60
-                  hover:text-primary
+                  hover:text-info
                   transition-colors p-1 rounded-full
                   hover:bg-base-200
                   disabled:opacity-50
@@ -355,7 +355,7 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
                 <div
                   className="
                     text-base-content/60
-                    hover:text-primary
+                    hover:text-info
                     transition-colors p-1 rounded-full
                     hover:bg-base-200
                     cursor-pointer
@@ -396,12 +396,12 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
                   ${
                   canPublish
                     ? `
-                      bg-primary text-primary-content
-                      hover:bg-primary/90
+                      bg-info text-info-content
+                      hover:bg-info/90
                       cursor-pointer shadow-sm
                       hover:shadow
                     `
-                    : "bg-base-300 text-base-content/40"
+                    : "bg-base-300 text-base-content/50"
                 }
                 `}
                 disabled={!canPublish}

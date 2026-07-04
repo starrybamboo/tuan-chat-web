@@ -6,14 +6,14 @@ export default function TopInfo({ currentContactUserInfo }: { setIsOpenLeftDrawe
 
   return (
     <div className="
-      border-gray-300
-      dark:border-gray-700
+      border-base-300
+      dark:border-base-300
       border-b flex justify-between items-center overflow-visible relative z-10
     ">
       <div
         className="
           flex justify-between items-center w-full px-2 h-10 bg-white/40
-          dark:bg-slate-950/25
+          dark:bg-base-300/25
           backdrop-blur-xl border border-white/40
           dark:border-white/10
         "

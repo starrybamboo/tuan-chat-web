@@ -7,7 +7,8 @@ export default function WaitingIndicator({
   compact?: boolean;
   name?: null | string;
 }) {
-  const indicatorSizeClass = compact ? "h-3.5 w-3.5" : "h-4 w-4";
+  const dotSizeClass = compact ? "size-1" : "size-1.5";
+  const dotGapClass = compact ? "gap-0.5" : "gap-1";
 
   return (
     <span className={compact ? "inline-flex items-center gap-1.5 text-warning" : `
@@ -17,33 +18,24 @@ export default function WaitingIndicator({
         text-xs font-medium
       `}>{name}</span>}
       <span className={`
-        relative inline-flex
-        ${indicatorSizeClass}
-        shrink-0 items-center justify-center
+        inline-flex shrink-0 items-center ${dotGapClass}
       `}>
-        <svg aria-hidden="true" className="
-          absolute inset-0 size-full text-warning/30
-        " viewBox="0 0 16 16">
-          <circle cx="8" cy="8" fill="none" r="6.25" stroke="currentColor" strokeWidth="1.5" />
-        </svg>
-        <motion.svg
-          aria-hidden="true"
-          animate={{ rotate: 360 }}
-          className="absolute inset-0 size-full text-warning"
-          transition={{ duration: 1.25, ease: "linear", repeat: Infinity }}
-          viewBox="0 0 16 16"
-        >
-          <circle
-            cx="8"
-            cy="8"
-            fill="none"
-            r="6.25"
-            stroke="currentColor"
-            strokeDasharray="11 30"
-            strokeLinecap="round"
-            strokeWidth="1.8"
+        {[0, 1, 2].map(index => (
+          <motion.span
+            key={index}
+            aria-hidden="true"
+            animate={{ scale: [1, 1.5, 1] }}
+            className={`
+              ${dotSizeClass} rounded-full bg-current will-change-transform
+            `}
+            transition={{
+              delay: index * 0.2,
+              duration: 1.2,
+              ease: "easeInOut",
+              repeat: Infinity,
+            }}
           />
-        </motion.svg>
+        ))}
       </span>
     </span>
   );

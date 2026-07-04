@@ -10,15 +10,15 @@ import {
   normalizeMediaContent,
 } from "@/components/common/content/mediaContent";
 import TextMediaEditor from "@/components/common/markdown/textMediaEditor";
+import { consumeFeedbackAttachmentDraft } from "@/components/feedback/feedbackAttachmentDraft";
 import {
   appendFeedbackAttachmentTokens,
   formatFeedbackAttachmentSize,
   uploadFeedbackAttachments,
 } from "@/components/feedback/feedbackAttachments";
-import { consumeFeedbackAttachmentDraft } from "@/components/feedback/feedbackAttachmentDraft";
 import { useCreateFeedbackIssueMutation } from "@/components/feedback/feedbackHooks";
 import { FEEDBACK_ISSUE_TYPE_OPTIONS } from "@/components/feedback/feedbackTypes";
-import { UploadUtils } from "@/utils/UploadUtils";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) {
@@ -112,7 +112,7 @@ export default function FeedbackComposer({
           type="button"
           className={`
             btn btn-sm
-            ${isExpanded ? "btn-ghost" : "btn-primary"}
+            ${isExpanded ? "btn-ghost" : "btn-warning"}
           `}
           onClick={() => setIsExpanded(current => !current)}
         >

@@ -135,7 +135,7 @@ export default function RuleTextInfoEditor({
           <button
             type="button"
             className={`
-              btn btn-sm btn-accent
+              btn btn-sm btn-info
               ${isEditing ? `invisible pointer-events-none` : ""}
             `}
             onClick={handleStartEditing}
@@ -167,7 +167,7 @@ export default function RuleTextInfoEditor({
                   text-sm/relaxed text-base-content/70 whitespace-pre-wrap
                   wrap-break-words min-h-12
                 ">
-                  {ruleName || <span className="text-base-content/40">未命名规则</span>}
+                  {ruleName || <span className="text-base-content/50">未命名规则</span>}
                 </div>
               </div>
 
@@ -180,7 +180,7 @@ export default function RuleTextInfoEditor({
                   text-sm/relaxed text-base-content/70 whitespace-pre-wrap
                   wrap-break-words min-h-45
                 ">
-                  {ruleDescription || <span className="text-base-content/40">暂无描述</span>}
+                  {ruleDescription || <span className="text-base-content/50">暂无描述</span>}
                 </div>
               </div>
             </div>
@@ -211,6 +211,8 @@ export default function RuleTextInfoEditor({
                 </div>
                 <input
                   type="text"
+                  autoComplete="off"
+                  aria-label="规则名称"
                   className={`
                     input input-bordered bg-base-200 rounded-md w-full
                     transition
@@ -221,7 +223,7 @@ export default function RuleTextInfoEditor({
                         input-error border-error
                         focus:ring-error/20 focus:border-error
                       `
-                      : "focus:ring-primary/20 focus:border-primary"
+                      : "focus:ring-info/20 focus:border-info"
                   }
                   `}
                   placeholder="输入规则名称"
@@ -255,8 +257,8 @@ export default function RuleTextInfoEditor({
                   className="
                     textarea textarea-bordered bg-base-200 rounded-md min-h-50
                     resize-y w-full transition
-                    focus:outline-none focus:ring-2 focus:ring-primary/20
-                    focus:border-primary
+                    focus:outline-none focus:ring-2 focus:ring-info/20
+                    focus:border-info
                   "
                   placeholder="描述规则定位、核心机制和适用场景"
                   value={localDescription}

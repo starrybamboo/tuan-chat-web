@@ -435,8 +435,8 @@ export default function ChatPageSubWindow({
             className={`
               h-24 w-6 rounded-l-xl border-y border-l border-base-300/50
               bg-base-100/90 backdrop-blur-sm text-base-content/50
-              shadow-[-4px_0_12px_rgba(0,0,0,0.05)]
-              hover:w-8 hover:text-primary hover:bg-base-100
+              shadow-sm
+              hover:w-8 hover:text-info hover:bg-base-100
               active:scale-95
               transition-all cursor-col-resize flex items-center justify-center
               ${isRightEdgeActive ? `pointer-events-auto` : `
@@ -496,7 +496,7 @@ export default function ChatPageSubWindow({
             onDrop={handleDrop}
           >
             <div className="
-              rounded-xl border border-primary/30 bg-base-100/92 px-4 py-2
+              rounded-xl border border-info/30 bg-base-100/92 px-4 py-2
               text-sm font-semibold text-base-content shadow
             ">
               松开以替换副窗口内容

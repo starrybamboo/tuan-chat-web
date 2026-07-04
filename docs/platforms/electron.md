@@ -19,7 +19,7 @@
 
 - `pnpm desktop:dev`：启动 web dev server 与 Electron。
 - `pnpm --filter @tuanchat/desktop run compile`：编译 main / preload 到 `apps/desktop/electron`。
-- `pnpm desktop:build`：准备 extraResources、构建 web、同步 renderer、编译 Electron，并调用 `electron-builder`。
+- `pnpm desktop:build`：校验本地 WebGAL_Terre 发行目录、构建 web、同步 renderer、编译 Electron，并调用 `electron-builder`。
 
 ## IPC 约定
 

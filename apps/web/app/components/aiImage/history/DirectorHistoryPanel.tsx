@@ -80,15 +80,14 @@ export function DirectorHistoryPanel({
   onCollapse,
 }: DirectorHistoryPanelProps) {
   const directorHistoryCardClassName = "group rounded-2xl border p-2 transition-colors";
-  const directorHistoryCardIdleClassName = "border-base-300 bg-base-100 hover:border-primary/35 hover:bg-base-200/55";
-  const directorHistoryCardActiveClassName = "border-primary/45 bg-primary/10";
+  const directorHistoryCardIdleClassName = "border-base-300 bg-base-100 hover:border-info/35 hover:bg-base-200/55";
+  const directorHistoryCardActiveClassName = "border-info/45 bg-info/10";
 
   return (
     <div className="
       h-full min-h-0 w-[196px] shrink-0 overflow-hidden border-l
-      border-[#D6DCE3] bg-[#F3F5F7] p-3
-      dark:border-[#2A3138] dark:bg-[#161A1F]
-    ">
+      border-base-300 bg-base-200 p-3
+           ">
       <div className="flex h-full min-h-0 flex-col">
         <div className="mb-3 flex items-center gap-2 px-1">
           <div className="flex items-center gap-1">
@@ -109,14 +108,14 @@ export function DirectorHistoryPanel({
             title="收起历史记录侧边栏"
             onClick={onCollapse}
           >
-            <CaretRightIcon className="size-3.5" weight="bold" />
+            <CaretRightIcon className="size-3.5" weight="regular" />
           </button>
         </div>
         <div className="ai-image-fade-scrollbar flex-1 overflow-auto pr-1">
           <div className="mb-4">
             <div className="
               mb-2 px-1 text-[11px] font-medium uppercase tracking-[0.18em]
-              text-base-content/45
+              text-base-content/50
             ">Current</div>
             <div className="flex flex-col gap-2">
               {currentResultCards.map(({ item, index, row }) => (
@@ -169,16 +168,15 @@ export function DirectorHistoryPanel({
                 </div>
               ))}
               {!currentResultCards.length ? <div className="
-                px-1 py-2 text-xs text-base-content/45
+                px-1 py-2 text-xs text-base-content/50
               ">暂无当前结果</div> : null}
             </div>
           </div>
 
           <details
             className="
-              rounded-2xl border border-[#D6DCE3] bg-[#F3F5F7] px-2 py-1
-              dark:border-[#2A3138] dark:bg-[#161A1F]
-            "
+              rounded-2xl border border-base-300 bg-base-200 px-2 py-1
+                           "
             open={isHistoryExpanded}
             onToggle={(event) => {
               onHistoryExpandedChange(event.currentTarget.open);
@@ -188,11 +186,11 @@ export function DirectorHistoryPanel({
               <div className="flex items-center gap-2">
                 <div className="
                   text-[11px] font-medium uppercase tracking-[0.18em]
-                  text-base-content/45
+                  text-base-content/50
                 ">History</div>
                 <div className="
                   ml-auto flex items-center gap-2 text-[11px]
-                  text-base-content/45
+                  text-base-content/50
                 ">
                   <ChevronDown className={`
                     size-4 transition-transform
@@ -252,7 +250,7 @@ export function DirectorHistoryPanel({
                 </div>
               ))}
               {!archivedHistoryRows.length ? <div className="
-                px-1 py-2 text-xs text-base-content/45
+                px-1 py-2 text-xs text-base-content/50
               ">暂无历史记录</div> : null}
             </div>
           </details>

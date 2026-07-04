@@ -19,7 +19,6 @@ const makeRole = (overrides: Partial<UserRole>): UserRole => ({
   roleName: "role",
   description: "",
   type: 0,
-  diceMaiden: false,
   extra: {},
   ...overrides,
 });
@@ -35,8 +34,8 @@ const makeAvatar = (overrides: Partial<RoleAvatar>): RoleAvatar => ({
 describe("roleQueryCache", () => {
   it("upserts created roles into matching user role list caches only", () => {
     const queryClient = new QueryClient();
-    const createdRole = makeRole({ roleId: 10, roleName: "created", type: 1, diceMaiden: true });
-    const existingRole = makeRole({ roleId: 5, roleName: "existing", type: 1, diceMaiden: true });
+    const createdRole = makeRole({ roleId: 10, roleName: "created", type: 1 });
+    const existingRole = makeRole({ roleId: 5, roleName: "existing", type: 1 });
 
     queryClient.setQueryData(["getUserRolesByType", 1, 1], [existingRole]);
     queryClient.setQueryData(["getUserRolesByType", 1, 0], [makeRole({ roleId: 3, type: 0 })]);

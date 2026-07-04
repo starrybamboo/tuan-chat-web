@@ -104,7 +104,7 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
 
     const span = document.createElement("span");
     span.textContent = `@${role.roleName}` + "\u00A0"; // 非断行空格
-    span.className = "inline text-blue-500 bg-transparent px-0 py-0 border-none";
+    span.className = "inline text-info bg-transparent px-0 py-0 border-none";
     span.contentEditable = "false";
     span.style.display = "inline-block";
     span.dataset.role = JSON.stringify(role);
@@ -298,7 +298,7 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
                       flex-col items-center justify-center py-2 bg-base-200/50
                       border border-base-300/50
                       ${isSelected ? `
-                        active !bg-primary !border-primary !text-primary-content
+                        active !bg-info !border-info !text-info-content
                       ` : ""}
                     `}
                     onClick={() => handleSelectRole(role)}
@@ -309,7 +309,7 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
                         className={`
                           text-xs
                           ${
-                          isSelected ? "text-primary-content/80" : `
+                          isSelected ? "text-info-content/80" : `
                             text-base-content/60
                           `
                         }
@@ -331,7 +331,7 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
                   aria-selected={isSelected}
                   className={`
                     gap-3 py-2
-                    ${isSelected ? `active !bg-primary !text-primary-content` : ""}
+                    ${isSelected ? `active !bg-info !text-info-content` : ""}
                   `}
                   onClick={() => handleSelectRole(role)}
                 >
@@ -350,7 +350,7 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
                         className={`
                           text-xs truncate w-full
                           ${
-                          isSelected ? "text-primary-content/90" : `
+                          isSelected ? "text-info-content/90" : `
                             text-base-content
                           `
                         }

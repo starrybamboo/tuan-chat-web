@@ -58,18 +58,19 @@ export function shouldShowAndroidBackgroundPushOnboarding(
   serviceStatus: AndroidForegroundMessageServiceStatus | null,
   isDismissed: boolean,
 ) {
-  if (isDismissed || diagnostic === null) {
+  if (isDismissed) {
     return false;
   }
 
-  if (serviceStatus === null) {
+  if (diagnostic === null || serviceStatus === null) {
     return true;
   }
 
-  const batteryReady = diagnostic.ignoringBatteryOptimizations !== false;
-  const backgroundReady = diagnostic.backgroundRestricted !== true;
-  const notificationReady = serviceStatus.notificationsEnabled !== false
-    && serviceStatus.messageChannelImportance !== 0;
+  const batteryReady = diagnostic.ignoringBatteryOptimizations === true;
+  const backgroundReady = diagnostic.backgroundRestricted === false;
+  const notificationReady = serviceStatus.notificationsEnabled === true
+    && serviceStatus.messageChannelImportance !== undefined
+    && serviceStatus.messageChannelImportance > 0;
 
   return !batteryReady || !backgroundReady || !notificationReady;
 }

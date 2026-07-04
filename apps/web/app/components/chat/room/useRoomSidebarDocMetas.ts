@@ -45,12 +45,10 @@ export default function useRoomSidebarDocMetas({
       }
 
       const title = typeof m?.title === "string" && m.title.trim().length > 0 ? m.title : undefined;
-      const imageUrl = typeof m?.imageUrl === "string" && m.imageUrl.trim().length > 0 ? m.imageUrl : undefined;
       const imageFileId = typeof m?.imageFileId === "number" && m.imageFileId > 0 ? m.imageFileId : undefined;
       const originalImageFileId = typeof m?.originalImageFileId === "number" && m.originalImageFileId > 0 ? m.originalImageFileId : undefined;
       const imageMediaType = typeof m?.imageMediaType === "string" && m.imageMediaType.trim().length > 0 ? m.imageMediaType : undefined;
       const coverFields = buildDocCardCoverReferenceFields({
-        imageUrl,
         imageFileId,
         originalImageFileId,
         imageMediaType,
@@ -70,14 +68,9 @@ export default function useRoomSidebarDocMetas({
       }
       if (!existing.imageFileId && coverFields.imageFileId) {
         existing.imageFileId = coverFields.imageFileId;
-        delete existing.imageUrl;
       }
       if (!existing.originalImageFileId && coverFields.originalImageFileId) {
         existing.originalImageFileId = coverFields.originalImageFileId;
-        delete existing.imageUrl;
-      }
-      if (!existing.imageUrl && coverFields.imageUrl && !existing.imageFileId && !existing.originalImageFileId) {
-        existing.imageUrl = coverFields.imageUrl;
       }
       if (!existing.imageMediaType && coverFields.imageMediaType) {
         existing.imageMediaType = coverFields.imageMediaType;

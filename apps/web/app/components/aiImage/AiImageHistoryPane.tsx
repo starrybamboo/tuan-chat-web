@@ -5,9 +5,11 @@ import type {
 } from "@/components/aiImage/history/types";
 import type { AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
 
+import { TrashSimpleIcon } from "@phosphor-icons/react";
 import { DirectorHistoryPanel } from "@/components/aiImage/history/DirectorHistoryPanel";
-import { ClearHistoryConfirmModal, DeleteHistoryConfirmModal, DownloadHistoryConfirmModal } from "@/components/aiImage/history/HistoryConfirmModal";
 import { StandardHistoryPanel } from "@/components/aiImage/history/StandardHistoryPanel";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { SharpDownload } from "@/icons";
 
 export function AiImageHistoryPane({
   isDirectorToolsOpen,
@@ -125,20 +127,44 @@ export function AiImageHistoryPane({
               onCollapse={onCollapse}
             />
           )}
-      <DownloadHistoryConfirmModal
-        isOpen={isDownloadHistoryConfirmOpen}
-        onClose={handleCloseDownloadHistoryConfirm}
+      <ConfirmDialog
+        open={isDownloadHistoryConfirmOpen}
+        onOpenChange={(open) => {
+          if (!open)
+            handleCloseDownloadHistoryConfirm();
+        }}
         onConfirm={handleConfirmDownloadHistory}
+        title="下载全部图片？"
+        confirmLabel="开始下载"
+        cancelLabel="暂不下载"
+        icon={<SharpDownload className="size-6" />}
+        variant="info"
       />
-      <ClearHistoryConfirmModal
-        isOpen={isClearHistoryConfirmOpen}
-        onClose={handleCloseClearHistoryConfirm}
+      <ConfirmDialog
+        open={isClearHistoryConfirmOpen}
+        onOpenChange={(open) => {
+          if (!open)
+            handleCloseClearHistoryConfirm();
+        }}
         onConfirm={() => void handleConfirmClearHistory()}
+        title="清空全部历史记录？"
+        confirmLabel="确认清空"
+        cancelLabel="先不清空"
+        icon={<TrashSimpleIcon className="size-6" weight="regular" />}
+        variant="danger"
       />
-      <DeleteHistoryConfirmModal
-        isOpen={Boolean(pendingDeleteHistoryRow)}
-        onClose={handleCloseDeleteHistoryRow}
+      <ConfirmDialog
+        open={Boolean(pendingDeleteHistoryRow)}
+        onOpenChange={(open) => {
+          if (!open)
+            handleCloseDeleteHistoryRow();
+        }}
         onConfirm={() => void handleConfirmDeleteHistoryRow()}
+        title="删除这张图片？"
+        confirmLabel="确认删除"
+        cancelLabel="先保留"
+        icon={<TrashSimpleIcon className="size-6" weight="regular" />}
+        variant="danger"
       />
     </>
   );

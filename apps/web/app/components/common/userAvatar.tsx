@@ -2,30 +2,12 @@ import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { MediaImage } from "@/components/common/mediaImage";
+import { Avatar, AVATAR_HOVER_IMAGE_CLASS, AVATAR_HOVER_SHELL_CLASS, type AvatarSize } from "@/components/common/Avatar";
 import { buildUserProfileNavigation } from "@/components/common/userAvatarNavigation";
 import { UserDetail } from "@/components/common/userDetail";
 import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/media/mediaUrl";
 
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
-
-// 如果是 import 的sizeMap 就不能在className中用了, 于是复制了一份, 够丑的 :(
-const sizeMap = {
-  6: "w-6 h-6", // 24px
-  8: "w-8 h-8", // 32px
-  10: "w-10 h-10", // 40px
-  12: "w-12 h-12", // 48px
-  18: "w-18 h-18", // 72px
-  20: "w-20 h-20", // 80px
-  21: "w-[5.125rem] h-[5.125rem]", // 82px
-  24: "w-24 h-24", // 96px
-  30: "w-30 h-30", // 120px
-  32: "w-32 h-32", // 128px
-  36: "w-36 h-36", // 144px
-} as const;
-
-const avatarShellHoverClassName = "transition-all duration-200 ease-out motion-reduce:transition-none hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md hover:shadow-base-content/10";
-const avatarImageHoverClassName = "transition-transform duration-200 ease-out motion-reduce:transition-none group-hover/avatar:scale-105";
 
 /**
  * 用户头像组件
@@ -52,7 +34,7 @@ export default function UserAvatarComponent({
   username?: string;
   avatar?: string;
   avatarThumbUrl?: string;
-  width: keyof typeof sizeMap; // 头像的宽度
+  width: AvatarSize; // 头像的宽度
   isRounded: boolean; // 是否是圆的
   withName?: boolean; // 是否显示名字
   stopToastWindow?: boolean; // hover 是否会产生userDetail弹窗
@@ -79,7 +61,7 @@ export default function UserAvatarComponent({
   const anchorRef = useRef<HTMLDivElement | null>(null);
   const portalRef = useRef<HTMLDivElement | null>(null);
   const [portalElement] = useState<HTMLDivElement | null>(() => {
-    if (typeof document === "undefined") {
+    if (stopToastWindow || typeof document === "undefined") {
       return null;
     }
     const div = document.createElement("div");
@@ -143,7 +125,7 @@ export default function UserAvatarComponent({
   }, [clickEnterProfilePage, navigate, userId]);
 
   // 根据 clickEnterProfilePage 决定是否添加点击样式
-  const containerClass = `relative inline-flex ${withName ? "flex-row items-center gap-2" : "flex-col items-center"} group ${avatarShellHoverClassName} ${clickEnterProfilePage ? "cursor-pointer" : ""}`;
+  const containerClass = `relative inline-flex ${width === "full" ? "h-full w-full" : ""} ${withName ? "flex-row items-center gap-2" : "flex-col items-center"} group ${AVATAR_HOVER_SHELL_CLASS} ${clickEnterProfilePage ? "cursor-pointer" : ""}`;
 
   // 计算定位：优先右侧，不够则左侧
   const recompute = useCallback(() => {
@@ -247,20 +229,14 @@ export default function UserAvatarComponent({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="avatar group/avatar">
-        <div className={`
-          ${sizeMap[width]}
-          rounded${isRounded ? "-full" : ""}
-          overflow-hidden
-        `}>
-          <MediaImage
-            src={resolvedAvatar}
-            alt="Avatar"
-            className={avatarImageHoverClassName}
-            fallbackSrc="/favicon.ico"
-          />
-        </div>
-      </div>
+      <Avatar
+        src={resolvedAvatar}
+        alt="Avatar"
+        size={width}
+        rounded={isRounded}
+        fallbackSrc="/favicon.ico"
+        imgClassName={AVATAR_HOVER_IMAGE_CLASS}
+      />
       {withName && (
         <div
           className={`

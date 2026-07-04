@@ -10,10 +10,10 @@ import type { MediaUploadTarget } from "@tuanchat/openapi-client/models/MediaUpl
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
-import { EncodingType, FileSystemUploadType, getInfoAsync, readAsStringAsync, uploadAsync } from "expo-file-system/legacy";
+import { File as ExpoFile } from "expo-file-system";
 import { Platform } from "react-native";
 
-import type { MobileMediaType as MediaType } from "../../lib/media-url";
+import type { MediaType } from "../../lib/media-url";
 import type { ImageDerivativeResult } from "../../lib/mobile-image-compress";
 import type { MobileMessageAttachment } from "./mobileMessageAttachment";
 
@@ -291,9 +291,10 @@ async function resolveWebAttachmentUploadPayload(attachment: MobileMessageAttach
 }
 
 async function resolveNativeAttachmentUploadPayload(attachment: MobileMessageAttachment): Promise<AttachmentUploadPayload> {
-  const [info, base64] = await Promise.all([
-    getInfoAsync(attachment.uri),
-    readAsStringAsync(attachment.uri, { encoding: EncodingType.Base64 }),
+  const file = new ExpoFile(attachment.uri);
+  const [info, bytes] = await Promise.all([
+    Promise.resolve(file.info()),
+    file.bytes(),
   ]);
   if (!info.exists) {
     throw new Error("附件文件不存在。");
@@ -303,7 +304,7 @@ async function resolveNativeAttachmentUploadPayload(attachment: MobileMessageAtt
   return {
     fileName: attachment.fileName,
     mimeType,
-    sha256: await calculateSha256(base64ToBytes(base64)),
+    sha256: await calculateSha256(bytes),
     size: assertPositiveSize(info.size),
     uri: attachment.uri,
   };
@@ -329,44 +330,6 @@ function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map(byte => byte.toString(16).padStart(2, "0"))
     .join("");
-}
-
-function base64ToBytes(base64: string): Uint8Array {
-  const normalized = base64.replace(/\s+/g, "");
-  if (typeof globalThis.atob === "function") {
-    const binary = globalThis.atob(normalized);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return bytes;
-  }
-
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  const lookup = new Map(Array.from(alphabet).map((char, index) => [char, index] as const));
-  const padding = normalized.endsWith("==") ? 2 : normalized.endsWith("=") ? 1 : 0;
-  const bytes = new Uint8Array(Math.floor(normalized.length * 3 / 4) - padding);
-  let buffer = 0;
-  let bits = 0;
-  let offset = 0;
-
-  for (const char of normalized) {
-    if (char === "=") {
-      break;
-    }
-    const value = lookup.get(char);
-    if (value == null) {
-      throw new Error("附件 base64 内容无效。");
-    }
-    buffer = (buffer << 6) | value;
-    bits += 6;
-    if (bits >= 8) {
-      bits -= 8;
-      bytes[offset++] = (buffer >> bits) & 0xFF;
-    }
-  }
-
-  return bytes;
 }
 
 function rotr(value: number, bits: number) {
@@ -470,13 +433,13 @@ async function uploadAttachmentBinary(
     return;
   }
 
-  const response = await uploadAsync(uploadUrl, fileUri, {
+  const response = await fetch(uploadUrl, {
+    method: "PUT",
     headers,
-    httpMethod: "PUT",
-    uploadType: FileSystemUploadType.BINARY_CONTENT,
+    body: new ExpoFile(fileUri),
   });
-  if (!response || response.status < 200 || response.status >= 300) {
-    throw createUploadStatusError(response?.status);
+  if (!response.ok) {
+    throw createUploadStatusError(response.status);
   }
 }
 
@@ -628,11 +591,11 @@ async function resolveWebImagePayload(result: ImageDerivativeResult): Promise<At
 }
 
 async function resolveNativeImagePayload(result: ImageDerivativeResult): Promise<AttachmentUploadPayload> {
-  const base64 = await readAsStringAsync(result.uri, { encoding: EncodingType.Base64 });
+  const bytes = await new ExpoFile(result.uri).bytes();
   return {
     fileName: result.fileName,
     mimeType: result.mimeType,
-    sha256: await calculateSha256(base64ToBytes(base64)),
+    sha256: await calculateSha256(bytes),
     size: assertPositiveSize(result.size),
     uri: result.uri,
   };

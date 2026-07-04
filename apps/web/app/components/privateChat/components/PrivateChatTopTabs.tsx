@@ -1,6 +1,6 @@
 import type React from "react";
 
-import { ChatCircleIcon, UserCirclePlusIcon, UserListIcon } from "@phosphor-icons/react";
+import { UserCirclePlusIcon, UserListIcon } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { useMemo } from "react";
 
@@ -8,6 +8,7 @@ import type { PrivateChatTab } from "@/components/chat/chatPageLayoutContext";
 
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
 import { privateChatTabIndicatorMotionProps } from "@/components/common/motion/privateChatMotion";
+import { RoomChatIcon } from "@/icons";
 import { useGetFriendRequestPageQuery } from "api/hooks/friendQueryHooks";
 
 export default function PrivateChatTopTabs() {
@@ -20,17 +21,17 @@ export default function PrivateChatTopTabs() {
   }, [friendRequestPageQuery.data]);
 
   const tabs: { id: PrivateChatTab; label: string; badge?: boolean; icon: React.ReactNode }[] = [
-    { id: "chat", label: "私聊", icon: <ChatCircleIcon className="size-4" weight="fill" /> },
-    { id: "friends", label: "好友", icon: <UserListIcon className="size-4" weight="fill" /> },
+    { id: "chat", label: "私聊", icon: <RoomChatIcon className="size-4" /> },
+    { id: "friends", label: "好友", icon: <UserListIcon className="size-4" weight="regular" /> },
     { id: "new-friends", label: "新朋友", badge: hasPendingRequests, icon: <UserCirclePlusIcon className="
       size-4
-    " weight="fill" /> },
+    " weight="regular" /> },
   ];
 
   return (
     <nav className="
-      flex shrink-0 flex-col gap-1 border-b border-gray-300 px-2 py-2
-      dark:border-gray-700
+      flex shrink-0 flex-col gap-1 border-b border-base-300 px-2 py-2
+      dark:border-base-300
     " aria-label="私信导航">
       {tabs.map((tab) => {
         const isActive = privateChatTab === tab.id;
@@ -38,22 +39,20 @@ export default function PrivateChatTopTabs() {
           <button
             key={tab.id}
             type="button"
+            aria-pressed={isActive}
             className={[
               "relative flex h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm font-medium transition-colors duration-150",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/50",
               isActive
-                ? "text-base-content"
-                : "text-base-content/60 hover:text-base-content hover:bg-base-200/60 dark:hover:bg-base-300/30",
+                ? "bg-base-300/70 text-info shadow-sm dark:bg-base-300/50"
+                : "text-base-content/60 hover:bg-base-200/60 hover:text-base-content dark:hover:bg-base-300/30",
             ].join(" ")}
             onClick={() => setPrivateChatTab(tab.id)}
           >
             {isActive && (
               <motion.span
                 layoutId="private-chat-active-tab"
-                className="
-                  absolute inset-0 rounded-md bg-base-300/70
-                  dark:bg-base-300/50
-                "
+                className="absolute inset-0 rounded-md ring-1 ring-info/30"
                 transition={privateChatTabIndicatorMotionProps}
               />
             )}

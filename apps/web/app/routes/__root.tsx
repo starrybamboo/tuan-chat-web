@@ -1,6 +1,7 @@
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { createRootRoute, HeadContent, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { MotionConfig } from "motion/react";
 import React from "react";
 import { toast, Toaster } from "react-hot-toast";
 
@@ -11,6 +12,8 @@ import type { CloudflareWebAnalyticsStatus } from "@/utils/cloudflareWebAnalytic
 
 import { installMediaDebugBridge } from "@/components/chat/infra/media/mediaDebug";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
+import { Button } from "@/components/common/Button";
+import { ConfirmDialogProvider } from "@/components/common/ConfirmDialog";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
 import { writeFeedbackAttachmentDraft } from "@/components/feedback/feedbackAttachmentDraft";
 import { buildDiagnosticLogFile, buildRouteErrorFeedbackDraft } from "@/components/feedback/feedbackDiagnosticDraft";
@@ -175,8 +178,8 @@ function HydrateFallback() {
   return (
     <div className="min-h-screen bg-base-200 flex items-center justify-center">
       <div className="flex items-center gap-2 text-base-content/70">
-        <span className="loading loading-spinner loading-md" aria-label="Loading" />
-        <span>Loading...</span>
+        <span className="loading loading-spinner loading-md" aria-label="正在加载" />
+        <span>正在加载…</span>
       </div>
     </div>
   );
@@ -230,16 +233,19 @@ function App() {
   }, []);
 
   return (
-    <GlobalContextProvider>
-      {/* <Topbar></Topbar> */}
-      <Outlet />
+    <MotionConfig reducedMotion="user">
+      <GlobalContextProvider>
+        {/* <Topbar></Topbar> */}
+        <Outlet />
       {/* 挂载ToastWindow的地方 */}
       <div id="modal-root"></div>
       {/* 挂载sideDrawer的地方 */}
       <div id="side-drawer"></div>
-      <Toaster />
+      <Toaster position="top-center" toastOptions={{ duration: 2500 }} />
       {/* ToastWindow渲染器，可以访问Router上下文 */}
       <ToastWindowRenderer />
+      {/* 命令式 confirm() 的承载者 */}
+      <ConfirmDialogProvider />
       <StartupNoticeCenter
         isTestBuild={isTestBuild}
         isDevBuild={isDevBuild}
@@ -261,7 +267,8 @@ function App() {
             />
           )
         : null}
-    </GlobalContextProvider>
+      </GlobalContextProvider>
+    </MotionConfig>
   );
 }
 
@@ -398,28 +405,28 @@ function ErrorBoundary({ error }: { error: Error }) {
           )}
 
           <div className="card-actions justify-center mt-6 gap-3">
-            <button
-              className="btn btn-outline btn-wide"
+            <Button
+              variant="outline"
+              className="w-full sm:w-64"
               onClick={handleDownloadDiagnosticLog}
-              type="button"
             >
               下载诊断日志
-            </button>
-            <button
-              className="btn btn-error btn-wide"
+            </Button>
+            <Button
+              variant="error"
+              className="w-full sm:w-64"
               onClick={handleOpenFeedback}
-              type="button"
             >
               提交 Bug 反馈
-            </button>
-            <button
-              className="btn btn-primary btn-wide"
+            </Button>
+            <Button
+              variant="primary"
+              className="w-full sm:w-64"
               // Use replace: true to avoid the error page in browser history
               onClick={() => navigate({ to: "/", replace: true })}
-              type="button"
             >
               返回主页
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -458,16 +465,12 @@ function NotFoundFallback() {
           {location.pathname}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <button type="button" className="btn btn-outline" onClick={goBack}>
+          <Button variant="outline" onClick={goBack}>
             返回上一页
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => navigate({ to: "/", replace: true })}
-          >
+          </Button>
+          <Button variant="primary" onClick={() => navigate({ to: "/", replace: true })}>
             回到首页
-          </button>
+          </Button>
         </div>
       </section>
     </main>

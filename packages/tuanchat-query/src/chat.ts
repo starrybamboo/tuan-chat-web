@@ -1,5 +1,6 @@
 import type { ApiResultListMessage } from "@tuanchat/openapi-client/models/ApiResultListMessage";
 import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
+import type { RoomMessageMutationMeta } from "@tuanchat/openapi-client/models/RoomMessageMutationMeta";
 import type { RoomMessageStreamPatchOperation } from "@tuanchat/openapi-client/models/RoomMessageStreamPatchOperation";
 import type { RoomMessageStreamPatchRequest } from "@tuanchat/openapi-client/models/RoomMessageStreamPatchRequest";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
@@ -10,8 +11,21 @@ import { assertOpenApiResultSuccess } from "@tuanchat/domain/open-api-result";
 export * from "./room-message";
 
 type ChatClient = Pick<TuanChat, "chatController">;
-export type PatchMessagesRequest = Omit<RoomMessageStreamPatchRequest, "roomId">;
-export type PatchMessagesOptions = Pick<RoomMessageStreamPatchRequest, "mutationMeta">;
+export type PatchMessagesRequest = Omit<RoomMessageStreamPatchRequest, "roomId" | "mutationMeta"> & {
+  mutationMeta?: RoomMessageMutationMeta;
+};
+export type PatchMessagesOptions = {
+  mutationMeta?: RoomMessageMutationMeta;
+};
+
+const DEFAULT_PATCH_MUTATION_META = {
+  operationCause: "normal",
+  sourceSurface: "chat_input",
+} satisfies RoomMessageMutationMeta;
+
+function resolvePatchMutationMeta(mutationMeta?: RoomMessageMutationMeta): RoomMessageMutationMeta {
+  return mutationMeta ?? DEFAULT_PATCH_MUTATION_META;
+}
 
 export function getAllRoomMessagesQueryKey(roomId: number) {
   return ["getHistoryMessages", roomId, 0] as const;
@@ -61,9 +75,9 @@ export async function patchInsertMessages(
   const createdMessages: NonNullable<ApiResultListMessage["data"]> = [];
   for (const [roomId, roomRequests] of requestsByRoomId) {
     const result = await client.chatController.patchRoomMessages({
+      mutationMeta: resolvePatchMutationMeta(options.mutationMeta),
       roomId,
       operations: roomRequests.map(toRoomMessageInsertOperation),
-      ...(options.mutationMeta ? { mutationMeta: options.mutationMeta } : {}),
     });
     assertOpenApiResultSuccess(result, "批量发送消息失败");
     createdMessages.push(...(result.data ?? []));
@@ -76,6 +90,7 @@ export function usePatchMessagesMutation(client: ChatClient, roomId: number) {
   return useMutation({
     mutationFn: (req: PatchMessagesRequest) => client.chatController.patchRoomMessages({
       ...req,
+      mutationMeta: resolvePatchMutationMeta(req.mutationMeta),
       roomId,
     }),
     mutationKey: ["patchMessages", roomId],

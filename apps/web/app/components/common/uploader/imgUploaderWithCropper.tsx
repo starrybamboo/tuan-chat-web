@@ -403,7 +403,7 @@ export function ImgUploaderWithCopper({
                     width: "100%",
                     height: "100%",
                   }}
-                  className="border border-gray-200 rounded"
+                  className="border border-base-300 rounded"
                 />
               </div>
               {/* 状态提示 */}
@@ -455,7 +455,7 @@ export function ImgUploaderWithCopper({
           {!completedCrop && imgSrc && (
             <div className="flex flex-col items-center gap-2">
               <div className="
-                w-64 h-64 flex items-center justify-center text-sm text-gray-400
+                w-64 h-64 flex items-center justify-center text-sm text-base-content/50
                 border border-dashed rounded
               ">
                 {statusMessage || "请调整裁剪框以生成预览"}

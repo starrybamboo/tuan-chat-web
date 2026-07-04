@@ -1,6 +1,8 @@
+import { XIcon } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import React from "react";
 
+import { IconButton } from "@/components/common/IconButton";
 import "@/components/common/scrollbar.css";
 
 export type ToastWindowFrameProps = {
@@ -68,32 +70,15 @@ export function ToastWindowFrame({
             transition={{ duration: 0.2, ease: "easeOut" }}
           >
             {showCloseButton && (
-              <button
-                type="button"
-                className="
-                  btn btn-sm btn-circle absolute right-2 top-2 bg-base-200
-                  hover:bg-base-300
-                  dark:bg-base-200
-                  dark:hover:bg-base-100
-                  z-20
-                "
+              <IconButton
+                icon={<XIcon className="h-4 w-4" weight="regular" />}
+                label="关闭弹窗"
+                variant="ghost"
+                size="sm"
+                shape="circle"
+                className="absolute right-2 top-2 z-20 bg-base-200 hover:bg-base-300 dark:bg-base-200 dark:hover:bg-base-100"
                 onClick={onClose}
-                aria-label="关闭弹窗"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M18 6L6 18" />
-                  <path d="M6 6l12 12" />
-                </svg>
-              </button>
+              />
             )}
             <div className={`
               ${disableScroll ? "overflow-hidden" : (hiddenScrollbar ? `

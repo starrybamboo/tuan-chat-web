@@ -177,6 +177,7 @@ export default function TextMediaEditor({
       <div className={bodyClassName}>
         <textarea
           ref={textareaRef}
+          autoComplete="off"
           value={value}
           onChange={event => onChange(event.target.value)}
           onPaste={(event) => {
@@ -188,7 +189,7 @@ export default function TextMediaEditor({
           placeholder={placeholder}
           className={`
             textarea w-full resize-y border-0 bg-transparent p-0 text-sm
-            leading-6 outline-none
+            leading-6 outline-none focus:ring-2 focus:ring-info/30
             ${minHeightClassName}
             ${variant === "card" ? `px-4 py-4` : ""}
           `}

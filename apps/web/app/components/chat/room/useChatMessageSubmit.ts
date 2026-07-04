@@ -48,6 +48,7 @@ type UseChatMessageSubmitParams = {
   roomId: number;
   spaceId: number;
   isSpaceOwner: boolean;
+  isSpaceMuted?: boolean;
   curRoleId: number;
   ruleId?: number;
   notMember: boolean;
@@ -357,6 +358,7 @@ export default function useChatMessageSubmit({
   roomId,
   spaceId,
   isSpaceOwner,
+  isSpaceMuted = false,
   curRoleId,
   ruleId = -1,
   notMember,
@@ -407,6 +409,10 @@ export default function useChatMessageSubmit({
     const isKP = isSpaceOwner;
     const isNarrator = noRole;
     const isSpectator = notMember;
+    if (isSpaceMuted && !isKP) {
+      toast.error("当前空间已开启全员禁言，仅主持人可发言");
+      return;
+    }
     const senderRoleId = isSpectator ? -1 : curRoleId;
     const spectatorTextContent = isSpectator
       ? buildOutOfCharacterSpeechContent(inputText)
@@ -877,6 +883,7 @@ export default function useChatMessageSubmit({
     ensureRuntimeAvatarIdForRole,
     extractFirstCommandText,
     insertLocalOptimisticMessages,
+    isSpaceMuted,
     isSpaceOwner,
     noRole,
     notMember,

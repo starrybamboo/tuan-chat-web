@@ -2,6 +2,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
+import { Button } from "@/components/common/Button";
+import { IconButton } from "@/components/common/IconButton";
+import { Modal } from "@/components/common/Modal";
 import {
   bindEmailByVerification,
   changeEmailByVerification,
@@ -270,27 +273,30 @@ export function AccountSecurityModal({
   const newEmailCodeInputId = "account-security-new-email-code";
 
   return (
-    <div className={`
-      modal
-      ${isOpen ? "modal-open" : ""}
-    `}>
-      <div className="
-        modal-box relative bg-base-100
-        dark:bg-base-300
-        max-w-xl
-      ">
-        <button
-          type="button"
+    <Modal
+      open={isOpen}
+      onOpenChange={(next) => {
+        if (!next) {
+          onClose();
+        }
+      }}
+      size="xl"
+      ariaLabel="账号安全"
+      className="relative bg-base-100 dark:bg-base-300"
+    >
+        <IconButton
+          label="关闭账号安全弹窗"
+          icon={<span aria-hidden="true">✕</span>}
+          size="sm"
+          shape="circle"
           className="
-            btn btn-sm btn-circle absolute right-2 top-2 bg-base-200
+            absolute right-2 top-2 bg-base-200
             hover:bg-base-300
             dark:bg-base-200
             dark:hover:bg-base-100
           "
           onClick={onClose}
-        >
-          ✕
-        </button>
+        />
 
         <h3 className="text-xl font-semibold mb-4">账号安全</h3>
 
@@ -356,14 +362,16 @@ export function AccountSecurityModal({
                                 <input
                                   id={passwordCodeInputId}
                                   type="text"
+                                  inputMode="numeric"
+                                  autoComplete="one-time-code"
                                   className="input input-bordered flex-1"
                                   placeholder="请输入验证码"
                                   value={passwordCode}
                                   onChange={e => setPasswordCode(e.target.value)}
                                 />
-                                <button
-                                  type="button"
-                                  className="btn btn-outline whitespace-nowrap"
+                                <Button
+                                  variant="outline"
+                                  className="whitespace-nowrap"
                                   onClick={() => sendPasswordCodeMutation.mutate()}
                                   disabled={
                                     sendPasswordCodeMutation.isPending
@@ -375,7 +383,7 @@ export function AccountSecurityModal({
                                     : passwordCooldown.isCoolingDown
                                       ? `${passwordCooldown.remainingSeconds}s`
                                       : "发送验证码"}
-                                </button>
+                                </Button>
                               </div>
                             </div>
 
@@ -386,6 +394,7 @@ export function AccountSecurityModal({
                               <input
                                 id={newPasswordInputId}
                                 type="password"
+                                autoComplete="new-password"
                                 className="input input-bordered"
                                 placeholder="请输入新密码"
                                 value={newPassword}
@@ -400,6 +409,7 @@ export function AccountSecurityModal({
                               <input
                                 id={confirmNewPasswordInputId}
                                 type="password"
+                                autoComplete="new-password"
                                 className="input input-bordered"
                                 placeholder="请再次输入新密码"
                                 value={confirmNewPassword}
@@ -407,14 +417,14 @@ export function AccountSecurityModal({
                               />
                             </div>
 
-                            <button
-                              type="button"
-                              className="btn btn-primary w-full mt-2"
+                            <Button
+                              variant="primary"
+                              className="w-full mt-2"
                               onClick={handleChangePassword}
                               disabled={isAnySubmitting}
                             >
                               {changePasswordMutation.isPending ? "提交中..." : "确认修改密码"}
-                            </button>
+                            </Button>
                           </>
                         )}
                   </>
@@ -432,6 +442,8 @@ export function AccountSecurityModal({
                               <input
                                 id={bindEmailInputId}
                                 type="email"
+                                inputMode="email"
+                                autoComplete="email"
                                 className="input input-bordered"
                                 placeholder="请输入要绑定的邮箱"
                                 value={bindEmail}
@@ -447,14 +459,16 @@ export function AccountSecurityModal({
                                 <input
                                   id={bindCodeInputId}
                                   type="text"
+                                  inputMode="numeric"
+                                  autoComplete="one-time-code"
                                   className="input input-bordered flex-1"
                                   placeholder="请输入验证码"
                                   value={bindCode}
                                   onChange={e => setBindCode(e.target.value)}
                                 />
-                                <button
-                                  type="button"
-                                  className="btn btn-outline whitespace-nowrap"
+                                <Button
+                                  variant="outline"
+                                  className="whitespace-nowrap"
                                   onClick={() => {
                                     if (!isEmailLike(bindEmail)) {
                                       toast.error("请输入正确的邮箱地址");
@@ -472,18 +486,18 @@ export function AccountSecurityModal({
                                     : bindCooldown.isCoolingDown
                                       ? `${bindCooldown.remainingSeconds}s`
                                       : "发送验证码"}
-                                </button>
+                                </Button>
                               </div>
                             </div>
 
-                            <button
-                              type="button"
-                              className="btn btn-primary w-full mt-2"
+                            <Button
+                              variant="primary"
+                              className="w-full mt-2"
                               onClick={handleBindEmail}
                               disabled={isAnySubmitting}
                             >
                               {bindEmailMutation.isPending ? "提交中..." : "确认绑定邮箱"}
-                            </button>
+                            </Button>
                           </>
                         )
                       : (
@@ -509,14 +523,16 @@ export function AccountSecurityModal({
                                 <input
                                   id={oldEmailCodeInputId}
                                   type="text"
+                                  inputMode="numeric"
+                                  autoComplete="one-time-code"
                                   className="input input-bordered flex-1"
                                   placeholder="请输入旧邮箱验证码"
                                   value={oldEmailCode}
                                   onChange={e => setOldEmailCode(e.target.value)}
                                 />
-                                <button
-                                  type="button"
-                                  className="btn btn-outline whitespace-nowrap"
+                                <Button
+                                  variant="outline"
+                                  className="whitespace-nowrap"
                                   onClick={() => sendOldEmailCodeMutation.mutate()}
                                   disabled={
                                     sendOldEmailCodeMutation.isPending
@@ -528,7 +544,7 @@ export function AccountSecurityModal({
                                     : oldEmailCooldown.isCoolingDown
                                       ? `${oldEmailCooldown.remainingSeconds}s`
                                       : "发送验证码"}
-                                </button>
+                                </Button>
                               </div>
                             </div>
 
@@ -539,6 +555,8 @@ export function AccountSecurityModal({
                               <input
                                 id={newEmailInputId}
                                 type="email"
+                                inputMode="email"
+                                autoComplete="email"
                                 className="input input-bordered"
                                 placeholder="请输入新邮箱地址"
                                 value={newEmail}
@@ -554,14 +572,16 @@ export function AccountSecurityModal({
                                 <input
                                   id={newEmailCodeInputId}
                                   type="text"
+                                  inputMode="numeric"
+                                  autoComplete="one-time-code"
                                   className="input input-bordered flex-1"
                                   placeholder="请输入新邮箱验证码"
                                   value={newEmailCode}
                                   onChange={e => setNewEmailCode(e.target.value)}
                                 />
-                                <button
-                                  type="button"
-                                  className="btn btn-outline whitespace-nowrap"
+                                <Button
+                                  variant="outline"
+                                  className="whitespace-nowrap"
                                   onClick={() => {
                                     if (!isEmailLike(newEmail)) {
                                       toast.error("请输入正确的新邮箱地址");
@@ -579,35 +599,24 @@ export function AccountSecurityModal({
                                     : newEmailCooldown.isCoolingDown
                                       ? `${newEmailCooldown.remainingSeconds}s`
                                       : "发送验证码"}
-                                </button>
+                                </Button>
                               </div>
                             </div>
 
-                            <button
-                              type="button"
-                              className="btn btn-primary w-full mt-2"
+                            <Button
+                              variant="primary"
+                              className="w-full mt-2"
                               onClick={handleChangeEmail}
                               disabled={isAnySubmitting}
                             >
                               {changeEmailMutation.isPending ? "提交中..." : "确认换绑邮箱"}
-                            </button>
+                            </Button>
                           </>
                         )}
                   </>
                 )}
               </div>
             )}
-      </div>
-
-      <button
-        type="button"
-        className="
-          modal-backdrop bg-black/50
-          dark:bg-black/70
-        "
-        onClick={onClose}
-        aria-label="关闭账号安全弹窗"
-      />
-    </div>
+    </Modal>
   );
 }

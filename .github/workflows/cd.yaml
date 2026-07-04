@@ -60,6 +60,7 @@ jobs:
           VITE_API_WS_URL: ${{ env.BACKEND_WS_URL }}
           VITE_TTS_URL: ${{ env.BACKEND_TTS_URL }}
           VITE_PUBLIC_SITE_URL: ${{ env.PUBLIC_SITE_URL }}
+          VITE_TURNSTILE_SITE_KEY: 0x4AAAAAADuhW4KyzfPxtfWu
           VITE_ENABLE_REACT_SCAN: ${{ env.BUILD_MODE == 'test' && 'true' || 'false' }}
         run: pnpm build --mode "$BUILD_MODE"
 

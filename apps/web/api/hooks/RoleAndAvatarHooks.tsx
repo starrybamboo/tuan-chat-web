@@ -37,7 +37,7 @@ import {
 } from "api";
 import type { Role } from '@/components/Role/types';
 import { ROLE_DEFAULT_AVATAR_URL } from '@/constants/defaultAvatar';
-import { avatarThumbUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/media/mediaUrl";
+import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/media/mediaUrl";
 import { UploadUtils } from "@/utils/media/UploadUtils";
 import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
 import {
@@ -303,7 +303,6 @@ function patchUserRoleRecord(role: UserRole, next: any, resolvedRoleId: number):
     voiceFileId: hasNextField("voiceFileId") ? next.voiceFileId : (role as any).voiceFileId,
     extra: next?.extra ?? role.extra,
     type: typeof next?.type === "number" ? next.type : role.type,
-    diceMaiden: typeof next?.type === "number" ? next.type === 1 : role.diceMaiden,
   } as UserRole;
 }
 
@@ -342,7 +341,6 @@ function patchGetRoleQueryCache(old: any, next: any, resolvedRoleId: number) {
       voiceFileId: Object.prototype.hasOwnProperty.call(next ?? {}, "voiceFileId") ? next.voiceFileId : old.data.voiceFileId,
       extra: next?.extra ?? old.data.extra,
       type: typeof next?.type === "number" ? next.type : old.data.type,
-      diceMaiden: typeof next?.type === "number" ? next.type === 1 : old.data.diceMaiden,
     },
   };
 }

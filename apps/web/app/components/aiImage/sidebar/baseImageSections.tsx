@@ -63,7 +63,7 @@ export function renderSimpleInfillSectionContent({
   if (!sourceImageDataUrl || !infillMaskDataUrl)
     return null;
 
-  const infillActionButtonClassName = "inline-flex size-11 items-center justify-center bg-base-200 text-base-content/70 transition hover:bg-base-300 hover:text-base-content focus:outline-none focus-visible:bg-base-300 focus-visible:text-base-content disabled:cursor-not-allowed disabled:opacity-40";
+  const infillActionButtonClassName = "inline-flex size-11 items-center justify-center bg-base-200 text-base-content/70 transition hover:bg-base-300 hover:text-base-content focus:outline-none focus-visible:bg-base-300 focus-visible:text-base-content focus:ring-2 focus:ring-info/30 disabled:cursor-not-allowed disabled:opacity-40";
 
   return (
     <div className={simpleBaseImageAttachmentClassName}>
@@ -77,13 +77,13 @@ export function renderSimpleInfillSectionContent({
                   mt-[1px] inline-flex size-9 items-center justify-center
                   rounded-md text-base-content/70 transition
                   hover:bg-base-200 hover:text-base-content
-                  focus:outline-none focus:ring-2 focus:ring-primary/20
+                  focus:outline-none focus:ring-2 focus:ring-info/20
                 "
                 aria-label="返回"
                 title="返回"
                 onClick={onReturnFromInfillSettings}
               >
-                <CaretLeftIcon className="size-5" weight="bold" />
+                <CaretLeftIcon className="size-5" weight="regular" />
               </button>
               <div className="min-w-0">
                 <div className="
@@ -105,7 +105,7 @@ export function renderSimpleInfillSectionContent({
                 disabled={isBusy}
                 onClick={() => void onOpenBaseImageInpaint()}
               >
-                <PencilSimpleLineIcon className="size-5" weight="bold" />
+                <PencilSimpleLineIcon className="size-5" weight="regular" />
               </button>
               <span className="h-11 w-px bg-base-300" aria-hidden="true" />
               <button
@@ -116,7 +116,7 @@ export function renderSimpleInfillSectionContent({
                 disabled={isBusy}
                 onClick={onClearSourceImage}
               >
-                <TrashIcon className="size-5" weight="bold" />
+                <TrashIcon className="size-5" weight="regular" />
               </button>
             </div>
             <button
@@ -194,6 +194,7 @@ export function renderSimpleInfillSectionContent({
                   <textarea
                     className={infillAppendInputClassName}
                     rows={1}
+                    autoComplete="off"
                     ref={bindInfillAppendTextarea}
                     value={infillAppendPrompt}
                     onChange={(event) => {
@@ -232,7 +233,7 @@ export function renderProInfillSectionContent({
   if (!sourceImageDataUrl || !infillMaskDataUrl)
     return null;
 
-  const infillActionButtonClassName = "inline-flex size-11 items-center justify-center bg-base-200 text-base-content/70 transition hover:bg-base-300 hover:text-base-content focus:outline-none focus-visible:bg-base-300 focus-visible:text-base-content disabled:cursor-not-allowed disabled:opacity-40";
+  const infillActionButtonClassName = "inline-flex size-11 items-center justify-center bg-base-200 text-base-content/70 transition hover:bg-base-300 hover:text-base-content focus:outline-none focus-visible:bg-base-300 focus-visible:text-base-content focus:ring-2 focus:ring-info/30 disabled:cursor-not-allowed disabled:opacity-40";
 
   return (
     <div className="
@@ -248,13 +249,13 @@ export function renderProInfillSectionContent({
                   mt-[1px] inline-flex size-9 items-center justify-center
                   rounded-md text-base-content/70 transition
                   hover:bg-base-200 hover:text-base-content
-                  focus:outline-none focus:ring-2 focus:ring-primary/20
+                  focus:outline-none focus:ring-2 focus:ring-info/20
                 "
                 aria-label="返回"
                 title="返回"
                 onClick={onReturnFromInfillSettings}
               >
-                <CaretLeftIcon className="size-5" weight="bold" />
+                <CaretLeftIcon className="size-5" weight="regular" />
               </button>
               <div className="min-w-0">
                 <div className="
@@ -276,7 +277,7 @@ export function renderProInfillSectionContent({
                 disabled={isBusy}
                 onClick={() => void onOpenBaseImageInpaint()}
               >
-                <PencilSimpleLineIcon className="size-5" weight="bold" />
+                <PencilSimpleLineIcon className="size-5" weight="regular" />
               </button>
               <span className="h-11 w-px bg-base-300" aria-hidden="true" />
               <button
@@ -287,7 +288,7 @@ export function renderProInfillSectionContent({
                 disabled={isBusy}
                 onClick={onClearSourceImage}
               >
-                <TrashIcon className="size-5" weight="bold" />
+                <TrashIcon className="size-5" weight="regular" />
               </button>
             </div>
             <button
@@ -365,6 +366,7 @@ export function renderProInfillSectionContent({
                   <textarea
                     className={infillAppendInputClassName}
                     rows={1}
+                    autoComplete="off"
                     ref={bindInfillAppendTextarea}
                     value={infillAppendPrompt}
                     onChange={(event) => {
@@ -448,7 +450,7 @@ export function renderSimpleBaseImageSectionContent({
             title="上传 Base Img"
             onClick={onOpenSourceImagePicker}
           >
-            <FileArrowUpIcon className="size-5" weight="bold" />
+            <FileArrowUpIcon className="size-5" weight="regular" />
           </button>
         </div>
       </div>
@@ -495,7 +497,7 @@ export function renderSimpleBaseImageSectionContent({
           "
         />
         <div className="
-          absolute inset-0 bg-linear-to-b from-primary/12 via-base-100/72
+          absolute inset-0 bg-linear-to-b from-info/12 via-base-100/72
           to-base-100/92
           dark:from-black/42 dark:via-base-100/58 dark:to-base-100/84
         " />
@@ -517,13 +519,13 @@ export function renderSimpleBaseImageSectionContent({
                   inline-flex size-11 items-center justify-center
                   text-base-content/70 transition
                   hover:bg-base-200/85 hover:text-base-content
-                  focus:outline-none focus:ring-2 focus:ring-primary/20
+                  focus:outline-none focus:ring-2 focus:ring-info/20
                 "
                 aria-label="更换 Base Img"
                 title="更换 Base Img"
                 onClick={onOpenSourceImagePicker}
               >
-                <ArrowClockwise className="size-5" weight="bold" />
+                <ArrowClockwise className="size-5" weight="regular" />
               </button>
               <span className="h-11 w-px bg-base-300" aria-hidden="true" />
               <button
@@ -532,13 +534,13 @@ export function renderSimpleBaseImageSectionContent({
                   inline-flex size-11 items-center justify-center
                   text-base-content/70 transition
                   hover:bg-base-200/85 hover:text-base-content
-                  focus:outline-none focus:ring-2 focus:ring-primary/20
+                  focus:outline-none focus:ring-2 focus:ring-info/20
                 "
                 aria-label="移除 Base Img"
                 title="移除 Base Img"
                 onClick={onClearSourceImage}
               >
-                <TrashIcon className="size-5" weight="bold" />
+                <TrashIcon className="size-5" weight="regular" />
               </button>
             </div>
             <button
@@ -602,7 +604,7 @@ export function renderSimpleBaseImageSectionContent({
                   disabled={isBusy}
                   onClick={() => void onOpenBaseImageInpaint()}
                 >
-                  <SelectionPlusIcon className="size-5" weight="bold" />
+                  <SelectionPlusIcon className="size-5" weight="regular" />
                   <span>Inpaint Image</span>
                 </button>
               </div>

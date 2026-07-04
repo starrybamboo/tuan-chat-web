@@ -53,9 +53,9 @@ describe("usePrivateMessageReceiver helpers", () => {
     ]);
   });
 
-  it("兼容旧版按当前用户 key 暂存的 outgoing 消息并按 messageId 去重", () => {
+  it("忽略非当前联系人通道暂存的 outgoing 消息", () => {
     const optimistic = createDirectMessage({
-      content: "legacy outgoing",
+      content: "self-key outgoing",
       messageId: 1001,
       receiverId: 42,
       senderId: 7,
@@ -67,8 +67,7 @@ describe("usePrivateMessageReceiver helpers", () => {
       42: [optimistic],
     };
 
-    expect(getDirectMessagesForConversation(messagesByContact, 7, 42)).toHaveLength(1);
-    expect(getDirectMessagesForConversation(messagesByContact, 7, 42)[0].content).toBe("legacy outgoing");
+    expect(getDirectMessagesForConversation(messagesByContact, 7, 42)).toEqual([optimistic]);
   });
 
   it("合并历史与实时消息时过滤已读线并优先使用实时消息", () => {

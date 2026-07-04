@@ -5,7 +5,7 @@ const platformMock = vi.hoisted(() => ({
 }));
 
 const fileSystemMock = vi.hoisted(() => ({
-  getInfoAsync: vi.fn(),
+  fileInfo: vi.fn(),
 }));
 
 const imageManipulatorMock = vi.hoisted(() => ({
@@ -26,8 +26,18 @@ vi.mock("react-native", () => ({
   Platform: platformMock,
 }));
 
-vi.mock("expo-file-system/legacy", () => ({
-  getInfoAsync: fileSystemMock.getInfoAsync,
+vi.mock("expo-file-system", () => ({
+  File: class {
+    uri: string;
+
+    constructor(uri: string) {
+      this.uri = uri;
+    }
+
+    info() {
+      return fileSystemMock.fileInfo(this.uri);
+    }
+  },
 }));
 
 vi.mock("expo-image-manipulator", () => ({
@@ -41,7 +51,7 @@ describe("mobile image compression", () => {
     imageMock.getSize.mockImplementation((uri: string, success: (width: number, height: number) => void) => {
       success(1024, 768);
     });
-    fileSystemMock.getInfoAsync.mockReset();
+    fileSystemMock.fileInfo.mockReset();
     imageManipulatorMock.manipulateAsync.mockReset();
   });
 
@@ -53,7 +63,7 @@ describe("mobile image compression", () => {
   it("compresses to webp with the requested preset metadata", async () => {
     const { IMAGE_COMPRESS_PROFILES, compressImageToWebp } = await import("./mobile-image-compress");
     imageManipulatorMock.manipulateAsync.mockResolvedValueOnce({ uri: "file:///cache/avatar-low.webp" });
-    fileSystemMock.getInfoAsync.mockResolvedValueOnce({ exists: true, size: 32 * 1024 });
+    fileSystemMock.fileInfo.mockReturnValueOnce({ exists: true, size: 32 * 1024 });
 
     const result = await compressImageToWebp("file:///source/avatar.png", IMAGE_COMPRESS_PROFILES.low, {
       fileName: "avatar.png",
@@ -78,9 +88,9 @@ describe("mobile image compression", () => {
     imageManipulatorMock.manipulateAsync
       .mockResolvedValueOnce({ uri: "file:///cache/round-1.webp" })
       .mockResolvedValueOnce({ uri: "file:///cache/round-2.webp" });
-    fileSystemMock.getInfoAsync
-      .mockResolvedValueOnce({ exists: true, size: 300 * 1024 })
-      .mockResolvedValueOnce({ exists: true, size: 120 * 1024 });
+    fileSystemMock.fileInfo
+      .mockReturnValueOnce({ exists: true, size: 300 * 1024 })
+      .mockReturnValueOnce({ exists: true, size: 120 * 1024 });
 
     const result = await compressImageToWebp("file:///source/sprite.png", IMAGE_COMPRESS_PROFILES.medium);
 
@@ -101,7 +111,7 @@ describe("mobile image compression", () => {
   it("throws when the compressed native file cannot be read", async () => {
     const { IMAGE_COMPRESS_PROFILES, compressImageToWebp } = await import("./mobile-image-compress");
     imageManipulatorMock.manipulateAsync.mockResolvedValueOnce({ uri: "file:///cache/missing.webp" });
-    fileSystemMock.getInfoAsync.mockResolvedValueOnce({ exists: false });
+    fileSystemMock.fileInfo.mockReturnValueOnce({ exists: false });
 
     await expect(compressImageToWebp("file:///source/avatar.png", IMAGE_COMPRESS_PROFILES.low))
       .rejects
@@ -126,6 +136,6 @@ describe("mobile image compression", () => {
       size: 12,
     });
     expect(fetchMock).toHaveBeenCalledWith("blob://compressed-preview");
-    expect(fileSystemMock.getInfoAsync).not.toHaveBeenCalled();
+    expect(fileSystemMock.fileInfo).not.toHaveBeenCalled();
   });
 });

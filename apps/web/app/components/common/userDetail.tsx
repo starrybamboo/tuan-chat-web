@@ -2,11 +2,10 @@ import { useRouter } from "@tanstack/react-router";
 
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { FriendRequestButton } from "@/components/common/FriendRequestButton";
-import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { UserAvatarByUser } from "@/components/common/userAccess";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { imageLowUrl } from "@/utils/media/mediaUrl";
 
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../api/hooks/userFollowQueryHooks";
 import { useGetUserProfileQuery } from "../../../api/hooks/UserHooks";
@@ -68,11 +67,13 @@ export function UserDetail({ userId }: UserDetailProps) {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <MediaImage
-                        src={imageLowUrl(user?.avatarFileId) || undefined}
-                        alt={user?.username}
-                        className="mask mask-circle w-16 h-16 object-cover"
-                        fallbackSrc="/favicon.ico"
+                      <UserAvatarByUser
+                        user={user}
+                        fallbackUserId={userId}
+                        width={16}
+                        isRounded={true}
+                        stopToastWindow={true}
+                        clickEnterProfilePage={false}
                       />
                     </a>
                   )}
@@ -100,7 +101,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                   )}
               <UserStatusDot status={user?.activeStatus} />
             </div>
-            <span className="text-xs text-gray-400 block">
+            <span className="text-xs text-base-content/50 block">
               UID:
               {" "}
               {userId}

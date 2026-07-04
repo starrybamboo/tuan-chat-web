@@ -3,9 +3,10 @@ import React, { useCallback, useState } from "react";
 import CommentPanel from "@/components/common/comment/commentPanel";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { UserAvatarByUser } from "@/components/common/userAccess";
 import { UserDetail } from "@/components/common/userDetail";
 import { CommentOutline, XMarkICon } from "@/icons";
-import { imageLowUrl, imageMediumUrl } from "@/utils/media/mediaUrl";
+import { imageMediumUrl } from "@/utils/media/mediaUrl";
 
 import { useDeleteMomentFeedMutation, useGetMomentByIdQuery } from "../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
@@ -47,7 +48,6 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
   const userData = userInfoData?.data;
   const data = {
     name: userData?.username || "未知用户",
-    avatar: imageLowUrl(userData?.avatarFileId) || "favicon.ico",
   };
 
   const deleteMutation = useDeleteMomentFeedMutation();
@@ -118,7 +118,7 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
         <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
           {momentLoading && (
             <div className="flex justify-center py-12">
-              <div className="loading loading-spinner loading-lg text-primary"></div>
+              <div className="loading loading-spinner loading-lg text-info"></div>
             </div>
           )}
 
@@ -142,7 +142,7 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                   justify-center z-10
                 ">
                   <div className="
-                    loading loading-spinner loading-lg text-primary
+                    loading loading-spinner loading-lg text-info
                   " />
                 </div>
               )}
@@ -156,17 +156,23 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                       "></div>
                     )
                   : (
-                      <MediaImage
+                      <button
+                        type="button"
                         className="
-                          w-16 h-16 rounded-full object-cover cursor-pointer
+                          shrink-0 cursor-pointer transition-opacity
                           hover:opacity-80
-                          transition-opacity flex-shrink-0
                         "
-                        src={data.avatar}
                         onClick={handleAvatarClick}
-                        alt="用户头像"
-                        fallbackSrc="/favicon.ico"
-                      />
+                      >
+                        <UserAvatarByUser
+                          user={userData}
+                          fallbackUserId={userId}
+                          width={16}
+                          isRounded={true}
+                          stopToastWindow={true}
+                          clickEnterProfilePage={false}
+                        />
+                      </button>
                     )}
 
                 <div className="flex flex-col justify-center min-w-0 flex-1">
@@ -190,7 +196,7 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                 <div className="relative ml-auto">
                   <button
                     className="
-                      text-base-content/40
+                      text-base-content/50
                       hover:text-base-content/80
                       transition-colors p-3 rounded-full
                       hover:bg-base-200

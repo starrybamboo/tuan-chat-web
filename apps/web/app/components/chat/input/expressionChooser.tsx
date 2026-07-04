@@ -358,7 +358,7 @@ export function ExpressionChooser({
                 }
                   ${
                   isNarratorMode ? `
-                    bg-base-200 ring-2 ring-inset ring-secondary/30
+                    bg-base-200 ring-2 ring-inset ring-info/30
                   ` : ""
                 }
                 `}
@@ -379,7 +379,7 @@ export function ExpressionChooser({
             )}
             {
               availableRoles.length === 0 && (!showNarratorOption || !hasHostAccess) && (
-                <div className="text-center text-sm text-gray-500 py-4">无可用角色</div>
+                <div className="text-center text-sm text-base-content/60 py-4">无可用角色</div>
               )
             }
             {
@@ -395,7 +395,7 @@ export function ExpressionChooser({
                     transition-colors
                     ${
                     selectedRoleId === role.roleId ? `
-                      bg-base-200 ring-2 ring-inset ring-primary/30
+                      bg-base-200 ring-2 ring-inset ring-info/30
                     ` : ""
                   }
                   `}
@@ -519,7 +519,7 @@ export function ExpressionChooser({
                       type="button"
                       className={`
                         btn btn-xs gap-1
-                        ${isAvatarSamplerActive ? `btn-info text-info-content` : `
+                        ${isAvatarSamplerActive ? `border-info/40 bg-base-300 text-info shadow-sm` : `
                           btn-ghost
                         `}
                       `}
@@ -563,7 +563,7 @@ export function ExpressionChooser({
                                 className={`
                                   relative aspect-square w-full overflow-hidden rounded-lg border-2
                                   bg-base-200 transition-[border-color,box-shadow,background-color]
-                                  border-base-300 hover:border-primary/50 hover:bg-base-300
+                                  border-base-300 hover:border-info/50 hover:bg-base-300
                                 `}
                                 onClick={() => handleAvatarVariantGroupSelect(group.variantId)}
                                 title={`${group.label} · ${group.avatars.length}`}
@@ -585,14 +585,14 @@ export function ExpressionChooser({
                                         flex size-full items-center justify-center
                                         text-base-content/45
                                       ">
-                                        <FolderOpenIcon className="size-8" weight="duotone" aria-hidden="true" />
+                                        <FolderOpenIcon className="size-8" weight="regular" aria-hidden="true" />
                                       </div>
                                     )}
                                 <span className="
                                   absolute right-1 top-1 rounded-md bg-base-100/90 p-1
                                   text-base-content shadow-sm
                                 ">
-                                  <FolderOpenIcon className="size-3.5" weight="fill" aria-hidden="true" />
+                                  <FolderOpenIcon className="size-3.5" weight="regular" aria-hidden="true" />
                                 </span>
                               </button>
                               <button
@@ -605,7 +605,7 @@ export function ExpressionChooser({
                                 onClick={() => handleAvatarVariantGroupSelect(group.variantId)}
                               >
                                 {group.label}
-                                <span className="text-base-content/45">
+                                <span className="text-base-content/50">
                                   {" "}
                                   ·
                                   {" "}
@@ -667,7 +667,7 @@ export function ExpressionChooser({
                                       }}
                                       className={`
                                         ${avatarItemClassName}
-                                        ${isSelectedAvatar ? "bg-primary/10 ring-2 ring-primary/45" : ""}
+                                        ${isSelectedAvatar ? "bg-info/10 ring-2 ring-info/45" : ""}
                                       `}
                                       key={avatar.avatarId ?? `${section.variantId}-${group.category}-${avatarIndex}`}
                                       title="点击选择头像"
@@ -701,7 +701,7 @@ export function ExpressionChooser({
           : isNoRoleMode
             ? (
                 <div className="
-                  flex flex-col items-center justify-center h-full text-gray-500
+                  flex flex-col items-center justify-center h-full text-base-content/60
                   py-12
                 ">
                   <AddRoleIcon className="
@@ -717,7 +717,7 @@ export function ExpressionChooser({
               ? (
                   <div className="
                     flex flex-col items-center justify-center h-full
-                    text-gray-500 py-12
+                    text-base-content/60 py-12
                   ">
                     <NarratorIcon className="
                       size-16 mx-auto mb-3 text-base-content/30
@@ -729,7 +729,7 @@ export function ExpressionChooser({
                   </div>
                 )
               : (
-                  <div className="text-center py-12 text-gray-500">
+                  <div className="text-center py-12 text-base-content/60">
                     <div className="text-sm mb-2">暂无可用头像</div>
                     <div className="text-xs text-base-content/50">请先为角色添加头像差分</div>
                   </div>

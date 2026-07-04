@@ -13,3 +13,27 @@
 .animate-scale-in {
   animation: scale-in 0.5s ease-out forwards;
 }
+
+@keyframes avatar-connector-draw-line {
+  0% {
+    stroke-dashoffset: 1;
+  }
+
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.avatar-connector-draw-line path {
+  animation: avatar-connector-draw-line 600ms ease-out both;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  will-change: stroke-dashoffset;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-connector-draw-line path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

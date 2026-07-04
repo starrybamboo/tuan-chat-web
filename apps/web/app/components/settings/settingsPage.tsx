@@ -161,7 +161,7 @@ export default function SettingsPage() {
             </div>
             <input
               type="checkbox"
-              className="toggle toggle-primary"
+              className="toggle toggle-info"
               checked={groupMessagePopupEnabled}
               disabled={updateUserInfoMutation.isPending}
               onChange={e => void onGroupMessagePopupToggle(e.target.checked)}
@@ -181,7 +181,7 @@ export default function SettingsPage() {
             </div>
             <input
               type="checkbox"
-              className="toggle toggle-primary"
+              className="toggle toggle-info"
               checked={feedbackInAppEnabled}
               disabled={updateUserInfoMutation.isPending}
               onChange={e => void onFeedbackInAppToggle(e.target.checked)}
@@ -201,7 +201,7 @@ export default function SettingsPage() {
             </div>
             <input
               type="checkbox"
-              className="toggle toggle-primary"
+              className="toggle toggle-info"
               checked={feedbackDesktopEnabled}
               disabled={updateUserInfoMutation.isPending}
               onChange={e => void onFeedbackDesktopToggle(e.target.checked)}
@@ -219,7 +219,7 @@ export default function SettingsPage() {
           <div className="mt-4 flex flex-wrap gap-3">
             <button
               type="button"
-              className="btn btn-outline btn-primary"
+              className="btn btn-outline btn-info"
               onClick={() => openAccountSecurity("password")}
               disabled={!isLoggedIn}
             >
@@ -227,7 +227,7 @@ export default function SettingsPage() {
             </button>
             <button
               type="button"
-              className="btn btn-outline btn-primary"
+              className="btn btn-outline btn-info"
               onClick={() => openAccountSecurity("email")}
               disabled={!isLoggedIn}
             >

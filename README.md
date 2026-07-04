@@ -156,10 +156,10 @@ pnpm electron:build:mac:dmg
 Electron 打包前会运行：
 
 ```bash
-pnpm electron:prepare:resources
+pnpm electron:check:webgal
 ```
 
-该脚本会把 WebGAL_Terre release 同步到 `apps/desktop/extraResources/`。默认解析逻辑在 `apps/desktop/scripts/prepare-electron-extra-resources.mjs` 和 `scripts/resolve-webgal-terre-release.ps1`；如果默认位置不可用，可设置 `WEBGAL_TERRE_RELEASE_DIR` 指向 release 目录。
+该脚本只校验 WebGAL_Terre 发行目录，不再复制到项目内的中转目录。本地默认读取 `D:\A_collection\WebGAL_Terre\release`；如果默认位置不可用，可设置 `WEBGAL_TERRE_RELEASE_DIR` 指向 release 目录。electron-builder 会按白名单把发行目录中的 `WebGAL_Terre.exe`、`assets`、`lib`、`public` 打进 `resources/webgal-terre`，并排除 `public/games` 等本地用户内容。
 
 Windows 下 electron-builder 首次下载 `nsis` / `winCodeSign` 可能受网络影响。可先构建 zip，再单独构建 nsis；必要时设置 `ELECTRON_BUILDER_CACHE` 或 `ELECTRON_BUILDER_BINARIES_MIRROR`。
 
@@ -176,6 +176,7 @@ Web 部署：
 - `deploy_env=production` 会使用 `tuan-chat-web` 项目和 `production` mode。
 - 构建产物目录为 `dist`，部署命令使用 `wrangler pages deploy dist`。
 - 线上 Web 运行时使用环境变量中的直连域名访问 API、WebSocket、TTS 与媒体资源，不再把主流量打到 Pages Functions。
+- 短连接 REST/API 的 QUIC 升级落在 Cloudflare 边缘层：公网 `tuan.chat`、`test.tuan.chat`、`api.tuan.chat` 等域名由 Cloudflare 返回 `alt-svc: h3=":443"`；源站 `24.233.10.150` 仍由 Nginx 1.24 在 80 端口反代到后端，源站 443 当前不开放。
 - Pages Functions 仅作为旧同源路径和特殊路径兜底：`public/_routes.json` 限定只有 `/api`、`/ws`、`/tts`、`/terre`、`/media`、`/avatar`、`/updates` 会触发 Functions；静态资源和 SPA fallback 保持 Pages 静态托管。
 
 Electron 增量更新：

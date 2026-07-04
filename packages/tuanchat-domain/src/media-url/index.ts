@@ -1,6 +1,5 @@
 export {
   avatarOriginalUrl,
-  avatarThumbUrl,
   avatarUrl,
   extractMediaFileIdFromUrl,
   imageHighUrl,
@@ -11,16 +10,12 @@ export {
   imageMediumUrlFromUrl,
   imageOriginalUrl,
   imageOriginalUrlFromUrl,
-  imagePreviewUrl,
-  imagePreviewUrlFromUrl,
   imageUrlWithQuality,
   mediaFileUrl,
   mediaFileUrlWithQuality,
-  mediaPreviewUrl,
   mediaShard,
-  mediaThumbUrl,
   mediaUrl,
   normalizeMediaType,
 } from "./media-url";
 
-export type { LegacyMediaQuality, MediaQuality, MediaQualityInput, MediaType } from "./types";
+export type { MediaQuality, MediaQualityInput, MediaType } from "./types";

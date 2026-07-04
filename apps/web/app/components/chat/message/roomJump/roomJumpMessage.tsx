@@ -1,4 +1,4 @@
-import { ArrowRightIcon, ChatCircleIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon } from "@phosphor-icons/react";
 import { useLocation, useRouter } from "@tanstack/react-router";
 import React, { use, useCallback, useMemo } from "react";
 import toast from "react-hot-toast";
@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
 import { MediaImage } from "@/components/common/mediaImage";
+import { RoomChatIcon } from "@/icons";
 import { imageLowUrl } from "@/utils/media/mediaUrl";
 import { appendPathQuery } from "@/utils/pathQuery";
 
@@ -208,7 +209,7 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
               bg-base-300 text-base-content/70
             `}
           `}>
-            <ChatCircleIcon weight="fill" className="size-2.5" />
+            <RoomChatIcon className="size-2.5" />
           </div>
         </div>
 
@@ -246,7 +247,7 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
                   bg-info/10 text-info transition-colors
                   group-hover:bg-info group-hover:text-info-content
                 ">
-                  <ArrowRightIcon weight="bold" className="size-3.5" />
+                  <ArrowRightIcon weight="regular" className="size-3.5" />
                 </div>
               )
             : (

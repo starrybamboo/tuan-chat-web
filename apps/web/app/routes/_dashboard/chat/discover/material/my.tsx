@@ -3,7 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { RouteMetaArgs } from "@/routes/routeTypes";
 
 import DiscoverPage from "@/components/chat/discover/discoverPage";
+import { queryClient } from "@/queryClient";
 import { createSeoMeta } from "@/utils/seo";
+import {
+  fetchMyMaterialPackagesFirstPageWithCache,
+  MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
+} from "api/hooks/materialPackageQueryHooks";
 
 export function meta(_args: RouteMetaArgs) {
   return createSeoMeta({
@@ -15,6 +20,16 @@ export function meta(_args: RouteMetaArgs) {
 }
 
 export const Route = createFileRoute("/_dashboard/chat/discover/material/my")({
+  loader: async () => {
+    if (import.meta.env.MODE === "production") {
+      return null;
+    }
+    await fetchMyMaterialPackagesFirstPageWithCache(queryClient, {
+      pageNo: 1,
+      pageSize: MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
+    });
+    return null;
+  },
   head: () => ({
     meta: meta({ params: {} }),
   }),

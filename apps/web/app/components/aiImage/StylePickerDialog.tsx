@@ -56,7 +56,7 @@ export function StylePickerDialog({
               type="button"
               className={`
                 btn btn-sm
-                ${viewMode === "compare" ? "btn-primary" : `btn-ghost`}
+                ${viewMode === "compare" ? "btn-info" : `btn-ghost`}
               `}
               aria-pressed={viewMode === "compare"}
               onClick={() => onViewModeChange(viewMode === "compare" ? "select" : "compare")}
@@ -89,16 +89,16 @@ export function StylePickerDialog({
                         className={`
                           group flex w-[300px] flex-col overflow-hidden
                           rounded-md border text-left transition
-                          focus:outline-none focus:ring-2 focus:ring-primary/20
+                          focus:outline-none focus:ring-2 focus:ring-info/20
                           ${
                           selected
                             ? `
-                              border-primary bg-primary/[0.04]
-                              shadow-[0_0_0_1px_rgba(47,183,168,0.18)]
+                              border-info bg-info/[0.04]
+                              shadow-sm
                             `
                             : `
                               border-base-300 bg-base-100
-                              hover:border-primary/45
+                              hover:border-info/45
                             `
                         }
                         `}
@@ -120,9 +120,9 @@ export function StylePickerDialog({
                             ">{preset.title}</div>}
                           {selected
                             ? <span className="
-                              absolute right-2 top-2 rounded-full bg-primary
+                              absolute right-2 top-2 rounded-full bg-info
                               px-2 py-1 text-[11px] font-medium
-                              text-primary-content
+                              text-info-content
                             ">已选</span>
                             : null}
                         </div>
@@ -135,7 +135,7 @@ export function StylePickerDialog({
                           ">{preset.title}</span>
                           <span className={`
                             absolute right-3 h-2.5 w-2.5 rounded-full
-                            ${selected ? `bg-primary` : `bg-base-300`}
+                            ${selected ? `bg-info` : `bg-base-300`}
                           `} />
                         </div>
                       </button>
@@ -157,10 +157,10 @@ export function StylePickerDialog({
                         className={`
                           flex w-[300px] flex-col overflow-hidden rounded-md
                           border text-left transition
-                          focus:outline-none focus:ring-2 focus:ring-primary/20
-                          ${selected ? `border-primary bg-primary/[0.04]` : `
+                          focus:outline-none focus:ring-2 focus:ring-info/20
+                          ${selected ? `border-info bg-info/[0.04]` : `
                             border-base-300 bg-base-100
-                            hover:border-primary/45
+                            hover:border-info/45
                           `}
                         `}
                         onClick={() => onToggleStyle(preset.id)}

@@ -464,7 +464,7 @@ export function MessageEditorAtomicBlock({
             className="
               rounded-md border border-base-300/70 bg-base-100/92 px-2 py-1
               text-xs text-base-content/75 shadow-sm transition
-              hover:border-primary/40 hover:text-base-content
+              hover:border-info/40 hover:text-base-content
             "
             onMouseDown={event => event.preventDefault()}
             onClick={openFilePicker}
@@ -513,7 +513,7 @@ export function MessageEditorAtomicBlock({
           flex min-h-24 w-full items-center justify-center rounded-xl border
           border-dashed border-base-300 bg-base-200/25 px-4 py-4 text-sm
           text-base-content/55 transition
-          hover:border-primary/45 hover:bg-base-200/40 hover:text-base-content
+          hover:border-info/45 hover:bg-base-200/40 hover:text-base-content
         "
         onMouseDown={event => event.preventDefault()}
         onClick={openFilePicker}
@@ -549,7 +549,7 @@ export function MessageEditorAtomicBlock({
                       items-center justify-center rounded-full border
                       border-base-300/70 bg-base-100/92 opacity-0 shadow-sm
                       transition duration-150
-                      hover:border-primary/40 hover:bg-primary/10
+                      hover:border-info/40 hover:bg-info/10
                       group-hover/media:pointer-events-auto
                       group-hover/media:opacity-100
                       group-focus-within/media:pointer-events-auto
@@ -606,7 +606,7 @@ export function MessageEditorAtomicBlock({
     <div
       className={[
         "flex flex-col gap-3 transition-colors",
-        fileDropActive ? "rounded-sm bg-base-200/30 ring-1 ring-primary/30" : "",
+        fileDropActive ? "rounded-sm bg-base-200/30 ring-1 ring-info/30" : "",
       ].join(" ")}
       onMouseDownCapture={() => {
         if (!readOnly) {
@@ -651,7 +651,7 @@ export function MessageEditorAtomicBlock({
                                   className="
                                     rounded-md border border-base-300 px-2 py-1
                                     text-xs text-base-content/70 transition
-                                    hover:border-primary/40
+                                    hover:border-info/40
                                     hover:text-base-content
                                   "
                                   onMouseDown={event => event.preventDefault()}

@@ -27,10 +27,18 @@ export function ChatPagePanels({
   sidePanelProps,
   spaceSidebarProps,
 }: ChatPagePanelsProps) {
+  const [isLeftDrawerCollapsePreview, setIsLeftDrawerCollapsePreview] = React.useState(false);
   return (
     <ChatPageLayout
       {...layoutProps}
-      spaceSidebar={<ChatSpaceSidebar {...spaceSidebarProps} />}
+      isLeftDrawerCollapsePreview={isLeftDrawerCollapsePreview}
+      setIsLeftDrawerCollapsePreview={setIsLeftDrawerCollapsePreview}
+      spaceSidebar={(
+        <ChatSpaceSidebar
+          {...spaceSidebarProps}
+          isLeftDrawerCollapsePreview={isLeftDrawerCollapsePreview}
+        />
+      )}
       sidePanelContent={<ChatPageSidePanelContent {...sidePanelProps} />}
       mainContent={mainContent}
       subWindowContent={subWindowContent}

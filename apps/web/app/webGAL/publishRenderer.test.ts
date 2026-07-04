@@ -141,8 +141,12 @@ describe("renderWebgalPublishPackage", () => {
 
     const preset = getPublishTemplatePreset(undefined);
     expect(getFileContent(pkg.files, "game/userStyleSheet.css")).toBe("");
+    expect(getFileContent(pkg.files, "game/animation/animationTable.json")).toContain("\"tuanchat/default-enter\"");
+    expect(getFileContent(pkg.files, "game/animation/animationTable.json")).toContain("\"tuanchat/default-exit\"");
     expect(getFileContent(pkg.files, "game/animation/animationTable.json")).toContain("\"position/enter\"");
     expect(getFileContent(pkg.files, "game/animation/animationTable.json")).toContain("\"background/blur-in\"");
+    expect(getFileContent(pkg.files, "game/animation/tuanchat/default-enter.json")).toContain("\"alpha\": 1");
+    expect(getFileContent(pkg.files, "game/animation/tuanchat/default-exit.json")).toContain("\"duration\": 299");
     expect(getFileContent(pkg.files, "game/animation/position/ba-enter-from-left.json")).toContain("\"x\": -700");
     expect(getFileContent(pkg.files, "game/animation/action/BA-shake.json")).toContain("\"x\": -6");
     expect(getFileContent(pkg.files, "game/animation/background/blur-in-fast.json")).toContain("\"blur\": 20");

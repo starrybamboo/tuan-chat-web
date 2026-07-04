@@ -1,10 +1,8 @@
 import React, { useState } from "react";
 
-import { MediaImage } from "@/components/common/mediaImage";
-import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
+import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import { RoleDetail } from "@/components/common/roleDetail";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
-import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 
 import type { UserRole } from "../../../../api";
 
@@ -17,7 +15,6 @@ type UserRoleCardProps = {
  */
 const UserRoleCard: React.FC<UserRoleCardProps> = ({ role }) => {
   const [isRoleParamsPopOpen, setIsRoleParamsPopOpen] = useState(false);
-  const avatarUrl = useResolvedRoleAvatarUrl(role, ROLE_DEFAULT_AVATAR_URL);
 
   return (
     <div className="cursor-pointer w-full">
@@ -32,11 +29,13 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({ role }) => {
       >
         {/* 头像区 */}
         <figure className="aspect-square overflow-hidden bg-base-200">
-          <MediaImage
-            src={avatarUrl}
+          <RoleAvatarByRole
+            role={role}
+            width="full"
+            isRounded={false}
+            stopToastWindow={true}
             alt={role?.roleName || "角色头像"}
-            className="w-full h-full object-cover"
-            fallbackSrc={ROLE_DEFAULT_AVATAR_URL}
+            imageLoading="lazy"
           />
         </figure>
 

@@ -78,7 +78,6 @@ export default function useChatPageRoute(): ChatPageRouteState {
     isDocRoute,
     pathname: location.pathname,
     roomSettingMatched: roomSettingMatch,
-    urlMessageId,
   });
   const spaceDetailRouteTab: SpaceDetailTab | null = useMemo(() => {
     return getSpaceDetailRouteTab({ isPrivateChatMode, urlMessageId, urlRoomId });

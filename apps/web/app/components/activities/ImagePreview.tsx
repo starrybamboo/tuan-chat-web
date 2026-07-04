@@ -2,7 +2,7 @@ import React, { useCallback, useState } from "react";
 
 import { MediaImage } from "@/components/common/mediaImage";
 import { RotateLeftIcon, RotateRightIcon } from "@/icons";
-import { imageMediumUrlFromUrl, imagePreviewUrlFromUrl } from "@/utils/media/mediaUrl";
+import { imageMediumUrlFromUrl } from "@/utils/media/mediaUrl";
 
 type ImagePreviewProps = {
   images: string[];
@@ -90,7 +90,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
 
   // 放大模式
   if (enlargedIndex !== null) {
-    const currentImage = imagePreviewUrlFromUrl(images[enlargedIndex]);
+    const currentImage = imageMediumUrlFromUrl(images[enlargedIndex]);
     const hasPrev = enlargedIndex > 0;
     const hasNext = enlargedIndex < images.length - 1;
 
@@ -241,8 +241,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
       {images.length > maxPreview && (
         <p
           className="
-            text-xs text-gray-500 mt-2 cursor-pointer
-            hover:text-blue-500
+            text-xs text-base-content/60 mt-2 cursor-pointer
+            hover:text-info
             transition-colors
           "
           onClick={() => handleImageClick(0)}

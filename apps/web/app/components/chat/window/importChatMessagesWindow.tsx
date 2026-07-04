@@ -1,6 +1,5 @@
 import {
   Broom,
-  ChatCircleText,
   CheckCircle,
   FileText,
   ImageSquare,
@@ -21,6 +20,7 @@ import type { FigurePosition } from "@/types/voiceRenderTypes";
 import { IMPORT_SPECIAL_ROLE_ID, isDicerSpeakerName, normalizeSpeakerName, parseImportedChatText } from "@/components/chat/utils/importChatText";
 import { createRglImportCompileContextFromSources } from "@/components/chat/utils/importRglResolvers";
 import { compileRglImportEventsWithLineNumbers, parseRglImportText, summarizeRglImportEvents } from "@/components/chat/utils/importRglText";
+import { RoomChatIcon } from "@/icons";
 import { FIGURE_POSITION_LABELS, FIGURE_POSITION_ORDER } from "@/types/voiceRenderTypes";
 
 import type { UserRole } from "../../../../api";
@@ -430,9 +430,9 @@ export default function ImportChatMessagesWindow({
           <div className="flex min-w-0 items-center gap-3">
             <div className="
               flex size-10 shrink-0 items-center justify-center rounded-md
-              bg-primary/10 text-primary
+              bg-info/10 text-info
             ">
-              <ChatCircleText size={22} weight="duotone" />
+              <RoomChatIcon className="size-[22px]" />
             </div>
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <h2 className="text-lg/6 font-semibold">导入对话</h2>
@@ -440,7 +440,7 @@ export default function ImportChatMessagesWindow({
                 <div className="join">
                   <button
                     type="button"
-                    className={`join-item btn btn-xs ${importMode === "plain" ? "btn-primary" : "btn-ghost"}`}
+                    className={`join-item btn btn-xs ${importMode === "plain" ? "border-info/40 bg-base-300 text-info shadow-sm" : "btn-ghost"}`}
                     onClick={() => setImportMode("plain")}
                     disabled={isImportBusy}
                   >
@@ -448,7 +448,7 @@ export default function ImportChatMessagesWindow({
                   </button>
                   <button
                     type="button"
-                    className={`join-item btn btn-xs ${importMode === "rgl" ? "btn-primary" : "btn-ghost"}`}
+                    className={`join-item btn btn-xs ${importMode === "rgl" ? "border-info/40 bg-base-300 text-info shadow-sm" : "btn-ghost"}`}
                     onClick={() => setImportMode("rgl")}
                     disabled={isImportBusy}
                   >
@@ -523,7 +523,7 @@ export default function ImportChatMessagesWindow({
                     ? "border-success/50 bg-success/10 text-success"
                     : `
                       border-base-300 bg-base-100
-                      hover:border-primary/45 hover:bg-primary/5
+                      hover:border-info/45 hover:bg-info/5
                     `
                 }
                 `}
@@ -533,7 +533,7 @@ export default function ImportChatMessagesWindow({
                       <div className="
                         flex min-w-0 flex-col items-center gap-1.5
                       ">
-                        <FileText size={26} weight="duotone" />
+                        <FileText size={26} weight="regular" />
                         <span className="
                           max-w-full truncate text-sm font-medium
                         ">{fileName}</span>
@@ -559,9 +559,11 @@ export default function ImportChatMessagesWindow({
                 size-full min-h-65 flex-1 resize-none rounded-md border
                 border-base-300 bg-base-100 px-3 py-2 font-mono text-xs/relaxed
                 transition
-                focus:outline-none focus:ring-2 focus:ring-primary/20
-                focus:border-primary
+                focus:outline-none focus:ring-2 focus:ring-info/20
+                focus:border-info
               "
+              autoComplete="off"
+              aria-label="导入消息文本"
               placeholder={importMode === "rgl"
                 ? "<sys:bg>:永远亭夜晚\n\n[烈.震惊]<figure.pos.left-center><figure.anim.enter>:这是一句台词。\n[师匠=八意永琳.默认]<figure.pos.right-center>:先喝茶。\n\n[旁白]<dialog.next>:夜色渐深。\n\n<dice>:\ndicer: 海豹一号机\ncmd: 【1d10：】\n1. 继续观察\n2. 直接行动\n=> 【1d10:2】；2 直接行动"
                 : "[KP]：欢迎来到这里\n<张三>：这是哪里？\n\n或\n\n木落(303451945) 2022/03/21 19:06:53\n房前有两棵树"}
@@ -625,7 +627,7 @@ export default function ImportChatMessagesWindow({
                         {onOpenRoleAddWindow && (
                           <button
                             type="button"
-                            className="btn btn-xs btn-outline btn-primary gap-1"
+                            className="btn btn-xs btn-outline btn-info gap-1"
                             onClick={handleQuickCreateRole}
                             disabled={isImportBusy}
                           >
@@ -636,7 +638,7 @@ export default function ImportChatMessagesWindow({
                         {onOpenNpcAddWindow && (
                           <button
                             type="button"
-                            className="btn btn-xs btn-outline btn-secondary gap-1"
+                            className="btn btn-xs btn-outline gap-1"
                             onClick={handleQuickCreateNpc}
                             disabled={isImportBusy}
                           >
@@ -662,8 +664,8 @@ export default function ImportChatMessagesWindow({
                             flex flex-1 flex-col items-center justify-center gap-2 px-8
                             text-center text-base-content/35
                           ">
-                            <User size={40} weight="duotone" />
-                            <span className="text-sm font-medium text-base-content/45">等待导入文本</span>
+                            <User size={40} weight="regular" />
+                            <span className="text-sm font-medium text-base-content/50">等待导入文本</span>
                           </div>
                         )
                       : (
@@ -742,7 +744,7 @@ export default function ImportChatMessagesWindow({
 
                                       <div className="flex items-center gap-2">
                                         <span className="
-                                          shrink-0 text-[11px] text-base-content/45
+                                          shrink-0 text-[11px] text-base-content/50
                                         ">立绘</span>
                                         <div className="join min-w-0 flex-1">
                                           {FIGURE_POSITION_ORDER.map(pos => (
@@ -751,8 +753,8 @@ export default function ImportChatMessagesWindow({
                                               className="
                                                 join-item btn btn-xs btn-ghost flex-1
                                                 px-1 text-[10px] font-normal
-                                                aria-checked:bg-primary/20
-                                                aria-checked:text-primary
+                                                aria-checked:bg-info/20
+                                                aria-checked:text-info
                                               "
                                               type="radio"
                                               name={`pos-${speaker}`}
@@ -859,7 +861,7 @@ export default function ImportChatMessagesWindow({
                               key={item.key}
                               className="rounded bg-base-100 px-2 py-1 text-center"
                             >
-                              <div className="text-[10px] text-base-content/45">{item.label}</div>
+                              <div className="text-[10px] text-base-content/50">{item.label}</div>
                               <div className="font-mono text-sm font-semibold">{rglEventSummary[item.key]}</div>
                             </div>
                           ))}
@@ -878,7 +880,7 @@ export default function ImportChatMessagesWindow({
                           </div>
                           <button
                             type="button"
-                            className="btn btn-secondary btn-xs shrink-0 gap-1"
+                            className="btn btn-outline btn-xs shrink-0 gap-1"
                             onClick={handlePickRglLocalAssets}
                             disabled={isImportBusy}
                           >
@@ -902,7 +904,7 @@ export default function ImportChatMessagesWindow({
                           </div>
                           <button
                             type="button"
-                            className="btn btn-secondary btn-xs shrink-0 gap-1"
+                            className="btn btn-outline btn-xs shrink-0 gap-1"
                             onClick={handlePickRglMaterialAssets}
                             disabled={isImportBusy}
                           >
@@ -926,7 +928,7 @@ export default function ImportChatMessagesWindow({
                           </div>
                           <button
                             type="button"
-                            className="btn btn-secondary btn-xs shrink-0 gap-1"
+                            className="btn btn-outline btn-xs shrink-0 gap-1"
                             onClick={handlePickRglRoleAssets}
                             disabled={isImportBusy}
                           >
@@ -969,7 +971,7 @@ export default function ImportChatMessagesWindow({
                       %
                     </span>
                   </div>
-                  <progress className="progress progress-primary h-2 w-full" value={progress.sent} max={progress.total}></progress>
+                  <progress className="progress progress-info h-2 w-full" value={progress.sent} max={progress.total}></progress>
                 </div>
               )
             : isImportingRglAssets

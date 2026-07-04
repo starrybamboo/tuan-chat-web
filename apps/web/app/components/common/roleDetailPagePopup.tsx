@@ -6,7 +6,7 @@ import type { Role } from "@/components/Role/types";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
-import ConfirmModal from "@/components/common/comfirmModel";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import CharacterDetail from "@/components/Role/CharacterDetail";
 import { resolveRoleRuleSelection, shouldPersistRoleRuleSelection } from "@/utils/roleRuleSelection";
@@ -183,14 +183,14 @@ export function RoleDetailPagePopup({
           </div>
         </div>
 
-        <ConfirmModal
-          isOpen={isKickConfirmOpen}
-          onClose={() => setIsKickConfirmOpen(false)}
+        <ConfirmDialog
+          open={isKickConfirmOpen}
+          onOpenChange={() => setIsKickConfirmOpen(false)}
           title="确认踢出角色"
-          message="确定要将该角色从当前房间移除吗？此操作将解除该角色与房间的关联。"
+          description="确定要将该角色从当前房间移除吗？此操作将解除该角色与房间的关联。"
           onConfirm={handleRemoveRole}
-          confirmText="确认踢出"
-          cancelText="取消"
+          confirmLabel="确认踢出"
+          cancelLabel="取消"
           variant="warning"
         />
       </div>
@@ -213,14 +213,14 @@ export function RoleDetailPagePopup({
         onKickOut={() => setIsKickConfirmOpen(true)}
       />
 
-      <ConfirmModal
-        isOpen={isKickConfirmOpen}
-        onClose={() => setIsKickConfirmOpen(false)}
+      <ConfirmDialog
+        open={isKickConfirmOpen}
+        onOpenChange={() => setIsKickConfirmOpen(false)}
         title="确认踢出角色"
-        message="确定要将该角色从当前房间移除吗？此操作将解除该角色与房间的关联。"
+        description="确定要将该角色从当前房间移除吗？此操作将解除该角色与房间的关联。"
         onConfirm={handleRemoveRole}
-        confirmText="确认踢出"
-        cancelText="取消"
+        confirmLabel="确认踢出"
+        cancelLabel="取消"
         variant="warning"
       />
     </div>

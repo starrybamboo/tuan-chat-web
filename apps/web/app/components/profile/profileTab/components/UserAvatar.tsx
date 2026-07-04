@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 
-import { MediaImage } from "@/components/common/mediaImage";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
+import { UserAvatarByUser } from "@/components/common/userAccess";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
-import { imageLowUrl } from "@/utils/media/mediaUrl";
 
 import type { UserInfoResponse } from "../../../../../api";
 
@@ -40,15 +39,6 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   size = "sm",
   onAvatarUpdate,
 }) => {
-  const [imageError, setImageError] = useState(false);
-  const [imageLoading, setImageLoading] = useState(false);
-
-  // 处理图片加载错误
-  const handleImageError = () => {
-    setImageError(true);
-    setImageLoading(false);
-  };
-
   // 获取备用头像内容
   const getFallbackAvatar = () => {
     const initials = user?.username?.slice(0, 2).toUpperCase() || "?";
@@ -89,31 +79,19 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
 
   // 渲染头像图片内容（不包含交互层）
   const renderAvatarImage = () => {
-    // 修改：优化渲染逻辑
-    const avatarSrc = imageLowUrl(user.avatarFileId);
-    const hasAvatar = avatarSrc && !imageError;
+    const hasAvatar = typeof user.avatarFileId === "number" && user.avatarFileId > 0;
 
     if (hasAvatar) {
       return (
         <div className="relative w-full h-full">
-          <MediaImage
-            src={avatarSrc}
-            alt={user?.username}
-            className={`
-              object-cover transition-all duration-300
-              ${
-              canEdit ? "group-hover:brightness-75" : ""
-            }
-              ${getInnerAvatarSizeClass(size)}
-            `}
-            onError={handleImageError}
+          <UserAvatarByUser
+            user={user}
+            fallbackUserId={userId}
+            width={size === "lg" ? "full" : size === "md" ? 20 : 16}
+            isRounded={true}
+            stopToastWindow={true}
+            clickEnterProfilePage={false}
           />
-          {imageLoading && (
-            <div className={`
-              absolute inset-0 skeleton
-              ${getInnerAvatarSizeClass(size)}
-            `} />
-          )}
         </div>
       );
     }

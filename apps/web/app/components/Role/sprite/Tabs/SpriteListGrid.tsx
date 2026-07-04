@@ -1,9 +1,12 @@
-import { CaretDownIcon, CaretRightIcon } from "@phosphor-icons/react";
-import { type ReactNode, useCallback, useState } from "react";
+import type { ReactNode } from "react";
+
+import { CaretDownIcon, CaretRightIcon, CheckCircleIcon, ImageSquareIcon } from "@phosphor-icons/react";
+import { useCallback, useRef, useState } from "react";
 
 import type { RoleAvatar, RoleAvatarVariant } from "api";
 
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { MediaImage } from "@/components/common/mediaImage";
 import { BaselineDeleteOutline } from "@/icons";
 import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
@@ -44,6 +47,16 @@ type SpriteListGridProps = {
   /** 头像选择回调（用于删除时更新选中状态） */
   onAvatarSelect?: (avatarId: number) => void;
   onAvatarDeleted?: (avatar: RoleAvatar) => void;
+  /** 当前角色正在使用的默认头像 ID */
+  defaultAvatarId?: number;
+  /** 将指定头像设为默认头像 */
+  onSetDefaultAvatar?: (avatar: RoleAvatar) => void | Promise<void>;
+  /** 当前是否正在设置默认头像 */
+  isSettingDefaultAvatar?: boolean;
+  /** 替换指定头像源图，替换后由父层进入校正流程 */
+  onReplaceAvatarSource?: (avatar: RoleAvatar, file: File) => void | Promise<void>;
+  /** 当前是否正在替换头像源图 */
+  isReplacingAvatarSource?: boolean;
   /** 多选状态（必须从父组件传入） */
   selectedIndices: Set<number>;
   /** 是否处于多选模式（必须从父组件传入） */
@@ -124,6 +137,11 @@ export function SpriteListGrid({
   onAvatarChange,
   onAvatarSelect,
   onAvatarDeleted,
+  defaultAvatarId,
+  onSetDefaultAvatar,
+  isSettingDefaultAvatar = false,
+  onReplaceAvatarSource,
+  isReplacingAvatarSource = false,
   selectedIndices,
   isMultiSelectMode,
   onMultiSelectChange,
@@ -149,6 +167,8 @@ export function SpriteListGrid({
   const [droppedTargetId, setDroppedTargetId] = useState<string | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(() => new Set());
+  const replaceAvatarInputRef = useRef<HTMLInputElement | null>(null);
+  const replaceTargetAvatarRef = useRef<RoleAvatar | null>(null);
   // 当前选中的头像
   const currentAvatar = avatars[selectedIndex] || null;
   const selectedAvatarId = currentAvatar?.avatarId || 0;
@@ -256,6 +276,7 @@ export function SpriteListGrid({
 
   // Determine if delete button should be shown (not when only 1 avatar remains)
   const canDelete = (totalAvatarsCount ?? avatars.length) > 1;
+  const canShowTileTools = isManageMode && !isMultiSelectMode && (Boolean(onReplaceAvatarSource) || canDelete);
   const categoryGroups = groupByCategory ? groupAvatarsByCategory(avatars) : [];
   const defaultUploadDefaults = uploadVariantId ? { variantId: uploadVariantId } : undefined;
   const lockedUploadVariant = lockedUploadVariantGroup
@@ -272,10 +293,18 @@ export function SpriteListGrid({
         ? avatar.avatarId === role.avatarId
         : (role?.avatar ? displayAvatarUrl === role.avatar : false),
     );
+    const isDefaultAvatar = Boolean(
+      avatar.avatarId
+      && (defaultAvatarId ? avatar.avatarId === defaultAvatarId : isAppliedAvatar),
+    );
+    const isCurrentAvatar = isDefaultAvatar || isAppliedAvatar;
+    const canSetDefaultAvatar = Boolean(onSetDefaultAvatar && avatar.avatarId && !isCurrentAvatar);
+    const canReplaceAvatarSource = Boolean(onReplaceAvatarSource && avatar.avatarId);
+    const showTileTools = canShowTileTools;
 
     return (
       <div key={avatar.avatarId} className="min-w-0 flex flex-col">
-        <div className="relative group w-full overflow-visible">
+        <div className="group/avatar-tile relative w-full overflow-visible">
           <button
             type="button"
             draggable={Boolean(onAvatarDragStart)}
@@ -302,14 +331,14 @@ export function SpriteListGrid({
               cursor-pointer
               ${
               isSelected
-                ? "border-primary shadow-lg ring-2 ring-primary/30"
+                ? "border-info shadow-lg ring-2 ring-info/30"
                 : `
                   border-base-300
-                  hover:border-primary/50 hover:shadow-md
+                  hover:border-info/50 hover:shadow-md
                 `
             }
             `}
-            title={isMultiSelectMode ? `选择头像 ${index + 1}` : `切换到立绘 ${index + 1}`}
+            title={avatar.avatarId ? `头像 ID：${avatar.avatarId}` : avatarName}
           >
             {displayAvatarUrl
               ? (
@@ -355,7 +384,7 @@ export function SpriteListGrid({
                       viewBox="0 0 24 24"
                       width="16"
                       height="16"
-                      className="text-accent-content"
+                      className="text-info-content"
                     >
                       <path
                         fill="currentColor"
@@ -367,63 +396,155 @@ export function SpriteListGrid({
               </div>
             )}
 
-            {!isMultiSelectMode && index === selectedIndex && (
-              <div className="
-                absolute inset-0 bg-primary/10 flex items-center
-                justify-center
-              ">
-                <svg className="size-6 text-primary" viewBox="0 0 24 24" fill="none">
-                  <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-            )}
-
             {isMultiSelectMode && selectedIndices.has(index) && (
               <div className="
-                absolute inset-0 bg-primary/20 pointer-events-none
+                absolute inset-0 bg-info/20 pointer-events-none
               " />
             )}
 
-            {isAppliedAvatar && (
-              <div className="
-                absolute bottom-0 left-1 z-10 flex items-center gap-1.5
-              ">
-                <span
-                  className="size-3 rounded-full bg-success shadow-sm"
-                  title="这是当前应用的头像"
-                >
-                </span>
-                <span className="
-                  rounded-full bg-success/90 p-1 text-[10px]
-                  text-success-content opacity-0 transition-opacity
-                  duration-200
-                  group-hover:opacity-100
-                ">
-                  当前应用
-                </span>
-              </div>
-            )}
           </button>
 
-          {showDelete && canDelete && !isMultiSelectMode && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteRequest(index);
-              }}
-              className="
-                absolute top-1 right-1 p-1.5 bg-error/90
-                hover:bg-error
-                text-error-content rounded-full opacity-100
-                md:opacity-0
-                md:group-hover:opacity-100
-                transition-opacity duration-200 z-10 cursor-pointer
-              "
-              title="删除头像"
+          {onSetDefaultAvatar && (
+            <div
+              className={`
+                tooltip tooltip-top absolute bottom-1.5 left-1.5 z-20
+                transition-all duration-200
+                ${
+                  isCurrentAvatar
+                    ? "opacity-100"
+                    : "opacity-0 translate-y-1 group-hover/avatar-tile:opacity-100 group-hover/avatar-tile:translate-y-0 group-focus-within/avatar-tile:opacity-100 group-focus-within/avatar-tile:translate-y-0"
+                }
+              `}
+              data-tip={isCurrentAvatar ? "当前默认头像" : "设为默认头像"}
             >
-              <BaselineDeleteOutline className="size-4" />
-            </button>
+              {isCurrentAvatar
+                ? (
+                    <span
+                      className="
+                        inline-flex h-6 items-center gap-1 rounded-full
+                        bg-neutral/80 px-2 text-[11px] font-medium text-neutral-content
+                        shadow-sm ring-1 ring-white/20 backdrop-blur
+                        transition-transform duration-150
+                      "
+                      aria-label="当前默认头像"
+                    >
+                      <CheckCircleIcon className="size-3.5 text-success" weight="fill" aria-hidden="true" />
+                      默认
+                    </span>
+                  )
+                : (
+                    <button
+                      type="button"
+                      className="
+                        inline-flex h-6 items-center gap-1 rounded-full
+                        bg-neutral/75 px-2 text-[11px] font-medium text-neutral-content
+                        shadow-sm ring-1 ring-base-100/20 backdrop-blur
+                        transition-[border-radius,transform] duration-150
+                        hover:scale-105 hover:rounded-lg active:scale-95
+                        disabled:bg-neutral/45 disabled:text-neutral-content/60
+                      "
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (!canSetDefaultAvatar || isSettingDefaultAvatar) {
+                          return;
+                        }
+                        void onSetDefaultAvatar(avatar);
+                      }}
+                      disabled={!canSetDefaultAvatar || isSettingDefaultAvatar}
+                      aria-label="设为默认头像"
+                    >
+                      {isSettingDefaultAvatar
+                        ? <span className="loading loading-spinner loading-xs" aria-hidden="true" />
+                        : <CheckCircleIcon className="size-3.5" aria-hidden="true" />}
+                      设默认
+                    </button>
+                  )}
+            </div>
+          )}
+
+          {showTileTools && (
+            <div
+              className={`
+                pointer-events-none absolute right-1.5 top-1.5 z-20 flex items-center gap-0.5
+                rounded-full bg-neutral/80 p-0.5 shadow-md ring-1 ring-white/20 backdrop-blur
+                transition-opacity duration-200
+                ${isSelected
+                  ? "opacity-100"
+                  : "opacity-0 group-hover/avatar-tile:opacity-100 group-focus-within/avatar-tile:opacity-100 max-md:group-hover/avatar-tile:opacity-100 max-md:group-focus-within/avatar-tile:opacity-100"}
+              `}
+            >
+              {onReplaceAvatarSource && (
+                <div
+                  className="group/tool relative pointer-events-auto"
+                >
+                  <button
+                    type="button"
+                    className="
+                      inline-flex size-7 items-center justify-center rounded-full
+                      border-0 bg-transparent p-0 text-neutral-content
+                      transition-[border-radius,transform] duration-150
+                      hover:scale-105 hover:rounded-lg active:scale-95
+                      disabled:text-neutral-content/50
+                    "
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (!canReplaceAvatarSource || isReplacingAvatarSource) {
+                        return;
+                      }
+                      replaceTargetAvatarRef.current = avatar;
+                      replaceAvatarInputRef.current?.click();
+                    }}
+                    disabled={!canReplaceAvatarSource || isReplacingAvatarSource}
+                    aria-label={canReplaceAvatarSource ? "替换源图" : "当前头像无法替换源图"}
+                  >
+                    {isReplacingAvatarSource
+                      ? <span className="loading loading-spinner loading-xs" aria-hidden="true" />
+                      : <ImageSquareIcon className="size-4" aria-hidden="true" />}
+                  </button>
+                  <span
+                    className="
+                      pointer-events-none absolute bottom-full left-1/2 mb-1 -translate-x-1/2 rounded-md
+                      bg-neutral/95 px-2 py-1 text-xs whitespace-nowrap text-neutral-content
+                      opacity-0 shadow-md ring-1 ring-white/15 transition
+                      group-hover/tool:opacity-100 group-focus-within/tool:opacity-100
+                    "
+                  >
+                    {canReplaceAvatarSource ? "替换源图" : "当前头像无法替换源图"}
+                  </span>
+                </div>
+              )}
+
+              {showDelete && canDelete && !isMultiSelectMode && (
+                <div className="group/tool relative pointer-events-auto">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleDeleteRequest(index);
+                    }}
+                    className="
+                      inline-flex size-7 items-center justify-center rounded-full
+                      border-0 bg-transparent p-0 text-neutral-content
+                      transition-[border-radius,transform] duration-150
+                      hover:scale-105 hover:rounded-lg active:scale-95
+                    "
+                    aria-label="删除头像"
+                  >
+                    <BaselineDeleteOutline className="size-4" />
+                  </button>
+                  <span
+                    className="
+                      pointer-events-none absolute bottom-full left-1/2 mb-1 -translate-x-1/2 rounded-md
+                      bg-neutral/95 px-2 py-1 text-xs whitespace-nowrap text-neutral-content
+                      opacity-0 shadow-md ring-1 ring-white/15 transition
+                      group-hover/tool:opacity-100 group-focus-within/tool:opacity-100
+                    "
+                  >
+                    删除头像
+                  </span>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
@@ -470,17 +591,17 @@ export function SpriteListGrid({
             type="button"
             className="
               size-full flex items-center justify-center gap-2 rounded-lg
-              border-2 border-dashed border-gray-300
-              hover:border-primary hover:bg-base-200
+              border-2 border-dashed border-base-300
+              hover:border-info hover:bg-base-200
               transition-all cursor-pointer relative group overflow-hidden
             "
             title="上传新头像"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="
-              size-full text-gray-400 transition-transform duration-300
+              size-full text-base-content/50 transition-transform duration-300
               group-hover:scale-105
             " fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M12 4v16m8-8H4" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 4v16m8-8H4" />
             </svg>
           </button>
         </CharacterCopper>
@@ -535,7 +656,7 @@ export function SpriteListGrid({
         )}
         <div className={`
           flex flex-col items-center justify-center flex-1 text-base-content/70
-          ${isDragActive ? `ring-2 ring-primary/40 rounded-lg` : ""}
+          ${isDragActive ? `ring-2 ring-info/40 rounded-lg` : ""}
         `}>
           {showUpload && (
             <div className="size-24">
@@ -558,17 +679,17 @@ export function SpriteListGrid({
                   type="button"
                   className="
                     size-full flex items-center justify-center gap-2 rounded-lg
-                    border-2 border-dashed border-gray-300
-                    hover:border-primary hover:bg-base-200
+                    border-2 border-dashed border-base-300
+                    hover:border-info hover:bg-base-200
                     transition-all cursor-pointer relative group overflow-hidden
                   "
                   title="上传新头像"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="
-                    size-full text-gray-400 transition-transform duration-300
+                    size-full text-base-content/50 transition-transform duration-300
                     group-hover:scale-105
                   " fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M12 4v16m8-8H4" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 4v16m8-8H4" />
                   </svg>
                 </button>
               </CharacterCopper>
@@ -581,6 +702,22 @@ export function SpriteListGrid({
 
   return (
     <>
+      <input
+        ref={replaceAvatarInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.currentTarget.files?.[0];
+          event.currentTarget.value = "";
+          const avatar = replaceTargetAvatarRef.current;
+          replaceTargetAvatarRef.current = null;
+          if (!file || !avatar || !onReplaceAvatarSource) {
+            return;
+          }
+          void onReplaceAvatarSource(avatar, file);
+        }}
+      />
       <div
         className={`
           flex flex-col
@@ -633,7 +770,7 @@ export function SpriteListGrid({
           ? (
               <div className={`
                 flex min-w-0 flex-col gap-4 overflow-y-auto overflow-x-hidden
-                ${isDragActive ? `ring-2 ring-primary/40 rounded-lg` : ""}
+                ${isDragActive ? `ring-2 ring-info/40 rounded-lg` : ""}
               `}>
                 {beforeContentSlot}
                 {categoryGroups.map((group, groupIndex) => {
@@ -697,7 +834,7 @@ export function SpriteListGrid({
                         </span>
                         <span className="flex shrink-0 items-center gap-1">
                           {isMultiSelectMode && selectedInGroupCount > 0 && (
-                            <span className="badge badge-primary badge-xs">
+                            <span className="badge badge-info badge-xs">
                               已选
                               {" "}
                               {selectedInGroupCount}
@@ -735,7 +872,7 @@ export function SpriteListGrid({
                   grid w-full min-w-0
                   ${gridCols}
                   gap-2 overflow-y-auto overflow-x-hidden content-start
-                  ${isDragActive ? `ring-2 ring-primary/40 rounded-lg` : ""}
+                  ${isDragActive ? `ring-2 ring-info/40 rounded-lg` : ""}
                 `}
                 style={gridTemplateColumns ? { gridTemplateColumns } : undefined}
               >
@@ -750,48 +887,20 @@ export function SpriteListGrid({
             )}
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      {deleteConfirmOpen && (
-        <div className="modal modal-open">
-          <div className="modal-box">
-            <h3 className="font-bold text-lg">确认删除头像</h3>
-            <p className="py-4">删除后会进入回收站，可在回收站恢复。</p>
-            <div className="modal-action">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={handleCancelDelete}
-                disabled={deletionHook?.isDeleting}
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                className="btn btn-error"
-                onClick={handleConfirmDelete}
-                disabled={deletionHook?.isDeleting}
-              >
-                {deletionHook?.isDeleting
-                  ? (
-                      <>
-                        <span className="loading loading-spinner loading-sm"></span>
-                        删除中...
-                      </>
-                    )
-                  : (
-                      "删除"
-                    )}
-              </button>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="modal-backdrop"
-            onClick={handleCancelDelete}
-            aria-label="关闭删除确认弹窗"
-          />
-        </div>
-      )}
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={(open) => {
+          if (!open)
+            handleCancelDelete();
+        }}
+        onConfirm={handleConfirmDelete}
+        title="确认删除头像"
+        description="删除后会进入回收站，可在回收站恢复。"
+        confirmLabel="删除"
+        cancelLabel="取消"
+        icon={<BaselineDeleteOutline className="size-6" />}
+        variant="danger"
+      />
     </>
   );
 }

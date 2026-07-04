@@ -5,9 +5,8 @@ import { useLocation, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
-import { MediaImage } from "@/components/common/mediaImage";
-import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
-import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGetUserActiveSpacesQuery } from "api/hooks/chatQueryHooks";
 import {
   useClearRoleTrashMutation,
@@ -39,23 +38,23 @@ function RoleTrashItem({
   onHardDelete: (role: Role) => void;
   isDeleting: boolean;
 }) {
-  const avatarSrc = role.avatarThumb || role.avatar || ROLE_DEFAULT_AVATAR_URL;
-
   return (
     <div className="
       flex items-center gap-3 rounded-lg border border-base-content/10 bg-base-100
       p-3 shadow-xs
     ">
-      <div className="avatar shrink-0">
-        <div className="size-12 rounded-full md:size-14">
-          <MediaImage
-            src={avatarSrc}
-            alt={role.name || "头像"}
-            loading="lazy"
-            fallbackSrc={role.avatar || ROLE_DEFAULT_AVATAR_URL}
-          />
-        </div>
-      </div>
+      <RoleAvatarComponent
+        avatarId={role.avatarId}
+        avatarUrl={role.avatar}
+        avatarThumbUrl={role.avatarThumb}
+        roleId={role.id}
+        roleType={role.type}
+        width={14}
+        isRounded={true}
+        stopToastWindow={true}
+        alt={role.name || "头像"}
+        imageLoading="lazy"
+      />
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-2">
           <h3 className="truncate font-medium">{role.name || "未命名项目"}</h3>
@@ -74,7 +73,7 @@ function RoleTrashItem({
         disabled={isDeleting}
         onClick={() => onHardDelete(role)}
       >
-        <TrashSimpleIcon size={16} weight="bold" />
+        <TrashSimpleIcon size={16} weight="regular" />
         硬删除
       </button>
     </div>
@@ -188,7 +187,7 @@ export default function RoleTrashPage() {
       ">
         <div>
           <div className="flex items-center gap-2">
-            <TrashSimpleIcon size={24} weight="bold" className="text-error" />
+            <TrashSimpleIcon size={24} weight="regular" className="text-error" />
             <h1 className="text-2xl font-bold">回收站</h1>
             <span className="badge badge-neutral">{trashModel.total}</span>
             <span className="badge badge-ghost">{scopeTitle}</span>
@@ -222,7 +221,7 @@ export default function RoleTrashPage() {
             onClick={() => setClearConfirmOpen(true)}
             disabled={clearDisabled}
           >
-            <TrashSimpleIcon size={16} weight="bold" />
+            <TrashSimpleIcon size={16} weight="regular" />
             清空回收站
           </button>
           <button
@@ -233,7 +232,7 @@ export default function RoleTrashPage() {
           >
             <ArrowClockwiseIcon
               size={16}
-              weight="bold"
+              weight="regular"
               className={trashModel.isFetching ? "animate-spin" : ""}
             />
             刷新
@@ -304,73 +303,51 @@ export default function RoleTrashPage() {
               </div>
             )}
 
-      <ToastWindow isOpen={pendingHardDeleteRole !== null} onClose={() => setPendingHardDeleteRole(null)}>
-        <div className="card flex w-full max-w-md flex-col">
-          <div className="card-body items-center text-center">
-            <h2 className="card-title text-2xl font-bold">确认硬删除项目</h2>
-            <div className="divider"></div>
-            <p className="text-base opacity-75">
-              确定要永久删除
-              <span className="mx-1 font-semibold text-error">
-                {pendingHardDeleteRole?.name || "未命名项目"}
-              </span>
-              吗？这个操作无法恢复。
-            </p>
-          </div>
-        </div>
-        <div className="card-actions mt-8 justify-center gap-6">
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={() => setPendingHardDeleteRole(null)}
-            disabled={hardDeleteMutation.isPending}
-          >
-            取消
-          </button>
-          <button
-            type="button"
-            className="btn btn-error"
-            onClick={handleConfirmHardDelete}
-            disabled={hardDeleteMutation.isPending}
-          >
-            硬删除
-          </button>
-        </div>
-      </ToastWindow>
+      <ConfirmDialog
+        open={pendingHardDeleteRole !== null}
+        onOpenChange={(open) => {
+          if (!open)
+            setPendingHardDeleteRole(null);
+        }}
+        onConfirm={handleConfirmHardDelete}
+        title="确认硬删除项目"
+        description={(
+          <>
+            确定要永久删除
+            <span className="mx-1 font-semibold text-error">
+              {pendingHardDeleteRole?.name || "未命名项目"}
+            </span>
+            吗？这个操作无法恢复。
+          </>
+        )}
+        confirmLabel="硬删除"
+        cancelLabel="取消"
+        icon={<TrashSimpleIcon className="size-6" weight="regular" />}
+        variant="danger"
+      />
 
-      <ToastWindow isOpen={clearConfirmOpen} onClose={() => setClearConfirmOpen(false)}>
-        <div className="card flex w-full max-w-md flex-col">
-          <div className="card-body items-center text-center">
-            <h2 className="card-title text-2xl font-bold">确认清空回收站</h2>
-            <div className="divider"></div>
-            <p className="text-base opacity-75">
-              确定要永久删除回收站中的全部
-              <span className="mx-1 font-semibold text-error">
-                {allTrashCount.total}
-              </span>
-              个项目吗？这个操作不会受当前搜索过滤影响，且无法恢复。
-            </p>
-          </div>
-        </div>
-        <div className="card-actions mt-8 justify-center gap-6">
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={() => setClearConfirmOpen(false)}
-            disabled={currentClearPending}
-          >
-            取消
-          </button>
-          <button
-            type="button"
-            className="btn btn-error"
-            onClick={handleConfirmClearTrash}
-            disabled={currentClearPending}
-          >
-            清空回收站
-          </button>
-        </div>
-      </ToastWindow>
+      <ConfirmDialog
+        open={clearConfirmOpen}
+        onOpenChange={(open) => {
+          if (!open)
+            setClearConfirmOpen(false);
+        }}
+        onConfirm={handleConfirmClearTrash}
+        title="确认清空回收站"
+        description={(
+          <>
+            确定要永久删除回收站中的全部
+            <span className="mx-1 font-semibold text-error">
+              {allTrashCount.total}
+            </span>
+            个项目吗？这个操作不会受当前搜索过滤影响，且无法恢复。
+          </>
+        )}
+        confirmLabel="清空回收站"
+        cancelLabel="取消"
+        icon={<TrashSimpleIcon className="size-6" weight="regular" />}
+        variant="danger"
+      />
     </div>
   );
 }

@@ -4,12 +4,12 @@ export type MessageDirectType = {
   syncId?: number;
   senderId?: number;
   senderUsername?: string;
-  senderAvatar?: string;
-  senderAvatarThumbUrl?: string;
+  senderAvatarFileId?: number;
+  senderAvatarMediaType?: string;
   receiverId?: number;
   receiverUsername?: string;
-  receiverAvatar?: string;
-  receiverAvatarThumbUrl?: string;
+  receiverAvatarFileId?: number;
+  receiverAvatarMediaType?: string;
   content?: string;
   messageType?: number;
   replyMessageId?: number;

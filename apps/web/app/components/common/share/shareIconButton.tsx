@@ -1,6 +1,7 @@
 import React, { useRef } from "react";
 import toast from "react-hot-toast";
 
+import { IconButton } from "@/components/common/IconButton";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 
 import useSearchParamsState from "../customHooks/useSearchParamState";
@@ -72,18 +73,8 @@ export default function ShareIconButton({
   };
 
   return (
-    <div>
-      <button
-        type="button"
-        className={`
-          flex items-center justify-center join-item btn-sm btn-ghost
-          ${className ?? ""}
-        `}
-        onClick={openShareWindow}
-        aria-expanded={showShare}
-        aria-controls={`share-pop-${searchKey}`}
-        title="分享"
-      >
+    <IconButton
+      icon={
         <div className="w-5 h-5">
           <svg
             viewBox="0 0 24 24"
@@ -96,7 +87,16 @@ export default function ShareIconButton({
             </g>
           </svg>
         </div>
-      </button>
-    </div>
+      }
+      label="分享"
+      variant="ghost"
+      size="sm"
+      shape="default"
+      className={`join-item ${className ?? ""}`}
+      onClick={openShareWindow}
+      aria-expanded={showShare}
+      aria-controls={`share-pop-${searchKey}`}
+      title="分享"
+    />
   );
 }

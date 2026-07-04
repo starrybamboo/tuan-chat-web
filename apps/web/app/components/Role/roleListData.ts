@@ -54,7 +54,7 @@ export function mapUserRoleToRole(role: RoleListAvatarFields): Role {
     avatarThumb: avatarThumbUrl,
     avatarId: role.avatarId || 0,
     voiceFileId: role.voiceFileId,
-    type: role.type ?? (role.diceMaiden ? 1 : 0),
+    type: role.type ?? 0,
     extra: role.extra || {},
   };
 }

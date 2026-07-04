@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import ActivityNotice from "@/components/activities/cards/activituNoticeCard";
+import ActivityNotice from "@/components/activities/cards/activityNoticeCard";
 import PublishPostCard from "@/components/activities/cards/publishPostCard";
 import TrendingTopics from "@/components/activities/cards/trendingTopicsCard";
 import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
@@ -156,10 +156,10 @@ function ActivitiesPage() {
                     font-medium border-b-2 pb-2 transition-colors
                     ${
                     activeTab === "all"
-                      ? "text-primary border-primary"
+                      ? "text-info border-info"
                       : `
                         text-base-content/70
-                        hover:text-primary
+                        hover:text-info
                         border-transparent
                       `
                   }
@@ -174,10 +174,10 @@ function ActivitiesPage() {
                     font-medium border-b-2 pb-2 transition-colors
                     ${
                     activeTab === "repository"
-                      ? "text-primary border-primary"
+                      ? "text-info border-info"
                       : `
                         text-base-content/70
-                        hover:text-primary
+                        hover:text-info
                         border-transparent
                       `
                   }
@@ -198,7 +198,7 @@ function ActivitiesPage() {
               {isLoading && (
                 <div className="flex justify-center py-8">
                   <div className="
-                    loading loading-spinner loading-lg text-primary
+                    loading loading-spinner loading-lg text-info
                   "></div>
                 </div>
               )}
@@ -257,27 +257,27 @@ function ActivitiesPage() {
                     ? (
                         <>
                           <p className="text-base-content/60">还没有动态</p>
-                          <p className="text-base-content/40 text-sm">关注一些用户来查看他们的动态吧</p>
+                          <p className="text-base-content/50 text-sm">关注一些用户来查看他们的动态吧</p>
                         </>
                       )
                     : (
                         <>
                           <p className="text-base-content/60">还没有仓库动态</p>
-                          <p className="text-base-content/40 text-sm">关注的用户还没有发布仓库相关的动态</p>
+                          <p className="text-base-content/50 text-sm">关注的用户还没有发布仓库相关的动态</p>
                         </>
                       )}
                 </div>
               )}
 
               {!hasNextPage && activities.length > 0 && (
-                <div className="text-center py-4 text-base-content/40 text-sm">已经到底了</div>
+                <div className="text-center py-4 text-base-content/50 text-sm">已经到底了</div>
               )}
 
               {/* 显示正在加载下一页的 spinner */}
               {isFetchingNextPage && (
                 <div className="flex justify-center py-4">
                   <div className="
-                    loading loading-spinner loading-md text-primary
+                    loading loading-spinner loading-md text-info
                   "></div>
                 </div>
               )}

@@ -60,6 +60,10 @@ describe("roomMessageStreamApi", () => {
     });
 
     expect(patchRoomMessagesMock).toHaveBeenCalledWith({
+      mutationMeta: {
+        operationCause: "normal",
+        sourceSurface: "doc_view",
+      },
       roomId: 10,
       operations: [
         {
@@ -109,7 +113,7 @@ describe("roomMessageStreamApi", () => {
     }));
   });
 
-  it("未传 mutationMeta 时保持旧请求形状", async () => {
+  it("未传 mutationMeta 时使用文档视图默认来源", async () => {
     patchRoomMessagesMock.mockResolvedValueOnce({
       data: [createMessage({ content: "saved", messageId: 2, syncId: 101 })],
       success: true,
@@ -129,7 +133,10 @@ describe("roomMessageStreamApi", () => {
     });
 
     const [firstCall] = patchRoomMessagesMock.mock.calls;
-    expect((firstCall?.[0] as any)?.mutationMeta).toBeUndefined();
+    expect((firstCall?.[0] as any)?.mutationMeta).toEqual({
+      operationCause: "normal",
+      sourceSurface: "doc_view",
+    });
   });
 
   it("没有有效内容操作时不请求远端", async () => {

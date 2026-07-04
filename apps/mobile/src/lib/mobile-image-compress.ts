@@ -1,4 +1,4 @@
-import { getInfoAsync } from "expo-file-system/legacy";
+import { File as ExpoFile } from "expo-file-system";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Image, Platform } from "react-native";
 
@@ -74,9 +74,12 @@ async function getFileSize(uri: string): Promise<number> {
     const blob = await response.blob();
     return blob.size;
   }
-  const info = await getInfoAsync(uri);
+  const info = new ExpoFile(uri).info();
   if (!info.exists) {
     throw new Error("压缩后的图片文件不存在。");
+  }
+  if (typeof info.size !== "number" || !Number.isFinite(info.size) || info.size <= 0) {
+    throw new Error("读取压缩后图片大小失败。");
   }
   return info.size;
 }

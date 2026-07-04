@@ -16,7 +16,11 @@ export type RealtimeWebgalDefaultLanguage = "" | "zh_CN" | "zh_TW" | "en" | "ja"
 export type RealtimeWebgalBaseTemplate = "none" | "black" | "tuanchat";
 const DEFAULT_TYPING_SOUND_INTERVAL = 1.5;
 const DEFAULT_TYPING_SOUND_PUNCTUATION_PAUSE = 100;
-const DEFAULT_FIGURE_TRANSITION_DURATION = 100;
+const DEFAULT_FIGURE_ENTER_TRANSITION_DURATION = 0;
+const DEFAULT_FIGURE_EXIT_TRANSITION_DURATION = 300;
+const DEFAULT_FIGURE_ENTER_TRANSITION_ANIMATION = "tuanchat/default-enter";
+const DEFAULT_FIGURE_EXIT_TRANSITION_ANIMATION = "tuanchat/default-exit";
+const REALTIME_RENDER_SETTINGS_VERSION = 3;
 export const DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD = 78;
 export const MIN_ROOM_CONTENT_ALERT_THRESHOLD = 20;
 export const MAX_ROOM_CONTENT_ALERT_THRESHOLD = 1024;
@@ -24,21 +28,21 @@ export const MAX_ROOM_CONTENT_ALERT_THRESHOLD = 1024;
 export type RealtimeWebgalGameConfig = {
   /** 未设置标题背景图 URL 时，是否将群聊头像同步为 WebGAL 标题背景图（Title_img） */
   coverFromRoomAvatarEnabled: boolean;
-  /** WebGAL 标题背景图兼容 URL（Title_img；云端长期配置以 titleImageFileId 为准） */
+  /** WebGAL 标题背景图 URL（仅本地运行态；云端配置使用 titleImageFileId） */
   titleImageUrl: string;
   /** WebGAL 标题背景图媒体文件 ID */
   titleImageFileId?: number;
-  /** WebGAL 标题背景图原图兼容 URL（云端长期配置以 originalTitleImageFileId 为准） */
+  /** WebGAL 标题背景图原图 URL（仅本地运行态；云端配置使用 originalTitleImageFileId） */
   originalTitleImageUrl: string;
   /** WebGAL 标题背景图原图媒体文件 ID */
   originalTitleImageFileId?: number;
   /** 未设置启动图 URL 时，是否将群聊头像同步为 WebGAL 启动图（Game_Logo） */
   startupLogoFromRoomAvatarEnabled: boolean;
-  /** WebGAL 启动图兼容 URL（Game_Logo；云端长期配置以 startupLogoFileId 为准） */
+  /** WebGAL 启动图 URL（仅本地运行态；云端配置使用 startupLogoFileId） */
   startupLogoUrl: string;
   /** WebGAL 启动图媒体文件 ID */
   startupLogoFileId?: number;
-  /** WebGAL 启动图原图兼容 URL（云端长期配置以 originalStartupLogoFileId 为准） */
+  /** WebGAL 启动图原图 URL（仅本地运行态；云端配置使用 originalStartupLogoFileId） */
   originalStartupLogoUrl: string;
   /** WebGAL 启动图原图媒体文件 ID */
   originalStartupLogoFileId?: number;
@@ -68,11 +72,15 @@ export type RealtimeWebgalGameConfig = {
   figureDefaultEnterDuration: number;
   /** 默认角色立绘出场时长（Figure_Default_Exit_Duration） */
   figureDefaultExitDuration: number;
+  /** 默认角色立绘入场动画 JSON 名（Figure_Default_Enter_Animation） */
+  figureDefaultEnterAnimation: string;
+  /** 默认角色立绘出场动画 JSON 名（Figure_Default_Exit_Animation） */
+  figureDefaultExitAnimation: string;
   /** 打字音播放间隔（每隔多少个字符播放一次） */
   typingSoundInterval: number;
   /** 标点符号额外停顿（毫秒） */
   typingSoundPunctuationPause: number;
-  /** 打字音效兼容 URL（云端长期配置以 typingSoundSeFileId 为准） */
+  /** 打字音效 URL（仅本地运行态；云端配置使用 typingSoundSeFileId） */
   typingSoundSeUrl: string;
   /** 打字音效媒体文件 ID */
   typingSoundSeFileId?: number;
@@ -98,8 +106,10 @@ const DEFAULT_REALTIME_WEBGAL_GAME_CONFIG: RealtimeWebgalGameConfig = {
   defaultLanguage: "",
   enableAppreciation: true,
   typingSoundEnabled: false,
-  figureDefaultEnterDuration: DEFAULT_FIGURE_TRANSITION_DURATION,
-  figureDefaultExitDuration: DEFAULT_FIGURE_TRANSITION_DURATION,
+  figureDefaultEnterDuration: DEFAULT_FIGURE_ENTER_TRANSITION_DURATION,
+  figureDefaultExitDuration: DEFAULT_FIGURE_EXIT_TRANSITION_DURATION,
+  figureDefaultEnterAnimation: DEFAULT_FIGURE_ENTER_TRANSITION_ANIMATION,
+  figureDefaultExitAnimation: DEFAULT_FIGURE_EXIT_TRANSITION_ANIMATION,
   typingSoundInterval: DEFAULT_TYPING_SOUND_INTERVAL,
   typingSoundPunctuationPause: DEFAULT_TYPING_SOUND_PUNCTUATION_PAUSE,
   typingSoundSeUrl: "",
@@ -248,12 +258,20 @@ function normalizeTypingSoundPunctuationPause(value: unknown): number {
   return Math.max(0, Math.min(5000, Math.floor(raw)));
 }
 
-function normalizeFigureTransitionDuration(value: unknown): number {
+function normalizeFigureTransitionDuration(value: unknown, fallback = DEFAULT_FIGURE_ENTER_TRANSITION_DURATION): number {
   const raw = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(raw)) {
-    return DEFAULT_FIGURE_TRANSITION_DURATION;
+    return fallback;
   }
   return Math.max(0, Math.min(5000, Math.floor(raw)));
+}
+
+function normalizeFigureTransitionAnimation(value: unknown, fallback: string): string {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+  const normalized = value.trim();
+  return normalized || fallback;
 }
 
 function normalizeRoomContentAlertThreshold(value: unknown): number {
@@ -265,25 +283,18 @@ function normalizeRoomContentAlertThreshold(value: unknown): number {
   return Math.max(MIN_ROOM_CONTENT_ALERT_THRESHOLD, Math.min(MAX_ROOM_CONTENT_ALERT_THRESHOLD, normalized));
 }
 
-function cloudLegacyUrl(value: string, fileId?: number): string {
-  return normalizePositiveFileId(fileId) == null ? value : "";
-}
-
 export function buildRealtimeRenderCloudSettingsSnapshot(state: RealtimeRenderCloudSettingsSnapshotInput): RealtimeRenderCloudSettings {
   return {
+    settingsVersion: REALTIME_RENDER_SETTINGS_VERSION,
     ttsApiUrl: state.ttsApiUrl,
     terrePort: state.terrePortOverride,
     autoFigureEnabled: state.autoFigureEnabled,
     roomContentAlertThreshold: state.roomContentAlertThreshold,
     coverFromRoomAvatarEnabled: state.gameConfig.coverFromRoomAvatarEnabled,
-    titleImageUrl: cloudLegacyUrl(state.gameConfig.titleImageUrl, state.gameConfig.titleImageFileId),
     titleImageFileId: state.gameConfig.titleImageFileId,
-    originalTitleImageUrl: cloudLegacyUrl(state.gameConfig.originalTitleImageUrl, state.gameConfig.originalTitleImageFileId ?? state.gameConfig.titleImageFileId),
     originalTitleImageFileId: state.gameConfig.originalTitleImageFileId,
     startupLogoFromRoomAvatarEnabled: state.gameConfig.startupLogoFromRoomAvatarEnabled,
-    startupLogoUrl: cloudLegacyUrl(state.gameConfig.startupLogoUrl, state.gameConfig.startupLogoFileId),
     startupLogoFileId: state.gameConfig.startupLogoFileId,
-    originalStartupLogoUrl: cloudLegacyUrl(state.gameConfig.originalStartupLogoUrl, state.gameConfig.originalStartupLogoFileId ?? state.gameConfig.startupLogoFileId),
     originalStartupLogoFileId: state.gameConfig.originalStartupLogoFileId,
     gameIconFromRoomAvatarEnabled: state.gameConfig.gameIconFromRoomAvatarEnabled,
     gameNameFromRoomNameEnabled: state.gameConfig.gameNameFromRoomNameEnabled,
@@ -298,9 +309,10 @@ export function buildRealtimeRenderCloudSettingsSnapshot(state: RealtimeRenderCl
     typingSoundEnabled: state.gameConfig.typingSoundEnabled,
     figureDefaultEnterDuration: state.gameConfig.figureDefaultEnterDuration,
     figureDefaultExitDuration: state.gameConfig.figureDefaultExitDuration,
+    figureDefaultEnterAnimation: state.gameConfig.figureDefaultEnterAnimation,
+    figureDefaultExitAnimation: state.gameConfig.figureDefaultExitAnimation,
     typingSoundInterval: state.gameConfig.typingSoundInterval,
     typingSoundPunctuationPause: state.gameConfig.typingSoundPunctuationPause,
-    typingSoundSeUrl: cloudLegacyUrl(state.gameConfig.typingSoundSeUrl, state.gameConfig.typingSoundSeFileId),
     typingSoundSeFileId: state.gameConfig.typingSoundSeFileId,
     typingSoundSeMediaType: state.gameConfig.typingSoundSeMediaType,
   };
@@ -429,6 +441,8 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       && current.typingSoundEnabled === merged.typingSoundEnabled
       && current.figureDefaultEnterDuration === merged.figureDefaultEnterDuration
       && current.figureDefaultExitDuration === merged.figureDefaultExitDuration
+      && current.figureDefaultEnterAnimation === merged.figureDefaultEnterAnimation
+      && current.figureDefaultExitAnimation === merged.figureDefaultExitAnimation
       && current.typingSoundInterval === merged.typingSoundInterval
       && current.typingSoundPunctuationPause === merged.typingSoundPunctuationPause
       && current.typingSoundSeUrl === merged.typingSoundSeUrl
@@ -484,14 +498,10 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       const persistedAutoFigureEnabled = persisted?.autoFigureEnabled;
       const persistedRoomContentAlertThreshold = persisted?.roomContentAlertThreshold;
       const persistedCoverFromRoomAvatarEnabled = persisted?.coverFromRoomAvatarEnabled;
-      const persistedTitleImageUrl = persisted?.titleImageUrl;
       const persistedTitleImageFileId = normalizePositiveFileId(persisted?.titleImageFileId);
-      const persistedOriginalTitleImageUrl = persisted?.originalTitleImageUrl;
       const persistedOriginalTitleImageFileId = normalizePositiveFileId(persisted?.originalTitleImageFileId);
       const persistedStartupLogoFromRoomAvatarEnabled = persisted?.startupLogoFromRoomAvatarEnabled;
-      const persistedStartupLogoUrl = persisted?.startupLogoUrl;
       const persistedStartupLogoFileId = normalizePositiveFileId(persisted?.startupLogoFileId);
-      const persistedOriginalStartupLogoUrl = persisted?.originalStartupLogoUrl;
       const persistedOriginalStartupLogoFileId = normalizePositiveFileId(persisted?.originalStartupLogoFileId);
       const persistedGameIconFromRoomAvatarEnabled = persisted?.gameIconFromRoomAvatarEnabled;
       const persistedGameNameFromRoomNameEnabled = persisted?.gameNameFromRoomNameEnabled;
@@ -506,9 +516,10 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       const persistedTypingSoundEnabled = persisted?.typingSoundEnabled;
       const persistedFigureDefaultEnterDuration = persisted?.figureDefaultEnterDuration;
       const persistedFigureDefaultExitDuration = persisted?.figureDefaultExitDuration;
+      const persistedFigureDefaultEnterAnimation = persisted?.figureDefaultEnterAnimation;
+      const persistedFigureDefaultExitAnimation = persisted?.figureDefaultExitAnimation;
       const persistedTypingSoundInterval = persisted?.typingSoundInterval;
       const persistedTypingSoundPunctuationPause = persisted?.typingSoundPunctuationPause;
-      const persistedTypingSoundSeUrl = persisted?.typingSoundSeUrl;
       const persistedTypingSoundSeFileId = normalizePositiveFileId(persisted?.typingSoundSeFileId);
       const persistedTypingSoundSeMediaType = persisted?.typingSoundSeMediaType;
 
@@ -518,32 +529,29 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
         ? persistedAutoFigureEnabled
         : false;
       const nextRoomContentAlertThreshold = normalizeRoomContentAlertThreshold(persistedRoomContentAlertThreshold);
+      const nextFigureDefaultExitDuration = normalizeFigureTransitionDuration(
+        persistedFigureDefaultExitDuration,
+        DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.figureDefaultExitDuration,
+      );
+      const nextFigureDefaultEnterDuration = normalizeFigureTransitionDuration(
+        persistedFigureDefaultEnterDuration,
+        DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.figureDefaultEnterDuration,
+      );
+
       const nextGameConfig: RealtimeWebgalGameConfig = {
         coverFromRoomAvatarEnabled: typeof persistedCoverFromRoomAvatarEnabled === "boolean"
           ? persistedCoverFromRoomAvatarEnabled
           : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.coverFromRoomAvatarEnabled,
-        titleImageUrl: typeof persistedTitleImageUrl === "string"
-          ? persistedTitleImageUrl.trim()
-          : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.titleImageUrl,
+        titleImageUrl: DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.titleImageUrl,
         titleImageFileId: persistedTitleImageFileId,
-        originalTitleImageUrl: typeof persistedOriginalTitleImageUrl === "string"
-          ? persistedOriginalTitleImageUrl.trim()
-          : (typeof persistedTitleImageUrl === "string"
-              ? persistedTitleImageUrl.trim()
-              : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.originalTitleImageUrl),
+        originalTitleImageUrl: DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.originalTitleImageUrl,
         originalTitleImageFileId: persistedOriginalTitleImageFileId ?? persistedTitleImageFileId,
         startupLogoFromRoomAvatarEnabled: typeof persistedStartupLogoFromRoomAvatarEnabled === "boolean"
           ? persistedStartupLogoFromRoomAvatarEnabled
           : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.startupLogoFromRoomAvatarEnabled,
-        startupLogoUrl: typeof persistedStartupLogoUrl === "string"
-          ? persistedStartupLogoUrl.trim()
-          : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.startupLogoUrl,
+        startupLogoUrl: DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.startupLogoUrl,
         startupLogoFileId: persistedStartupLogoFileId,
-        originalStartupLogoUrl: typeof persistedOriginalStartupLogoUrl === "string"
-          ? persistedOriginalStartupLogoUrl.trim()
-          : (typeof persistedStartupLogoUrl === "string"
-              ? persistedStartupLogoUrl.trim()
-              : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.originalStartupLogoUrl),
+        originalStartupLogoUrl: DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.originalStartupLogoUrl,
         originalStartupLogoFileId: persistedOriginalStartupLogoFileId ?? persistedStartupLogoFileId,
         gameIconFromRoomAvatarEnabled: typeof persistedGameIconFromRoomAvatarEnabled === "boolean"
           ? persistedGameIconFromRoomAvatarEnabled
@@ -574,13 +582,19 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
         typingSoundEnabled: typeof persistedTypingSoundEnabled === "boolean"
           ? persistedTypingSoundEnabled
           : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.typingSoundEnabled,
-        figureDefaultEnterDuration: normalizeFigureTransitionDuration(persistedFigureDefaultEnterDuration),
-        figureDefaultExitDuration: normalizeFigureTransitionDuration(persistedFigureDefaultExitDuration),
+        figureDefaultEnterDuration: nextFigureDefaultEnterDuration,
+        figureDefaultExitDuration: nextFigureDefaultExitDuration,
+        figureDefaultEnterAnimation: normalizeFigureTransitionAnimation(
+          persistedFigureDefaultEnterAnimation,
+          DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.figureDefaultEnterAnimation,
+        ),
+        figureDefaultExitAnimation: normalizeFigureTransitionAnimation(
+          persistedFigureDefaultExitAnimation,
+          DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.figureDefaultExitAnimation,
+        ),
         typingSoundInterval: normalizeTypingSoundInterval(persistedTypingSoundInterval),
         typingSoundPunctuationPause: normalizeTypingSoundPunctuationPause(persistedTypingSoundPunctuationPause),
-        typingSoundSeUrl: typeof persistedTypingSoundSeUrl === "string"
-          ? persistedTypingSoundSeUrl.trim()
-          : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.typingSoundSeUrl,
+        typingSoundSeUrl: DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.typingSoundSeUrl,
         typingSoundSeFileId: persistedTypingSoundSeFileId,
         typingSoundSeMediaType: typeof persistedTypingSoundSeMediaType === "string" ? persistedTypingSoundSeMediaType.trim() : undefined,
       };

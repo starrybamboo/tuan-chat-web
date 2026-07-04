@@ -121,6 +121,8 @@ export default function RoomDescriptionDropdown({ room }: RoomDescriptionDropdow
               text-sm
             "
             value={draft}
+            autoComplete="off"
+            aria-label="房间描述"
             placeholder="填写房间描述..."
             onChange={event => setDraft(event.target.value)}
             onKeyDown={(event) => {

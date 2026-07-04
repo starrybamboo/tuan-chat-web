@@ -42,7 +42,7 @@ changeFigure:role_1/sprite_11.webp -id=1 -transform={...} -next;
 - `changeFigure` 先切差分，再说台词。
 - `-figureId=1` 来自 `figure.pos.left`。
 - `-transform={...}` 由头像自身的 `spriteTransform` 和槽位偏移合成。
-- 角色立绘默认时长由 `config.txt` 的 `Figure_Default_Enter_Duration=100` / `Figure_Default_Exit_Duration=100` 控制，不再逐句追加默认时长参数；显式入退场标注仍由紧随其后的 `setTransition` 覆盖。
+- 角色立绘默认效果由 `config.txt` 的 `Figure_Default_Enter_Animation=tuanchat/default-enter` / `Figure_Default_Exit_Animation=tuanchat/default-exit` 指向 `game/animation/tuanchat/default-*.json`；`Figure_Default_Enter_Duration=0` / `Figure_Default_Exit_Duration=300` 只作为未配置 JSON 动画时的 fallback，不再逐句追加默认时长参数；显式入退场标注仍由紧随其后的 `setTransition` 覆盖。
 - 位置只来自 `annotations` 的 `figure.pos.*`；缺少消息 `avatarId` 时不输出 `changeFigure` 和 `-figureId`。
 
 ### 2. 同一角色切差分

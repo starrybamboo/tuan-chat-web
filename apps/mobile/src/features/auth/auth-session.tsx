@@ -2,6 +2,7 @@ import type { UserLoginRequest } from "@tuanchat/openapi-client/models/UserLogin
 import type { PropsWithChildren } from "react";
 
 import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
+import * as Linking from "expo-linking";
 import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
 
 import { logNotificationTrace, logNotificationTraceError } from "@/features/notifications/notificationTrace";
@@ -16,6 +17,7 @@ import {
 
   writeStoredAuthSession,
 } from "./auth-storage";
+import { resolveMobileWebAuthCallbackSession } from "./mobile-web-auth";
 
 const AUTH_SESSION_BOOTSTRAP_TIMEOUT_MS = 1500;
 
@@ -201,6 +203,40 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     setSession(enrichedSession);
     await mobileQueryClient.invalidateQueries();
   }, []);
+
+  const handleWebAuthCallback = useCallback(async (url: string | null | undefined) => {
+    const callbackSession = resolveMobileWebAuthCallbackSession(url);
+    if (!callbackSession) {
+      return;
+    }
+
+    logNotificationTrace("auth.web-callback.received", {
+      hasUserId: typeof callbackSession.userId === "number",
+      hasUsername: Boolean(callbackSession.username),
+    });
+    await replaceSession(callbackSession);
+  }, [replaceSession]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void Linking.getInitialURL()
+      .then((initialUrl) => {
+        if (!cancelled) {
+          void handleWebAuthCallback(initialUrl);
+        }
+      })
+      .catch(error => logNotificationTraceError("auth.web-callback.initial-url-error", error));
+
+    const subscription = Linking.addEventListener("url", (event) => {
+      void handleWebAuthCallback(event.url);
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.remove();
+    };
+  }, [handleWebAuthCallback]);
 
   const signIn = useCallback(async (input: LoginInput) => {
     setIsSigningIn(true);

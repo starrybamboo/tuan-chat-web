@@ -36,7 +36,7 @@ export function RuleConfigurationSection({
     >
       <div className="space-y-6">
         <div className="flex items-center gap-2">
-          <Icon className="size-5 shrink-0 text-base-content/80" weight="bold" aria-hidden="true" />
+          <Icon className="size-5 shrink-0 text-base-content/80" weight="regular" aria-hidden="true" />
           <h4 className="text-lg font-semibold">
             {customLabel}
             模版

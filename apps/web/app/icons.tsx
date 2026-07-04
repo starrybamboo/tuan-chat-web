@@ -38,6 +38,24 @@ export function QQIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// Bilibili 图标（Remix Icon 线性风格）
+// 其他关键词：bilibili，B站，个人主页，视频
+export function BilibiliIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="M7.172 2.757 10.414 6h3.171l3.243-3.242a1 1 0 1 1 1.415 1.415L16.414 6H18.5A3.5 3.5 0 0 1 22 9.5v8a3.5 3.5 0 0 1-3.5 3.5h-13A3.5 3.5 0 0 1 2 17.5v-8A3.5 3.5 0 0 1 5.5 6h2.085L5.757 4.171a1 1 0 0 1 1.415-1.415M18.5 8h-13a1.5 1.5 0 0 0-1.493 1.356L4 9.5v8a1.5 1.5 0 0 0 1.356 1.493L5.5 19h13a1.5 1.5 0 0 0 1.493-1.355L20 17.5v-8A1.5 1.5 0 0 0 18.5 8M8 11a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0v-2a1 1 0 0 1 1-1m8 0a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0v-2a1 1 0 0 1 1-1"
+      />
+    </svg>
+  );
+}
+
 function UserSwitchIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <UserSwitch {...props} />
@@ -77,9 +95,6 @@ export function FileTextIcon(props: SVGProps<SVGSVGElement>) {
     <FileText {...props} />
   );
 }
-
-// 兼容直接按磷光图标原名导入的旧代码
-export { ImageIcon, MusicNotesIcon, PlusIcon };
 
 // 卡片图标
 // 其他关键词：卡片，收起，列表
@@ -146,7 +161,7 @@ export function DiceD6Icon(props: SVGProps<SVGSVGElement>) {
         rx="3"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.5"
+        strokeWidth="1.75"
       />
       <circle cx="8" cy="8" r="1.2" fill="currentColor" />
       <circle cx="12" cy="12" r="1.2" fill="currentColor" />
@@ -270,6 +285,32 @@ export function ChatBubbleEllipsesOutline(props: SVGProps<SVGSVGElement>) {
       <circle cx="160" cy="256" r="32" fill="currentColor"></circle>
       <circle cx="256" cy="256" r="32" fill="currentColor"></circle>
       <circle cx="352" cy="256" r="32" fill="currentColor"></circle>
+    </svg>
+  );
+}
+
+// 房间视图图标
+// 其他关键词：聊天，房间，频道，消息列表
+export function RoomChatIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <g
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.75"
+      >
+        <path d="M5 5.75A3.25 3.25 0 0 1 8.25 2.5h7.5A3.25 3.25 0 0 1 19 5.75v5.5a3.25 3.25 0 0 1-3.25 3.25h-4.4L6.9 18.05a.9.9 0 0 1-1.45-.7V14.2A3.25 3.25 0 0 1 3 11.05v-5.3Z" />
+        <path d="M8 7h8M8 10.5h5.5" />
+        <path d="M10.5 18.5h4.2l3.15 2.55a.85.85 0 0 0 1.38-.66v-2.2A2.85 2.85 0 0 0 21 15.55v-4.1" />
+      </g>
     </svg>
   );
 }
@@ -667,7 +708,7 @@ function SwordSwing(props: SVGProps<SVGSVGElement>) {
 // 其他关键词：后退，上一步，返回
 export function BaselineArrowBackIosNew(props: SVGProps<SVGSVGElement>) {
   return (
-    <CaretLeftIcon weight="bold" {...props} />
+    <CaretLeftIcon weight="regular" {...props} />
   );
 }
 
@@ -820,7 +861,7 @@ function HexagonDice(props: SVGProps<SVGSVGElement>) {
         fill="none"
         stroke="currentColor"
         strokeLinejoin="round"
-        strokeWidth="1.5"
+        strokeWidth="1.75"
       >
         <path
           strokeLinecap="round"
@@ -851,7 +892,7 @@ function CommandLine(props: SVGProps<SVGSVGElement>) {
         stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth="1.5"
+        strokeWidth="1.75"
         d="m6.75 7.5l3 2.25l-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25"
       >
       </path>
@@ -946,7 +987,7 @@ export function DraggableIcon(props: SVGProps<SVGSVGElement>) {
 // 其他关键词：展开，折叠，向下
 export function ChevronDown(props: SVGProps<SVGSVGElement>) {
   return (
-    <CaretDownIcon weight="bold" {...props} />
+    <CaretDownIcon weight="regular" {...props} />
   );
 }
 
@@ -986,7 +1027,7 @@ function PointOnMapPerspectiveLinear(props: SVGProps<SVGSVGElement>) {
       height="1em"
       {...props}
     >
-      <g fill="none" stroke="currentColor" strokeWidth="1.5">
+      <g fill="none" stroke="currentColor" strokeWidth="1.75">
         <path d="M21.121 21.121C22 20.243 22 18.828 22 16s0-4.243-.879-5.121m0 10.242C20.243 22 18.828 22 16 22H8c-2.828 0-4.243 0-5.121-.879m18.242 0Zm0-10.242C20.243 10 18.828 10 16 10H8c-2.828 0-4.243 0-5.121.879m18.242 0Zm-18.242 0C2 11.757 2 13.172 2 16s0 4.243.879 5.121m0-10.242Zm0 10.242Z"></path>
         <path strokeLinecap="round" d="M21 21L3 11m.5 10l8.5-5"></path>
         <circle cx="17" cy="5" r="3"></circle>
@@ -1029,7 +1070,7 @@ export function InsertLineBelow(props: SVGProps<SVGSVGElement>) {
       height="1em"
       {...props}
     >
-      <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6">
+      <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75">
         <path d="M4 6h16"></path>
         <path d="M4 12h10"></path>
         <path d="M12 16v4"></path>
@@ -1244,7 +1285,7 @@ function BarChartOutlineIcon(props: SVGProps<SVGSVGElement>) {
       height="1em"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.5"
+      strokeWidth="1.75"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -1305,7 +1346,7 @@ export function NarratorIcon(props: SVGProps<SVGSVGElement>) {
       height="1em"
       {...props}
     >
-      <g fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <g fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
         {/* 引号符号，表示旁白/叙述 */}
         <path d="M10 8c-2 0-3 1.5-3 3s1 3 3 3c0 2-1.5 3-3 3" />
         <path d="M17 8c-2 0-3 1.5-3 3s1 3 3 3c0 2-1.5 3-3 3" />
@@ -1483,7 +1524,7 @@ function ConnectionIcon() {
 
 export function SidebarSimpleIcon({
   size = 20,
-  weight = "bold",
+  weight = "regular",
   ...props
 }: ComponentProps<typeof PhosphorSidebarSimpleIcon>) {
   return (
@@ -1494,7 +1535,7 @@ export function SidebarSimpleIcon({
 // 加号图标
 export function AddIcon() {
   return (
-    <PlusIcon weight="bold" size={20} />
+    <PlusIcon weight="regular" size={20} />
   );
 }
 
@@ -1619,7 +1660,7 @@ export function PushPinIcon(props: SVGProps<SVGSVGElement>) {
       height="1em"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.75"
       strokeLinecap="round"
       strokeLinejoin="round"
       {...props}

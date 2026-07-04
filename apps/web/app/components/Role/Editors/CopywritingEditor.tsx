@@ -137,6 +137,8 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
           <div className="join w-full">
             <input
               type="text"
+              autoComplete="off"
+              aria-label="文案组名称"
               className="input input-bordered join-item flex-1"
               placeholder="输入文案组名称，如：成功、失败、问候"
               value={groupNameInput}
@@ -174,6 +176,7 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
             ">
               <input
                 type="text"
+                autoComplete="off"
                 defaultValue={name}
                 onBlur={e => renameGroup(name, e.target.value)}
                 className="
@@ -182,7 +185,7 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                 "
                 title="点击编辑分组名"
               />
-              <span className="badge badge-primary badge-sm">{entries.length}</span>
+              <span className="badge badge-outline badge-sm">{entries.length}</span>
               <div className="tooltip tooltip-left" data-tip="删除分组">
                 <button
                   type="button"
@@ -225,10 +228,12 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                         <textarea
                           className="
                             textarea w-full
-                            focus:outline-none
+                            focus:outline-none focus:ring-2 focus:ring-info/30
                             border-none outline-none bg-transparent resize-none
                           "
                           placeholder={`文案 #${idx + 1}`}
+                          autoComplete="off"
+                          aria-label={`文案 ${idx + 1}`}
                           value={text}
                           onChange={e => updateEntry(name, idx, e.target.value)}
                           rows={2}
@@ -265,9 +270,11 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                     <textarea
                       className="
                         textarea w-full
-                        focus:outline-none
+                        focus:outline-none focus:ring-2 focus:ring-info/30
                         border-none outline-none bg-transparent resize-none
                       "
+                      autoComplete="off"
+                      aria-label="新文案"
                       placeholder="输入新文案..."
                       value={newEntryInputs[name] || ""}
                       onChange={e => setNewEntryInputs(prev => ({ ...prev, [name]: e.target.value }))}
@@ -278,8 +285,8 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                     <button
                       type="button"
                       className="
-                        btn btn-ghost btn-sm btn-square text-primary
-                        hover:bg-primary/10
+                        btn btn-ghost btn-sm btn-square text-info
+                        hover:bg-info/10
                         mt-2
                       "
                       disabled={!newEntryInputs[name]?.trim()}

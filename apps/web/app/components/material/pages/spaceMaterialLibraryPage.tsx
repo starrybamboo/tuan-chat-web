@@ -394,6 +394,14 @@ export default function SpaceMaterialLibraryPage({
     router.history.push("/material?tab=mine");
   };
 
+  const preloadMaterialPublicRoute = () => {
+    void router.preloadRoute({ to: "/material", search: { tab: "public" } });
+  };
+
+  const preloadMaterialMineRoute = () => {
+    void router.preloadRoute({ to: "/material", search: { tab: "mine" } });
+  };
+
   const sidebarNode = (
     <MaterialPackageLibrarySidebar
       description="局内素材包和局外素材包保持同一种工作区体验，当前只在访问路径和数据来源上区分。"
@@ -409,12 +417,14 @@ export default function SpaceMaterialLibraryPage({
           label: "素材广场",
           icon: "squares",
           onClick: handleNavigateToPublic,
+          onPreload: preloadMaterialPublicRoute,
         },
         {
           key: "mine",
           label: "我的素材包",
           icon: "package",
           onClick: handleNavigateToMine,
+          onPreload: preloadMaterialMineRoute,
         },
       ]}
       footerDescription="当前页面展示的是当前空间的本地素材包副本区，可以像管理本地仓库一样组织和编辑素材。"

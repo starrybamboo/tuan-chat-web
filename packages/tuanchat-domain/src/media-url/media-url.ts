@@ -101,29 +101,6 @@ export function imageUrlWithQuality(rawUrl: string | null | undefined, quality: 
   return mediaFileUrlWithQuality(rawUrl, "image", quality);
 }
 
-/** @deprecated Use `mediaUrl(fileId, normalizeMediaType(mediaType), "medium")` instead. */
-export function mediaPreviewUrl(
-  fileId: number | string | null | undefined,
-  mediaType: string | null | undefined,
-  cdnBaseUrl?: string,
-): string {
-  const resolvedType = normalizeMediaType(mediaType);
-  return mediaUrl(fileId, resolvedType, resolvedType === "image" ? "medium" : "low", cdnBaseUrl);
-}
-
-/** @deprecated Use `mediaUrl(fileId, normalizeMediaType(mediaType), "low")` instead. */
-export function mediaThumbUrl(
-  fileId: number | string | null | undefined,
-  mediaType: string | null | undefined,
-  cdnBaseUrl?: string,
-): string {
-  const resolvedType = normalizeMediaType(mediaType);
-  if (resolvedType === "image") {
-    return mediaUrl(fileId, resolvedType, "low", cdnBaseUrl);
-  }
-  return mediaPreviewUrl(fileId, resolvedType, cdnBaseUrl);
-}
-
 export function extractMediaFileIdFromUrl(rawUrl: string | null | undefined): number | undefined {
   const value = String(rawUrl ?? "").trim();
   if (!value) {
@@ -138,18 +115,12 @@ export function extractMediaFileIdFromUrl(rawUrl: string | null | undefined): nu
 }
 
 export const imageLowUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "low", cdnBaseUrl);
-/** @deprecated Use `mediaUrl(fileId, "image", "medium")` instead. */
-export const imagePreviewUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "medium", cdnBaseUrl);
 export const imageMediumUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "medium", cdnBaseUrl);
 export const imageHighUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "high", cdnBaseUrl);
 export const imageOriginalUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "original", cdnBaseUrl);
 export const imageLowUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "low");
-/** @deprecated Use `imageUrlWithQuality(url, "medium")` instead. */
-export const imagePreviewUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "medium");
 export const imageMediumUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "medium");
 export const imageHighUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "high");
 export const imageOriginalUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "original");
-/** @deprecated Use `mediaUrl(fileId, "image", "low")` instead. */
-export const avatarThumbUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "low", cdnBaseUrl);
 export const avatarUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "medium", cdnBaseUrl);
 export const avatarOriginalUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "original", cdnBaseUrl);

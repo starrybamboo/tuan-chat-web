@@ -71,6 +71,7 @@ export function buildMessageHistoryPatchRequest(
     operations: [buildMessageHistoryPatchOperation(action, operationCause)],
     mutationMeta: {
       operationCause,
+      sourceSurface: "message_editor",
     },
   };
 }

@@ -119,7 +119,7 @@ export function SpaceWebgalRenderWindowHeader({
         </a>
         <button
           type="button"
-          className="btn btn-sm btn-secondary"
+          className="btn btn-sm btn-outline"
           disabled={isPublishing}
           onClick={onPublish}
         >

@@ -177,10 +177,12 @@ function SearchBar({ className = "" }: SearchBarProps) {
       ">
         <div className="flex h-full items-center flex-1 px-3">
           <input
-            type="text"
+            type="search"
+            autoComplete="off"
+            aria-label="搜索聊天记录"
             placeholder="搜索聊天记录..."
             className="
-              bg-transparent border-none outline-none flex-1 text-sm
+              bg-transparent border-none outline-none flex-1 text-sm focus:ring-2 focus:ring-info/30
               placeholder:text-base-content/60
             "
             value={searchText}

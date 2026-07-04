@@ -233,18 +233,16 @@ export const ProEditorContent = memo(({
               className={`
                 inline-flex size-9 items-center justify-center rounded-md border
                 transition
-                focus:outline-none focus:ring-2 focus:ring-primary/20
+                focus:outline-none focus:ring-2 focus:ring-info/20
                 ${
                 isProPromptSettingsOpen
                   ? `
-                    border-primary/40 bg-[#F3F5F7] text-base-content shadow-sm
-                    dark:bg-[#161A1F]
+                    border-info/40 bg-base-200 text-base-content shadow-sm
                   `
                   : `
-                    border-[#D6DCE3] bg-[#F3F5F7] text-base-content/70
-                    hover:border-primary/40 hover:text-base-content
-                    dark:border-[#2A3138] dark:bg-[#161A1F]
-                    dark:text-base-content/70
+                    border-base-300 bg-base-200 text-base-content/70
+                    hover:border-info/40 hover:text-base-content
+                    dark:border-base-300 dark:text-base-content/70
                     dark:hover:text-base-content
                   `
               }
@@ -257,18 +255,17 @@ export const ProEditorContent = memo(({
               <GearSixIcon className={`
                 size-4 transition-transform duration-200
                 ${isProPromptSettingsOpen ? `rotate-90` : ""}
-              `} weight="fill" />
+              `} weight="regular" />
             </button>
 
             <div
               id="ai-image-pro-prompt-settings"
               className={`
                 fixed z-40 w-80 origin-top-left rounded-2xl border
-                border-[#D6DCE3] bg-[#F3F5F7] p-4
-                shadow-[0_18px_40px_rgba(15,23,42,0.18)] transition-all
+                border-base-300 bg-base-200 p-4
+                shadow-xl transition-all
                 duration-200 ease-out
-                dark:border-[#2A3138] dark:bg-[#161A1F]
-                dark:shadow-[0_24px_48px_rgba(0,0,0,0.42)]
+                dark:border-base-300
                 ${
                 isProPromptSettingsOpen
                   ? "pointer-events-auto translate-x-0 scale-100 opacity-100"
@@ -281,13 +278,11 @@ export const ProEditorContent = memo(({
               }}
             >
               <div className="
-                mb-4 flex items-center gap-2 border-b border-[#D6DCE3] pb-3
-                dark:border-[#2A3138]
+                mb-4 flex items-center gap-2 border-b border-base-300 pb-3
               ">
                 <div className="
                   rounded-md bg-base-100 px-2 py-1 text-xs font-medium
                   text-base-content shadow-sm
-                  dark:bg-[#1B2026]
                 ">
                   Settings
                 </div>
@@ -320,7 +315,6 @@ export const ProEditorContent = memo(({
                     className={`
                       ${subtleSelectClassName}
                       w-full !rounded-none bg-base-100
-                      dark:bg-[#1B2026]
                     `}
                     value={ucPreset}
                     onChange={e => setUcPreset(clampIntRange(Number(e.target.value), 0, 2, 0))}
@@ -403,7 +397,7 @@ export const ProEditorContent = memo(({
                   title="上传 Base Img"
                   onClick={handleOpenSourceImagePicker}
                 >
-                  <FileArrowUpIcon className="size-5" weight="bold" />
+                  <FileArrowUpIcon className="size-5" weight="regular" />
                 </button>
               </div>
             )
@@ -414,8 +408,8 @@ export const ProEditorContent = memo(({
         {mode === "img2img" && sourceImageDataUrl
           ? (
               <div className="
-                -mx-3 -mb-3 mt-3 overflow-hidden border-t border-primary/15
-                bg-linear-to-br from-primary/10 via-base-100 to-base-100
+                -mx-3 -mb-3 mt-3 overflow-hidden border-t border-info/15
+                bg-linear-to-br from-info/10 via-base-100 to-base-100
                 dark:border-base-300 dark:from-base-100 dark:via-base-100
                 dark:to-base-100
               ">
@@ -431,7 +425,7 @@ export const ProEditorContent = memo(({
                     "
                   />
                   <div className="
-                    absolute inset-0 bg-linear-to-b from-primary/12
+                    absolute inset-0 bg-linear-to-b from-info/12
                     via-base-100/72 to-base-100/92
                     dark:from-black/42 dark:via-base-100/58 dark:to-base-100/84
                   " />
@@ -456,13 +450,13 @@ export const ProEditorContent = memo(({
                             text-base-content/70 transition
                             hover:bg-base-200/85 hover:text-base-content
                             focus:outline-none focus:ring-2
-                            focus:ring-primary/20
+                            focus:ring-info/20
                           "
                           aria-label="更换 Base Img"
                           title="更换 Base Img"
                           onClick={handleOpenSourceImagePicker}
                         >
-                          <ArrowClockwise className="size-5" weight="bold" />
+                          <ArrowClockwise className="size-5" weight="regular" />
                         </button>
                         <span className="h-11 w-px bg-base-300" aria-hidden="true" />
                         <button
@@ -472,13 +466,13 @@ export const ProEditorContent = memo(({
                             text-base-content/70 transition
                             hover:bg-base-200/85 hover:text-base-content
                             focus:outline-none focus:ring-2
-                            focus:ring-primary/20
+                            focus:ring-info/20
                           "
                           aria-label="移除 Base Img"
                           title="移除 Base Img"
                           onClick={handleClearSourceImage}
                         >
-                          <TrashIcon className="size-5" weight="bold" />
+                          <TrashIcon className="size-5" weight="regular" />
                         </button>
                       </div>
                       <button
@@ -542,7 +536,7 @@ export const ProEditorContent = memo(({
                             disabled={isBusy}
                             onClick={() => void handleOpenBaseImageInpaint()}
                           >
-                            <SelectionPlusIcon className="size-5" weight="bold" />
+                            <SelectionPlusIcon className="size-5" weight="regular" />
                             <span>Inpaint Image</span>
                           </button>
                         </div>
@@ -572,7 +566,7 @@ export const ProEditorContent = memo(({
               onClick={() => setIsCharacterAddMenuOpen((prev: boolean) => !prev)}
               disabled={!isNAI4}
             >
-              <PlusIcon className="size-5" weight="bold" />
+              <PlusIcon className="size-5" weight="regular" />
               <span>Add Character</span>
             </button>
             {isCharacterAddMenuOpen
@@ -665,7 +659,7 @@ export const ProEditorContent = memo(({
                                   aria-label="上移角色"
                                   title="上移角色"
                                 >
-                                  <CaretUpIcon className="size-4" weight="bold" />
+                                  <CaretUpIcon className="size-4" weight="regular" />
                                 </button>
                                 <button
                                   type="button"
@@ -675,7 +669,7 @@ export const ProEditorContent = memo(({
                                   aria-label="下移角色"
                                   title="下移角色"
                                 >
-                                  <CaretDownIcon className="size-4" weight="bold" />
+                                  <CaretDownIcon className="size-4" weight="regular" />
                                 </button>
                                 <button
                                   type="button"
@@ -684,7 +678,7 @@ export const ProEditorContent = memo(({
                                   aria-label="删除角色"
                                   title="删除角色"
                                 >
-                                  <TrashIcon className="size-4" weight="bold" />
+                                  <TrashIcon className="size-4" weight="regular" />
                                 </button>
                               </div>
                             </div>
@@ -817,8 +811,8 @@ export const ProEditorContent = memo(({
                             ? (
                                 <div className="
                                   absolute inset-0 z-20 flex flex-col
-                                  rounded-2xl border border-[#2A3138]
-                                  bg-[#161A1F] p-2.5 shadow-2xl
+                                  rounded-2xl border border-base-300
+                                  bg-base-200 p-2.5 shadow-2xl
                                 ">
                                   <div className="
                                     flex items-center gap-1.5 text-[11px]
@@ -832,7 +826,7 @@ export const ProEditorContent = memo(({
                                   </div>
                                   <div className="
                                     mt-2 grid grid-cols-5 gap-1 rounded-md
-                                    border border-[#2A3138] bg-[#161A1F] p-1
+                                    border border-base-300 bg-base-200 p-1
                                   ">
                                     {V4_CHAR_GRID_CELLS.map((cell) => {
                                       const occupant = characterPositionAssignments.get(cell.code);
@@ -847,7 +841,7 @@ export const ProEditorContent = memo(({
                                             rounded-md border text-[16px]
                                             font-semibold leading-none
                                             transition
-                                            focus:outline-none
+                                            focus:outline-none focus:ring-2 focus:ring-info/30
                                             ${
                                             occupiedByOther
                                               ? `
@@ -916,12 +910,12 @@ export const ProEditorContent = memo(({
                                 ${
                                 isCharacterPositionAiChoiceEnabled
                                   ? `
-                                    border-[#F2E8A5] bg-[#F2E8A5] text-[#201C0F]
-                                    hover:bg-[#E7DB87]
+                                    border-info bg-info text-info-content
+                                    hover:bg-info/90
                                   `
                                   : `
-                                    border-[#2F3841] bg-[#1B2026] text-white/74
-                                    hover:border-primary/40 hover:text-white
+                                    border-base-300 bg-base-300 text-white/74
+                                    hover:border-info/40 hover:text-white
                                   `
                               }
                               `}
@@ -970,7 +964,7 @@ export const ProEditorContent = memo(({
               title="上传 Vibe Transfer 参考图"
               disabled
             >
-              <FileArrowUpIcon className="size-5" weight="bold" />
+              <FileArrowUpIcon className="size-5" weight="regular" />
             </button>
           </div>
         </div>
@@ -1005,7 +999,7 @@ export const ProEditorContent = memo(({
               title="上传 Precise Reference 参考图"
               disabled
             >
-              <FileArrowUpIcon className="size-5" weight="bold" />
+              <FileArrowUpIcon className="size-5" weight="regular" />
             </button>
           </div>
         </div>

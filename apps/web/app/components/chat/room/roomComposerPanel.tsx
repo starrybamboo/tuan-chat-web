@@ -57,6 +57,8 @@ type RoomComposerPanelProps = {
 
   /** KP（房主）权限标记，用于显示“停止全员BGM” */
   isKP?: boolean;
+  /** 当前空间是否已开启除 KP 外全员禁言 */
+  isSpaceMuted?: boolean;
   /** KP：停止全员BGM */
   onStopBgmForAll?: () => void;
 
@@ -105,6 +107,7 @@ function RoomComposerPanelImpl({
   onOpenFullMessageDiff,
   isFullMessageDiffOpen,
   isKP,
+  isSpaceMuted = false,
   onStopBgmForAll,
   noRole,
   notMember,
@@ -300,8 +303,11 @@ function RoomComposerPanelImpl({
   const replyMessage = useRoomUiStore(state => state.replyMessage);
   const insertAfterMessageId = useRoomUiStore(state => state.insertAfterMessageId);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
-  const inputDisabled = noRole && !isKP && !notMember;
+  const inputDisabled = (isSpaceMuted && !isKP) || (noRole && !isKP && !notMember);
   const placeholderText = React.useMemo(() => {
+    if (isSpaceMuted && !isKP) {
+      return "当前空间已开启全员禁言，仅主持人可发言";
+    }
     if (notMember) {
       return "输入消息…（Shift+Enter 换行）";
     }
@@ -318,7 +324,7 @@ function RoomComposerPanelImpl({
       return "插入消息中…（Shift+Enter 换行）";
     }
     return "输入消息…（Shift+Enter 换行）";
-  }, [curAvatarId, insertAfterMessageId, isKP, noRole, notMember]);
+  }, [curAvatarId, insertAfterMessageId, isKP, isSpaceMuted, noRole, notMember]);
   React.useEffect(() => {
     let isActive = true;
     const key = `${roomId}:${curRoleId}`;
@@ -398,6 +404,7 @@ function RoomComposerPanelImpl({
     onOpenFullMessageDiff,
     isFullMessageDiffOpen,
     isKP,
+    isSpaceMuted,
     onStopBgmForAll,
     noRole,
     notMember,
@@ -410,6 +417,7 @@ function RoomComposerPanelImpl({
     handleMessageSubmit,
     isFullMessageDiffOpen,
     isKP,
+    isSpaceMuted,
     isSpectator,
     isSubmitting,
     clueUnreadCount,

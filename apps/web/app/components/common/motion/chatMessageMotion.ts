@@ -1,5 +1,7 @@
 import type { MotionProps } from "motion/react";
 
+import { motionEase } from "./motionTokens";
+
 export const scrollToBottomButtonMotionProps: MotionProps = {
   initial: { opacity: 0, y: 18, scale: 0.86 },
   animate: { opacity: 1, y: 0, scale: 1 },
@@ -13,7 +15,7 @@ export const unreadBadgeBounceMotionProps: MotionProps = {
     scale: [0.72, 1.18, 0.98, 1.08, 1],
     y: [3, -5, 1, -2, 0],
   },
-  transition: { duration: 0.46, ease: [0.16, 1, 0.3, 1] },
+  transition: { duration: 0.46, ease: motionEase.emphasized },
 };
 
 export const attachmentItemMotionProps: MotionProps = {
@@ -79,5 +81,5 @@ export const messageFilterToggleSweepMotionProps: MotionProps = {
   initial: { opacity: 0, x: "-28%" },
   animate: { opacity: [0, 0.72, 0], x: ["-28%", "18%", "42%"] },
   exit: { opacity: 0 },
-  transition: { duration: 0.58, ease: [0.16, 1, 0.3, 1] },
+  transition: { duration: 0.58, ease: motionEase.emphasized },
 };

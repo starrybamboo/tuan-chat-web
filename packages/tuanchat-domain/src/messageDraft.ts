@@ -180,12 +180,6 @@ function compactRecord(value: unknown): MessageExtraRecord {
     : {};
 }
 
-function stripLegacyMessageEditorExtra(rawExtra: unknown): MessageExtraRecord {
-  const extra = toRecord(rawExtra);
-  const { messageEditor: _legacyMessageEditor, ...rest } = extra;
-  return compactRecord(rest);
-}
-
 function pickPayload(rawExtra: unknown, ...keys: string[]): MessageExtraRecord {
   const extra = toRecord(rawExtra);
   for (const key of keys) {
@@ -241,14 +235,6 @@ function normalizeFilePayload(rawExtra: unknown): MessageExtraRecord {
   });
 }
 
-function normalizeDicePayload(rawExtra: unknown): MessageExtraRecord {
-  const dice = pickPayload(rawExtra, "diceResult");
-  return compactRecord({
-    result: toTrimmedString(dice.result),
-    hidden: toLooseBoolean(dice.hidden),
-  });
-}
-
 function normalizeDiceTurnReplyPayload(rawReply: unknown): MessageExtraRecord {
   if (typeof rawReply === "string") {
     return compactRecord({ content: toTrimmedString(rawReply) });
@@ -272,39 +258,15 @@ function normalizeDiceTurnPayload(rawExtra: unknown): MessageExtraRecord {
     .map(reply => normalizeDiceTurnReplyPayload(reply))
     .filter(reply => Boolean(toTrimmedString(reply.content)));
 
-  const legacyDice = normalizeDicePayload(rawExtra);
-  if (replies.length === 0 && toTrimmedString(legacyDice.result)) {
-    replies.push(compactRecord({
-      content: toTrimmedString(legacyDice.result),
-      hidden: toLooseBoolean(legacyDice.hidden),
-    }));
-  }
-
   return compactRecord({
     command: toTrimmedString(diceTurn.command),
     replies,
   });
 }
 
-function normalizeDicePayloadFromTurn(rawExtra: unknown, diceTurn: MessageExtraRecord): MessageExtraRecord {
-  const explicitDiceResult = normalizeDicePayload(rawExtra);
-  const replies = Array.isArray(diceTurn.replies) ? diceTurn.replies : [];
-  const replyText = replies
-    .map(reply => toTrimmedString(toRecord(reply).content))
-    .filter(Boolean)
-    .join("\n");
-  const hasHiddenReply = replies.some(reply => toLooseBoolean(toRecord(reply).hidden) === true);
-  return compactRecord({
-    result: toTrimmedString(explicitDiceResult.result) ?? (replyText || undefined),
-    hidden: toLooseBoolean(explicitDiceResult.hidden) ?? (hasHiddenReply ? true : undefined),
-  });
-}
-
 function normalizeDiceExtraPayload(rawExtra: unknown): MessageExtraRecord {
   const diceTurn = normalizeDiceTurnPayload(rawExtra);
-  const diceResult = normalizeDicePayloadFromTurn(rawExtra, diceTurn);
   return compactRecord({
-    diceResult,
     diceTurn,
   });
 }
@@ -373,9 +335,6 @@ function normalizeDocCardPayload(rawExtra: unknown): MessageExtraRecord {
     docId: toTrimmedString(docCard.docId),
     spaceId: toPositiveNumber(docCard.spaceId),
     title: toTrimmedString(docCard.title),
-    ...(imageFileId || originalImageFileId
-      ? {}
-      : { imageUrl: toTrimmedString(docCard.imageUrl) }),
     imageFileId,
     originalImageFileId,
     imageMediaType: toTrimmedString(docCard.imageMediaType),
@@ -457,7 +416,11 @@ function assertMessageExtraReadyForRequest(messageType: number, extra: MessageEx
       return;
     }
     case MESSAGE_TYPE.DICE:
-      if (!toTrimmedString(toRecord(normalizeDiceExtraPayload(extra).diceResult).result)) {
+      const diceTurn = toRecord(normalizeDiceExtraPayload(extra).diceTurn);
+      if (!toTrimmedString(diceTurn.command)) {
+        throw new Error("骰子消息缺少 command");
+      }
+      if (!Array.isArray(diceTurn.replies) || diceTurn.replies.length === 0) {
         throw new Error("骰子消息缺少结果");
       }
       return;
@@ -527,7 +490,7 @@ function normalizeMessageExtraForRequest(messageType: number, rawExtra: unknown)
     default:
       return messageType === MESSAGE_TYPE.TEXT || messageType === MESSAGE_TYPE.INTRO_TEXT
         ? {}
-        : stripLegacyMessageEditorExtra(rawExtra);
+        : compactRecord(rawExtra);
   }
 }
 
@@ -566,7 +529,7 @@ export function normalizeMessageExtraForMatch(messageType: number, rawExtra: unk
     default:
       return messageType === MESSAGE_TYPE.TEXT || messageType === MESSAGE_TYPE.INTRO_TEXT
         ? {}
-        : compactValue(stripLegacyMessageEditorExtra(rawExtra));
+        : compactValue(compactRecord(rawExtra));
   }
 }
 

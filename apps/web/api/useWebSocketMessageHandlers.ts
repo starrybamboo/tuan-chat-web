@@ -29,6 +29,7 @@ import { recoverAuthTokenFromSession } from "./authRecovery";
 import { FEEDBACK_ISSUES_QUERY_KEY, feedbackIssueDetailQueryKey } from "./feedbackQueryCache";
 import { prependNotificationToCaches } from "./notificationQueryCache";
 import { buildCommentPageQueryKey } from "./hooks/commentQueryHooks";
+import { spaceInfoQueryKey } from "./hooks/chatQueryHooks";
 import { spaceSidebarTreeQueryKey } from "./hooks/spaceSidebarTreeHooks";
 import { MessageType } from "./wsModels";
 import { invalidateMemberChangeQueries, invalidateRoleChangeQueries } from "./wsInvalidation";
@@ -343,9 +344,24 @@ export function useWebSocketMessageHandlers({
         }
       },
       16: () => {
-        const { roomId } = message.data as { roomId: number };
-        queryClient.invalidateQueries({ queryKey: ["getRoomExtra", roomId] });
-        queryClient.invalidateQueries({ queryKey: ["getRoomInfo", roomId] });
+        const { spaceId, muteStatus } = message.data as { spaceId: number; muteStatus?: number };
+        if (typeof muteStatus === "number") {
+          queryClient.setQueryData(spaceInfoQueryKey(spaceId), (old: any) => {
+            if (!old?.data) {
+              return old;
+            }
+            return {
+              ...old,
+              data: {
+                ...old.data,
+                muteStatus,
+              },
+            };
+          });
+        }
+        queryClient.invalidateQueries({ queryKey: spaceInfoQueryKey(spaceId) });
+        queryClient.invalidateQueries({ queryKey: ["getUserSpaces"] });
+        queryClient.invalidateQueries({ queryKey: ["getUserActiveSpaces"] });
       },
       17: () => {
         handleChatStatusChange(message.data as ChatStatusEvent);

@@ -169,7 +169,7 @@ export default function WebGALPreview({
             >
               <input
                 type="checkbox"
-                className="toggle toggle-primary toggle-xs"
+                className="toggle toggle-info toggle-xs"
                 checked={autoAdvanceEnabled}
                 onChange={event => setAutoAdvanceEnabled(event.currentTarget.checked)}
               />
@@ -228,7 +228,7 @@ export default function WebGALPreview({
           >
             <input
               type="checkbox"
-              className="toggle toggle-primary toggle-xs"
+              className="toggle toggle-info toggle-xs"
               checked={autoAdvanceEnabled}
               onChange={event => setAutoAdvanceEnabled(event.currentTarget.checked)}
             />

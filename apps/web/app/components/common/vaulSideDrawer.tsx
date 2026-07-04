@@ -126,7 +126,7 @@ export function VaulSideDrawer({
           <div
             className={`
               bg-white/40
-              dark:bg-slate-950/25
+              dark:bg-base-300/25
               backdrop-blur-xl border border-white/40
               dark:border-white/10
               h-full w-full grow flex flex-col rounded-none shadow-xl
@@ -175,7 +175,7 @@ export function VaulSideDrawer({
       <div
         className={`
           bg-white/40
-          dark:bg-slate-950/25
+          dark:bg-base-300/25
           backdrop-blur-xl border border-white/40
           dark:border-white/10
           h-full w-full grow flex flex-col rounded-none shadow-xl

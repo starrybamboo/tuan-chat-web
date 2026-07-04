@@ -248,8 +248,8 @@ export function FriendRequestButton({
         type="button"
         className={`
           ${className ?? `
-            btn btn-sm flex h-8 items-center gap-2 border border-gray-300 px-3
-            hover:text-primary
+            btn btn-sm flex h-8 items-center gap-2 border border-base-300 px-3
+            hover:text-info
           `}
           whitespace-nowrap
         `}

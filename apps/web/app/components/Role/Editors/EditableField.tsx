@@ -265,8 +265,8 @@ export default function EditableField({
       <label className={`
         relative flex items-center gap-2 rounded-lg transition-all duration-200
         border
-        focus-within:border-primary focus-within:ring-1
-        focus-within:ring-primary/20
+        focus-within:border-info focus-within:ring-1
+        focus-within:ring-info/20
         border-base-content/20
         ${editingBackgroundClassName}
         ${isCompact ? "py-1 px-2" : "py-2 px-3"}
@@ -284,6 +284,8 @@ export default function EditableField({
             ? (
                 <input
                   type="text"
+                  autoComplete="off"
+                  aria-label="字段名"
                   value={tempFieldKey}
                   onChange={e => setTempFieldKey(e.target.value)}
                   onBlur={() => {
@@ -303,7 +305,7 @@ export default function EditableField({
                   data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
                   className={`
                     bg-transparent border-none
-                    focus:outline-none
+                    focus:outline-none focus:ring-2 focus:ring-info/30
                     outline-none font-medium
                     ${isCompact ? `
                       text-[10px]
@@ -324,7 +326,7 @@ export default function EditableField({
                   ref={keyScrollRef}
                   className={`
                     cursor-pointer
-                    hover:text-primary
+                    hover:text-info
                     font-medium whitespace-nowrap overflow-x-auto
                     ${isCompact ? `
                       text-[10px]
@@ -358,6 +360,8 @@ export default function EditableField({
         {/* 字段值编辑 */}
         <input
           type="text"
+          autoComplete="off"
+          aria-label="字段值"
           value={String(value)}
           onChange={e => onValueChange(fieldKey, e.target.value)}
           onBlur={e => commitOnBlur && onValueCommit?.(fieldKey, e.currentTarget.value)}
@@ -374,7 +378,7 @@ export default function EditableField({
           }}
           className={`
             bg-transparent border-none outline-none
-            focus:outline-none
+            focus:outline-none focus:ring-2 focus:ring-info/30
             grow min-w-0
             ${isCompact ? "text-xs" : "text-sm"}
             max-md:w-full max-md:font-semibold max-md:text-base-content

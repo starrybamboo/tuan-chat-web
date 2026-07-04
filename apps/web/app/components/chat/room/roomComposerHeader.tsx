@@ -333,6 +333,8 @@ export default function RoomComposerHeader({
               )}
               {isEditingName && (
                 <input
+                  autoComplete="off"
+                  aria-label="名称"
                   className="
                     input input-xs input-bordered bg-base-200 border-base-300
                     px-2 shadow-sm

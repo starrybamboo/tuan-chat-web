@@ -2,7 +2,7 @@ import type { ParsedFrame } from "gifuct-js";
 import type { WebPAnimationFrame, WebPModule } from "wasm-webp/dist/esm/webp-wasm";
 
 import { Asset } from "expo-asset";
-import { EncodingType, cacheDirectory, readAsStringAsync, writeAsStringAsync } from "expo-file-system/legacy";
+import { File as ExpoFile, Paths } from "expo-file-system";
 import { decompressFrames, parseGIF } from "gifuct-js";
 import { Platform } from "react-native";
 import createWebpModule from "wasm-webp/dist/esm/webp-wasm";
@@ -37,68 +37,6 @@ function createAnimatedWebpFileName(fileName: string): string {
   return `${baseName}.webp`;
 }
 
-function bytesToBase64(bytes: Uint8Array): string {
-  if (typeof globalThis.btoa === "function") {
-    let binary = "";
-    const chunkSize = 0x8000;
-    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-      const chunk = bytes.subarray(offset, offset + chunkSize);
-      binary += String.fromCharCode(...chunk);
-    }
-    return globalThis.btoa(binary);
-  }
-
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  let result = "";
-  for (let index = 0; index < bytes.length; index += 3) {
-    const first = bytes[index] ?? 0;
-    const second = bytes[index + 1] ?? 0;
-    const third = bytes[index + 2] ?? 0;
-    const triple = (first << 16) | (second << 8) | third;
-    result += alphabet[(triple >> 18) & 0x3F];
-    result += alphabet[(triple >> 12) & 0x3F];
-    result += index + 1 < bytes.length ? alphabet[(triple >> 6) & 0x3F] : "=";
-    result += index + 2 < bytes.length ? alphabet[triple & 0x3F] : "=";
-  }
-  return result;
-}
-
-function base64ToBytes(base64: string): Uint8Array {
-  const normalized = base64.replace(/\s+/g, "");
-  if (typeof globalThis.atob === "function") {
-    const binary = globalThis.atob(normalized);
-    const bytes = new Uint8Array(binary.length);
-    for (let index = 0; index < binary.length; index++) {
-      bytes[index] = binary.charCodeAt(index);
-    }
-    return bytes;
-  }
-
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  const lookup = new Map(Array.from(alphabet).map((char, index) => [char, index] as const));
-  const padding = normalized.endsWith("==") ? 2 : normalized.endsWith("=") ? 1 : 0;
-  const bytes = new Uint8Array(Math.floor(normalized.length * 3 / 4) - padding);
-  let buffer = 0;
-  let bits = 0;
-  let offset = 0;
-  for (const char of normalized) {
-    if (char === "=") {
-      break;
-    }
-    const value = lookup.get(char);
-    if (value == null) {
-      throw new Error("GIF base64 内容无效。");
-    }
-    buffer = (buffer << 6) | value;
-    bits += 6;
-    if (bits >= 8) {
-      bits -= 8;
-      bytes[offset++] = (buffer >> bits) & 0xFF;
-    }
-  }
-  return bytes;
-}
-
 function bytesToArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   const buffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buffer).set(bytes);
@@ -113,8 +51,7 @@ async function readBytes(uri: string): Promise<Uint8Array> {
     }
     return new Uint8Array(await response.arrayBuffer());
   }
-
-  return base64ToBytes(await readAsStringAsync(uri, { encoding: EncodingType.Base64 }));
+  return await new ExpoFile(uri).bytes();
 }
 
 async function writeBytesToCache(bytes: Uint8Array, fileName: string): Promise<string> {
@@ -122,14 +59,14 @@ async function writeBytesToCache(bytes: Uint8Array, fileName: string): Promise<s
     return URL.createObjectURL(new Blob([bytesToArrayBuffer(bytes)], { type: WEBP_MIME_TYPE }));
   }
 
-  if (!cacheDirectory) {
+  if (!Paths.cache) {
     throw new Error("当前环境缺少可写缓存目录。");
   }
 
   const safeName = fileName.replace(/[^\w.-]+/g, "_");
-  const uri = `${cacheDirectory.replace(/\/?$/, "/")}animated-webp-${Date.now()}-${safeName}`;
-  await writeAsStringAsync(uri, bytesToBase64(bytes), { encoding: EncodingType.Base64 });
-  return uri;
+  const file = new ExpoFile(Paths.cache, `animated-webp-${Date.now()}-${safeName}`);
+  file.write(bytes);
+  return file.uri;
 }
 
 async function readBundledWebpWasm(): Promise<Uint8Array> {

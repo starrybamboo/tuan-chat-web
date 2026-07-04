@@ -24,7 +24,7 @@ type UseChatPageNavigationParams = {
 type UseChatPageNavigationResult = {
   handleOpenPrivate: () => void;
   setActiveRoomId: (roomId: number | null, options?: SelectRoomOptions) => void;
-  setActiveSpaceId: (spaceId: number | null) => void;
+  setActiveSpaceId: (spaceId: number | null, options?: { roomId?: number | null; replace?: boolean }) => void;
 };
 
 export default function useChatPageNavigation({
@@ -35,13 +35,17 @@ export default function useChatPageNavigation({
   searchParam,
   setStoredChatIds,
 }: UseChatPageNavigationParams): UseChatPageNavigationResult {
-  const setActiveSpaceId = useCallback((spaceId: number | null) => {
-    setStoredChatIds({ spaceId, roomId: null });
+  const setActiveSpaceId = useCallback((spaceId: number | null, options?: { roomId?: number | null; replace?: boolean }) => {
+    const nextRoomId = typeof options?.roomId === "number" && Number.isFinite(options.roomId)
+      ? options.roomId
+      : null;
+    setStoredChatIds({ spaceId, roomId: nextRoomId });
     const newSearchParams = new URLSearchParams(searchParam);
     if (screenSize === "sm") {
       newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
     }
-    navigate(appendPathQuery(`/chat/${spaceId ?? "private"}`, newSearchParams));
+    const roomPath = nextRoomId != null ? `/${nextRoomId}` : "";
+    navigate(appendPathQuery(`/chat/${spaceId ?? "private"}${roomPath}`, newSearchParams), { replace: options?.replace });
   }, [isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);
 
   const setActiveRoomId = useCallback((roomId: number | null, options?: SelectRoomOptions) => {

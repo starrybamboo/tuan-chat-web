@@ -26,6 +26,7 @@ function LoginPage() {
   const router = useRouter();
   const searchParams = new URLSearchParams(location.searchStr);
   const redirect = normalizeAuthRedirectPath(searchParams.get("redirect"));
+  const isMobileAuth = searchParams.get("from") === "mobile";
   const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
@@ -43,6 +44,7 @@ function LoginPage() {
       )}
       <LoginModal
         isOpen={isOpen}
+        mobileCallbackEnabled={isMobileAuth}
         onAuthenticated={() => {
           router.history.replace(redirect);
         }}

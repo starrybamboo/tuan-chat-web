@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { UserAvatarByUser } from "@/components/common/userAccess";
 import { resolveUserDisplayName, useResolvedUserInfo } from "@/components/common/userAccess.shared";
 
 import type { FollowResponse } from "../../../../api";
@@ -16,7 +17,6 @@ export function UserCard({ user }: UserCardProps) {
   const resolvedUser = useResolvedUserInfo(user, userId);
   const [status, setStatus] = useState(user.status);
   const displayName = resolveUserDisplayName({ username: resolvedUser.username }, userId > 0 ? `用户${userId}` : "未知用户");
-  const avatarSrc = resolvedUser.avatarThumbUrl || resolvedUser.avatar || "/default-avatar.png";
 
   return (
     <div className="card card-compact w-48 bg-base-100 shadow-xl">
@@ -35,10 +35,13 @@ export function UserCard({ user }: UserCardProps) {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <img
-                      src={avatarSrc}
-                      alt={displayName}
-                      className="mask mask-circle pointer"
+                    <UserAvatarByUser
+                      user={user}
+                      fallbackUserId={userId}
+                      width={12}
+                      isRounded={true}
+                      stopToastWindow={true}
+                      clickEnterProfilePage={false}
                     />
                   </Link>
                 )}

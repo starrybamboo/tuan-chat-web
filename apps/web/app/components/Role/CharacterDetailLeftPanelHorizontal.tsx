@@ -92,14 +92,14 @@ export default function CharacterDetailLeftPanelHorizontal({
       id: "rule",
       title: "当前规则",
       subtitle: currentRuleName || "未选择规则",
-      subtitleClassName: "text-primary",
+      subtitleClassName: "text-info",
       actionLabel: "切换",
       onClick: onOpenRuleModal,
       icon: (
         <div className="
-          flex size-8 items-center justify-center rounded-full bg-primary/10
+          flex size-8 items-center justify-center rounded-full bg-info/10
         ">
-          <GearOutline className="size-4 text-primary" />
+          <GearOutline className="size-4 text-info" />
         </div>
       ),
     },
@@ -110,14 +110,14 @@ export default function CharacterDetailLeftPanelHorizontal({
           subtitle: currentDicerRoleId
             ? dicerRoleError || linkedDicerRoleName || `ID: ${currentDicerRoleId}`
             : "选择使用的骰娘角色",
-          subtitleClassName: dicerRoleError ? "text-error" : "text-accent",
+          subtitleClassName: dicerRoleError ? "text-error" : "text-base-content/70",
           actionLabel: currentDicerRoleId ? "更改" : "设置",
           onClick: onOpenDiceMaidenLinkModal,
           icon: (
             <div className="
-              flex size-8 items-center justify-center rounded-full bg-accent/10
+              flex size-8 items-center justify-center rounded-full bg-base-200
             ">
-              <DiceFiveIcon className="size-4 text-accent" />
+              <DiceFiveIcon className="size-4 text-base-content/70" />
             </div>
           ),
         }]
@@ -126,14 +126,14 @@ export default function CharacterDetailLeftPanelHorizontal({
       id: "audio",
       title: "上传音频",
       subtitle: hasRoleVoiceMedia(localRole) ? "已上传音频" : "用于AI生成角色音色",
-      subtitleClassName: "text-secondary",
+      subtitleClassName: "text-base-content/70",
       actionLabel: "上传",
       onClick: onOpenAudioModal,
       icon: (
         <div className="
-          flex size-8 items-center justify-center rounded-full bg-secondary/10
+          flex size-8 items-center justify-center rounded-full bg-base-200
         ">
-          <MicrophoneIcon className="size-4 text-secondary" />
+          <MicrophoneIcon className="size-4 text-base-content/70" />
         </div>
       ),
     },
@@ -209,10 +209,10 @@ export default function CharacterDetailLeftPanelHorizontal({
             >
               <span className="inline-flex min-w-0 items-center gap-2">
                 <span className="
-                  size-7 rounded-full bg-primary/10 flex items-center
+                  size-7 rounded-full bg-info/10 flex items-center
                   justify-center
                 ">
-                  <GearOutline className="size-4 text-primary" />
+                  <GearOutline className="size-4 text-info" />
                 </span>
                 <span className="
                   min-w-0 truncate whitespace-nowrap font-semibold text-sm
@@ -235,10 +235,10 @@ export default function CharacterDetailLeftPanelHorizontal({
               >
                 <span className="inline-flex min-w-0 items-center gap-2">
                   <span className="
-                    size-7 rounded-full bg-accent/10 flex items-center
+                    size-7 rounded-full bg-base-200 flex items-center
                     justify-center
                   ">
-                    <DiceFiveIcon className="size-4 text-accent" />
+                    <DiceFiveIcon className="size-4 text-base-content/70" />
                   </span>
                   <span className="
                     min-w-0 truncate whitespace-nowrap font-semibold text-sm
@@ -264,10 +264,10 @@ export default function CharacterDetailLeftPanelHorizontal({
             >
               <span className="inline-flex min-w-0 items-center gap-2">
                 <span className="
-                  size-7 rounded-full bg-secondary/10 flex items-center
+                  size-7 rounded-full bg-base-200 flex items-center
                   justify-center
                 ">
-                  <MicrophoneIcon className="size-4 text-secondary" />
+                  <MicrophoneIcon className="size-4 text-base-content/70" />
                 </span>
                 <span className="
                   min-w-0 truncate whitespace-nowrap font-semibold text-sm
@@ -303,7 +303,7 @@ export default function CharacterDetailLeftPanelHorizontal({
                   <div className="flex min-h-0 items-center justify-center p-4">
                     <div className="
                       skeleton aspect-square w-44 rounded-xl ring
-                      ring-primary/20 ring-offset-2 ring-offset-base-100
+                      ring-info/20 ring-offset-2 ring-offset-base-100
                     "></div>
                   </div>
                 )

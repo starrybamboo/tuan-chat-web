@@ -189,7 +189,7 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
                   value={v}
                   disabled={disabled}
                   className="w-12 shrink-0"
-                  displayClassName={`block w-full text-left font-mono text-sm ${disabled ? "text-base-content/40" : "text-base-content/70 cursor-text"}`}
+                  displayClassName={`block w-full text-left font-mono text-sm ${disabled ? "text-base-content/50" : "text-base-content/70 cursor-text"}`}
                   inputClassName="input input-sm bg-transparent w-full rounded-md text-left [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   formatDisplay={value => Number(value.toFixed(2)).toString()}
                   formatInput={value => Number(value.toFixed(2)).toString()}

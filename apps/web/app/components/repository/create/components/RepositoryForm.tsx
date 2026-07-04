@@ -5,15 +5,17 @@ export default function RepositoryForm({ register, errors }: {
   return (
     <>
       <div className="mb-4">
-        <p className="text-xl font-bold mb-5 text-cyan-600">2. 填写仓库信息</p>
-        <p className="mb-1 text-cyan-600">作者</p>
+        <p className="text-xl font-bold mb-5 text-info">2. 填写仓库信息</p>
+        <p className="mb-1 text-base-content/70">作者</p>
         <input
           className="
-            rounded-md w-full h-10 px-3 py-2 border-2 border-gray-300
-            dark:border-gray-500
-            focus:outline-none focus:border-info
+            rounded-md w-full h-10 px-3 py-2 border-2 border-base-300
+            dark:border-base-content/20
+            focus:outline-none focus:border-info focus:ring-2 focus:ring-info/20
           "
           type="text"
+          autoComplete="off"
+          aria-label="作者"
           placeholder=""
           {...register("authorName", {
             required: "仓库作者是必填项",
@@ -24,14 +26,16 @@ export default function RepositoryForm({ register, errors }: {
       </div>
 
       <div className="mb-4">
-        <p className="mb-1 text-cyan-600">仓库名</p>
+        <p className="mb-1 text-base-content/70">仓库名</p>
         <input
           className="
-            rounded-md w-full h-10 px-3 py-2 border-2 border-gray-300
-            dark:border-gray-500
-            focus:outline-none focus:border-info
+            rounded-md w-full h-10 px-3 py-2 border-2 border-base-300
+            dark:border-base-content/20
+            focus:outline-none focus:border-info focus:ring-2 focus:ring-info/20
           "
           type="text"
+          autoComplete="off"
+          aria-label="仓库名"
           placeholder=""
           {...register("repositoryName", {
             required: "仓库名称是必填项",
@@ -42,14 +46,16 @@ export default function RepositoryForm({ register, errors }: {
       </div>
 
       <div className="mb-4">
-        <p className="mb-1 text-cyan-600">仓库描述</p>
+        <p className="mb-1 text-base-content/70">仓库描述</p>
         <textarea
           className="
-            rounded-md w-full h-20 px-3 py-2 border-2 border-gray-300
-            dark:border-gray-500
-            focus:outline-none focus:border-info
+            rounded-md w-full h-20 px-3 py-2 border-2 border-base-300
+            dark:border-base-content/20
+            focus:outline-none focus:border-info focus:ring-2 focus:ring-info/20
           "
           placeholder=""
+          autoComplete="off"
+          aria-label="仓库描述"
           {...register("description", {
             required: "仓库描述是必填项",
             maxLength: { value: 255, message: "仓库描述不能超过255个字符" },

@@ -82,7 +82,7 @@ export function PreviewImageDialog({
           alt="preview-expanded"
           className="
             max-h-[92vh] max-w-[94vw] rounded-2xl object-contain
-            shadow-[0_30px_90px_rgba(0,0,0,0.35)]
+            shadow-xl
           "
         />
       </div>

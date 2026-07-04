@@ -1,4 +1,5 @@
-import { BugBeetleIcon, ChatsIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
+import { BugBeetleIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
+import type { ComponentType, SVGProps } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { buildAccountInviteRegisterUrl } from "@tuanchat/domain/account-invite";
@@ -12,7 +13,7 @@ import { interactiveButtonMotionProps } from "@/components/common/motion/interac
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import NotificationBell from "@/components/notification/notificationBell";
-import { QQIcon, WebgalIcon } from "@/icons";
+import { BilibiliIcon, QQIcon, RoomChatIcon, WebgalIcon } from "@/icons";
 import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
 import { exportDiagnosticConsoleFile } from "@/utils/diagnosticConsole";
 import { isElectronEnv } from "@/utils/isElectronEnv";
@@ -34,16 +35,19 @@ function TopNavMotionLink({
   to,
   label,
   Icon,
+  activePathPrefix = to,
   compact = false,
 }: {
   to: string;
   label: string;
-  Icon: typeof ChatsIcon;
+  Icon: ComponentType<SVGProps<SVGSVGElement>>;
+  activePathPrefix?: string;
   compact?: boolean;
 }) {
   const location = useLocation();
   const controls = useAnimationControls();
   const linkRef = useRef<HTMLAnchorElement | null>(null);
+  const isActive = location.pathname === activePathPrefix || location.pathname.startsWith(`${activePathPrefix}/`);
 
   const syncHoverState = useCallback(() => {
     void controls.start(linkRef.current?.matches(":hover") ? "hover" : "rest");
@@ -62,12 +66,15 @@ function TopNavMotionLink({
         ? `
           btn btn-ghost btn-square btn-sm
           hover:bg-base-200
+          ${isActive ? "bg-base-300 text-info shadow-sm" : ""}
         `
         : `
           btn btn-ghost btn-sm gap-1 px-2
           hover:bg-base-200
+          ${isActive ? "bg-base-300 text-info shadow-sm" : ""}
         `}
       aria-label={label}
+      aria-current={isActive ? "page" : undefined}
       initial="rest"
       animate={controls}
       whileHover="hover"
@@ -84,24 +91,10 @@ function TopNavMotionLink({
 }
 
 export default function Topbar() {
-  const switchRef = useRef<HTMLDivElement | null>(null);
   const queryClient = useQueryClient(); // 使用 hook 获取 QueryClient 实例
   const [isBugQqOpen, setIsBugQqOpen] = useState(false);
   const [bugReportExportStatus, setBugReportExportStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const userDropdownRef = useRef<HTMLDivElement>(null);
-
-  // 点击处理：如果点击发生在 switchRef 内部，则不重复触发；否则查找内部 input 并触发它
-  const handleClick = (e?: React.MouseEvent) => {
-    // 如果事件存在并且点击目标位于 ThemeSwitch 内部，就不做任何事（避免双触发）
-    if (e && switchRef.current && switchRef.current.contains(e.target as Node)) {
-      return;
-    }
-
-    const input = switchRef.current?.querySelector<HTMLInputElement>("input[type=\"checkbox\"]");
-    if (input) {
-      input.click();
-    }
-  };
 
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -244,7 +237,7 @@ export default function Topbar() {
   }, [exportBugReportLog]);
 
   const navItems = [
-    { to: "/chat/discover/material", label: "聊天", icon: ChatsIcon },
+    { to: "/chat/discover/material", label: "聊天", icon: RoomChatIcon, activePathPrefix: "/chat" },
     { to: "/role", label: "角色", icon: IdentificationCardIcon },
     ...(canUseAiImage ? [{ to: "/ai-image", label: "AI生图", icon: PaintBrushBroadIcon }] : []),
     ...(canUseFeedback ? [{ to: "/feedback", label: "反馈", icon: CheckCircleIcon }] : []),
@@ -268,14 +261,14 @@ export default function Topbar() {
               {...interactiveButtonMotionProps}
             >
               <img
-                src="/favicon.ico"
-                alt="Logo"
+                src="/tuanchat-logo.png"
+                alt="团剧共创 Logo"
                 className="
-                  h-6 w-6 mx-3 transition-transform duration-300 ease-out
+                  h-6 w-6 mx-3 object-contain transition-transform duration-300 ease-out
                 "
                 onError={(event) => {
                   event.currentTarget.onerror = null;
-                  event.currentTarget.src = "/logo.svg";
+                  event.currentTarget.src = "/favicon.ico";
                 }}
               />
             </MotionLink>
@@ -295,6 +288,7 @@ export default function Topbar() {
                     to={item.to}
                     label={item.label}
                     Icon={Icon}
+                    activePathPrefix={item.activePathPrefix}
                   />
                 );
               })}
@@ -321,6 +315,7 @@ export default function Topbar() {
                       to={item.to}
                       label={item.label}
                       Icon={Icon}
+                      activePathPrefix={item.activePathPrefix}
                       compact
                     />
                   );
@@ -337,7 +332,7 @@ export default function Topbar() {
                   onClick={handleOpenBugReport}
                   {...interactiveButtonMotionProps}
                 >
-                  <BugBeetleIcon className="size-5" weight="fill" />
+                  <BugBeetleIcon className="size-5" weight="regular" />
                   <span className="
                     hidden
                     sm:inline
@@ -359,6 +354,22 @@ export default function Topbar() {
                 >
                   <QQIcon className="size-6 opacity-80" />
                 </motion.button>
+              </div>
+              <div className="tooltip tooltip-bottom" data-tip="访问作者的个人空间">
+                <motion.a
+                  href="https://space.bilibili.com/108753930"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="打开降星驰的 Bilibili 个人空间"
+                  className="
+                    btn btn-ghost btn-square btn-sm
+                    hover:bg-base-200
+                    transition-colors duration-200
+                  "
+                  {...interactiveButtonMotionProps}
+                >
+                  <BilibiliIcon className="size-6 opacity-80" />
+                </motion.a>
               </div>
             </div>
             {isLoggedIn ? <NotificationBell /> : null}
@@ -484,12 +495,9 @@ export default function Topbar() {
                             btn btn-ghost btn-sm w-full justify-between gap-2
                             font-normal
                           "
-                          onClick={e => handleClick(e)}
-                          role="button"
-                          tabIndex={0}
                         >
                           <div className="flex items-center gap-2">
-                            <div className="scale-75" ref={switchRef}>
+                            <div className="scale-75">
                               <ThemeSwitch />
                             </div>
                             主题切换

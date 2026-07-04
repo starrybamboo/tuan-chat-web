@@ -23,6 +23,10 @@ export function getUserActiveSpacesQueryKey() {
   return ["getUserActiveSpaces"] as const;
 }
 
+export function getMyArchivedSpacesQueryKey() {
+  return ["getMyArchivedSpaces"] as const;
+}
+
 export function getUserRoomsQueryKey(spaceId: number) {
   return ["getUserRooms", spaceId] as const;
 }
@@ -112,6 +116,16 @@ export function useGetUserActiveSpacesQuery(client: SpaceClient, options?: Resou
   return useQuery({
     queryKey: getUserActiveSpacesQueryKey(),
     queryFn: () => client.spaceController.getUserActiveSpaces(),
+    staleTime: options?.staleTime ?? 300_000,
+    enabled: options?.enabled ?? true,
+    retry: options?.retry,
+  });
+}
+
+export function useGetMyArchivedSpacesQuery(client: SpaceClient, options?: ResourceQueryOptions) {
+  return useQuery({
+    queryKey: getMyArchivedSpacesQueryKey(),
+    queryFn: () => client.spaceController.listMyArchivedSpaces(),
     staleTime: options?.staleTime ?? 300_000,
     enabled: options?.enabled ?? true,
     retry: options?.retry,

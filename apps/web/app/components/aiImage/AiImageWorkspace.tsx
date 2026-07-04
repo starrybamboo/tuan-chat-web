@@ -67,7 +67,7 @@ export const AiImageWorkspace = memo(({
                 className="
                   pointer-events-auto flex items-stretch gap-2
                   transition-transform duration-300
-                  ease-[cubic-bezier(0.22,1,0.36,1)]
+                  ease-emphasized
                 "
                 style={{ transform: isPinnedDrawerOpen ? "translateX(0)" : (isPinnedEdgeHovered ? "translateX(calc(-100% + 28px))" : "translateX(calc(-100% + 14px))") }}
                 onMouseEnter={() => setIsPinnedEdgeHovered(true)}
@@ -161,7 +161,7 @@ export const AiImageWorkspace = memo(({
                   flex size-10 items-center justify-center bg-transparent
                   text-base-content/62 transition
                   hover:text-base-content/90
-                  focus:outline-none
+                  focus:outline-none focus:ring-2 focus:ring-info/30
                 "
                 aria-label="Expand history sidebar"
                 title="Expand history sidebar"
@@ -176,7 +176,7 @@ export const AiImageWorkspace = memo(({
       <div
         className={`
           relative shrink-0 overflow-hidden transition-all duration-300
-          ease-[cubic-bezier(0.22,1,0.36,1)]
+          ease-emphasized
           ${
           isHistoryCollapsed
             ? "w-0 translate-x-3 opacity-0 pointer-events-none"

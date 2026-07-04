@@ -66,6 +66,10 @@ type RoomWindowLayoutProps = {
   hideSecondaryPanels?: boolean;
   onClearAndReloadAllMessages?: () => void | Promise<void>;
   isReloadingAllMessages?: boolean;
+  canManageMute?: boolean;
+  isSpaceMuted?: boolean;
+  onToggleMute?: () => void | Promise<void>;
+  isTogglingMute?: boolean;
 }
 
 export default function RoomWindowLayout({
@@ -92,6 +96,10 @@ export default function RoomWindowLayout({
   hideSecondaryPanels = false,
   onClearAndReloadAllMessages,
   isReloadingAllMessages = false,
+  canManageMute = false,
+  isSpaceMuted = false,
+  onToggleMute,
+  isTogglingMute = false,
 }: RoomWindowLayoutProps) {
   const shouldRenderEffectOverlay = Boolean(currentEffect && currentEffect !== "none");
   const prefersReducedMotion = useReducedMotion();
@@ -121,7 +129,7 @@ export default function RoomWindowLayout({
       <div
         className="
           absolute inset-0 bg-white/30
-          dark:bg-slate-950/40
+          dark:bg-base-300/40
           backdrop-blur-xs transition-opacity duration-500 z-0
         "
         style={{
@@ -164,6 +172,10 @@ export default function RoomWindowLayout({
             onCloseSubWindow={onCloseSubWindow}
             onClearAndReloadAllMessages={onClearAndReloadAllMessages}
             isReloadingAllMessages={isReloadingAllMessages}
+            canManageMute={canManageMute}
+            isSpaceMuted={isSpaceMuted}
+            onToggleMute={onToggleMute}
+            isTogglingMute={isTogglingMute}
           />
           <div className="
             flex-1 w-full bg-transparent relative min-h-0 overflow-hidden

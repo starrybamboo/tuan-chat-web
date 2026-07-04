@@ -111,12 +111,12 @@ export default function RoleBasicInfoEditor({
               className={`
                 relative inline-block max-w-full rounded-md p-1
                 transition-colors
-                hover:text-primary
+                hover:text-info
                 ${textAlignClassName}
                 ${nameClassName}
                 ${nameDisplayClassName}
                 after:absolute after:bottom-0 after:h-0.5 after:w-0
-                after:rounded-full after:bg-primary after:transition-all
+                after:rounded-full after:bg-info after:transition-all
                 after:duration-200
                 hover:after:w-full
                 ${align === "center" ? `mx-auto` : ""}
@@ -146,12 +146,14 @@ export default function RoleBasicInfoEditor({
               <textarea
                 value={descriptionDraft}
                 onChange={event => setDescriptionDraft(event.target.value)}
+                autoComplete="off"
+                aria-label="角色描述"
                 placeholder="角色描述"
                 className={`
                   min-h-32 size-full resize-none rounded-md border
                   border-base-content/15 bg-base-100 p-2 text-sm transition
-                  focus:border-primary focus:outline-none focus:ring-2
-                  focus:ring-primary/20
+                  focus:border-info focus:outline-none focus:ring-2
+                  focus:ring-info/20
                   ${textAlignClassName}
                   ${descriptionTextareaClassName}
                 `}
@@ -181,8 +183,8 @@ export default function RoleBasicInfoEditor({
                   <button
                     type="button"
                     className="
-                      rounded-md bg-primary px-3 py-1.5 text-sm
-                      text-primary-content transition
+                      rounded-md bg-info px-3 py-1.5 text-sm
+                      text-info-content transition
                       hover:opacity-90
                     "
                     onClick={handleDescriptionSave}

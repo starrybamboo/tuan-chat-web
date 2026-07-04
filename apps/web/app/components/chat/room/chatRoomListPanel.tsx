@@ -1,7 +1,7 @@
 import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
 
 import { PackageIcon } from "@phosphor-icons/react";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import type { ActiveMaterialSelection, OpenSpaceDetailPanelOptions, SelectRoomOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
 
@@ -60,6 +60,8 @@ type ChatRoomListPanelProps = {
   onOpenRoomSetting?: (roomId: number, tab?: "member" | "role" | "setting") => void;
 
   sidebarTree?: SidebarTree | null;
+  isSidebarTreeReady?: boolean;
+  sidebarTreeRemoteUpdateKey?: string | null;
   docMetas?: MinimalDocMeta[];
   materialPackages?: SpaceMaterialPackageResponse[];
   onSelectDoc?: (docId: string) => void;
@@ -78,8 +80,6 @@ type ChatRoomListPanelProps = {
 
   onSelectRoom: (roomId: number, options?: SelectRoomOptions) => void;
   onCloseLeftDrawer: () => void;
-  onToggleLeftDrawer?: () => void;
-  isLeftDrawerOpen?: boolean;
 
   setIsOpenLeftDrawer: (isOpen: boolean) => void;
 
@@ -100,6 +100,8 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     rooms,
     roomOrderIds,
     sidebarTree,
+    isSidebarTreeReady = true,
+    sidebarTreeRemoteUpdateKey,
     docMetas,
     materialPackages,
     onSelectDoc,
@@ -116,8 +118,6 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     onOpenSpaceDetailPanel,
     onSelectRoom,
     onCloseLeftDrawer,
-    onToggleLeftDrawer,
-    isLeftDrawerOpen,
     setIsOpenLeftDrawer,
     onOpenCreateInCategory,
     canViewDocs,
@@ -221,9 +221,11 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     fallbackTextRooms,
     visibleDocMetas,
     includeDocs: canViewDocs,
+    autoExpandTriggerKey: sidebarTreeRemoteUpdateKey,
   });
   const {
     expandedByKey: expandedSidebarSections,
+    setExpanded: setSidebarSectionExpanded,
     toggleExpanded: toggleSidebarSection,
   } = usePersistedSidebarExpandedState({
     activeSpaceId,
@@ -242,6 +244,35 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     validKeys: materialTreeExpandableKeys,
   });
   const isRoomDocSectionExpanded = Boolean(expandedSidebarSections?.[ROOM_DOC_SECTION_KEY]);
+  const activeRoomDocSectionTargetKey = activeDocId
+    ? `doc:${activeDocId}`
+    : (typeof activeRoomId === "number" && Number.isFinite(activeRoomId) ? `room:${activeRoomId}` : null);
+  const lastAutoExpandedRoomDocSectionRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!sidebarTreeRemoteUpdateKey || !activeRoomDocSectionTargetKey) {
+      lastAutoExpandedRoomDocSectionRef.current = null;
+      return;
+    }
+    if (!expandedSidebarSections) {
+      return;
+    }
+    const autoExpandIdentity = `${sidebarTreeRemoteUpdateKey}:${activeRoomDocSectionTargetKey}`;
+    if (lastAutoExpandedRoomDocSectionRef.current === autoExpandIdentity) {
+      return;
+    }
+    lastAutoExpandedRoomDocSectionRef.current = autoExpandIdentity;
+    if (isRoomDocSectionExpanded) {
+      return;
+    }
+    setSidebarSectionExpanded(ROOM_DOC_SECTION_KEY, true);
+  }, [
+    activeRoomDocSectionTargetKey,
+    activeSpaceId,
+    expandedSidebarSections,
+    isRoomDocSectionExpanded,
+    setSidebarSectionExpanded,
+    sidebarTreeRemoteUpdateKey,
+  ]);
   const canViewMaterialSection = isKPInSpace;
   const hasMaterialSidebarPackages = materialSidebarPackages.length > 0;
   const isMaterialSectionExpanded = canViewMaterialSection && Boolean(expandedSidebarSections?.[MATERIAL_SECTION_KEY]);
@@ -357,7 +388,13 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
   const existingDocIdsInTree = useMemo(() => {
     return collectExistingDocIds(treeToRender);
   }, [treeToRender]);
-  const roomDocSectionContent = (
+  const shouldShowRoomDocTreeLoading = Boolean(activeSpaceId && !isSidebarTreeReady);
+  const roomDocSectionContent = shouldShowRoomDocTreeLoading ? (
+    <div className="flex items-center gap-2 px-3 py-3 text-xs text-base-content/55">
+      <span className="loading loading-spinner loading-sm"></span>
+      <span>正在加载频道与文档...</span>
+    </div>
+  ) : (
     <div
       className="space-y-1"
       onDragOverCapture={handleDocCopyDragOverCapture}
@@ -460,7 +497,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
             );
           })
         : (
-            <div className="px-3 py-2 text-xs text-base-content/45">
+            <div className="px-3 py-2 text-xs text-base-content/50">
               当前空间还没有导入素材包
             </div>
           )}
@@ -498,8 +535,8 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
       <div
         className="
           flex flex-col gap-2 size-full flex-1 bg-base-200 min-h-0 min-w-0
-          rounded-tl-xl border-l border-t border-gray-300
-          dark:border-gray-700
+          rounded-tl-xl border-l border-t border-base-300
+          dark:border-base-300
         "
       >
         {isPrivateChatMode
@@ -521,8 +558,6 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                       onAddCategory={canEdit ? openAddCategory : undefined}
                       onResetSidebarTreeToDefault={canEdit ? onResetSidebarTreeToDefault : undefined}
                       onInviteMember={onInviteMember}
-                      onToggleLeftDrawer={onToggleLeftDrawer}
-                      isLeftDrawerOpen={isLeftDrawerOpen}
                     />
                     {/* <div className="h-px bg-base-300"></div> */}
                   </>
@@ -558,7 +593,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                               rounded-md cursor-row-resize touch-none opacity-0
                               transition-[opacity,background-color] duration-150
                               focus:outline-none
-                              focus-visible:ring-2 focus-visible:ring-primary/40
+                              focus-visible:ring-2 focus-visible:ring-info/40
                               hover:opacity-100
                               focus-visible:opacity-100
                               ${isDraggingSplitHandle ? `
@@ -574,7 +609,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                           >
                             <div className={`
                               h-px w-full transition-colors
-                              ${isDraggingSplitHandle ? `bg-primary/45` : `
+                              ${isDraggingSplitHandle ? `bg-info/45` : `
                                 bg-base-300/80
                                 group-hover:bg-base-content/28
                               `}

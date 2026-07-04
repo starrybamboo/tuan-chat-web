@@ -1,11 +1,10 @@
-import { CheckerboardIcon, SwordIcon } from "@phosphor-icons/react";
 import { use, type ReactNode } from "react";
 
 import { formatUnreadBadgeCount, useVisibleClueFolderUnreadCount } from "@/components/chat/clues/clueUnread";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { getNextRunSideDrawerState } from "@/components/chat/room/runSideDrawerState";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
-import { FolderIcon } from "@/icons";
+import { Detective, PointOnMapPerspectiveLinear, SwordSwing } from "@/icons";
 
 type RunSideDrawerButtonsProps = {
   className?: string;
@@ -54,8 +53,8 @@ export default function RunSideDrawerButtons({
     tooltipClassName,
     hasBadge ? "pr-5" : "",
     isActive
-      ? "bg-primary/15 text-primary"
-      : "text-base-content/70 hover:bg-base-200/70 hover:text-primary",
+      ? "bg-info/15 text-info"
+      : "text-base-content/70 hover:bg-base-200/70 hover:text-info",
   ].join(" ");
 
   const renderButton = ({
@@ -96,7 +95,7 @@ export default function RunSideDrawerButtons({
       ${className}
     `}>
       {renderButton({
-        icon: <FolderIcon className="size-4 jump_icon" />,
+        icon: <Detective className="size-4 jump_icon" />,
         isActive: isClueDrawerOpen,
         label: "线索",
         onClick: () => setSideDrawerState(getNextRunSideDrawerState(sideDrawerState, "clue")),
@@ -104,7 +103,7 @@ export default function RunSideDrawerButtons({
       })}
 
       {renderButton({
-        icon: <SwordIcon className="size-4 jump_icon" />,
+        icon: <SwordSwing className="size-4 jump_icon" />,
         isActive: isCombatDrawerOpen,
         label: "战斗",
         tip: "战斗面板",
@@ -112,7 +111,7 @@ export default function RunSideDrawerButtons({
       })}
 
       {renderButton({
-        icon: <CheckerboardIcon className="size-4 jump_icon" />,
+        icon: <PointOnMapPerspectiveLinear className="size-4 jump_icon" />,
         isActive: isMapDrawerOpen,
         label: "地图",
         onClick: () => setSideDrawerState(getNextRunSideDrawerState(sideDrawerState, "map")),

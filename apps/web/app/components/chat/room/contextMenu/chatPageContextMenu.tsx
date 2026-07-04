@@ -6,7 +6,7 @@ import type { RoomSettingTab } from "@/components/chat/chatPage.types";
 
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { canManageMemberPermissions } from "@/components/chat/utils/memberPermissions";
-import ConfirmModal from "@/components/common/comfirmModel";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { useDissolveRoomMutation } from "api/hooks/chatQueryHooks";
 
 import { useSubscribeRoomMutation, useUnsubscribeRoomMutation } from "../../../../../api/hooks/messageSessionQueryHooks";
@@ -185,14 +185,14 @@ export default function ChatPageContextMenu({
         </div>
       )}
 
-      <ConfirmModal
-        isOpen={isDissolveConfirmOpen}
-        onClose={() => {
+      <ConfirmDialog
+        open={isDissolveConfirmOpen}
+        onOpenChange={() => {
           setIsDissolveConfirmOpen(false);
           setDissolveTargetRoomId(null);
         }}
         title="确认解散房间"
-        message="是否确定要解散该房间？此操作不可逆。"
+        description="是否确定要解散该房间？此操作不可逆。"
         onConfirm={() => {
           if (activeDissolveRoomId == null) {
             return;

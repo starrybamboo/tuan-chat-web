@@ -436,7 +436,7 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     <div
       className={`
         w-full overflow-auto resize-none p-2
-        focus:outline-none
+        focus:outline-none focus:ring-2 focus:ring-info/30
         div-textarea chatInputTextarea
         ${props.className ?? ""}
       `}

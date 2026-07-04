@@ -5,7 +5,12 @@ export type PublishAnimationPresetFile = {
   content: string;
 };
 
+export const TUANCHAT_DEFAULT_FIGURE_ENTER_ANIMATION = "tuanchat/default-enter";
+export const TUANCHAT_DEFAULT_FIGURE_EXIT_ANIMATION = "tuanchat/default-exit";
+
 const FIGURE_ANIMATION_TABLE = [
+  TUANCHAT_DEFAULT_FIGURE_ENTER_ANIMATION,
+  TUANCHAT_DEFAULT_FIGURE_EXIT_ANIMATION,
   "position/enter",
   "position/exit",
   "position/ba-enter-from-left",
@@ -70,6 +75,14 @@ const BUILTIN_ANIMATION_TABLE = [
 ];
 
 const FIGURE_ANIMATION_FRAMES_BY_NAME: Record<typeof FIGURE_ANIMATION_TABLE[number], AnimationFrame[]> = {
+  [TUANCHAT_DEFAULT_FIGURE_ENTER_ANIMATION]: [
+    { alpha: 1, duration: 0 },
+  ],
+  [TUANCHAT_DEFAULT_FIGURE_EXIT_ANIMATION]: [
+    { alpha: 1, duration: 0 },
+    { alpha: 1, duration: 299 },
+    { alpha: 0, duration: 1 },
+  ],
   "position/enter": [
     { alpha: 0, duration: 0 },
     { alpha: 1, duration: 300 },

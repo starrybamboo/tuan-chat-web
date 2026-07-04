@@ -77,8 +77,8 @@ const RolesList: React.FC<UserRolesListProps> = ({
                   <Link
                     to="/role"
                     className="
-                      btn btn-circle btn-lg bg-primary/10 text-primary
-                      hover:bg-primary/20
+                      btn btn-circle btn-lg bg-info/10 text-info
+                      hover:bg-info/20
                       border-none
                     "
                   >

@@ -114,7 +114,7 @@ RealtimeRenderer 转换为 WebGAL 场景
 文件：app/components/chat/stores/drawerPreferenceStore.ts
 
 - userDrawerWidth / roleDrawerWidth / initiativeDrawerWidth / mapDrawerWidth / exportDrawerWidth / subRoomWindowWidth / webgalRunSplitRatio
-- 对应 localStorage key 与字段同名；旧 `webgalDrawerWidth` 会迁移为 `subRoomWindowWidth`
+- 对应 localStorage key 与字段同名；不再读取旧 `webgalDrawerWidth`
 
 相关组件：
 

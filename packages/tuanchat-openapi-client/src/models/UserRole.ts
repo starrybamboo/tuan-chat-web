@@ -64,9 +64,4 @@ export type UserRole = {
     versionState?: number;
     createTime?: string;
     updateTime?: string;
-    npc?: boolean;
-    activeDiceMaiden?: boolean;
-    diceMaiden?: boolean;
-    role?: boolean;
 };
-

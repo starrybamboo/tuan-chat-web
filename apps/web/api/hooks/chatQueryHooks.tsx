@@ -13,6 +13,7 @@ import type { RoomRoleDeleteRequest } from "@tuanchat/openapi-client/models/Room
 import type { RoomRoleAddRequest } from "@tuanchat/openapi-client/models/RoomRoleAddRequest";
 import type { RoomMemberAddRequest } from "@tuanchat/openapi-client/models/RoomMemberAddRequest";
 import type { RoomMemberDeleteRequest } from "@tuanchat/openapi-client/models/RoomMemberDeleteRequest";
+import type { SpaceMuteRequest } from "@tuanchat/openapi-client/models/SpaceMuteRequest";
 import type { RoomUpdateRequest } from "@tuanchat/openapi-client/models/RoomUpdateRequest";
 import type { SpaceUpdateRequest } from "@tuanchat/openapi-client/models/SpaceUpdateRequest";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
@@ -35,7 +36,11 @@ import {
 } from "@tuanchat/query/members";
 import {
     fetchUserRoomsWithCache as fetchSharedUserRoomsWithCache,
+    getMyArchivedSpacesQueryKey,
+    getUserActiveSpacesQueryKey,
+    getUserSpacesQueryKey,
     type ResourceQueryOptions,
+    useGetMyArchivedSpacesQuery as useSharedGetMyArchivedSpacesQuery,
     useGetUserActiveSpacesQuery as useSharedGetUserActiveSpacesQuery,
     useGetUserRoomsQuery as useSharedGetUserRoomsQuery,
     useGetUserSpacesQuery as useSharedGetUserSpacesQuery,
@@ -137,6 +142,22 @@ export function fetchSpaceInfoWithCache(queryClient: QueryClient, spaceId: numbe
 export function fetchUserRoomsWithCache(queryClient: QueryClient, spaceId: number) {
     return fetchSharedUserRoomsWithCache(queryClient, tuanchat, spaceId, {
         staleTime: USER_ROOMS_STALE_TIME_MS,
+    });
+}
+
+export function fetchUserActiveSpacesWithCache(queryClient: QueryClient, options?: ResourceQueryOptions) {
+    return queryClient.fetchQuery({
+        queryKey: getUserActiveSpacesQueryKey(),
+        queryFn: () => tuanchat.spaceController.getUserActiveSpaces(),
+        staleTime: options?.staleTime ?? SPACE_INFO_STALE_TIME_MS,
+    });
+}
+
+export function fetchUserSpacesWithCache(queryClient: QueryClient, options?: ResourceQueryOptions) {
+    return queryClient.fetchQuery({
+        queryKey: getUserSpacesQueryKey(),
+        queryFn: () => tuanchat.spaceController.getUserSpaces(),
+        staleTime: options?.staleTime ?? SPACE_INFO_STALE_TIME_MS,
     });
 }
 
@@ -401,6 +422,27 @@ export function useUpdateRoomMutation() {
 }
 
 /**
+ * 更新空间禁言状态
+ */
+export function useUpdateSpaceMuteStatusMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: SpaceMuteRequest) => tuanchat.spaceController.updateSpaceMuteStatus(req),
+        mutationKey: ['updateSpaceMuteStatus'],
+        onSuccess: (result, variables) => {
+            if (isSuccessfulApiResult(result) && typeof variables.spaceId === "number") {
+                patchApiResultData(queryClient, spaceInfoQueryKey(variables.spaceId), {
+                    muteStatus: variables.muteStatus,
+                });
+                queryClient.invalidateQueries({ queryKey: spaceInfoQueryKey(variables.spaceId) });
+            }
+            queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
+            queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
+        }
+    })
+}
+
+/**
  * 更新space信息
  */
 export function useUpdateSpaceMutation() {
@@ -528,6 +570,7 @@ export function useDissolveSpaceMutation() {
         onSuccess: () => {
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
+queryClient.invalidateQueries({ queryKey: getMyArchivedSpacesQueryKey() });
         }
     })
 }
@@ -543,6 +586,7 @@ export function useUpdateSpaceArchiveStatusMutation() {
         onSuccess: () => {
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
+queryClient.invalidateQueries({ queryKey: getMyArchivedSpacesQueryKey() });
             queryClient.invalidateQueries({ queryKey: ['repositoryDetail'] });
             queryClient.invalidateQueries({ queryKey: ['repositoryCommitChain'] });
             queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList'] });
@@ -562,6 +606,7 @@ export function useRecoverSpaceMutation() {
         onSuccess: () => {
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
+queryClient.invalidateQueries({ queryKey: getMyArchivedSpacesQueryKey() });
             queryClient.invalidateQueries({ queryKey: ['repositoryDetail'] });
             queryClient.invalidateQueries({ queryKey: ['repositoryCommitChain'] });
             queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList'] });
@@ -771,6 +816,13 @@ export function useGetUserSpacesQuery(options?: ResourceQueryOptions) {
  */
 export function useGetUserActiveSpacesQuery() {
     return useSharedGetUserActiveSpacesQuery(tuanchat);
+}
+
+/**
+ * 获取当前用户归档过的 space
+ */
+export function useGetMyArchivedSpacesQuery(options?: ResourceQueryOptions) {
+    return useSharedGetMyArchivedSpacesQuery(tuanchat, options);
 }
 
 type CloneSpaceByCommitPayload = {

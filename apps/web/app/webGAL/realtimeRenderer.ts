@@ -64,6 +64,11 @@ import type { WebgalFigureRenderAsset } from "./webgalFigureComposition";
 import { fetchRoleAvatarWithCache, fetchRoleAvatarsWithCache } from "../../api/hooks/RoleAndAvatarHooks";
 import { checkFileExist, DebugCommand, getAsyncMsg, getFileExtensionFromUrl, readTextFile, uploadFile } from "./fileOperator";
 import {
+  BUILTIN_WEBGAL_ANIMATION_FILES,
+  TUANCHAT_DEFAULT_FIGURE_ENTER_ANIMATION,
+  TUANCHAT_DEFAULT_FIGURE_EXIT_ANIMATION,
+} from "./publishAnimationPresets";
+import {
   collectMessageAssetWarmupPlan,
   DEFAULT_REALTIME_ASSET_CONCURRENCY,
   runWithConcurrencyLimit,
@@ -82,7 +87,11 @@ import {
   uploadVideoAsset,
   uploadVocalAsset,
 } from "./realtimeRendererAssetUploads";
-import { DEFAULT_REALTIME_GAME_CONFIG, normalizeFigureDefaultTransitionDuration } from "./realtimeRendererConfig";
+import {
+  DEFAULT_REALTIME_GAME_CONFIG,
+  normalizeFigureDefaultTransitionAnimation,
+  normalizeFigureDefaultTransitionDuration,
+} from "./realtimeRendererConfig";
 import {
   buildMergedTrpgDiceMessage,
   buildPlayEffectLine,
@@ -161,7 +170,7 @@ export type { RealtimeGameConfig, RealtimeTTSConfig } from "./realtimeRendererCo
 // 不能使用点文件名；Terre 当前通过 Express serve-static 暴露 /games/...，
 // dotfile 默认会返回 404，导致版本探测持续误判。
 const REALTIME_GAME_ENGINE_MARKER_FILE = "tuanchat_engine_marker.txt";
-const REALTIME_GAME_ENGINE_MARKER_VERSION = "realtime-tuanchat-shared-local-assets-v36";
+const REALTIME_GAME_ENGINE_MARKER_VERSION = "realtime-tuanchat-json-default-figure-animation-v37";
 const REALTIME_RENDERER_INIT_ABORT_ERROR = "__tc_realtime_init_aborted__";
 const DEFAULT_TYPING_SOUND_SE_FILE = "select07.mp3";
 const BLACK_TEMPLATE_DIR = "WebGAL Black";
@@ -1066,6 +1075,9 @@ export class RealtimeRenderer {
       await this.syncGameConfigWithRoomContext();
       ensureInitActive();
 
+      await this.syncBuiltinAnimationFiles();
+      ensureInitActive();
+
       await this.writeEngineMarker();
       ensureInitActive();
       this.readyWorkflowEndSceneIds.clear();
@@ -1163,6 +1175,20 @@ export class RealtimeRenderer {
     return latestRoom;
   }
 
+  private async syncBuiltinAnimationFiles(): Promise<void> {
+    try {
+      await Promise.all(BUILTIN_WEBGAL_ANIMATION_FILES.map(file =>
+        getTerreApis().manageGameControllerEditTextFile({
+          path: `games/${this.gameName}/game/${file.path}`,
+          textFile: file.content,
+        })));
+      debugRealtimeRender("[RealtimeRenderer] 内置 WebGAL 动画 JSON 已同步");
+    }
+    catch (error) {
+      console.warn("[RealtimeRenderer] 同步内置 WebGAL 动画 JSON 失败:", error);
+    }
+  }
+
   private async syncAvatarToGameIcons(avatarUrl: string): Promise<void> {
     const normalizedUrl = String(avatarUrl ?? "").trim();
     if (!normalizedUrl) {
@@ -1216,10 +1242,20 @@ export class RealtimeRenderer {
     upsertGameConfigEntry(configEntries, "TypingSoundEnabled", this.gameConfig.typingSoundEnabled ? "true" : "false");
     const figureDefaultEnterDuration = normalizeFigureDefaultTransitionDuration(this.gameConfig.figureDefaultEnterDuration);
     const figureDefaultExitDuration = normalizeFigureDefaultTransitionDuration(this.gameConfig.figureDefaultExitDuration);
+    const figureDefaultEnterAnimation = normalizeFigureDefaultTransitionAnimation(
+      this.gameConfig.figureDefaultEnterAnimation,
+      TUANCHAT_DEFAULT_FIGURE_ENTER_ANIMATION,
+    );
+    const figureDefaultExitAnimation = normalizeFigureDefaultTransitionAnimation(
+      this.gameConfig.figureDefaultExitAnimation,
+      TUANCHAT_DEFAULT_FIGURE_EXIT_ANIMATION,
+    );
     const typingSoundInterval = Math.max(0.1, Number(this.gameConfig.typingSoundInterval || 1.5));
     const typingSoundPunctuationPause = Math.max(0, Math.floor(Number(this.gameConfig.typingSoundPunctuationPause || 100)));
     upsertGameConfigEntry(configEntries, "Figure_Default_Enter_Duration", String(figureDefaultEnterDuration));
     upsertGameConfigEntry(configEntries, "Figure_Default_Exit_Duration", String(figureDefaultExitDuration));
+    upsertGameConfigEntry(configEntries, "Figure_Default_Enter_Animation", figureDefaultEnterAnimation);
+    upsertGameConfigEntry(configEntries, "Figure_Default_Exit_Animation", figureDefaultExitAnimation);
     upsertGameConfigEntry(configEntries, "TypingSoundInterval", String(typingSoundInterval));
     upsertGameConfigEntry(configEntries, "TypingSoundPunctuationPause", String(typingSoundPunctuationPause));
 

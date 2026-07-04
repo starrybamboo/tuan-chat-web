@@ -15,6 +15,7 @@ import {
   unreadBadgeBounceMotionProps,
 } from "@/components/common/motion/chatMessageMotion";
 import { floatingListItemMotionProps, floatingPanelMotionProps } from "@/components/common/motion/floatingPanelMotion";
+import { motionEase } from "@/components/common/motion/motionTokens";
 
 import type { ChatMessageResponse } from "../../../api";
 
@@ -69,7 +70,7 @@ const SelectionToolbar = memo(({
       icon: FileArrowDown,
       onClick: onExportFile,
       disabled: !hasSelection,
-      className: "btn-accent",
+      className: "btn-outline",
     },
     ...(onExportPremiere
       ? [{
@@ -78,7 +79,7 @@ const SelectionToolbar = memo(({
           icon: FilmSlate,
           onClick: onExportPremiere,
           disabled: !hasSelection,
-          className: "btn-accent",
+          className: "btn-outline",
         }]
       : []),
     {
@@ -87,7 +88,7 @@ const SelectionToolbar = memo(({
       icon: ImageSquare,
       onClick: onExportImage,
       disabled: !hasSelection,
-      className: "btn-secondary",
+      className: "btn-outline",
     },
     {
       key: "forward",
@@ -108,9 +109,9 @@ const SelectionToolbar = memo(({
         ">
           <motion.div
             className="
-              max-w-[calc(100%-2rem)] rounded-md border border-primary/20
+              max-w-[calc(100%-2rem)] rounded-md border border-info/20
               bg-base-100/92 px-3 py-1.5 text-sm text-base-content shadow-2xl
-              shadow-primary/10 backdrop-blur-xl
+              shadow-info/10 backdrop-blur-xl
             "
             {...floatingListItemMotionProps(0)}
           >
@@ -119,9 +120,9 @@ const SelectionToolbar = memo(({
           <motion.div
             className="
               pointer-events-auto flex max-w-[calc(100%-2rem)] items-center
-              gap-2 overflow-hidden rounded-md border border-primary/20
+              gap-2 overflow-hidden rounded-md border border-info/20
               bg-base-100/92 p-2 text-sm text-base-content shadow-2xl
-              shadow-primary/10 backdrop-blur-xl
+              shadow-info/10 backdrop-blur-xl
             "
             {...floatingPanelMotionProps}
           >
@@ -133,8 +134,8 @@ const SelectionToolbar = memo(({
               {...floatingListItemMotionProps(0)}
             >
               <span className="
-                size-2 rounded-full bg-primary
-                shadow-[0_0_18px_hsl(var(--p)/0.75)]
+                size-2 rounded-full bg-info
+                shadow-[0_0_18px_hsl(var(--in)/0.75)]
               " />
               <span className="whitespace-nowrap font-medium">{`已选择 ${selectedCount} 条`}</span>
             </motion.div>
@@ -229,13 +230,13 @@ const MessageFilterControl = memo(({
           min-h-0 rounded-md border shadow-lg backdrop-blur-xl
           ${
           isActive
-            ? "border-primary/30 bg-primary/10 text-primary"
+            ? "border-info/30 bg-info/10 text-info"
             : "border-base-content/10 bg-base-100/78 text-base-content/70"
         }
         `}
         initial={{ opacity: 0, scale: 0.92, y: -4 }}
         animate={buttonAnimate}
-        transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.24, ease: motionEase.emphasized }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.94 }}
         onClick={onOpen}
@@ -248,7 +249,7 @@ const MessageFilterControl = memo(({
             <motion.span
               className="
                 pointer-events-none absolute inset-0 rounded-md border
-                border-primary/35
+                border-info/35
               "
               initial={{ opacity: 0, scale: 0.72 }}
               animate={{ opacity: [0.45, 0], scale: [0.9, 1.42] }}
@@ -263,7 +264,7 @@ const MessageFilterControl = memo(({
               key="active-dot"
               className="
                 pointer-events-none absolute right-1 top-1 size-1.5 rounded-full
-                bg-primary shadow-[0_0_10px_hsl(var(--p)/0.85)]
+                bg-info shadow-[0_0_10px_hsl(var(--in)/0.85)]
               "
               initial={{ opacity: 0, scale: 0.3 }}
               animate={{ opacity: 1, scale: [0.3, 1.45, 1] }}
@@ -618,7 +619,7 @@ export default function ChatFrameList({
                     ${
                     filterTransitionState.tone === "active"
                       ? `
-                        bg-linear-to-r from-transparent via-primary/18
+                        bg-linear-to-r from-transparent via-info/18
                         to-transparent
                       `
                       : `

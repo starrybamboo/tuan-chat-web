@@ -52,7 +52,7 @@ export default function ExpansionModule({
 
   // 角色类型查询（用于条件渲染Tab）
   const roleQuery = useGetRoleQuery(roleId);
-  const isDiceMaiden = !!(roleQuery.data?.data?.diceMaiden || roleQuery.data?.data?.type === 1);
+  const isDiceMaiden = roleQuery.data?.data?.type === 1;
 
   // 当前选中的Tab，依据角色类型设置默认
   const [activeTab, setActiveTab] = useState<RoleConfigTabKey>("basic");
@@ -410,7 +410,7 @@ export default function ExpansionModule({
             title="表演字段配置"
             icon={<MaskHappyIcon className="
               size-5 shrink-0 text-base-content/80
-            " weight="bold" aria-hidden="true" />}
+            " weight="regular" aria-hidden="true" />}
             className="
               rounded-2xl
               md:border-2 md:border-base-content/10
@@ -438,7 +438,7 @@ export default function ExpansionModule({
     btn btn-sm h-10 min-h-10 rounded-lg border border-base-content/10
     bg-base-100/70 px-4 text-sm font-medium text-base-content/80 shadow-none
     transition-colors
-    hover:border-primary/40 hover:bg-primary/10 hover:text-primary
+    hover:border-info/40 hover:bg-info/10 hover:text-info
   `;
 
   const tabButtons = !isDiceMaiden
@@ -464,11 +464,11 @@ export default function ExpansionModule({
                   h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap
                   rounded-lg
                   ${isSmall ? "" : desktopConfigButtonClass}
-                  ${activeTab === key ? `btn-primary` : `btn-ghost`}
+                  ${activeTab === key ? `btn-info` : `btn-ghost`}
                 `}
                 onClick={() => setActiveTab(key)}
               >
-                <Icon className="size-4 shrink-0" weight="bold" aria-hidden="true" />
+                <Icon className="size-4 shrink-0" weight="regular" aria-hidden="true" />
                 <span className="md:hidden">{shortLabel}</span>
                 <span className="
                   hidden
@@ -491,7 +491,7 @@ export default function ExpansionModule({
                     inline-flex items-center gap-2
                   `}
                 >
-                  <DownloadSimpleIcon className="size-4" weight="bold" aria-hidden="true" />
+                  <DownloadSimpleIcon className="size-4" weight="regular" aria-hidden="true" />
                   ST导入
                 </button>
               )}
@@ -651,7 +651,7 @@ export default function ExpansionModule({
                                             <MaskHappyIcon className="
                                               size-5 shrink-0
                                               text-base-content/80
-                                            " weight="bold" aria-hidden="true" />
+                                            " weight="regular" aria-hidden="true" />
                                             骰娘文案配置
                                           </h3>
                                           <div className="
@@ -701,7 +701,7 @@ export default function ExpansionModule({
                                         ">
                                           <MaskHappyIcon className="
                                             size-5 shrink-0 text-base-content/80
-                                          " weight="bold" aria-hidden="true" />
+                                          " weight="regular" aria-hidden="true" />
                                           骰娘文案配置
                                         </h3>
                                         <div className="flex items-center gap-2">

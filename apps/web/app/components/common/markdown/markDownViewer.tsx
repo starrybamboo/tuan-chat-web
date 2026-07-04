@@ -8,7 +8,7 @@ import remarkGfm from "remark-gfm";
 
 import { resolveMediaContentSource } from "@/components/common/content/mediaContent";
 import { MediaImage } from "@/components/common/mediaImage";
-import { imagePreviewUrlFromUrl } from "@/utils/media/mediaUrl";
+import { imageMediumUrlFromUrl } from "@/utils/media/mediaUrl";
 
 import LinkComponent from "./linkHandler";
 import { MarkdownSyntaxHighlighter } from "./markdownSyntaxHighlighter";
@@ -20,24 +20,24 @@ const MARKDOWN_STYLES = `
   [&_h4]:text-xl [&_h4]:font-bold [&_h4]:my-3
   [&_h5]:text-lg [&_h5]:font-bold [&_h5]:my-2
   [&_h6]:text-base [&_h6]:font-bold [&_h6]:my-2
-  
-  [&_a]:underline [&_a:hover]:text-blue-800 [&_a:hover]:dark:text-blue-300
-  
-  [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 
-  [&_blockquote]:dark:border-gray-600 [&_blockquote]:pl-4 
-  [&_blockquote]:my-4 [&_blockquote]:text-gray-600 [&_blockquote]:dark:text-gray-300
-  
+
+  [&_a]:underline [&_a:hover]:text-info [&_a:hover]:dark:text-info
+
+  [&_blockquote]:border-l-4 [&_blockquote]:border-base-300
+  [&_blockquote]:dark:border-base-300 [&_blockquote]:pl-4
+  [&_blockquote]:my-4 [&_blockquote]:text-base-content/70 [&_blockquote]:dark:text-base-content/50
+
   [&_code]:font-mono [&_code]:bg-base-200
   [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm
-  
+
   [&_pre]:font-mono [&_pre]:bg-base-200
   [&_pre]:p-4 [&_pre]:rounded [&_pre]:overflow-x-auto [&_pre]:my-4
-  
+
   [&_em]:italic
   [&_strong]:font-bold
-  [&_del]:line-through [&_del]:text-gray-500 [&_del]:dark:text-gray-400
+  [&_del]:line-through [&_del]:text-base-content/60 [&_del]:dark:text-base-content/50
   
-  [&_hr]:border-t [&_hr]:border-gray-300 [&_hr]:dark:border-gray-700 [&_hr]:my-4
+  [&_hr]:border-t [&_hr]:border-base-300 [&_hr]:dark:border-base-300 [&_hr]:my-4
   
   [&_img]:max-w-full [&_img]:h-auto [&_img]:my-4
   
@@ -48,17 +48,17 @@ const MARKDOWN_STYLES = `
   [&_p]:my-4
   
   [&_table]:w-full [&_table]:my-4 [&_table]:border-collapse
-  [&_th]:border [&_th]:border-gray-300 [&_th]:dark:border-gray-600 
-  [&_th]:px-4 [&_th]:py-2 [&_th]:bg-gray-100 [&_th]:dark:bg-gray-800 
+  [&_th]:border [&_th]:border-base-300 [&_th]:dark:border-base-300
+  [&_th]:px-4 [&_th]:py-2 [&_th]:bg-base-200 [&_th]:dark:bg-base-300
   [&_th]:font-semibold [&_th]:text-left
-  [&_td]:border [&_td]:border-gray-300 [&_td]:dark:border-gray-600 
+  [&_td]:border [&_td]:border-base-300 [&_td]:dark:border-base-300
   [&_td]:px-4 [&_td]:py-2
-  [&_thead]:bg-gray-50 [&_thead]:dark:bg-gray-800/50
-  
-  [&_input]:border [&_input]:border-gray-300 [&_input]:dark:border-gray-600 
-  [&_input]:rounded [&_input]:px-3 [&_input]:py-2 
-  [&_input]:bg-white [&_input]:dark:bg-gray-800 
-  [&_input]:text-gray-900 [&_input]:dark:text-gray-100
+  [&_thead]:bg-base-200 [&_thead]:dark:bg-base-300/50
+
+  [&_input]:border [&_input]:border-base-300 [&_input]:dark:border-base-300
+  [&_input]:rounded [&_input]:px-3 [&_input]:py-2
+  [&_input]:bg-white [&_input]:dark:bg-base-300
+  [&_input]:text-base-content [&_input]:dark:text-base-content/50
 `;
 
 function parseFileEmbedSource(src: string) {
@@ -109,7 +109,7 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
       );
     case "pdf":
       return (
-        <div className="my-4 h-[600px] w-full bg-gray-100">
+        <div className="my-4 h-[600px] w-full bg-base-200">
           <iframe
             src={`${src}#view=fitH`}
             className="w-full h-full border-none"
@@ -156,7 +156,7 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
       );
     default:
       return (
-        <div className="text-red-500">
+        <div className="text-error">
           不支持的嵌入类型:
           {type}
         </div>
@@ -196,7 +196,7 @@ export function MarkDownViewer({
             return (
               <MediaImage
                 {...rest}
-                src={typeof src === "string" ? resolveMediaContentSource(src, "image", "medium") || imagePreviewUrlFromUrl(src) : src}
+                src={typeof src === "string" ? resolveMediaContentSource(src, "image", "medium") || imageMediumUrlFromUrl(src) : src}
               />
             );
           },

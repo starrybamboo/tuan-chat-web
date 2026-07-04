@@ -310,6 +310,7 @@ export function CharacterCopper({
                 </span>
                 <input
                   className="input input-sm mt-2 w-full"
+                  autoComplete="off"
                   value={variantTargetDraft.name}
                   onChange={(event) => {
                     const name = event.currentTarget.value;

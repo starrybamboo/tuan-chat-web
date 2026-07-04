@@ -1,9 +1,13 @@
 import {
+  getNotificationsQueryKey,
+  getNotificationsUnreadCountQueryKey,
   useMarkAllNotificationsReadMutation as useSharedMarkAllNotificationsReadMutation,
   useMarkNotificationsReadMutation as useSharedMarkNotificationsReadMutation,
   useNotificationsInfiniteQuery as useSharedNotificationsInfiniteQuery,
   useNotificationUnreadCountQuery as useSharedNotificationUnreadCountQuery,
 } from "@tuanchat/query/notifications";
+import type { QueryClient } from "@tanstack/react-query";
+import type { ApiResultCursorPageBaseResponseNotificationItemResponse } from "@tuanchat/openapi-client/models/ApiResultCursorPageBaseResponseNotificationItemResponse";
 
 import type {
   NotificationListFilters,
@@ -40,6 +44,39 @@ function toSharedNotificationFilters(filters: NotificationListFilters) {
     ...normalized,
     category: normalized.category ?? undefined,
   };
+}
+
+export function fetchNotificationsFirstPageWithCache(queryClient: QueryClient, filters: NotificationListFilters = {}) {
+  const sharedFilters = toSharedNotificationFilters(filters);
+  const pageSize = sharedFilters.pageSize ?? 20;
+  const normalizedFilters = {
+    ...sharedFilters,
+    pageSize,
+  };
+
+  return queryClient.fetchInfiniteQuery({
+    queryKey: getNotificationsQueryKey(normalizedFilters),
+    queryFn: ({ pageParam }) => tuanchat.notificationController.pageNotifications({
+      ...normalizedFilters,
+      cursor: pageParam,
+    }),
+    initialPageParam: undefined as number | undefined,
+    getNextPageParam: (lastPage: ApiResultCursorPageBaseResponseNotificationItemResponse) => {
+      if (!lastPage.data || lastPage.data.isLast) {
+        return undefined;
+      }
+      return typeof lastPage.data.cursor === "number" ? lastPage.data.cursor : undefined;
+    },
+    staleTime: 30_000,
+  });
+}
+
+export function fetchNotificationUnreadCountWithCache(queryClient: QueryClient) {
+  return queryClient.fetchQuery({
+    queryKey: getNotificationsUnreadCountQueryKey(),
+    queryFn: () => tuanchat.notificationController.getUnreadCount(),
+    staleTime: 15_000,
+  });
 }
 
 export function useNotificationsInfiniteQuery(filters: NotificationListFilters, options: NotificationQueryOptions = {}) {

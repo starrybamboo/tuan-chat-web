@@ -3131,7 +3131,7 @@ export default function MessageEditor({
                 {resolvedDocId
                   ? (
                       <div className="
-                        truncate font-mono text-xs text-base-content/45
+                        truncate font-mono text-xs text-base-content/50
                       ">
                         {resolvedDocId}
                       </div>
@@ -3150,7 +3150,7 @@ export default function MessageEditor({
           {!ready && (
             <div className="
               flex min-h-[40vh] items-center justify-center text-sm
-              text-base-content/45
+              text-base-content/50
             ">
               载入中
             </div>
@@ -3195,13 +3195,13 @@ export default function MessageEditor({
                         {showDropBefore && (
                           <div className="
                             pointer-events-none absolute inset-x-10 top-0 h-0.5
-                            rounded-full bg-primary
+                            rounded-full bg-info
                           " />
                         )}
                         {showDropAfter && (
                           <div className="
                             pointer-events-none absolute inset-x-10 bottom-0
-                            h-0.5 rounded-full bg-primary
+                            h-0.5 rounded-full bg-info
                           " />
                         )}
                         {renderBlockSpeakerHandle(blockId, message, "top-0")}
@@ -3291,20 +3291,20 @@ export default function MessageEditor({
                           ? "bg-base-100/80 ring-1 ring-base-300/80"
                           : "",
                         atomicSelected
-                          ? "bg-sky-200/10 ring-1 ring-sky-300/80"
+                          ? "bg-info/10 ring-1 ring-info/80"
                           : activeBlockId === blockId && !readOnly ? "bg-base-200/20" : "",
                       ].join(" ")}
                     >
                       {showDropBefore && (
                         <div className="
                           pointer-events-none absolute inset-x-10 top-0 h-0.5
-                          rounded-full bg-primary
+                          rounded-full bg-info
                         " />
                       )}
                       {showDropAfter && (
                         <div className="
                           pointer-events-none absolute inset-x-10 bottom-0 h-0.5
-                          rounded-full bg-primary
+                          rounded-full bg-info
                         " />
                       )}
                       {renderBlockSpeakerHandle(blockId, message, "top-1")}

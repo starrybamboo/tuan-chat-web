@@ -4,6 +4,8 @@ import type { MessageDirectRecallRequest } from "api";
 
 import { useRecallMessageDirectMutation } from "api/hooks/MessageDirectQueryHooks";
 
+const PRIVATE_MESSAGE_MENU_ANCHOR_SELECTOR = "[data-private-message-menu-anchor=\"true\"]";
+
 export function useContextMenu({ refetch }: { refetch: () => void }) {
   /**
    * 右键菜单
@@ -21,7 +23,7 @@ export function useContextMenu({ refetch }: { refetch: () => void }) {
   }
   function handleContextMenu(e: React.MouseEvent) {
     const target = e.target as HTMLElement;
-    const messageElement = target.closest("[data-message-id]");
+    const messageElement = target.closest(PRIVATE_MESSAGE_MENU_ANCHOR_SELECTOR);
     const messageId = Number(messageElement?.getAttribute("data-message-id"));
     if (messageId) {
       e.preventDefault();

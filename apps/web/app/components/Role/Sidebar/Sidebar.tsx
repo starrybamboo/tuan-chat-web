@@ -5,7 +5,7 @@ import { useLocation, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
-import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { getRoleRule } from "@/utils/roleRuleStorage";
 import { useDeleteRolesMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
@@ -84,10 +84,11 @@ export function Sidebar({
   const router = useRouter();
   const searchParams = useMemo(() => new URLSearchParams(location.searchStr), [location.searchStr]);
   const userId = useGlobalContext().userId;
-  const ruleListQuery = useRuleListQuery();
+  const shouldLoadSecondaryQueries = !isRoleListLoading;
+  const ruleListQuery = useRuleListQuery({ enabled: shouldLoadSecondaryQueries });
   const deleteRolesMutation = useDeleteRolesMutation();
   const { mutateAsync: deleteRule } = useDeleteRuleMutation();
-  const trashCount = useRoleTrashCount(searchQuery);
+  const trashCount = useRoleTrashCount(searchQuery, { enabled: shouldLoadSecondaryQueries });
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState<boolean>(false);
   const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
@@ -258,8 +259,8 @@ export function Sidebar({
         lg:w-80
         h-full bg-base-200
         md:bg-base-300/40
-        flex flex-col border-t border-gray-300
-        dark:border-gray-700
+        flex flex-col border-t border-base-300
+        dark:border-base-300
       ">
         {/* 搜索和创建区域 - 固定在顶部 */}
         <div className="flex gap-2 sticky top-0 bg-transparent z-50 py-2">
@@ -277,7 +278,9 @@ export function Sidebar({
               </g>
             </svg>
             <input
-              type="text"
+              type="search"
+              autoComplete="off"
+              aria-label="搜索"
               className="grow"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
@@ -475,7 +478,7 @@ export function Sidebar({
                           className={`
                             block rounded-lg px-1
                             ${
-                            isRuleActive ? "bg-primary/10 text-primary" : ""
+                            isRuleActive ? "bg-info/10 text-info" : ""
                           }
                           `}
                         >
@@ -667,7 +670,7 @@ export function Sidebar({
                                 rounded-lg px-1
                                 ${
                                 (selectedRoleId === role.id && !isSelectionMode) ? `
-                                  bg-primary/10 text-primary
+                                  bg-info/10 text-info
                                 ` : ""
                               }
                               `}
@@ -745,7 +748,7 @@ export function Sidebar({
                       title="查看角色与骰娘回收站"
                     >
                       <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-error/10 text-error">
-                        <TrashSimpleIcon size={22} weight="bold" />
+                        <TrashSimpleIcon size={22} weight="regular" />
                       </div>
                       <div className="min-w-0 flex-1 overflow-hidden">
                         <h3 className="truncate font-medium">角色与骰娘</h3>
@@ -774,7 +777,7 @@ export function Sidebar({
                       title="查看空间 NPC 回收站"
                     >
                       <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-error/10 text-error">
-                        <TrashSimpleIcon size={22} weight="bold" />
+                        <TrashSimpleIcon size={22} weight="regular" />
                       </div>
                       <div className="min-w-0 flex-1 overflow-hidden">
                         <h3 className="truncate font-medium">空间 NPC</h3>
@@ -839,10 +842,10 @@ export function Sidebar({
                         <div className="
                           size-12
                           md:size-14
-                          rounded-full border-2 border-dashed border-primary/40
-                          group-hover:border-primary/60
-                          bg-primary/5 text-primary/60
-                          group-hover:text-primary/80
+                          rounded-full border-2 border-dashed border-info/40
+                          group-hover:border-info/60
+                          bg-info/5 text-info/60
+                          group-hover:text-info/80
                           transition-colors duration-150 relative
                         ">
                           <svg
@@ -881,7 +884,7 @@ export function Sidebar({
                                 rounded-lg px-1
                                 ${
                                 (selectedRoleId === role.id && !isSelectionMode) ? `
-                                  bg-primary/10 text-primary
+                                  bg-info/10 text-info
                                 ` : ""
                               }
                               `}
@@ -913,24 +916,20 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* 删除确认对话框 */}
-      <ToastWindow isOpen={deleteConfirmOpen} onClose={handleCancelDelete}>
-        <div className="card flex flex-col w-full max-w-md">
-          <div className="card-body items-center text-center">
-            <h2 className="card-title text-2xl font-bold">{deleteDialogTitle}</h2>
-            <div className="divider"></div>
-            <p className="text-lg opacity-75 mb-8">{deleteDialogMessage}</p>
-          </div>
-        </div>
-        <div className="card-actions justify-center gap-6 mt-8">
-          <button type="button" className="btn btn-outline" onClick={handleCancelDelete}>
-            取消
-          </button>
-          <button type="button" className="btn btn-error" onClick={handleConfirmDelete}>
-            删除
-          </button>
-        </div>
-      </ToastWindow>
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={(open) => {
+          if (!open)
+            handleCancelDelete();
+        }}
+        onConfirm={handleConfirmDelete}
+        title={deleteDialogTitle}
+        description={deleteDialogMessage}
+        confirmLabel="删除"
+        cancelLabel="取消"
+        icon={<TrashSimpleIcon className="size-6" weight="regular" />}
+        variant="danger"
+      />
     </>
   );
 }

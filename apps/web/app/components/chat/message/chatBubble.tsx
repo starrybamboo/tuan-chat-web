@@ -138,7 +138,7 @@ function DiceTurnReplyItem({
             )
           : (
               <div className={`
-                border-l-2 border-primary/25 pl-2.5 whitespace-pre-wrap
+                border-l-2 border-info/25 pl-2.5 whitespace-pre-wrap
                 wrap-break-word
                 ${reply.hidden && !canViewHiddenDiceReply ? `
                   italic text-base-content/60
@@ -1076,7 +1076,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                 editable-field whitespace-pre-wrap wrap-break-word
                 ${isOutOfCharacterTextMessage ? `italic text-base-content/60` : ""}
               `}
-              editorClassName={`min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full ${isOutOfCharacterTextMessage ? "italic text-base-content/60" : ""}`}
+              editorClassName={`min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded w-full ${isOutOfCharacterTextMessage ? "italic text-base-content/60" : ""}`}
               onEditingChange={setIsEditingContent}
               editInputRef={editInputRef}
               shouldIgnoreBlur={shouldIgnoreEditBlur}
@@ -1094,7 +1094,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                 className="
                   editable-field whitespace-pre-wrap wrap-break-word text-white
                 "
-                editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full text-white"
+                editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded w-full text-white"
                 onEditingChange={setIsEditingContent}
                 editInputRef={editInputRef}
                 shouldIgnoreBlur={shouldIgnoreEditBlur}
@@ -1119,7 +1119,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                     text-base-content/80
                     ${message.content ? "" : `sr-only`}
                   `}
-                  editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full text-sm text-base-content/80"
+                  editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded w-full text-sm text-base-content/80"
                   placeholder="添加图片说明"
                   onEditingChange={setIsEditingContent}
                   editInputRef={editInputRef}
@@ -1146,7 +1146,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                     text-base-content/80
                     ${message.content ? "" : `sr-only`}
                   `}
-                  editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full text-sm text-base-content/80"
+                  editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded w-full text-sm text-base-content/80"
                   placeholder="添加语音文本"
                   onEditingChange={setIsEditingContent}
                   editInputRef={editInputRef}
@@ -1175,7 +1175,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                     className="
                       editable-field whitespace-pre-wrap wrap-break-word
                     "
-                    editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full"
+                    editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded w-full"
                     onEditingChange={setIsEditingContent}
                     editInputRef={editInputRef}
                     shouldIgnoreBlur={shouldIgnoreEditBlur}
@@ -1183,7 +1183,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                   />
                 </div>
                 <div className="
-                  flex min-w-0 flex-col gap-1.5 border-l-2 border-primary/25
+                  flex min-w-0 flex-col gap-1.5 border-l-2 border-info/25
                   pl-2.5
                 ">
                   {diceTurnData.replies.length > 0
@@ -1217,7 +1217,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                   content={result}
                   onCommit={handleDiceContentUpdate}
                   className="editable-field whitespace-pre-wrap wrap-break-word"
-                  editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full"
+                  editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded w-full"
                   onEditingChange={setIsEditingContent}
                   editInputRef={editInputRef}
                   shouldIgnoreBlur={shouldIgnoreEditBlur}
@@ -1334,6 +1334,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                           <div className="flex items-center gap-1">
                             <input
                               type="text"
+                              autoComplete="off"
+                              aria-label="角色名"
                               className="
                                 input input-xs input-bordered w-32 bg-base-200
                                 border-base-300 px-2 shadow-sm
@@ -1381,7 +1383,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                         : `
                                           font-medium text-base-content/85
                                           cursor-pointer
-                                          hover:text-primary
+                                          hover:text-info
                                           ${canEdit ? `hover:underline` : ""}
                                         `
                                     }
@@ -1550,6 +1552,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                           <div className="flex items-center gap-1">
                             <input
                               type="text"
+                              autoComplete="off"
+                              aria-label="角色名"
                               className="
                                 input input-sm input-bordered w-40 bg-base-200
                                 border-base-300 px-3 shadow-sm
@@ -1595,7 +1599,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                         `
                                         : `
                                           font-semibold cursor-pointer
-                                          hover:text-primary
+                                          hover:text-info
                                           ${userId === message.userId ? `
                                             hover:underline
                                           ` : ""}

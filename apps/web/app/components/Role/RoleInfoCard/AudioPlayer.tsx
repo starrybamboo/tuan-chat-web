@@ -1,15 +1,12 @@
-// 角色音频预览播放器，采用流式播放与进度条控件。
+// 角色音频预览播放器，复用聊天室音频消息的波形播放器。
 // 支持删除角色音频并同步到外部状态。
 import type { MouseEvent } from "react";
 
-import H5AudioPlayer, { RHAP_UI } from "react-h5-audio-player";
+import AudioMessage from "@/components/chat/message/media/AudioMessage";
 
 import type { Role } from "../types";
 
 import { buildRoleVoiceClearPatch, resolveRoleVoiceUrl } from "../roleVoiceMedia";
-import "react-h5-audio-player/lib/styles.css";
-
-import "../../common/audioPlayer.css";
 
 type AudioPlayerProps = {
   role: Role;
@@ -20,7 +17,6 @@ type AudioPlayerProps = {
 
 export default function AudioPlayer({ role, size = "default", onRoleUpdate, onDelete }: AudioPlayerProps) {
   const isCompact = size === "compact";
-  const sizeClass = isCompact ? "tc-audio-player--sm" : "tc-audio-player--md";
 
   const handleDeleteAudio = (e: MouseEvent) => {
     e.stopPropagation();
@@ -53,22 +49,11 @@ export default function AudioPlayer({ role, size = "default", onRoleUpdate, onDe
             flex-1 bg-base-200 rounded-lg
             ${isCompact ? "p-2" : `p-3`}
           `}>
-            <H5AudioPlayer
-              className={`
-                tc-audio-player
-                ${sizeClass}
-              `}
-              src={audioSrc}
-              autoPlayAfterSrcChange={false}
-              showJumpControls={false}
-              customAdditionalControls={[]}
-              customVolumeControls={[]}
-              customControlsSection={[RHAP_UI.MAIN_CONTROLS]}
-              customProgressBarSection={[RHAP_UI.CURRENT_TIME, RHAP_UI.PROGRESS_BAR, RHAP_UI.DURATION]}
-              audioProps={{
-                preload: "metadata",
-                crossOrigin: "anonymous",
-              }}
+            <AudioMessage
+              url={audioSrc}
+              cacheKey={`role-voice:${role.id}:${audioSrc}`}
+              title="角色音频预览"
+              className="max-w-none"
             />
           </div>
 

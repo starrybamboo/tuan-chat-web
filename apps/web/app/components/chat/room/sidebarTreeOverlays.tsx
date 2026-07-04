@@ -1,5 +1,8 @@
 import React, { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { TrashSimpleIcon } from "@phosphor-icons/react";
+
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 
 import { clampFloatingMenuPosition } from "./floatingMenuPosition";
 
@@ -141,6 +144,8 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
             <div className="py-4 space-y-2">
               <input
                 className="input input-bordered w-full"
+                autoComplete="off"
+                aria-label="分类名称"
                 value={categoryEditor.name}
                 onChange={(e) => {
                   onCategoryEditorNameChange(e.target.value);
@@ -161,27 +166,23 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
         </div>,
       )}
 
-      {deleteConfirmCategoryId && renderOverlay(
-        <div className="modal modal-open z-9999">
-          <div className="modal-box">
-            <h3 className="font-bold text-lg">删除分类</h3>
-            <div className="py-4 text-sm opacity-80">
-              删除分类会把其中的频道移动到相邻分类。
-            </div>
-            <div className="modal-action">
-              <button type="button" className="btn" onClick={onCloseDeleteConfirmCategory}>取消</button>
-              <button
-                type="button"
-                className="btn btn-error"
-                onClick={() => onConfirmDeleteCategory(deleteConfirmCategoryId)}
-              >
-                删除
-              </button>
-            </div>
-          </div>
-          <button type="button" className="modal-backdrop" onClick={onCloseDeleteConfirmCategory} aria-label="关闭分类删除确认弹窗" />
-        </div>,
-      )}
+      <ConfirmDialog
+        open={deleteConfirmCategoryId !== null}
+        onOpenChange={(open) => {
+          if (!open)
+            onCloseDeleteConfirmCategory();
+        }}
+        onConfirm={() => {
+          if (deleteConfirmCategoryId)
+            onConfirmDeleteCategory(deleteConfirmCategoryId);
+        }}
+        title="删除分类"
+        description="删除分类会把其中的频道移动到相邻分类。"
+        confirmLabel="删除"
+        cancelLabel="取消"
+        icon={<TrashSimpleIcon className="size-6" weight="regular" />}
+        variant="danger"
+      />
 
       {contextMenu && renderOverlay(
         <div className="fixed inset-0 z-9999">
@@ -287,33 +288,33 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
         </div>,
       )}
 
-      {deleteConfirmDoc && renderOverlay(
-        <div className="modal modal-open z-9999">
-          <div className="modal-box">
-            <h3 className="font-bold text-lg">确认删除文档？</h3>
-            <p className="py-4">
-              将删除文档“
-              {deleteConfirmDoc.title}
-              ”，并从侧边栏移除。
-              <br />
-              该操作不可恢复。
-            </p>
-            <div className="modal-action">
-              <button type="button" className="btn" onClick={onCloseDeleteConfirmDoc}>取消</button>
-              <button
-                type="button"
-                className="btn btn-error"
-                onClick={() => {
-                  onConfirmDeleteDoc(deleteConfirmDoc);
-                }}
-              >
-                删除
-              </button>
-            </div>
-          </div>
-          <button type="button" className="modal-backdrop" onClick={onCloseDeleteConfirmDoc} aria-label="关闭文档删除确认弹窗" />
-        </div>,
-      )}
+      <ConfirmDialog
+        open={deleteConfirmDoc !== null}
+        onOpenChange={(open) => {
+          if (!open)
+            onCloseDeleteConfirmDoc();
+        }}
+        onConfirm={() => {
+          if (deleteConfirmDoc)
+            onConfirmDeleteDoc(deleteConfirmDoc);
+        }}
+        title="确认删除文档？"
+        description={deleteConfirmDoc
+          ? (
+              <>
+                将删除文档“
+                {deleteConfirmDoc.title}
+                ”，并从侧边栏移除。
+                <br />
+                该操作不可恢复。
+              </>
+            )
+          : undefined}
+        confirmLabel="删除"
+        cancelLabel="取消"
+        icon={<TrashSimpleIcon className="size-6" weight="regular" />}
+        variant="danger"
+      />
     </>
   );
 }

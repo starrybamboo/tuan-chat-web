@@ -17,6 +17,7 @@ import { mapUserRoleToRole, resolveRoleAvatarUrls } from "./roleListData";
 type RoleListItem = ReturnType<typeof mapUserRoleToRole>;
 
 type RoleTrashModelOptions = {
+  enabled?: boolean;
   roleName?: string;
   pageSize?: number;
   scope?: "personal" | "spaceNpc";
@@ -111,6 +112,7 @@ export function useRoleListModel() {
 }
 
 export function useRoleTrashModel({
+  enabled = true,
   roleName,
   pageSize = 100,
   scope = "personal",
@@ -125,10 +127,10 @@ export function useRoleTrashModel({
     roleName: normalizedRoleName || undefined,
   };
   const personalTrashQuery = useGetDeletedUserRolesPageQuery(params, {
-    enabled: scope === "personal",
+    enabled: enabled && scope === "personal",
   });
   const spaceNpcTrashQuery = useGetDeletedSpaceNpcRolesPageQuery(params, spaceId, {
-    enabled: scope === "spaceNpc",
+    enabled: enabled && scope === "spaceNpc",
   });
   const trashQuery = scope === "spaceNpc" ? spaceNpcTrashQuery : personalTrashQuery;
   const deletedRoleList = trashQuery.data?.data?.list ?? [];
@@ -148,8 +150,8 @@ export function useRoleTrashModel({
   };
 }
 
-export function useRoleTrashCount(roleName?: string) {
-  const trashModel = useRoleTrashModel({ roleName, pageSize: 1 });
+export function useRoleTrashCount(roleName?: string, options?: { enabled?: boolean }) {
+  const trashModel = useRoleTrashModel({ enabled: options?.enabled, roleName, pageSize: 1 });
   return {
     count: trashModel.total,
     isLoading: trashModel.isLoading,

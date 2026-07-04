@@ -50,6 +50,7 @@ export const ProfileEditPanel: React.FC<ProfileEditPanelProps> = ({
         <input
           id={usernameInputId}
           type="text"
+          autoComplete="off"
           value={editingUsername}
           onChange={e => setEditingUsername(e.target.value)}
           className={`
@@ -80,6 +81,7 @@ export const ProfileEditPanel: React.FC<ProfileEditPanelProps> = ({
         </label>
         <textarea
           id={descriptionInputId}
+          autoComplete="off"
           value={editingDescription}
           onChange={e => setEditingDescription(e.target.value)}
           className={`

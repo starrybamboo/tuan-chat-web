@@ -26,9 +26,17 @@ import type { SpaceWebgalInputSnapshot } from "./spaceWebgalSnapshot";
 import type { WebgalFigureRenderAsset } from "./webgalFigureComposition";
 
 import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "../types/webgalChoose";
-import { BUILTIN_WEBGAL_ANIMATION_FILES } from "./publishAnimationPresets";
+import {
+  BUILTIN_WEBGAL_ANIMATION_FILES,
+  TUANCHAT_DEFAULT_FIGURE_ENTER_ANIMATION,
+  TUANCHAT_DEFAULT_FIGURE_EXIT_ANIMATION,
+} from "./publishAnimationPresets";
 import { getPublishTemplatePreset } from "./publishTemplatePresets";
-import { normalizeFigureDefaultTransitionDuration } from "./realtimeRendererConfig";
+import {
+  DEFAULT_REALTIME_GAME_CONFIG,
+  normalizeFigureDefaultTransitionAnimation,
+  normalizeFigureDefaultTransitionDuration,
+} from "./realtimeRendererConfig";
 import {
   buildClearFigureLines,
   buildFigureArgs,
@@ -230,7 +238,10 @@ export function resolvePublishedGameName(
 
 export function buildConfigContent(snapshot: SpaceWebgalInputSnapshot): string {
   const entries = parseGameConfig(snapshot.rawGameConfig ?? "");
-  const gameConfig = snapshot.hydratedGameConfig;
+  const gameConfig = {
+    ...DEFAULT_REALTIME_GAME_CONFIG,
+    ...snapshot.hydratedGameConfig,
+  };
   const coverAvatarUrl = resolveProjectableMediaUrl(snapshot.coverAvatarSource?.fileId, "image", "medium");
   const titleImageUrl = resolveProjectableMediaUrl(gameConfig.titleImageFileId, "image", "medium")
     || ((gameConfig.coverFromRoomAvatarEnabled ?? true) ? coverAvatarUrl : "");
@@ -253,6 +264,14 @@ export function buildConfigContent(snapshot: SpaceWebgalInputSnapshot): string {
   upsertGameConfigEntry(entries, "TypingSoundEnabled", gameConfig.typingSoundEnabled ? "true" : "false");
   upsertGameConfigEntry(entries, "Figure_Default_Enter_Duration", String(normalizeFigureDefaultTransitionDuration(gameConfig.figureDefaultEnterDuration)));
   upsertGameConfigEntry(entries, "Figure_Default_Exit_Duration", String(normalizeFigureDefaultTransitionDuration(gameConfig.figureDefaultExitDuration)));
+  upsertGameConfigEntry(entries, "Figure_Default_Enter_Animation", normalizeFigureDefaultTransitionAnimation(
+    gameConfig.figureDefaultEnterAnimation,
+    TUANCHAT_DEFAULT_FIGURE_ENTER_ANIMATION,
+  ));
+  upsertGameConfigEntry(entries, "Figure_Default_Exit_Animation", normalizeFigureDefaultTransitionAnimation(
+    gameConfig.figureDefaultExitAnimation,
+    TUANCHAT_DEFAULT_FIGURE_EXIT_ANIMATION,
+  ));
   upsertGameConfigEntry(entries, "TypingSoundInterval", String(gameConfig.typingSoundInterval ?? 1.5));
   upsertGameConfigEntry(entries, "TypingSoundPunctuationPause", String(gameConfig.typingSoundPunctuationPause ?? 100));
   upsertGameConfigEntry(entries, "Title_img", titleImageUrl);

@@ -17,6 +17,7 @@ type UseRoomSidebarTreeStateParams = {
   fallbackTextRooms: Room[];
   visibleDocMetas: MinimalDocMeta[];
   includeDocs: boolean;
+  autoExpandTriggerKey?: string | null;
 };
 
 type UseRoomSidebarTreeStateResult = {
@@ -83,6 +84,7 @@ export default function useRoomSidebarTreeState({
   fallbackTextRooms,
   visibleDocMetas,
   includeDocs,
+  autoExpandTriggerKey,
 }: UseRoomSidebarTreeStateParams): UseRoomSidebarTreeStateResult {
   const displayTree = useMemo(() => {
     return normalizeSidebarTree({
@@ -136,9 +138,15 @@ export default function useRoomSidebarTreeState({
     }
     return null;
   }, [activeDocId, activeRoomId]);
+  const activeCategoryId = useMemo(() => {
+    if (!activeTarget) {
+      return null;
+    }
+    return findSidebarCategoryIdForTarget(treeToRender, activeTarget.target);
+  }, [activeTarget, treeToRender]);
 
   useEffect(() => {
-    if (!activeTarget) {
+    if (!autoExpandTriggerKey || !activeTarget) {
       lastAutoExpandedActiveNodeRef.current = null;
       return;
     }
@@ -146,21 +154,20 @@ export default function useRoomSidebarTreeState({
       return;
     }
 
-    const categoryId = findSidebarCategoryIdForTarget(treeToRender, activeTarget.target);
-    if (!categoryId) {
+    if (!activeCategoryId) {
       return;
     }
 
-    const autoExpandIdentity = `${activeSpaceId ?? "none"}:${categoryId}:${activeTarget.key}`;
+    const autoExpandIdentity = `${autoExpandTriggerKey}:${activeCategoryId}:${activeTarget.key}`;
     if (lastAutoExpandedActiveNodeRef.current === autoExpandIdentity) {
       return;
     }
     lastAutoExpandedActiveNodeRef.current = autoExpandIdentity;
 
-    if (!expandedByCategoryId[categoryId]) {
-      setCategoryExpanded(categoryId, true);
+    if (!expandedByCategoryId[activeCategoryId]) {
+      setCategoryExpanded(activeCategoryId, true);
     }
-  }, [activeSpaceId, activeTarget, expandedByCategoryId, setCategoryExpanded, treeToRender]);
+  }, [activeCategoryId, activeTarget, autoExpandTriggerKey, expandedByCategoryId, setCategoryExpanded]);
 
   return {
     treeToRender,

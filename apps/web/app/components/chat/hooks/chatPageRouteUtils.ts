@@ -77,13 +77,12 @@ export function getIsRoomSettingRoute(params: {
   isDocRoute: boolean;
   pathname: string;
   roomSettingMatched: boolean;
-  urlMessageId?: string;
 }) {
   if (params.isDocRoute) {
     return false;
   }
 
-  if (params.urlMessageId === "setting" || params.roomSettingMatched) {
+  if (params.roomSettingMatched) {
     return true;
   }
 

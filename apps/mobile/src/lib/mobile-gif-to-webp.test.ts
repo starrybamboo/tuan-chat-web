@@ -5,12 +5,9 @@ const platformMock = vi.hoisted(() => ({
 }));
 
 const fileSystemMock = vi.hoisted(() => ({
-  cacheDirectory: "file:///cache/",
-  readAsStringAsync: vi.fn(),
-  writeAsStringAsync: vi.fn(),
-  EncodingType: {
-    Base64: "base64",
-  },
+  bytes: vi.fn(),
+  cachePath: "file:///cache/",
+  write: vi.fn(),
 }));
 
 const assetMock = vi.hoisted(() => ({
@@ -34,11 +31,28 @@ vi.mock("react-native", () => ({
   Platform: platformMock,
 }));
 
-vi.mock("expo-file-system/legacy", () => ({
-  cacheDirectory: fileSystemMock.cacheDirectory,
-  EncodingType: fileSystemMock.EncodingType,
-  readAsStringAsync: fileSystemMock.readAsStringAsync,
-  writeAsStringAsync: fileSystemMock.writeAsStringAsync,
+vi.mock("expo-file-system", () => ({
+  File: class {
+    uri: string;
+
+    constructor(...parts: Array<string | { uri: string }>) {
+      const normalized = parts.map(part => typeof part === "string" ? part : part.uri);
+      this.uri = normalized.length === 1
+        ? normalized[0]!
+        : `${normalized[0]!.replace(/\/?$/, "/")}${normalized.slice(1).join("/")}`;
+    }
+
+    bytes() {
+      return fileSystemMock.bytes(this.uri);
+    }
+
+    write(bytes: Uint8Array) {
+      fileSystemMock.write(this.uri, bytes);
+    }
+  },
+  Paths: {
+    cache: { uri: fileSystemMock.cachePath },
+  },
 }));
 
 vi.mock("expo-asset", () => ({
@@ -77,14 +91,14 @@ describe("mobile gif to webp", () => {
     encodedFrameData = [];
     vi.resetModules();
     platformMock.OS = "ios";
-    fileSystemMock.readAsStringAsync.mockReset();
-    fileSystemMock.writeAsStringAsync.mockReset();
+    fileSystemMock.bytes.mockReset();
+    fileSystemMock.write.mockReset();
     assetMock.fromModule.mockClear();
     gifuctMock.parseGIF.mockReset();
     gifuctMock.decompressFrames.mockReset();
     webpWasmMock.createWebpModule.mockReset();
-    fileSystemMock.readAsStringAsync.mockImplementation(async (uri: string) => {
-      return uri.includes("webp-wasm") ? base64([0, 97, 115, 109]) : base64([71, 73, 70, 56]);
+    fileSystemMock.bytes.mockImplementation(async (uri: string) => {
+      return uri.includes("webp-wasm") ? new Uint8Array([0, 97, 115, 109]) : new Uint8Array([71, 73, 70, 56]);
     });
     gifuctMock.parseGIF.mockReturnValue({
       lsd: { width: 2, height: 1 },
@@ -154,10 +168,9 @@ describe("mobile gif to webp", () => {
     expect(webpWasmMock.createWebpModule).toHaveBeenCalledWith({
       wasmBinary: new Uint8Array([0, 97, 115, 109]),
     });
-    expect(fileSystemMock.writeAsStringAsync).toHaveBeenCalledWith(
+    expect(fileSystemMock.write).toHaveBeenCalledWith(
       result.uri,
-      base64([82, 73, 70, 70]),
-      { encoding: "base64" },
+      new Uint8Array([82, 73, 70, 70]),
     );
   });
 
@@ -175,6 +188,6 @@ describe("mobile gif to webp", () => {
       fileName: "huge.gif",
       uri: "file:///tmp/huge.gif",
     })).rejects.toThrow("GIF 动图转 WebP 后仍超过 3MB。");
-    expect(fileSystemMock.writeAsStringAsync).not.toHaveBeenCalled();
+    expect(fileSystemMock.write).not.toHaveBeenCalled();
   });
 });

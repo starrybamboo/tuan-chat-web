@@ -675,7 +675,7 @@ export default function RepositoryDetailComponent({
       </div>
       {errorToastMessage && (
         <div className="
-          fixed bottom-6 right-6 bg-red-500 text-white px-4 py-2 rounded
+          fixed bottom-6 right-6 bg-error text-white px-4 py-2 rounded
           shadow-lg z-50 fade-in-out
         ">
           {`❌ ${errorToastMessage}`}

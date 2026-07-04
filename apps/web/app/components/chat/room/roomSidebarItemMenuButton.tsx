@@ -24,7 +24,7 @@ export default function RoomSidebarItemMenuButton({
         pointer-events-none hidden size-7 items-center justify-center rounded-md
         border border-base-300/70 bg-base-100/92 text-base-content/55 opacity-0
         shadow-sm transition duration-150
-        hover:border-primary/40 hover:text-base-content
+        hover:border-info/40 hover:text-base-content
         md:flex
         md:group-hover:pointer-events-auto md:group-hover:opacity-100
         md:group-focus-within:pointer-events-auto
@@ -42,7 +42,7 @@ export default function RoomSidebarItemMenuButton({
         onClick(event);
       }}
     >
-      <DotsThreeVerticalIcon className="size-4" weight="bold" />
+      <DotsThreeVerticalIcon className="size-4" weight="regular" />
     </button>
   );
 }

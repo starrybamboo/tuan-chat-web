@@ -1,5 +1,6 @@
 import { toast } from "react-hot-toast";
 
+import { Button } from "@/components/common/Button";
 import { Link } from "@/icons";
 
 type CopyLinkButtonProps = {
@@ -20,13 +21,8 @@ export default function CopyLinkButton({ title, className }: CopyLinkButtonProps
   };
 
   return (
-    <button
-      onClick={handleCopy}
-      className={`btn btn-primary ${className}`.trim()}
-      type="button"
-    >
-      <Link className="w-5 h-5" />
+    <Button variant="primary" icon={<Link className="w-5 h-5" />} onClick={handleCopy} className={className}>
       复制链接
-    </button>
+    </Button>
   );
 }

@@ -33,13 +33,13 @@ const tableCellClassName = `
 const tableControlClassName = `
   block h-11 min-h-11 w-full appearance-none border-0 bg-transparent
   px-3 text-center leading-[2.75rem] outline-none
-  placeholder:text-base-content/35 focus:bg-primary/10
+  placeholder:text-base-content/35 focus:bg-info/10 focus:ring-2 focus:ring-info/30
 `;
 
 const tableTextareaClassName = `
   block min-h-11 w-full resize-none appearance-none overflow-hidden border-0
   bg-transparent px-3 py-3 text-center leading-5 outline-none
-  [overflow-wrap:anywhere] placeholder:text-base-content/35 focus:bg-primary/10
+  [overflow-wrap:anywhere] placeholder:text-base-content/35 focus:bg-info/10 focus:ring-2 focus:ring-info/30
 `;
 
 const TABLE_TEXTAREA_MIN_HEIGHT = 44;
@@ -385,10 +385,11 @@ export default function PerformanceEditor({
                   <th className={`${tableCellClassName} text-base-content/90`}>
                     <div className="
                       group/field-key relative min-h-11
-                      focus-within:bg-primary/10 hover:bg-primary/10
+                      focus-within:bg-info/10 hover:bg-info/10
                     ">
                       <input
                         type="text"
+                        autoComplete="off"
                         value={editingKey === key ? tempFieldKey : key}
                         onFocus={() => {
                           setEditingKey(key);
@@ -412,7 +413,7 @@ export default function PerformanceEditor({
                         }}
                         data-arrow-nav-control="true"
                         title="编辑字段名"
-                        className={`${tableControlClassName} px-8 hover:text-primary`}
+                        className={`${tableControlClassName} px-8 hover:text-info`}
                       />
                       <button
                         type="button"
@@ -421,7 +422,7 @@ export default function PerformanceEditor({
                         className="
                           btn btn-ghost btn-xs absolute right-2 top-1/2
                           size-6 min-h-6 -translate-y-1/2 p-0
-                          text-base-content/25 opacity-0 transition
+                          text-base-content/50 opacity-0 transition
                           hover:bg-error/10 hover:text-error
                           group-hover/field-key:opacity-100
                           focus-visible:opacity-100
@@ -436,6 +437,8 @@ export default function PerformanceEditor({
                     <textarea
                       rows={1}
                       className={tableTextareaClassName}
+                      autoComplete="off"
+                      aria-label="表演描述"
                       placeholder="请输入表演描述..."
                       value={localFields[key] === "0" ? "" : String(localFields[key] ?? "")}
                       onChange={(e) => {
@@ -452,6 +455,8 @@ export default function PerformanceEditor({
                 <th className={tableCellClassName}>
                   <input
                     type="text"
+                    autoComplete="off"
+                    aria-label="新增字段名"
                     value={addKeyDraft}
                     onChange={e => setAddKeyDraft(e.currentTarget.value)}
                     onKeyDown={(e) => {
@@ -468,6 +473,8 @@ export default function PerformanceEditor({
                 <td className={`${tableCellClassName} relative`}>
                   <textarea
                     rows={1}
+                    autoComplete="off"
+                    aria-label="新增表演描述"
                     value={addValueDraft}
                     onChange={(e) => {
                       resizeTableTextarea(e.currentTarget);

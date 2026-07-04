@@ -1,8 +1,7 @@
 import React, { useEffect, useRef } from "react";
 
 import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
-import { MediaImage } from "@/components/common/mediaImage";
-import { imageLowUrl } from "@/utils/media/mediaUrl";
+import { UserAvatarByUser } from "@/components/common/userAccess";
 
 import {
   useGetMomentFeedStatsQuery,
@@ -117,14 +116,13 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                     )
                   : (
                       <div className="flex flex-col items-center space-y-4">
-                        <MediaImage
-                          src={imageLowUrl(userData?.avatarFileId) || "favicon.ico"}
-                          alt="用户头像"
-                          className="
-                            w-20 h-20 rounded-full object-cover border-2
-                            border-base-300
-                          "
-                          fallbackSrc="/favicon.ico"
+                        <UserAvatarByUser
+                          user={userData}
+                          fallbackUserId={userId}
+                          width={20}
+                          isRounded={true}
+                          stopToastWindow={true}
+                          clickEnterProfilePage={false}
                         />
                         <div className="text-center">
                           <h3 className="font-bold text-lg">{userData?.username || "未知用户"}</h3>
@@ -270,7 +268,7 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                           {/* 已加载完毕提示 */}
                           {!hasNextPage && allMoments.length > 0 && (
                             <div className="text-center py-6">
-                              <div className="text-base-content/40 text-sm">
+                              <div className="text-base-content/50 text-sm">
                                 已经到底了，没有更多内容了
                               </div>
                             </div>

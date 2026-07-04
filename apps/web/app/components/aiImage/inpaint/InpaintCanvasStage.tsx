@@ -102,7 +102,7 @@ export function InpaintCanvasStage({
               alt="inpaint-source"
               className="
                 block h-full w-full select-none object-contain
-                shadow-[0_20px_60px_rgba(0,0,0,0.45)]
+                shadow-xl
               "
               draggable={false}
             />

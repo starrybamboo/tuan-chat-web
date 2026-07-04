@@ -211,7 +211,7 @@ export default function StartupNoticeCenter({
                 onClick={handleCloseAll}
                 aria-label="关闭启动提示"
               >
-                <XIcon className="size-4" weight="bold" aria-hidden="true" />
+                <XIcon className="size-4" weight="regular" aria-hidden="true" />
               </button>
             </div>
 

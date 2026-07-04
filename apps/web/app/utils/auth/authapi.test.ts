@@ -2,18 +2,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { queryClient } from "@/queryClient";
 
-import { checkAuthStatus, getAuthStatusQueryKey, loginUser, logoutUser } from "./authapi";
+import { checkAuthStatus, getAuthStatusQueryKey, loginUser, logoutUser, registerUser } from "./authapi";
 
 const {
   getUserInfoByUsernameMock,
   getMyUserInfoMock,
   loginMock,
   logoutMock,
+  registerMock,
 } = vi.hoisted(() => ({
   getUserInfoByUsernameMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
   getMyUserInfoMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
   loginMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
   logoutMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+  registerMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
 }));
 
 vi.mock("../../../api/instance", () => ({
@@ -23,6 +25,7 @@ vi.mock("../../../api/instance", () => ({
       getMyUserInfo: getMyUserInfoMock,
       login: loginMock,
       logout: logoutMock,
+      register: registerMock,
     },
   },
 }));
@@ -113,6 +116,35 @@ describe("authapi query cache boundary", () => {
     expect(queryClient.getQueryData(getAuthStatusQueryKey())).toEqual({
       isLoggedIn: true,
       token: "token-new",
+    });
+  });
+
+  it("注册成功后直接持久化后端返回的登录 token", async () => {
+    installLocalStorage();
+    queryClient.setQueryData(["getUserSpaces"], { success: true, data: [{ spaceId: 1 }] });
+    registerMock.mockResolvedValueOnce({ success: true, data: "register-token" });
+    getMyUserInfoMock.mockResolvedValueOnce({
+      success: true,
+      data: {
+        userId: 3001,
+      },
+    });
+
+    await registerUser({ username: "alice", password: "pwd123456", email: "alice@example.com" });
+
+    expect(registerMock).toHaveBeenCalledWith({
+      username: "alice",
+      password: "pwd123456",
+      email: "alice@example.com",
+    });
+    expect(loginMock).not.toHaveBeenCalled();
+    expect(queryClient.getQueryData(["getUserSpaces"])).toBeUndefined();
+    expect(localStorage.getItem("token")).toBe("register-token");
+    expect(localStorage.getItem("uid")).toBe("3001");
+    expect(queryClient.getQueryData(getAuthStatusQueryKey())).toEqual({
+      isLoggedIn: true,
+      token: "register-token",
+      uid: 3001,
     });
   });
 

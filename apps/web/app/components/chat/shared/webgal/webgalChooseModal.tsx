@@ -35,7 +35,7 @@ export default function WebgalChooseModal({
     return null;
   }
 
-  const webgalChooseInputClass = "w-full rounded-md border border-base-300 bg-base-100 px-3 py-2 text-sm transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
+  const webgalChooseInputClass = "w-full rounded-md border border-base-300 bg-base-100 px-3 py-2 text-sm transition focus:outline-none focus:ring-2 focus:ring-info/20 focus:border-info";
 
   return createPortal(
     <div className="modal modal-open z-9999">
@@ -67,6 +67,8 @@ export default function WebgalChooseModal({
                 <div className="grid grid-cols-1 gap-2">
                   <input
                     className={webgalChooseInputClass}
+                    autoComplete="off"
+                    aria-label="选项文本"
                     placeholder="选项文本"
                     value={option.text}
                     onChange={e => onChangeOption(index, "text", e.target.value)}
@@ -76,6 +78,8 @@ export default function WebgalChooseModal({
                       ${webgalChooseInputClass}
                       min-h-24 font-mono
                     `}
+                    autoComplete="off"
+                    aria-label="自定义代码"
                     placeholder="自定义代码（可选）"
                     value={option.code}
                     onChange={e => onChangeOption(index, "code", e.target.value)}

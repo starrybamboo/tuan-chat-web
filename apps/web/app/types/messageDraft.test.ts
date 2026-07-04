@@ -102,13 +102,12 @@ describe("messageDraft request normalization", () => {
     });
   });
 
-  it("文档卡片有封面 fileId 时不会把 legacy imageUrl 写入发送请求", () => {
+  it("文档卡片只保留正式封面 fileId 字段", () => {
     expect(buildMessageExtraForRequest(MESSAGE_TYPE.DOC_CARD, {
       docCard: {
         docId: " 42 ",
         spaceId: "7",
         title: " 调查笔记 ",
-        imageUrl: " https://legacy.example.com/cover.png ",
         imageFileId: "123",
         originalImageFileId: "456",
         imageMediaType: " image ",
@@ -127,16 +126,14 @@ describe("messageDraft request normalization", () => {
     });
   });
 
-  it("文档卡片没有封面 fileId 时保留同槽位 legacy imageUrl 兼容读取", () => {
+  it("文档卡片没有封面 fileId 时不写入 imageUrl", () => {
     expect(buildMessageExtraForRequest(MESSAGE_TYPE.DOC_CARD, {
       docCard: {
         docId: "42",
-        imageUrl: " https://legacy.example.com/cover.png ",
       },
     })).toEqual({
       docCard: {
         docId: "42",
-        imageUrl: "https://legacy.example.com/cover.png",
       },
     });
   });
@@ -319,18 +316,27 @@ describe("messageDraft request normalization", () => {
     })).toThrow("状态事件消息缺少有效 stateEvent");
   });
 
-  it("保留暗骰的 hidden 元数据", () => {
-    expect(buildMessageExtraForRequest(MESSAGE_TYPE.DICE, {
+  it("diceResult 不再参与统一发送", () => {
+    expect(() => buildMessageExtraForRequest(MESSAGE_TYPE.DICE, {
       diceResult: {
         result: "D100=42/80 成功",
         hidden: true,
+      },
+    })).toThrow("骰子消息缺少 command");
+  });
+
+  it("保留 diceTurn 暗骰回复的 hidden 元数据", () => {
+    expect(buildMessageExtraForRequest(MESSAGE_TYPE.DICE, {
+      diceTurn: {
+        command: ".r 1d100",
+        replies: [{
+          content: "D100=42/80 成功",
+          hidden: true,
+        }],
       },
     })).toEqual({
-      diceResult: {
-        result: "D100=42/80 成功",
-        hidden: true,
-      },
       diceTurn: {
+        command: ".r 1d100",
         replies: [{
           content: "D100=42/80 成功",
           hidden: true,
@@ -339,7 +345,7 @@ describe("messageDraft request normalization", () => {
     });
   });
 
-  it("diceTurn 请求会派生兼容 diceResult", () => {
+  it("diceTurn 请求不再派生兼容 diceResult", () => {
     expect(buildMessageExtraForRequest(MESSAGE_TYPE.DICE, {
       diceTurn: {
         command: " .r 1d20 ",
@@ -352,10 +358,6 @@ describe("messageDraft request normalization", () => {
         }],
       },
     })).toEqual({
-      diceResult: {
-        result: "D20=19",
-        hidden: true,
-      },
       diceTurn: {
         command: ".r 1d20",
         replies: [{

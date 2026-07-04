@@ -7,6 +7,7 @@ type UseChatPageLeftDrawerParams = {
   isPrivateChatMode: boolean;
   urlSpaceId?: string;
   urlRoomId?: string;
+  drawerStateKey?: string;
   mobileStateKey?: string;
 };
 
@@ -17,50 +18,54 @@ type UseChatPageLeftDrawerResult = {
   closeLeftDrawer: () => void;
 };
 
-const mobileDrawerStateCache = new Map<string, boolean>();
+export const CHAT_LEFT_DRAWER_STATE_KEY = "chat-left-drawer";
+
+const drawerStateCache = new Map<string, boolean>();
 
 export default function useChatPageLeftDrawer({
   screenSize,
   isPrivateChatMode,
   urlSpaceId,
   urlRoomId,
+  drawerStateKey,
   mobileStateKey,
 }: UseChatPageLeftDrawerParams): UseChatPageLeftDrawerResult {
+  const stateCacheKey = screenSize === "sm" ? mobileStateKey : drawerStateKey;
   const [isOpenLeftDrawer, setIsOpenLeftDrawerState] = useState(() => {
+    if (stateCacheKey && drawerStateCache.has(stateCacheKey)) {
+      return Boolean(drawerStateCache.get(stateCacheKey));
+    }
     if (screenSize !== "sm") {
       return true;
-    }
-    if (mobileStateKey && mobileDrawerStateCache.has(mobileStateKey)) {
-      return Boolean(mobileDrawerStateCache.get(mobileStateKey));
     }
     return !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || !isPrivateChatMode;
   });
 
   const setIsOpenLeftDrawer = useCallback((isOpen: boolean) => {
-    if (screenSize === "sm" && mobileStateKey) {
-      mobileDrawerStateCache.set(mobileStateKey, isOpen);
+    if (stateCacheKey) {
+      drawerStateCache.set(stateCacheKey, isOpen);
     }
     setIsOpenLeftDrawerState(isOpen);
-  }, [mobileStateKey, screenSize]);
+  }, [stateCacheKey]);
 
   const toggleLeftDrawer = useCallback(() => {
     setIsOpenLeftDrawerState((prev) => {
       const next = !prev;
-      if (screenSize === "sm" && mobileStateKey) {
-        mobileDrawerStateCache.set(mobileStateKey, next);
+      if (stateCacheKey) {
+        drawerStateCache.set(stateCacheKey, next);
       }
       return next;
     });
-  }, [mobileStateKey, screenSize]);
+  }, [stateCacheKey]);
 
   const closeLeftDrawer = useCallback(() => {
     if (screenSize === "sm") {
-      if (mobileStateKey) {
-        mobileDrawerStateCache.set(mobileStateKey, false);
+      if (stateCacheKey) {
+        drawerStateCache.set(stateCacheKey, false);
       }
       setIsOpenLeftDrawerState(false);
     }
-  }, [mobileStateKey, screenSize]);
+  }, [screenSize, stateCacheKey]);
 
   useEffect(() => {
     if (typeof document === "undefined") {

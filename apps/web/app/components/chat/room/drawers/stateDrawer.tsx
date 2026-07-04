@@ -380,7 +380,7 @@ function EditableStatPill({
       className={`
         inline-flex items-center rounded-full border px-2 py-1 text-[11px]
         font-medium leading-none transition
-        hover:border-primary/40 hover:bg-primary/8
+        hover:border-info/40 hover:bg-info/8
         ${className ?? `border-base-300/70 bg-base-100/75 text-base-content/70`}
       `}
       title="点击编辑"
@@ -425,7 +425,7 @@ function CompactRoleRow({
       rounded-2xl border px-3 py-2.5
       ${
       row.isCurrent
-        ? "border-primary/35 bg-primary/5"
+        ? "border-info/35 bg-info/5"
         : "border-base-300/75 bg-base-100/70"
     }
     `}
@@ -447,8 +447,8 @@ function CompactRoleRow({
             </span>
             {row.isCurrent && (
               <span className="
-                rounded-full bg-primary/14 px-2 py-0.5 text-[10px] font-semibold
-                text-primary
+                rounded-full bg-info/14 px-2 py-0.5 text-[10px] font-semibold
+                text-info
               ">
                 当前
               </span>
@@ -465,7 +465,7 @@ function CompactRoleRow({
               text={formatInitiativeText(row.initiative)}
             />
             {!row.hasRoomContent && (
-              <span className="text-[11px] text-base-content/45">无房间态</span>
+              <span className="text-[11px] text-base-content/50">无房间态</span>
             )}
           </div>
           {row.hasRoomContent && (
@@ -1173,15 +1173,15 @@ export default function StateDrawer() {
             <div className="flex items-end gap-2">
               <span className="
                 text-[11px] font-semibold uppercase tracking-[0.16em]
-                text-base-content/42
+                text-base-content/50
               ">回合</span>
               <span className="
                 text-2xl font-semibold leading-none text-base-content
               ">{displayedRound}</span>
               <span className={`
                 rounded-full px-2 py-0.5 text-[10px] font-semibold
-                ${runtime.combatRoundActive ? `bg-primary/14 text-primary` : `
-                  bg-base-200 text-base-content/45
+                ${runtime.combatRoundActive ? `bg-info/14 text-info` : `
+                  bg-base-200 text-base-content/50
                 `}
               `}>
                 {runtime.combatRoundActive ? "战斗轮进行中" : "未进入战斗轮"}
@@ -1204,7 +1204,7 @@ export default function StateDrawer() {
                 <button
                   type="button"
                   className="
-                    btn btn-outline btn-primary btn-xs h-8 min-h-8 rounded-lg
+                    btn btn-outline btn-info btn-xs h-8 min-h-8 rounded-lg
                     px-3 text-[11px]
                   "
                   onClick={() => {

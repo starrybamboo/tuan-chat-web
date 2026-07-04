@@ -12,7 +12,7 @@ import RepositoryDetailComponent from "@/components/repository/detail/repository
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
 import { imageMediumUrl } from "@/utils/media/mediaUrl";
 import { appendPathQuery } from "@/utils/pathQuery";
-import { useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
+import { useGetMyArchivedSpacesQuery } from "api/hooks/chatQueryHooks";
 import { tuanchat } from "api/instance";
 
 type DiscoverArchivedSpacesMode = "square" | "my";
@@ -122,8 +122,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
     staleTime: 300000,
   });
 
-  // 兼容当前后端：暂无 listArchivedSpacesMy 接口，先复用用户空间缓存再按归档状态筛选。
-  const archivedSpacesQuery = useGetUserSpacesQuery({
+  const archivedSpacesQuery = useGetMyArchivedSpacesQuery({
     enabled: mode === "my",
     staleTime: 30000,
     retry: 0,
@@ -301,9 +300,9 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
     ">
       {!shouldHideRepositoryHeader && (
         <div className="
-          sticky top-0 z-20 border-y border-gray-300 bg-base-200/95
+          sticky top-0 z-20 border-y border-base-300 bg-base-200/95
           backdrop-blur
-          dark:border-gray-700
+          dark:border-base-300
         ">
           <div className="
             mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3
@@ -324,7 +323,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                         aria-label="返回发现"
                         title="返回发现"
                       >
-                        <ArrowLeftIcon className="size-5" weight="bold" />
+                        <ArrowLeftIcon className="size-5" weight="regular" />
                       </button>
                       <div className="
                         min-w-0 flex-1 truncate text-sm font-semibold
@@ -370,13 +369,15 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                       <label className="
                         flex h-9 items-center gap-2 rounded-md border
                         border-base-300 bg-base-100 px-3 transition
-                        focus-within:border-primary focus-within:ring-2
-                        focus-within:ring-primary/20
+                        focus-within:border-info focus-within:ring-2
+                        focus-within:ring-info/20
                       ">
                         <MagnifyingGlassIcon className="
                           size-4 shrink-0 text-base-content/38
                         " />
                         <input
+                          type="search"
+                          autoComplete="off"
                           className="
                             w-full bg-transparent text-sm text-base-content
                             placeholder:text-base-content/35
@@ -425,10 +426,10 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                   ">
                     <CompassIcon
                       aria-hidden="true"
-                      weight="duotone"
+                      weight="regular"
                       className="
                         pointer-events-none absolute -right-24 -top-24 hidden
-                        size-88 text-primary/15
+                        size-88 text-info/15
                         sm:block
                       "
                     />
@@ -490,7 +491,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
 
                   {!isLoading && !isError && totalCount === 0 && (
                     <div className="
-                      rounded-[26px] border border-dashed border-base-300
+                      rounded-2xl border border-dashed border-base-300
                       bg-base-100/55 px-5 py-12 text-center
                       sm:px-6 sm:py-14
                     ">
@@ -528,7 +529,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                                 bg-linear-to-br from-[#243b55] via-[#141e30]
                                 to-[#0b0f17] text-white/75
                               ">
-                                <PackageIcon className="size-12" weight="duotone" />
+                                <PackageIcon className="size-12" weight="regular" />
                               </div>
                             )}
                             onClick={() => openRepositoryInPanel(repositoryId)}
@@ -570,7 +571,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                                 bg-linear-to-br from-[#2a2d3e] via-[#1f2937]
                                 to-[#111827] text-white/75
                               ">
-                                <PackageIcon className="size-12" weight="duotone" />
+                                <PackageIcon className="size-12" weight="regular" />
                               </div>
                             )}
                             titleSuffix={(
@@ -580,7 +581,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                                   rounded-md border border-base-300 bg-base-100
                                   px-2.5 py-1 text-xs font-medium
                                   text-base-content transition
-                                  hover:border-primary/30 hover:bg-base-100/90
+                                  hover:border-info/30 hover:bg-base-100/90
                                 "
                                 onClick={(event) => {
                                   event.stopPropagation();
@@ -626,7 +627,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                                               bg-base-100 px-2.5 py-1 text-xs
                                               font-medium text-base-content
                                               transition
-                                              hover:border-primary/30
+                                              hover:border-info/30
                                               hover:bg-base-100/90
                                             "
                                             onClick={(event) => {

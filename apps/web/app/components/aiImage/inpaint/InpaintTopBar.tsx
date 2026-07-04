@@ -24,7 +24,7 @@ export function InpaintTopBar({
   return (
     <div className="
       absolute right-4 top-4 z-20 flex items-stretch overflow-hidden border
-      border-base-300 shadow-[0_18px_48px_rgba(0,0,0,0.18)]
+      border-base-300 shadow-xl
     ">
       <button
         type="button"
@@ -34,19 +34,19 @@ export function InpaintTopBar({
         disabled={isSubmitting}
         onClick={onDownloadSource}
       >
-        <DownloadSimpleIcon className="size-[18px]" weight="bold" />
+        <DownloadSimpleIcon className="size-[18px]" weight="regular" />
       </button>
       <button
         type="button"
         className={`
           ${topActionButtonClassName}
-          border-l border-base-300 bg-primary text-primary-content
-          hover:bg-primary/90
+          border-l border-base-300 bg-info text-info-content
+          hover:bg-info/90
         `}
         disabled={!hasMask || isSubmitting}
         onClick={() => void onSubmit()}
       >
-        <FloppyDiskIcon className="mr-2 size-[18px]" weight="bold" />
+        <FloppyDiskIcon className="mr-2 size-[18px]" weight="regular" />
         {isSubmitting ? "保存中..." : "保存并关闭"}
       </button>
       <button
@@ -60,7 +60,7 @@ export function InpaintTopBar({
         disabled={isSubmitting}
         onClick={onClose}
       >
-        <XIcon className="size-[18px]" weight="bold" />
+        <XIcon className="size-[18px]" weight="regular" />
       </button>
     </div>
   );

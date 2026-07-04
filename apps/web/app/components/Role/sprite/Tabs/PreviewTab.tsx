@@ -348,7 +348,7 @@ export function PreviewTab({
       <div className="mt-4 flex shrink-0 items-center justify-end gap-2">
         <button
           type="button"
-          className="btn btn-secondary rounded-md"
+          className="btn btn-outline rounded-md"
           onClick={handlePreview}
           disabled={!currentAvatar}
         >

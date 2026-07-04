@@ -332,6 +332,7 @@ function RoomSettingForm({
         </div>
         <input
           className="input input-bordered w-full"
+          autoComplete="off"
           value={roomDraft.name}
           onChange={(event) => {
             setRoomDraft(prev => ({ ...prev, name: event.target.value }));
@@ -345,6 +346,7 @@ function RoomSettingForm({
         </div>
         <textarea
           className="textarea textarea-bordered min-h-40 w-full resize-y"
+          autoComplete="off"
           value={roomDraft.description}
           onChange={(event) => {
             setRoomDraft(prev => ({ ...prev, description: event.target.value }));

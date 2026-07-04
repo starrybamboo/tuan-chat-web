@@ -327,7 +327,7 @@ function SpaceTrpgSettingWindow() {
                           ? (
                               <div className="avatar">
                                 <div className="
-                                  size-10 rounded-full ring ring-accent
+                                  size-10 rounded-full ring ring-info
                                   ring-offset-base-100 ring-offset-2
                                 ">
                                   <MediaImage src={dicerAvatarUrl} alt={linkedDicerData?.data?.roleName || "骰娘"} />
@@ -336,10 +336,10 @@ function SpaceTrpgSettingWindow() {
                             )
                           : (
                               <div className="
-                                size-10 rounded-full bg-accent/10 flex
+                                size-10 rounded-full bg-base-200 flex
                                 items-center justify-center
                               ">
-                                <svg className="size-5 text-accent" viewBox="0 0 24 24" fill="currentColor">
+                                <svg className="size-5 text-base-content/70" viewBox="0 0 24 24" fill="currentColor">
                                   <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="2" fill="none" />
                                   <circle cx="7" cy="7" r="1.5" fill="currentColor" />
                                   <circle cx="12" cy="12" r="1.5" fill="currentColor" />
@@ -353,7 +353,7 @@ function SpaceTrpgSettingWindow() {
                           <h3 className="font-semibold text-sm">空间骰娘</h3>
                           <p className={`
                             font-medium text-sm
-                            ${dicerRoleError ? `text-error` : `text-accent`}
+                            ${dicerRoleError ? `text-error` : `text-base-content/70`}
                           `}>
                             {currentDicerId
                               ? dicerRoleError || linkedDicerData?.data?.roleName || `ID: ${currentDicerId}`

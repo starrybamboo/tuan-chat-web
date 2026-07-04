@@ -1,3 +1,5 @@
+import type { QueryClient } from "@tanstack/react-query";
+
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { ApiResultPageBaseRespMaterialPackageResponse } from "@tuanchat/openapi-client/models/ApiResultPageBaseRespMaterialPackageResponse";
@@ -14,6 +16,42 @@ import { tuanchat } from "../instance";
 export const MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE = 24;
 
 type MaterialPackagePageResult = ApiResultPageBaseRespMaterialPackageResponse | ApiResultPageBaseRespSpaceMaterialPackageResponse;
+type MaterialPackagePageInitialRequest = MaterialPackagePageRequest & {
+  pageNo: number;
+  pageSize: number;
+};
+type SpaceMaterialPackagePageInitialRequest = SpaceMaterialPackagePageRequest & {
+  pageNo: number;
+  pageSize: number;
+};
+
+export function normalizeMaterialPackagePageRequest(request: MaterialPackagePageRequest): MaterialPackagePageInitialRequest {
+  return {
+    ...request,
+    pageNo: request.pageNo ?? 1,
+    pageSize: request.pageSize ?? MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
+  };
+}
+
+export function normalizeSpaceMaterialPackagePageRequest(request: SpaceMaterialPackagePageRequest): SpaceMaterialPackagePageInitialRequest {
+  return {
+    ...request,
+    pageNo: request.pageNo ?? 1,
+    pageSize: request.pageSize ?? MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
+  };
+}
+
+export function myMaterialPackagesInfiniteQueryKey(request: MaterialPackagePageRequest) {
+  return ["materialPackage", "my", "infinite", normalizeMaterialPackagePageRequest(request)] as const;
+}
+
+export function publicMaterialPackagesInfiniteQueryKey(request: MaterialPackagePageRequest) {
+  return ["materialPackage", "public", "infinite", normalizeMaterialPackagePageRequest(request)] as const;
+}
+
+export function spaceMaterialPackagesInfiniteQueryKey(request: SpaceMaterialPackagePageRequest) {
+  return ["spaceMaterialPackage", "page", "infinite", normalizeSpaceMaterialPackagePageRequest(request)] as const;
+}
 
 export function getNextMaterialPackagePageRequest<TRequest extends { pageNo?: number; pageSize?: number }>(
   request: TRequest,
@@ -55,32 +93,26 @@ export function usePublicMaterialPackagesQuery(request: MaterialPackagePageReque
 }
 
 export function useMyMaterialPackagesInfiniteQuery(request: MaterialPackagePageRequest, enabled = true) {
-  const initialPageParam = {
-    ...request,
-    pageNo: request.pageNo ?? 1,
-    pageSize: request.pageSize ?? MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
-  };
+  const initialPageParam = normalizeMaterialPackagePageRequest(request);
   return useInfiniteQuery({
-    queryKey: ["materialPackage", "my", "infinite", initialPageParam],
+    queryKey: myMaterialPackagesInfiniteQueryKey(request),
     queryFn: ({ pageParam }) => tuanchat.materialPackageController.pageMyPackages(pageParam),
     initialPageParam,
-    getNextPageParam: (lastPage, allPages) => getNextMaterialPackagePageRequest(initialPageParam, lastPage, allPages),
+    getNextPageParam: (lastPage: MaterialPackagePageResult, allPages: MaterialPackagePageResult[]) =>
+      getNextMaterialPackagePageRequest(initialPageParam, lastPage, allPages),
     enabled,
     staleTime: 10_000,
   });
 }
 
 export function usePublicMaterialPackagesInfiniteQuery(request: MaterialPackagePageRequest, enabled = true) {
-  const initialPageParam = {
-    ...request,
-    pageNo: request.pageNo ?? 1,
-    pageSize: request.pageSize ?? MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
-  };
+  const initialPageParam = normalizeMaterialPackagePageRequest(request);
   return useInfiniteQuery({
-    queryKey: ["materialPackage", "public", "infinite", initialPageParam],
+    queryKey: publicMaterialPackagesInfiniteQueryKey(request),
     queryFn: ({ pageParam }) => tuanchat.materialPackageController.pagePublicPackages(pageParam),
     initialPageParam,
-    getNextPageParam: (lastPage, allPages) => getNextMaterialPackagePageRequest(initialPageParam, lastPage, allPages),
+    getNextPageParam: (lastPage: MaterialPackagePageResult, allPages: MaterialPackagePageResult[]) =>
+      getNextMaterialPackagePageRequest(initialPageParam, lastPage, allPages),
     enabled,
     staleTime: 10_000,
   });
@@ -134,17 +166,50 @@ export function useSpaceMaterialPackagesQuery(request: SpaceMaterialPackagePageR
 }
 
 export function useSpaceMaterialPackagesInfiniteQuery(request: SpaceMaterialPackagePageRequest, enabled = true) {
-  const initialPageParam = {
-    ...request,
-    pageNo: request.pageNo ?? 1,
-    pageSize: request.pageSize ?? MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
-  };
+  const initialPageParam = normalizeSpaceMaterialPackagePageRequest(request);
   return useInfiniteQuery({
-    queryKey: ["spaceMaterialPackage", "page", "infinite", initialPageParam],
+    queryKey: spaceMaterialPackagesInfiniteQueryKey(request),
     queryFn: ({ pageParam }) => tuanchat.spaceMaterialPackageController.pagePackages(pageParam),
     initialPageParam,
-    getNextPageParam: (lastPage, allPages) => getNextMaterialPackagePageRequest(initialPageParam, lastPage, allPages),
+    getNextPageParam: (lastPage: MaterialPackagePageResult, allPages: MaterialPackagePageResult[]) =>
+      getNextMaterialPackagePageRequest(initialPageParam, lastPage, allPages),
     enabled,
+    staleTime: 10_000,
+  });
+}
+
+export function fetchMyMaterialPackagesFirstPageWithCache(queryClient: QueryClient, request: MaterialPackagePageRequest) {
+  const initialPageParam = normalizeMaterialPackagePageRequest(request);
+  return queryClient.fetchInfiniteQuery({
+    queryKey: myMaterialPackagesInfiniteQueryKey(request),
+    queryFn: ({ pageParam }) => tuanchat.materialPackageController.pageMyPackages(pageParam),
+    initialPageParam,
+    getNextPageParam: (lastPage: MaterialPackagePageResult, allPages: MaterialPackagePageResult[]) =>
+      getNextMaterialPackagePageRequest(initialPageParam, lastPage, allPages),
+    staleTime: 10_000,
+  });
+}
+
+export function fetchPublicMaterialPackagesFirstPageWithCache(queryClient: QueryClient, request: MaterialPackagePageRequest) {
+  const initialPageParam = normalizeMaterialPackagePageRequest(request);
+  return queryClient.fetchInfiniteQuery({
+    queryKey: publicMaterialPackagesInfiniteQueryKey(request),
+    queryFn: ({ pageParam }) => tuanchat.materialPackageController.pagePublicPackages(pageParam),
+    initialPageParam,
+    getNextPageParam: (lastPage: MaterialPackagePageResult, allPages: MaterialPackagePageResult[]) =>
+      getNextMaterialPackagePageRequest(initialPageParam, lastPage, allPages),
+    staleTime: 10_000,
+  });
+}
+
+export function fetchSpaceMaterialPackagesFirstPageWithCache(queryClient: QueryClient, request: SpaceMaterialPackagePageRequest) {
+  const initialPageParam = normalizeSpaceMaterialPackagePageRequest(request);
+  return queryClient.fetchInfiniteQuery({
+    queryKey: spaceMaterialPackagesInfiniteQueryKey(request),
+    queryFn: ({ pageParam }) => tuanchat.spaceMaterialPackageController.pagePackages(pageParam),
+    initialPageParam,
+    getNextPageParam: (lastPage: MaterialPackagePageResult, allPages: MaterialPackagePageResult[]) =>
+      getNextMaterialPackagePageRequest(initialPageParam, lastPage, allPages),
     staleTime: 10_000,
   });
 }

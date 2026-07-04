@@ -18,7 +18,7 @@ type CreateEntryCardProps = {
 const cardClassName = "bg-base-100 rounded-xl p-6 shadow-sm border border-base-200 transition-all duration-200 hover:scale-105 hover:shadow-lg h-auto md:h-100 cursor-pointer flex flex-col items-stretch justify-start text-center";
 
 const accentClassNames: Record<EntryCardAccent, string> = {
-  primary: "border-primary/40 bg-primary/5 text-primary/60",
+  primary: "border-info/40 bg-info/5 text-info/60",
   success: "border-success/40 bg-success/5 text-success/60",
   info: "border-info/40 bg-info/5 text-info/60",
 };
@@ -67,7 +67,7 @@ function CreateEntryCard({
           ${accentClassNames[accent]}
         `}
       >
-        <Icon className="size-8" weight="bold" />
+        <Icon className="size-8" weight="regular" />
       </div>
       <div className="flex flex-1 flex-col">
         <h3 className="mb-2 text-lg font-semibold text-base-content">{title}</h3>

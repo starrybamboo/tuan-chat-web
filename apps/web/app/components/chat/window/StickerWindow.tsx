@@ -153,9 +153,9 @@ export default function StickerWindow({ onChoose }:
                       type="button"
                       className="
                         cursor-pointer absolute top-0 right-0 rounded-full
-                        size-5 flex items-center justify-center bg-gray-300
-                        text-gray-700
-                        hover:bg-gray-400
+                        size-5 flex items-center justify-center bg-base-300
+                        text-base-content/70
+                        hover:bg-base-content/10
                         transition-colors
                       "
                       onClick={(e) => {

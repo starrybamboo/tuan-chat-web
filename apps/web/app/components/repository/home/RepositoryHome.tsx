@@ -30,6 +30,7 @@ type ContentCardProps = {
   className?: string;
   // 点击事件
   onClick?: () => void;
+  onPreload?: () => void;
   // 卡片类型：文本卡片或图片卡片
   type?: "text" | "image" | "mixed";
   // 是否显示阴影
@@ -67,6 +68,7 @@ export function ContentCard({
   content,
   className = "",
   onClick,
+  onPreload,
   type = "mixed",
   size = "md",
   theme = "default",
@@ -106,7 +108,7 @@ export function ContentCard({
   const themeClasses = {
     default: "bg-transparent",
     primary: "bg-transparent ",
-    secondary: "bg-transparent text-secondary",
+    secondary: "bg-transparent text-base-content",
     accent: "bg-transparent ",
   };
   const aspectClasses = {
@@ -139,16 +141,18 @@ export function ContentCard({
   };
 
   return (
-    <div
-      className={cardClasses}
-      onClick={onClick}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={handleKeyDown}
+      <div
+        className={cardClasses}
+        onClick={onClick}
+        onFocus={onPreload}
+        onPointerEnter={onPreload}
+        role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onKeyDown={handleKeyDown}
     >
       <div className="
-        overflow-hidden rounded-md border border-gray-300 bg-base-100
-        dark:border-gray-700
+        overflow-hidden rounded-md border border-base-300 bg-base-100
+        dark:border-base-300
       ">
         {/* 图片部分 */}
         {(shouldShowImage || shouldShowPlaceholder) && (
@@ -320,7 +324,7 @@ export function ContentCard({
                   {titleSuffix}
                   {resolvedBadgeLabel && (
                     <span className="
-                      rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px]
+                      rounded-full bg-info/10 px-2.5 py-0.5 text-[11px]
                       font-semibold whitespace-nowrap text-base-content/80
                     ">
                       {resolvedBadgeLabel}
@@ -520,7 +524,7 @@ export default function RepositoryHome() {
                 before:content-[''] before:absolute before:left-0 before:top-0
                 before:bottom-0 before:w-1
                 md:before:w-2
-                before:bg-primary before:rounded-r-md
+                before:bg-info before:rounded-r-md
               ">
                 仓库列表
               </h1>
@@ -538,7 +542,7 @@ export default function RepositoryHome() {
                     <g
                       strokeLinejoin="round"
                       strokeLinecap="round"
-                      strokeWidth="1.5"
+                      strokeWidth="1.75"
                       fill="none"
                       stroke="currentColor"
                     >
@@ -573,11 +577,11 @@ export default function RepositoryHome() {
                         px-3 py-1 rounded-full text-xs
                         md:text-sm
                         font-semibold border transition-all duration-200
-                        focus:outline-none
+                        focus:outline-none focus:ring-2 focus:ring-info/30
                         cursor-pointer
                         ${selectedRuleId === (rule.ruleId ?? null) ? `
-                          bg-accent text-white
-                        ` : `bg-accent/10`}
+                          bg-info text-info-content
+                        ` : `bg-info/10`}
                       `}
                       onClick={() => {
                         setSelectedRuleId(selectedRuleId === rule.ruleId ? null : rule.ruleId ?? null);
@@ -641,7 +645,7 @@ export default function RepositoryHome() {
                       py-12
                     ">
                       <div className="text-base-content/60 text-lg mb-2">暂无仓库数据</div>
-                      <div className="text-base-content/40 text-sm">快来创建第一个仓库吧！</div>
+                      <div className="text-base-content/50 text-sm">快来创建第一个仓库吧！</div>
                     </div>
                   );
                 }
@@ -661,6 +665,15 @@ export default function RepositoryHome() {
                     maxPeople={card.maxPeople}
                     minTime={card.minTime}
                     maxTime={card.maxTime}
+                    onPreload={() => {
+                      if (!card.repositoryId) {
+                        return;
+                      }
+                      void router.preloadRoute({
+                        to: "/repository/detail/{-$id}",
+                        params: { id: String(card.repositoryId) },
+                      });
+                    }}
                     onClick={() => {
                       // 处理卡片点击事件，跳转到仓库详情页面并传递数据
                       if (!card.repositoryId || card.repositoryId === null) {

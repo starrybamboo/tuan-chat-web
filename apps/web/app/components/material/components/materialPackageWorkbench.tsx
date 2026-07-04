@@ -133,13 +133,13 @@ function ReadOnlyAssetCard({ message, index }: { message: MessageDraft; index: n
     <div className="rounded-2xl border border-base-300 bg-base-100/80 px-4 py-3">
       <div className="flex flex-wrap items-center gap-2">
         <span className="
-          rounded-full border border-primary/20 bg-primary/10 px-2 py-1
-          text-[11px] font-medium text-primary
+          rounded-full border border-info/20 bg-info/10 px-2 py-1
+          text-[11px] font-medium text-info
         ">
           {getReadOnlyAssetTypeLabel(message)}
         </span>
         {annotationText && (
-          <div className="text-xs text-base-content/45">
+          <div className="text-xs text-base-content/50">
             {annotationText}
           </div>
         )}
@@ -205,8 +205,8 @@ export default function MaterialPackageWorkbench({
     [rootNodes, selectedNodeKey, selectedNodePath],
   );
   const selectedIsFolder = !selectedNode || selectedNode.type === MaterialNodeModel.type.FOLDER;
-  const fieldClassName = "w-full rounded-md border border-base-300 bg-base-200/80 px-3 py-2.5 text-sm text-base-content placeholder:text-base-content/35 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:cursor-not-allowed disabled:opacity-60";
-  const textareaClassName = "w-full rounded-md border border-base-300 bg-base-200/80 px-3 py-3 text-sm text-base-content placeholder:text-base-content/35 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:cursor-not-allowed disabled:opacity-60";
+  const fieldClassName = "w-full rounded-md border border-base-300 bg-base-200/80 px-3 py-2.5 text-sm text-base-content placeholder:text-base-content/35 transition focus:outline-none focus:ring-2 focus:ring-info/20 focus:border-info disabled:cursor-not-allowed disabled:opacity-60";
+  const textareaClassName = "w-full rounded-md border border-base-300 bg-base-200/80 px-3 py-3 text-sm text-base-content placeholder:text-base-content/35 transition focus:outline-none focus:ring-2 focus:ring-info/20 focus:border-info disabled:cursor-not-allowed disabled:opacity-60";
   const displayCoverUrl = imageMediumUrlFromUrl(draft.coverUrl);
 
   useEffect(() => {
@@ -473,13 +473,13 @@ export default function MaterialPackageWorkbench({
               transition
               ${
               isSelected
-                ? "bg-primary/10 text-primary"
+                ? "bg-info/10 text-info"
                 : `
                   text-base-content/72
                   hover:bg-base-200 hover:text-base-content
                 `
             }
-              ${isDropTarget ? "ring-2 ring-primary/20" : ""}
+              ${isDropTarget ? "ring-2 ring-info/20" : ""}
             `}
             style={rowStyle}
             onDragOver={(event) => {
@@ -517,7 +517,7 @@ export default function MaterialPackageWorkbench({
               <CaretRightIcon className={`
                 size-3 transition-transform
                 ${isExpanded ? `rotate-90` : ""}
-              `} weight="bold" />
+              `} weight="regular" />
             </button>
 
             <button
@@ -551,7 +551,7 @@ export default function MaterialPackageWorkbench({
               <div className="min-w-0 flex-1">
                 <div className="truncate">{getNodeLabel(node, isFolder ? "未命名文件夹" : "未命名素材")}</div>
                 {!isFolder && (
-                  <div className="truncate text-[11px] text-base-content/45">
+                  <div className="truncate text-[11px] text-base-content/50">
                     {`${node.messages?.length ?? 0} 条素材条目`}
                   </div>
                 )}
@@ -636,13 +636,13 @@ export default function MaterialPackageWorkbench({
                   transition
                   ${
                   selectedNodeKey === ROOT_NODE_KEY
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-info/10 text-info"
                     : `
                       text-base-content/78
                       hover:bg-base-300 hover:text-base-content
                     `
                 }
-                  ${dropTargetKey === ROOT_NODE_KEY ? "ring-2 ring-primary/20" : ""}
+                  ${dropTargetKey === ROOT_NODE_KEY ? "ring-2 ring-info/20" : ""}
                 `}
                 onClick={() => setSelectedNodeKey(ROOT_NODE_KEY)}
                 onDragOver={(event) => {
@@ -698,12 +698,12 @@ export default function MaterialPackageWorkbench({
                         />
                       )
                     : (
-                        <PackageIcon className="size-4 opacity-70" weight="duotone" />
+                        <PackageIcon className="size-4 opacity-70" weight="regular" />
                       )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate">{draft.name.trim() || "未命名素材包"}</div>
-                  <div className="truncate text-[11px] text-base-content/45">
+                  <div className="truncate text-[11px] text-base-content/50">
                     {`${folderCount} 个文件夹 · ${materialCount} 个素材 · ${assetCount} 条素材条目`}
                   </div>
                 </div>
@@ -753,6 +753,7 @@ export default function MaterialPackageWorkbench({
                   </span>
                   <input
                     type="text"
+                    autoComplete="off"
                     placeholder="给你的素材包起个响亮的名字..."
                     className={fieldClassName}
                     value={draft.name}
@@ -765,6 +766,7 @@ export default function MaterialPackageWorkbench({
                   <span className="text-sm font-medium text-base-content/80">发布描述</span>
                   <textarea
                     placeholder="简单描述一下这个素材包的风格和用途吧（可选），这能帮助其他创作者更好地了解你的素材。"
+                    autoComplete="off"
                     className={`
                       ${textareaClassName}
                       min-h-32 resize-y
@@ -792,11 +794,11 @@ export default function MaterialPackageWorkbench({
                         rounded-full border transition
                         ${
                         draft.isPublic
-                          ? "border-primary/40 bg-primary/90"
+                          ? "border-info/40 bg-info/90"
                           : "border-base-300 bg-base-100"
                       }
                         ${readOnly ? "cursor-not-allowed opacity-60" : `
-                          hover:border-primary/40
+                          hover:border-info/40
                         `}
                       `}
                       aria-pressed={draft.isPublic}
@@ -859,7 +861,7 @@ export default function MaterialPackageWorkbench({
               </div>
 
               <div className="
-                flex flex-col rounded-[26px] border border-base-300
+                flex flex-col rounded-2xl border border-base-300
                 bg-base-200/55 p-4
               ">
                 <div className="
@@ -868,12 +870,12 @@ export default function MaterialPackageWorkbench({
                 ">
                   <span className="text-sm font-medium text-base-content/75">封面图片</span>
                   {!readOnly && <span className="
-                    text-[11px] text-base-content/40
+                    text-[11px] text-base-content/50
                   ">推荐尺寸 1:1，支持 JPG/PNG，小于 2MB</span>}
                 </div>
                 <div className="
                   flex flex-1 flex-col justify-center overflow-hidden
-                  rounded-[22px] border border-base-300 bg-base-950/90
+                  rounded-2xl border border-base-300 bg-base-950/90
                   shadow-inner
                 ">
                   {displayCoverUrl
@@ -890,7 +892,7 @@ export default function MaterialPackageWorkbench({
                           bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.16),_transparent_32%),linear-gradient(180deg,_rgba(15,23,42,1),_rgba(2,6,23,1))]
                           text-base-content/40
                         ">
-                          <PackageIcon className="size-16 opacity-50" weight="duotone" />
+                          <PackageIcon className="size-16 opacity-50" weight="regular" />
                         </div>
                       )}
                 </div>
@@ -905,7 +907,7 @@ export default function MaterialPackageWorkbench({
                           rounded-md border border-base-300 bg-base-100 px-4
                           py-2.5 text-sm font-medium text-base-content
                           transition
-                          hover:border-primary/30 hover:bg-base-100/90
+                          hover:border-info/30 hover:bg-base-100/90
                         "
                         disabled={isCoverUploading}
                       >
@@ -926,6 +928,7 @@ export default function MaterialPackageWorkbench({
               <span className="text-sm font-medium text-base-content/80">文件夹名称</span>
               <input
                 type="text"
+                autoComplete="off"
                 className={fieldClassName}
                 value={selectedNode.name ?? ""}
                 disabled={readOnly}
@@ -947,7 +950,7 @@ export default function MaterialPackageWorkbench({
                     inline-flex min-h-10 w-full items-center justify-center
                     gap-2 rounded-md border border-base-300 bg-base-100 px-4
                     py-2.5 text-sm text-base-content transition
-                    hover:border-primary/30 hover:bg-base-100/90
+                    hover:border-info/30 hover:bg-base-100/90
                     sm:w-auto
                   "
                   onClick={handleAddFolder}
@@ -961,7 +964,7 @@ export default function MaterialPackageWorkbench({
                     inline-flex min-h-10 w-full items-center justify-center
                     gap-2 rounded-md border border-base-300 bg-base-100 px-4
                     py-2.5 text-sm text-base-content transition
-                    hover:border-primary/30 hover:bg-base-100/90
+                    hover:border-info/30 hover:bg-base-100/90
                     sm:w-auto
                   "
                   onClick={handleAddMaterial}
@@ -995,6 +998,7 @@ export default function MaterialPackageWorkbench({
                 <span className="text-sm font-medium text-base-content/80">素材名称</span>
                 <input
                   type="text"
+                  autoComplete="off"
                   className={fieldClassName}
                   value={selectedNode.name ?? ""}
                   disabled={readOnly}
@@ -1015,6 +1019,7 @@ export default function MaterialPackageWorkbench({
                     ${textareaClassName}
                     min-h-28
                   `}
+                  autoComplete="off"
                   value={selectedNode.note ?? ""}
                   disabled={readOnly}
                   onChange={(event) => {

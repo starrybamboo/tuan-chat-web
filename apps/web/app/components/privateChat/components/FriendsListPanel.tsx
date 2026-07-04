@@ -4,10 +4,9 @@ import { motion } from "motion/react";
 import { useMemo, useRef, useState } from "react";
 
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
-import { MediaImage } from "@/components/common/mediaImage";
 import { privateChatListItemMotionProps } from "@/components/common/motion/privateChatMotion";
+import { UserAvatarByUser } from "@/components/common/userAccess";
 import { SearchFilled, XMarkICon } from "@/icons";
-import { imageLowUrl } from "@/utils/media/mediaUrl";
 import { useGetFriendListQuery } from "api/hooks/friendQueryHooks";
 
 export default function FriendsListPanel() {
@@ -42,19 +41,19 @@ export default function FriendsListPanel() {
       <div className="px-3 pt-3 pb-2">
         <label htmlFor="private-friend-search" className="sr-only">搜索好友</label>
         <div className="
-          border border-gray-200
-          dark:border-gray-700/80
+          border border-base-300
+          dark:border-base-300/80
           flex h-8 items-center bg-base-200/60
           dark:bg-base-200/40
           rounded-md overflow-hidden
-          focus-within:border-primary/60 focus-within:ring-2
-          focus-within:ring-primary/20
+          focus-within:border-info/60 focus-within:ring-2
+          focus-within:ring-info/20
         ">
           <div className="flex h-full items-center flex-1 px-2.5">
             <input
               id="private-friend-search"
               ref={searchInputRef}
-              type="text"
+              type="search"
               name="privateFriendSearch"
               autoComplete="off"
               placeholder="搜索好友…"
@@ -148,18 +147,14 @@ export default function FriendsListPanel() {
                         "
                         onClick={() => friend?.userId && handleClickFriend(friend.userId)}
                       >
-                        <div className="
-                          avatar w-9 h-9 flex-shrink-0 overflow-hidden
-                          rounded-full bg-base-300
-                        ">
-                          <MediaImage
-                            className="h-full w-full rounded-full object-cover"
-                            src={imageLowUrl(friend?.avatarFileId)}
-                            alt=""
-                            width={36}
-                            height={36}
-                            loading="lazy"
-                            fallbackSrc="/favicon.ico"
+                        <div className="w-9 h-9 flex-shrink-0">
+                          <UserAvatarByUser
+                            user={friend}
+                            fallbackUserId={friend?.userId}
+                            width={9}
+                            isRounded={true}
+                            stopToastWindow={true}
+                            clickEnterProfilePage={false}
                           />
                         </div>
                         <div className="min-w-0 flex-1">

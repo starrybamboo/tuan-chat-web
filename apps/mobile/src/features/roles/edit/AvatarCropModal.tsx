@@ -13,6 +13,8 @@ import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
+import { clampAvatarCropTranslation } from "./avatarCropGeometry";
+
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const CROP_SIZE = SCREEN_WIDTH * 0.8;
 const CROP_TOP = (SCREEN_HEIGHT - CROP_SIZE) / 2;
@@ -132,24 +134,20 @@ export function AvatarCropModal({
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
 
-  const clampTranslation = useCallback((tx: number, ty: number, s: number) => {
-    const scaledW = displayWidth * s;
-    const scaledH = displayHeight * s;
-    const maxX = Math.max(0, (scaledW - CROP_SIZE) / 2);
-    const maxY = Math.max(0, (scaledH - CROP_SIZE) / 2);
-    return {
-      x: Math.min(maxX, Math.max(-maxX, tx)),
-      y: Math.min(maxY, Math.max(-maxY, ty)),
-    };
-  }, [displayWidth, displayHeight]);
-
   const pinchGesture = Gesture.Pinch()
     .onUpdate((e) => {
       scale.set(Math.max(1, Math.min(5, savedScale.get() * e.scale)));
     })
     .onEnd(() => {
       savedScale.set(scale.get());
-      const clamped = clampTranslation(translateX.get(), translateY.get(), scale.get());
+      const clamped = clampAvatarCropTranslation({
+        cropSize: CROP_SIZE,
+        displayHeight,
+        displayWidth,
+        scale: scale.get(),
+        translateX: translateX.get(),
+        translateY: translateY.get(),
+      });
       translateX.set(withTiming(clamped.x, { duration: 150 }));
       translateY.set(withTiming(clamped.y, { duration: 150 }));
       savedTranslateX.set(clamped.x);
@@ -162,7 +160,14 @@ export function AvatarCropModal({
       translateY.set(savedTranslateY.get() + e.translationY);
     })
     .onEnd(() => {
-      const clamped = clampTranslation(translateX.get(), translateY.get(), scale.get());
+      const clamped = clampAvatarCropTranslation({
+        cropSize: CROP_SIZE,
+        displayHeight,
+        displayWidth,
+        scale: scale.get(),
+        translateX: translateX.get(),
+        translateY: translateY.get(),
+      });
       translateX.set(withTiming(clamped.x, { duration: 150 }));
       translateY.set(withTiming(clamped.y, { duration: 150 }));
       savedTranslateX.set(clamped.x);

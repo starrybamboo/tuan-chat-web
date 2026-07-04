@@ -39,7 +39,7 @@ export default function MessageWindow({
                       key={`date-divider-${index}-${entry.label}`}
                       className="
                         flex items-center gap-3 py-3 text-xs
-                        text-base-content/45
+                        text-base-content/50
                       "
                     >
                       <div className="h-px flex-1 bg-base-content/10" />

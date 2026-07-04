@@ -7,30 +7,8 @@ import { privateChatListItemMotionProps } from "@/components/common/motion/priva
 
 import type { MessageDirectType } from "../types/messageDirect";
 
+import { resolveDirectContactUser } from "../utils/directContactUser";
 import ChatItem from "./ChatItem";
-
-function getContactUserFromMessage(contactId: number, message: MessageDirectType | null) {
-  if (!message) {
-    return { userId: contactId };
-  }
-  if (message.senderId === contactId) {
-    return {
-      userId: contactId,
-      username: message.senderUsername,
-      avatar: message.senderAvatar,
-      avatarThumbUrl: message.senderAvatarThumbUrl,
-    };
-  }
-  if (message.receiverId === contactId) {
-    return {
-      userId: contactId,
-      username: message.receiverUsername,
-      avatar: message.receiverAvatar,
-      avatarThumbUrl: message.receiverAvatarThumbUrl,
-    };
-  }
-  return { userId: contactId };
-}
 
 export default function ChatListItem({
   isSmallScreen,
@@ -75,7 +53,7 @@ export default function ChatListItem({
               ">
                 <svg xmlns="http://www.w3.org/2000/svg" className="
                   size-8 opacity-40
-                " fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
+                " fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
                 <span className="text-sm">暂无聊天记录</span>
@@ -89,7 +67,7 @@ export default function ChatListItem({
                 const validMessages = messages.filter(m => m.messageType !== 10000);
                 // 获取最新的一条消息
                 const lastMessage = validMessages.length > 0 ? validMessages[0] : null;
-                const contactUser = friendInfoMap.get(contactId) || getContactUserFromMessage(contactId, lastMessage);
+                const contactUser = resolveDirectContactUser(contactId, friendInfoMap.get(contactId), lastMessage);
 
                 return (
                   <motion.div key={contactId} {...privateChatListItemMotionProps(index)}>

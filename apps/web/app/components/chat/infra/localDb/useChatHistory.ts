@@ -357,22 +357,17 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         // 读取本地快照后仍经过共享合并，避免旧缓存复活 tombstone 或保留重复乐观消息。
         const sortedLocalHistory = mergeRoomMessagesForLocalState(localHistory, []);
         setMessages(sortedLocalHistory);
+        // 本地缓存读取完成后立即释放首屏，服务端增量补拉在后台合并进来。
+        setLoading(false);
         const localMaxSyncId = localHistory.length > 0
           ? Math.max(...localHistory.map(msg => msg.message.syncId))
           : -1;
 
-        // 有本地缓存时直接展示，服务端增量同步改为后台进行，避免切房间被网络请求阻塞。
-        if (sortedLocalHistory.length > 0) {
-          setLoading(false);
-          void fetchNewestMessages(localMaxSyncId).catch((err) => {
-            if (!isCancelled) {
-              setError(err as Error);
-            }
-          });
-          return;
-        }
-
-        await fetchNewestMessages(localMaxSyncId);
+        void fetchNewestMessages(localMaxSyncId).catch((err) => {
+          if (!isCancelled) {
+            setError(err as Error);
+          }
+        });
       }
       catch (err) {
         if (!isCancelled) {

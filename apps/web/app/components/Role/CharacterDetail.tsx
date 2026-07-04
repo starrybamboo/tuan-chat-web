@@ -116,7 +116,7 @@ function CharacterDetailInner({
   // 判断是否为骰娘角色（使用实时数据）
   const isDiceMaiden = useMemo(() => {
     const roleData = currentRoleData?.data;
-    return !!(roleData?.diceMaiden || roleData?.type === 1);
+    return roleData?.type === 1;
   }, [currentRoleData]);
 
   // 通过 useMemo 派生展示用的头像/立绘 URL
@@ -437,7 +437,7 @@ function CharacterDetailInner({
                 displayClassName="
                   block max-w-[min(46vw,36rem)] truncate rounded-md px-1 py-0.5
                   text-2xl font-semibold text-base-content transition-colors
-                  hover:bg-base-200/70 hover:text-primary
+                  hover:bg-base-200/70 hover:text-info
                   md:text-3xl
                 "
                 inputClassName="

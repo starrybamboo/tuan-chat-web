@@ -59,7 +59,7 @@ function FeedbackTimelineActionButton({
 }) {
   const toneClass = tone === "danger"
     ? "text-base-content/60 hover:bg-error/10 hover:text-error"
-    : "text-base-content/60 hover:bg-primary/10 hover:text-primary";
+    : "text-base-content/60 hover:bg-info/10 hover:text-info";
 
   return (
     <button
@@ -314,7 +314,7 @@ export default function FeedbackIssueTimeline({
               </span>
             </div>
             <div className="
-              text-xs uppercase tracking-[0.18em] text-base-content/40
+              text-xs uppercase tracking-[0.18em] text-base-content/50
             ">
               Timeline
             </div>

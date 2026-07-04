@@ -11,7 +11,9 @@ type UseHorizontalResizeDragParams = {
     deltaX: number;
     event: PointerEvent;
   }) => number | null;
+  onResizeStart?: () => void;
   onResize: (nextSize: number) => void;
+  onResizeEnd?: () => void;
 };
 
 export function useHorizontalResizeDrag<Element extends HTMLElement>({
@@ -19,11 +21,24 @@ export function useHorizontalResizeDrag<Element extends HTMLElement>({
   cursor = "col-resize",
   getStartSize,
   resolveNextSize,
+  onResizeStart,
   onResize,
+  onResizeEnd,
 }: UseHorizontalResizeDragParams) {
   const isDraggingRef = useRef(false);
   const startClientXRef = useRef(0);
   const startSizeRef = useRef(0);
+  const animationFrameRef = useRef<number | null>(null);
+  const pendingSizeRef = useRef<number | null>(null);
+
+  const flushPendingResize = useCallback(() => {
+    animationFrameRef.current = null;
+    const nextSize = pendingSizeRef.current;
+    pendingSizeRef.current = null;
+    if (nextSize != null) {
+      onResize(nextSize);
+    }
+  }, [onResize]);
 
   return useCallback((event: ReactPointerEvent<Element>) => {
     if (!enabled) {
@@ -39,6 +54,7 @@ export function useHorizontalResizeDrag<Element extends HTMLElement>({
     isDraggingRef.current = true;
     startClientXRef.current = event.clientX;
     startSizeRef.current = startSize;
+    onResizeStart?.();
 
     const pointerId = event.pointerId;
     const captureTarget = event.currentTarget;
@@ -58,6 +74,16 @@ export function useHorizontalResizeDrag<Element extends HTMLElement>({
 
     const finishDrag = () => {
       isDraggingRef.current = false;
+      if (animationFrameRef.current != null) {
+        ownerDocument.defaultView?.cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      if (pendingSizeRef.current != null) {
+        const finalSize = pendingSizeRef.current;
+        pendingSizeRef.current = null;
+        onResize(finalSize);
+      }
+      onResizeEnd?.();
       try {
         captureTarget.releasePointerCapture(pointerId);
       }
@@ -82,12 +108,15 @@ export function useHorizontalResizeDrag<Element extends HTMLElement>({
         event: pointerMoveEvent,
       });
       if (nextSize != null) {
-        onResize(nextSize);
+        pendingSizeRef.current = nextSize;
+        if (animationFrameRef.current == null) {
+          animationFrameRef.current = ownerDocument.defaultView?.requestAnimationFrame(flushPendingResize) ?? null;
+        }
       }
     }
 
     ownerDocument.addEventListener("pointermove", handlePointerMove);
     ownerDocument.addEventListener("pointerup", finishDrag);
     ownerDocument.addEventListener("pointercancel", finishDrag);
-  }, [cursor, enabled, getStartSize, onResize, resolveNextSize]);
+  }, [cursor, enabled, flushPendingResize, getStartSize, onResize, onResizeEnd, onResizeStart, resolveNextSize]);
 }

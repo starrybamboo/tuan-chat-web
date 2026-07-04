@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 
 import type { MessageDraft } from "@/types/messageDraft";
 
-import { buildMessageDraftsFromComposerSnapshot } from "@/components/chat/utils/messageDraftBuilder";
+import { buildMessageDraftUploadResultFromComposerSnapshot } from "@/components/chat/utils/messageDraftBuilder";
 import { UploadUtils } from "@/utils/media/UploadUtils";
 
 type UseMaterialMessageComposerSubmitParams = {
@@ -53,7 +53,7 @@ export default function useMaterialMessageComposerSubmit({
     toast.loading("正在添加素材...", { id: toastId });
 
     try {
-      const nextMessages = await buildMessageDraftsFromComposerSnapshot({
+      const draftResult = await buildMessageDraftUploadResultFromComposerSnapshot({
         inputText,
         imgFiles,
         emojiUrls,
@@ -65,6 +65,10 @@ export default function useMaterialMessageComposerSubmit({
         uploadUtils: uploadUtilsRef.current,
         textMessageType,
       });
+      if (draftResult.failedAttachments.length > 0) {
+        throw draftResult.failedAttachments[0]!.error;
+      }
+      const nextMessages = draftResult.drafts;
 
       if (nextMessages.length === 0) {
         toast.dismiss(toastId);

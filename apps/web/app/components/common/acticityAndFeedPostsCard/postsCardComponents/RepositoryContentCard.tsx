@@ -29,7 +29,7 @@ const RepositoryContentCard: React.FC<RepositoryContentCardProps> = ({
       className="
         group w-full rounded-lg border border-base-300 p-4 text-left
         transition-all
-        hover:border-primary/30 hover:shadow-md
+        hover:border-info/30 hover:shadow-md
       "
       onClick={onClick}
     >
@@ -68,7 +68,7 @@ const RepositoryContentCard: React.FC<RepositoryContentCardProps> = ({
           {/* 仓库名称 */}
           <h4 className="
             font-semibold text-base text-base-content
-            group-hover:text-primary
+            group-hover:text-info
             transition-colors line-clamp-2 mb-2
           ">
             {name || "未命名仓库"}

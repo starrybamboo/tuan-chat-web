@@ -124,7 +124,7 @@ export default function NotificationBell() {
           {unreadCount > 0
             ? (
                 <span className="
-                  badge badge-primary badge-xs indicator-item px-1 text-[10px]
+                  badge badge-info badge-xs indicator-item px-1 text-[10px]
                 ">
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </span>

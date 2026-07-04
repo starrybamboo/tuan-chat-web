@@ -6,7 +6,7 @@ export default function RoomSidebarInsertLine({ className }: RoomSidebarInsertLi
   return (
     <div
       className={[
-        "pointer-events-none absolute left-3 right-3 h-0.5 rounded bg-primary/60",
+        "pointer-events-none absolute left-3 right-3 h-0.5 rounded bg-info/60",
         className,
       ].filter(Boolean).join(" ")}
     />

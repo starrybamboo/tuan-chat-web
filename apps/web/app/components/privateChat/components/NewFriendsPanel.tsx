@@ -1,10 +1,9 @@
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 
-import { MediaImage } from "@/components/common/mediaImage";
 import { privateChatListItemMotionProps, privateChatPanelMotionProps } from "@/components/common/motion/privateChatMotion";
+import { UserAvatarByUser } from "@/components/common/userAccess";
 import { Search, XMarkICon } from "@/icons";
-import { imageLowUrl } from "@/utils/media/mediaUrl";
 import {
   useAcceptFriendRequestMutation,
   useCheckFriendQuery,
@@ -103,11 +102,11 @@ export default function NewFriendsPanel() {
         <div className="mt-3">
           <label htmlFor="new-friend-search" className="sr-only">输入用户ID或用户名</label>
           <div className="
-            flex items-center gap-2 rounded-lg border border-gray-300
-            dark:border-gray-700
+            flex items-center gap-2 rounded-lg border border-base-300
+            dark:border-base-300
             bg-base-200 px-3 py-2
-            focus-within:border-primary/60 focus-within:ring-2
-            focus-within:ring-primary/20
+            focus-within:border-info/60 focus-within:ring-2
+            focus-within:ring-info/20
           ">
             <input
               id="new-friend-search"
@@ -137,7 +136,7 @@ export default function NewFriendsPanel() {
             )}
             <button
               type="button"
-              className="btn btn-primary btn-xs"
+              className="btn btn-info btn-xs"
               onClick={searchInputKeyword}
               disabled={!inputKeyword.trim()}
               aria-label="搜索用户"
@@ -168,17 +167,14 @@ export default function NewFriendsPanel() {
                     p-3
                   ">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="
-                        avatar w-9 h-9 shrink-0 overflow-hidden rounded-full
-                        bg-base-300
-                      ">
-                        <MediaImage
-                          className="h-full w-full rounded-full object-cover"
-                          src={imageLowUrl(searchUserInfo?.avatarFileId)}
-                          alt=""
-                          width={36}
-                          height={36}
-                          fallbackSrc="/favicon.ico"
+                      <div className="w-9 h-9 shrink-0">
+                        <UserAvatarByUser
+                          user={searchUserInfo}
+                          fallbackUserId={searchUserInfo?.userId}
+                          width={9}
+                          isRounded={true}
+                          stopToastWindow={true}
+                          clickEnterProfilePage={false}
                         />
                       </div>
                       <div className="min-w-0">
@@ -208,7 +204,7 @@ export default function NewFriendsPanel() {
                         />
                         <button
                           type="button"
-                          className="btn btn-xs btn-primary"
+                          className="btn btn-xs btn-info"
                           disabled={
                             sendFriendRequestMutation.isPending
                             || !searchUserInfo?.userId
@@ -257,8 +253,8 @@ export default function NewFriendsPanel() {
 
       {/* 待处理好友请求 */}
       <div className="
-        px-4 pt-4 pb-2 border-t border-gray-300
-        dark:border-gray-700
+        px-4 pt-4 pb-2 border-t border-base-300
+        dark:border-base-300
         mt-2
       ">
         <div className="text-sm font-semibold mb-2">
@@ -291,18 +287,14 @@ export default function NewFriendsPanel() {
                       {...privateChatListItemMotionProps(index)}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="
-                          avatar w-9 h-9 shrink-0 overflow-hidden rounded-full
-                          bg-base-300
-                        ">
-                          <MediaImage
-                            className="h-full w-full rounded-full object-cover"
-                            src={imageLowUrl(user?.avatarFileId)}
-                            alt=""
-                            width={36}
-                            height={36}
-                            loading="lazy"
-                            fallbackSrc="/favicon.ico"
+                        <div className="w-9 h-9 shrink-0">
+                          <UserAvatarByUser
+                            user={user}
+                            fallbackUserId={user?.userId}
+                            width={9}
+                            isRounded={true}
+                            stopToastWindow={true}
+                            clickEnterProfilePage={false}
                           />
                         </div>
                         <div className="min-w-0">
@@ -316,7 +308,7 @@ export default function NewFriendsPanel() {
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          className="btn btn-xs btn-primary"
+                          className="btn btn-xs btn-info"
                           disabled={acceptFriendRequestMutation.isPending || !req.id}
                           onClick={() => req.id && acceptFriendRequestMutation.mutate({ friendReqId: req.id })}
                         >

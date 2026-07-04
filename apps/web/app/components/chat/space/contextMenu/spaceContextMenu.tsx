@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { getSpaceArchiveActionDisabledReason } from "@/components/chat/space/spaceArchiveActionPolicy";
-import ConfirmModal from "@/components/common/comfirmModel";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 
 import { useDissolveSpaceMutation, useExitSpaceMutation, useRecoverSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../../api/hooks/chatQueryHooks";
 
@@ -162,14 +162,14 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
         </div>
       )}
 
-      <ConfirmModal
-        isOpen={isDissolveConfirmOpen}
-        onClose={() => {
+      <ConfirmDialog
+        open={isDissolveConfirmOpen}
+        onOpenChange={() => {
           setIsDissolveConfirmOpen(false);
           setDissolveTargetSpaceId(null);
         }}
         title="确认解散空间"
-        message="是否确定要解散该空间？此操作不可逆。"
+        description="是否确定要解散该空间？此操作不可逆。"
         onConfirm={() => {
           if (dissolveTargetSpaceId == null)
             return;
@@ -194,15 +194,15 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
           });
         }}
       />
-      <ConfirmModal
-        isOpen={isArchiveConfirmOpen}
-        onClose={() => {
+      <ConfirmDialog
+        open={isArchiveConfirmOpen}
+        onOpenChange={() => {
           setIsArchiveConfirmOpen(false);
           setArchiveTargetSpaceId(null);
         }}
         title="确认归档空间"
-        message="归档后空间将进入只读状态，可在之后恢复编辑。是否继续？"
-        confirmText="确认归档"
+        description="归档后空间将进入只读状态，可在之后恢复编辑。是否继续？"
+        confirmLabel="确认归档"
         variant="warning"
         onConfirm={() => {
           if (archiveTargetSpaceId == null) {

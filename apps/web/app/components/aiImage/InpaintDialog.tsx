@@ -873,12 +873,12 @@ export function InpaintDialog({
     triggerBrowserDownload(source.dataUrl, `inpaint-source-${source.seed}.png`);
   }, [source]);
 
-  const topActionButtonClassName = "inline-flex h-10 items-center justify-center border-0 px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-40 rounded-none";
-  const topIconActionButtonClassName = "inline-flex size-10 items-center justify-center border-0 bg-base-200 text-base-content/72 transition hover:bg-base-300 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-35 rounded-none";
-  const sharedPanelClassName = "rounded-md border border-base-300 bg-base-100 shadow-[0_18px_48px_rgba(0,0,0,0.18)]";
-  const bottomToolButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-transparent bg-transparent text-base-content/60 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-35";
-  const zoomPanelButtonClassName = "inline-flex h-10 items-center justify-center rounded-md border border-transparent bg-transparent px-2 text-base-content/60 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-35";
-  const zoomPanelLabelClassName = "inline-flex h-10 min-w-14 items-center justify-center rounded-md border border-base-300 bg-base-200 px-3 text-[11px] font-semibold text-base-content/82 transition hover:bg-base-300 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20";
+  const topActionButtonClassName = "inline-flex h-10 items-center justify-center border-0 px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-info/20 disabled:cursor-not-allowed disabled:opacity-40 rounded-none";
+  const topIconActionButtonClassName = "inline-flex size-10 items-center justify-center border-0 bg-base-200 text-base-content/72 transition hover:bg-base-300 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-info/20 disabled:cursor-not-allowed disabled:opacity-35 rounded-none";
+  const sharedPanelClassName = "rounded-md border border-base-300 bg-base-100 shadow-xl";
+  const bottomToolButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-transparent bg-transparent text-base-content/60 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-info/20 disabled:cursor-not-allowed disabled:opacity-35";
+  const zoomPanelButtonClassName = "inline-flex h-10 items-center justify-center rounded-md border border-transparent bg-transparent px-2 text-base-content/60 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-info/20 disabled:cursor-not-allowed disabled:opacity-35";
+  const zoomPanelLabelClassName = "inline-flex h-10 min-w-14 items-center justify-center rounded-md border border-base-300 bg-base-200 px-3 text-[11px] font-semibold text-base-content/82 transition hover:bg-base-300 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-info/20";
   const boardButtonClassName = `${bottomToolButtonClassName} ${isBoardPanelOpen ? "bg-base-300 text-base-content" : ""}`;
   const boardPanelClassName = `absolute right-0 bottom-[calc(100%+10px)] z-30 w-[320px] p-3 ${sharedPanelClassName}`;
   const canUndo = historyState.undoCount > 0;

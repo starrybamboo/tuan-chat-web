@@ -27,7 +27,6 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
     : roomContext.spaceId;
   const previewDocId = payload?.roomId ? String(payload.roomId) : payload?.docId;
   const title = payload?.title || (payload?.docId ? `文档：${payload.docId}` : "文档");
-  const coverUrl = payload?.imageUrl ?? "";
   const coverFileId = payload?.imageFileId;
   const originalCoverFileId = payload?.originalImageFileId;
   const imageMediaType = payload?.imageMediaType;
@@ -87,7 +86,6 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
               ...(coverFileId ? { imageFileId: coverFileId } : {}),
               ...(originalCoverFileId ? { originalImageFileId: originalCoverFileId } : {}),
               ...(imageMediaType ? { imageMediaType } : {}),
-              ...(coverUrl ? { imageUrl: coverUrl } : {}),
               ...(excerpt ? { excerpt } : {}),
             });
           }}
@@ -155,7 +153,6 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
                     showToolbar={false}
                     spaceId={previewSpaceId}
                     tcHeaderTitle={title}
-                    tcHeaderImageUrl={coverUrl}
                     tcHeaderImageFileId={coverFileId}
                     tcHeaderOriginalImageFileId={originalCoverFileId}
                     tcHeaderImageMediaType={imageMediaType}

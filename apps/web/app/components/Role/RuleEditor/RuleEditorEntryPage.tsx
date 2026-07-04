@@ -88,7 +88,7 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
           {
             id: "create-rule-from-basic",
             label: "创建新规则",
-            icon: <Plus className="size-4" weight="bold" />,
+            icon: <Plus className="size-4" weight="regular" />,
             onClick: handleCreate,
             disabled: !canCreate,
             variant: "primary",
@@ -120,7 +120,7 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
             disabled={!canCreate}
           >
             <span className="flex items-center gap-1">
-              <Plus className="size-4" weight="bold" />
+              <Plus className="size-4" weight="regular" />
               创建新规则
             </span>
           </button>
@@ -151,11 +151,13 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
                 </div>
                 <input
                   type="text"
+                  autoComplete="off"
+                  aria-label="规则名称"
                   className="
                     input input-bordered bg-base-200 rounded-md w-full
                     transition
-                    focus:outline-none focus:ring-2 focus:ring-primary/20
-                    focus:border-primary
+                    focus:outline-none focus:ring-2 focus:ring-info/20
+                    focus:border-info
                   "
                   placeholder="输入规则名称"
                   value={ruleName}
@@ -177,9 +179,11 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
                   className="
                     textarea textarea-bordered bg-base-200 rounded-md
                     min-h-[120px] resize-y w-full transition
-                    focus:outline-none focus:ring-2 focus:ring-primary/20
-                    focus:border-primary
+                    focus:outline-none focus:ring-2 focus:ring-info/20
+                    focus:border-info
                   "
+                  autoComplete="off"
+                  aria-label="规则描述"
                   placeholder="描述规则定位、核心机制和适用场景"
                   value={ruleDescription}
                   maxLength={RULE_DESCRIPTION_MAX_LENGTH}
@@ -205,7 +209,7 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
                 type="button"
                 className={`
                   btn btn-sm rounded-md
-                  ${scope === "all" ? `btn-primary` : `btn-ghost`}
+                  ${scope === "all" ? `btn-info` : `btn-ghost`}
                 `}
                 onClick={() => setScope("all")}
               >
@@ -215,7 +219,7 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
                 type="button"
                 className={`
                   btn btn-sm rounded-md
-                  ${scope === "mine" ? `btn-primary` : `btn-ghost`}
+                  ${scope === "mine" ? `btn-info` : `btn-ghost`}
                 `}
                 onClick={() => setScope("mine")}
               >

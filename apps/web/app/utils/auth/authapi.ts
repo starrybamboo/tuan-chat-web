@@ -67,6 +67,17 @@ function syncAuthStatusCache(status: AuthStatus) {
   queryClient.setQueryData(getAuthStatusQueryKey(), status);
 }
 
+async function persistAuthenticatedSession(
+  token: string,
+  uidResolver: () => Promise<number | undefined>,
+) {
+  resetTuanChatQueryCache();
+  localStorage.setItem("token", token);
+  persistUid(await uidResolver());
+  syncAuthStatusCache(buildLoggedInStatus(token, readStoredUid()));
+  dispatchStoredAuthSessionChanged("login");
+}
+
 function isUnauthorizedApiError(error: unknown): error is ApiError {
   return error instanceof ApiError && error.status === 401;
 }
@@ -134,11 +145,10 @@ export async function loginUser(
 
     // Sa-Token：登录成功后返回 tokenValue，需要本地持久化
     if (response?.data) {
-      resetTuanChatQueryCache();
-      localStorage.setItem("token", response.data);
-      persistUid(await resolveAuthenticatedUid(loginRequest, loginMethod));
-      syncAuthStatusCache(buildLoggedInStatus(response.data, readStoredUid()));
-      dispatchStoredAuthSessionChanged("login");
+      await persistAuthenticatedSession(
+        response.data,
+        () => resolveAuthenticatedUid(loginRequest, loginMethod),
+      );
     }
 
     return response;
@@ -151,6 +161,12 @@ export async function loginUser(
 export async function registerUser(credentials: RegisterCredentials) {
   try {
     const response = await tuanchat.userController.register(credentials as UserRegisterRequest);
+    if (response?.data) {
+      await persistAuthenticatedSession(
+        response.data,
+        () => resolveAuthenticatedUid({ userId: undefined, username: credentials.username, password: credentials.password }, "username"),
+      );
+    }
 
     return response;
   }
