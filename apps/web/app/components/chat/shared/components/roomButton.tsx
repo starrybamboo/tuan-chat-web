@@ -1,6 +1,7 @@
 import React from "react";
 
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
+import { IMAGE_NATURAL_BORDER_CLASS } from "@/components/common/Avatar";
 import { MediaImage } from "@/components/common/mediaImage";
 import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/media/mediaUrl";
 
@@ -69,7 +70,7 @@ export default function RoomButton({
                 </span>
               )
             : null}
-          <div className="mask mask-squircle size-8">
+          <div className={`mask mask-squircle size-8 ${IMAGE_NATURAL_BORDER_CLASS}`}>
             <MediaImage
               src={displayAvatar}
               alt={displayName}

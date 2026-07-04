@@ -1,6 +1,7 @@
 import { motion, useAnimate } from "motion/react";
 import { useEffect, useRef } from "react";
 
+import { IMAGE_NATURAL_BORDER_CLASS } from "@/components/common/Avatar";
 import { MediaImage } from "@/components/common/mediaImage";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import PortalTooltip from "@/components/common/portalTooltip";
@@ -93,7 +94,7 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, onPre
                   </span>
                 )
               : null}
-            <div className="avatar mask mask-squircle size-10">
+            <div className={`avatar mask mask-squircle size-10 ${IMAGE_NATURAL_BORDER_CLASS}`}>
               <MediaImage
                 src={displayAvatar}
                 alt={displayName}

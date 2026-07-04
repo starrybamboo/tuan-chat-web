@@ -33,6 +33,8 @@ export const AVATAR_HOVER_SHELL_CLASS
 /** 头像图片组悬浮放大（配合 group/avatar）。 */
 export const AVATAR_HOVER_IMAGE_CLASS
   = "transition-transform duration-200 ease-out motion-reduce:transition-none group-hover/avatar:scale-105";
+/** 自然图片边界：只在图片外壳内侧加轻描边，不改变透明图片背景。 */
+export const IMAGE_NATURAL_BORDER_CLASS = "ring-1 ring-inset ring-base-content/10";
 
 export type AvatarProps = {
   src?: string;
@@ -71,6 +73,7 @@ export function Avatar({
           ${AVATAR_SIZE_CLASS[size]}
           ${rounded ? "rounded-full" : "rounded"}
           flex items-center justify-center overflow-hidden bg-transparent
+          ${IMAGE_NATURAL_BORDER_CLASS}
           ${shellClassName ?? ""}
         `}
       >
