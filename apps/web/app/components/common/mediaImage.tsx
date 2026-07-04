@@ -173,7 +173,7 @@ export function MediaImage({
   return (
     <img
       {...props}
-      className={`${className ?? ""} !bg-transparent ${loadTransitionClassName}`}
+      className={`bg-transparent ${className ?? ""} ${loadTransitionClassName}`}
       ref={setImageRef}
       src={currentSrc || undefined}
       onLoad={handleLoad}
