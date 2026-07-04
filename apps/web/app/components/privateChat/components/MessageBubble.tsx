@@ -80,7 +80,7 @@ export default function MessageBubble({ message, isOwn, groupedWithPrevious = fa
               src={videoUrl}
               controls={true}
               preload="metadata"
-              className="max-h-[40vh] max-w-[245px] rounded-lg bg-black"
+              className="max-h-[40vh] max-w-[245px] rounded-lg bg-transparent"
             />
           </div>
         );

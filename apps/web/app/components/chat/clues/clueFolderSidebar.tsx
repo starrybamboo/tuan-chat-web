@@ -1144,7 +1144,7 @@ export default function ClueFolderSidebar({
                     )}
                     {draftAttachment.kind === "video" && (
                       <video controls src={draftAttachment.previewUrl} className="
-                        max-h-64 w-full rounded-md bg-black
+                        max-h-64 w-full rounded-md bg-transparent
                       " />
                     )}
                     {draftAttachment.kind === "file" && (

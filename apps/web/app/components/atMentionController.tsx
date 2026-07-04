@@ -298,7 +298,7 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
                       flex-col items-center justify-center py-2 bg-base-200/50
                       border border-base-300/50
                       ${isSelected ? `
-                        active !bg-info !border-info !text-info-content
+                        bg-info border-info text-info-content
                       ` : ""}
                     `}
                     onClick={() => handleSelectRole(role)}
@@ -331,7 +331,7 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
                   aria-selected={isSelected}
                   className={`
                     gap-3 py-2
-                    ${isSelected ? `active !bg-info !text-info-content` : ""}
+                    ${isSelected ? `bg-info text-info-content` : ""}
                   `}
                   onClick={() => handleSelectRole(role)}
                 >
