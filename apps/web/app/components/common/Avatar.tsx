@@ -3,7 +3,7 @@ import type { ImgHTMLAttributes, ReactNode } from "react";
 import ImgWithHoverToScale from "@/components/common/imgWithHoverToScale";
 
 /**
- * 统一头像壳：尺寸档位 + 圆形/圆角 + 图片回退 + 主题占位底。
+ * 统一头像壳：尺寸档位 + 圆形/圆角 + 图片回退 + 透明图片区域。
  * 业务头像（UserAvatar/RoleAvatar 等）内部复用本组件的尺寸常量与壳样式，
  * 各自保留其查询/详情/跳转等业务逻辑。
  */
@@ -70,7 +70,7 @@ export function Avatar({
         className={`
           ${AVATAR_SIZE_CLASS[size]}
           ${rounded ? "rounded-full" : "rounded"}
-          flex items-center justify-center overflow-hidden bg-base-300
+          flex items-center justify-center overflow-hidden bg-transparent
           ${shellClassName ?? ""}
         `}
       >
