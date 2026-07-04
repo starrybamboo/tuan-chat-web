@@ -1,6 +1,6 @@
 import type { ImgHTMLAttributes, Ref, SyntheticEvent } from "react";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import {
   logPersistentMediaImageDebug,
@@ -12,6 +12,7 @@ import {
 
 type MediaImageProps = ImgHTMLAttributes<HTMLImageElement> & {
   fallbackSrc?: string;
+  loadTransition?: boolean;
   ref?: Ref<HTMLImageElement>;
 };
 
@@ -58,7 +59,9 @@ export async function loadMediaImageWithOriginalFallback(src: string | null | un
 }
 
 export function MediaImage({
+  className,
   fallbackSrc,
+  loadTransition = true,
   onError: externalOnError,
   onLoad: externalOnLoad,
   ref,
@@ -69,7 +72,23 @@ export function MediaImage({
   const normalizedFallbackSrc = useMemo(() => normalizeImageSrc(fallbackSrc), [fallbackSrc]);
   const preferredSrc = useMemo(() => resolvePersistentMediaImageSrcSync(normalizedSrc), [normalizedSrc]);
   const [currentSrc, setCurrentSrc] = useState(() => preferredSrc || normalizedFallbackSrc || normalizedSrc);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [shouldShowLoadingEffect, setShouldShowLoadingEffect] = useState(false);
   const fallbackStageRef = useRef<"initial" | "original" | "fallback">("initial");
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const setImageRef = useCallback((element: HTMLImageElement | null) => {
+    imageRef.current = element;
+
+    if (typeof ref === "function") {
+      return ref(element);
+    }
+
+    if (ref) {
+      (ref as { current: HTMLImageElement | null }).current = element;
+    }
+
+    return undefined;
+  }, [ref]);
 
   useEffect(() => {
     fallbackStageRef.current = "initial";
@@ -82,6 +101,23 @@ export function MediaImage({
     setCurrentSrc(resolvedDisplaySrc);
   }, [normalizedSrc, normalizedFallbackSrc]);
 
+  useLayoutEffect(() => {
+    setIsImageLoaded(false);
+    setShouldShowLoadingEffect(false);
+
+    if (!loadTransition || !currentSrc) {
+      return;
+    }
+
+    const imageElement = imageRef.current;
+    if (imageElement?.complete && imageElement.naturalWidth > 0) {
+      setIsImageLoaded(true);
+      return;
+    }
+
+    setShouldShowLoadingEffect(true);
+  }, [currentSrc, loadTransition]);
+
   const handleLoad = (event: SyntheticEvent<HTMLImageElement>) => {
     const loadedSrc = event.currentTarget.currentSrc || event.currentTarget.src || currentSrc;
     logPersistentMediaImageDebug("component.dom_load", {
@@ -89,6 +125,8 @@ export function MediaImage({
       renderedSrc: currentSrc,
       loadedBrowserSrc: loadedSrc,
     });
+    setIsImageLoaded(true);
+    setShouldShowLoadingEffect(false);
     externalOnLoad?.(event);
   };
 
@@ -123,10 +161,20 @@ export function MediaImage({
     return null;
   }
 
+  const isLoadingEffectVisible = loadTransition && !isImageLoaded && shouldShowLoadingEffect;
+  const loadTransitionClassName = loadTransition
+    ? `
+      transition-[filter,opacity] duration-300 ease-out
+      motion-reduce:transition-none
+      ${isLoadingEffectVisible ? "blur-sm opacity-85" : "blur-0 opacity-100"}
+    `
+    : "";
+
   return (
     <img
       {...props}
-      ref={ref}
+      className={`${className ?? ""} ${loadTransitionClassName}`}
+      ref={setImageRef}
       src={currentSrc || undefined}
       onLoad={handleLoad}
       onError={handleError}

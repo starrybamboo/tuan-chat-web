@@ -447,6 +447,7 @@ export default function RepositoryDetailComponent({
                                 transition-opacity duration-300
                               `}
                               src={displayRepositoryImage}
+                              loadTransition={false}
                               onLoad={() => setImageLoading(false)}
                               onError={() => {
                                 setImageLoading(false);

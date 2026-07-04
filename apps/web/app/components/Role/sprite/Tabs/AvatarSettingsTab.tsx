@@ -334,6 +334,7 @@ function WebgalSpritePreview({ characterName, imageUrl, transform }: SpritePrevi
                 alt=""
                 aria-hidden="true"
                 className="pointer-events-none absolute size-px opacity-0"
+                loadTransition={false}
                 onLoad={(event) => {
                   void drawSourceToPreview(event.currentTarget);
                 }}

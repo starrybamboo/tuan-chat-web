@@ -97,6 +97,7 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, onPre
               <MediaImage
                 src={displayAvatar}
                 alt={displayName}
+                className="h-full w-full object-cover"
                 draggable={false}
                 fallbackSrc={fallbackAvatar}
                 onError={() => {
