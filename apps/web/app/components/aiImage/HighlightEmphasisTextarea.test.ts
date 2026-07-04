@@ -66,6 +66,6 @@ describe("highlightEmphasisTextarea", () => {
       }),
     );
 
-    expect(html).toContain("text-base-content/45");
+    expect(html).toContain("text-base-content/50");
   });
 });

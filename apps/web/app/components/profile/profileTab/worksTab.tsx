@@ -61,7 +61,7 @@ const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
         return (
           <>
             <h2 className="text-2xl font-bold">创建的仓库</h2>
-            <span className="text-gray-500">
+            <span className="text-base-content/60">
               共
               {" "}
               {repositoriesResponse?.data?.totalRecords || 0}
@@ -74,7 +74,7 @@ const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
         return (
           <>
             <h2 className="text-2xl font-bold">创建的角色</h2>
-            <span className="text-gray-500">
+            <span className="text-base-content/60">
               共
               {" "}
               {response?.data?.totalRecords || 0}
@@ -110,7 +110,7 @@ const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
       {/* 顶部导航 - 移动端 */}
       <div className="
         md:hidden
-        overflow-x-auto whitespace-nowrap p-4 border-b border-gray-200
+        overflow-x-auto whitespace-nowrap p-4 border-b border-base-300
       ">
         <nav className="flex space-x-2">
           {renderTabButton("repositories", "仓库")}
@@ -128,7 +128,7 @@ const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
         <div className="
           hidden
           md:flex md:flex-col
-          w-48 flex-shrink-0 p-4 border-r border-gray-200 pt-10
+          w-48 flex-shrink-0 p-4 border-r border-base-300 pt-10
         ">
           <nav className="space-y-2 flex flex-col">
             {renderTabButton("repositories", "仓库")}

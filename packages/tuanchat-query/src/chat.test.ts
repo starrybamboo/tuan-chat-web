@@ -192,7 +192,7 @@ describe("chat room message helpers", () => {
     });
   });
 
-  it("批量插入消息未传 mutationMeta 时保持旧请求形状", async () => {
+  it("批量插入消息未传 mutationMeta 时使用聊天室输入默认来源", async () => {
     const patchRoomMessages = vi.fn<MockFn>(async () => ({ data: [], success: true }));
 
     await patchInsertMessages({
@@ -206,6 +206,10 @@ describe("chat room message helpers", () => {
     }]);
 
     expect(patchRoomMessages).toHaveBeenCalledWith({
+      mutationMeta: {
+        operationCause: "normal",
+        sourceSurface: "chat_input",
+      },
       operations: [{
         message: {
           content: "普通消息",

@@ -1,19 +1,21 @@
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 
-import { Broom, DotsThreeVerticalIcon } from "@phosphor-icons/react";
+import { BellSlashIcon, Broom, DotsThreeVerticalIcon } from "@phosphor-icons/react";
 import { useLocation } from "@tanstack/react-router";
 import React from "react";
+import { toast } from "react-hot-toast";
 
 import SearchBar from "@/components/chat/input/inlineSearch";
 import MobileSearchPage from "@/components/chat/input/mobileSearchPage";
 import RoomDescriptionDropdown from "@/components/chat/room/roomDescriptionDropdown";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
-import ConfirmModal from "@/components/common/comfirmModel";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import {
   ArticleIcon,
   BaselineArrowBackIosNew,
   Bubble2,
+  RoomChatIcon,
   XMarkICon,
 } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
@@ -33,6 +35,10 @@ type RoomHeaderBarProps = {
   onCloseSubWindow?: () => void;
   onClearAndReloadAllMessages?: () => void | Promise<void>;
   isReloadingAllMessages?: boolean;
+  canManageMute?: boolean;
+  isSpaceMuted?: boolean;
+  onToggleMute?: () => void | Promise<void>;
+  isTogglingMute?: boolean;
 }
 
 function RoomHeaderBarImpl({
@@ -44,6 +50,10 @@ function RoomHeaderBarImpl({
   onCloseSubWindow,
   onClearAndReloadAllMessages,
   isReloadingAllMessages = false,
+  canManageMute = false,
+  isSpaceMuted = false,
+  onToggleMute,
+  isTogglingMute = false,
 }: RoomHeaderBarProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
@@ -64,6 +74,7 @@ function RoomHeaderBarImpl({
   const hasRoomDescription = Boolean(room?.description?.trim());
   const chatBubbleStyleLabel = useChatBubbleStyle ? "当前：气泡样式" : "当前：传统样式";
   const chatBubbleStyleToggleLabel = useChatBubbleStyle ? "切换到传统样式" : "切换到气泡样式";
+  const spaceMuteLabel = isSpaceMuted ? "解除全员禁言" : "除 KP 外全员禁言";
   const blurActiveElement = () => {
     if (typeof document === "undefined") {
       return;
@@ -90,6 +101,16 @@ function RoomHeaderBarImpl({
   const handleOpenMobileSearch = () => {
     setIsMobileSearchOpen(true);
     blurActiveElement();
+  };
+
+  const handleToggleMute = () => {
+    if (!canManageMute || !onToggleMute || isTogglingMute) {
+      return;
+    }
+    void Promise.resolve(onToggleMute()).catch((error) => {
+      console.error("切换空间禁言失败", error);
+      toast.error("切换禁言失败，请稍后重试");
+    });
   };
 
   const handleMobileBack = () => {
@@ -154,15 +175,15 @@ function RoomHeaderBarImpl({
         className="relative z-50"
       >
         <div className="
-          border-gray-300
-          dark:border-gray-700
+          border-base-300
+          dark:border-base-300
           border-y flex justify-between items-center overflow-visible relative
           z-50
         ">
           <div
             className="
               flex justify-between items-center w-full px-2 h-10 bg-white/40
-              dark:bg-slate-950/25
+              dark:bg-base-300/25
               backdrop-blur-xl border border-white/40
               dark:border-white/10
             "
@@ -214,8 +235,8 @@ function RoomHeaderBarImpl({
                 className={`
                   hidden min-w-0 flex-1 truncate text-xs
                   sm:block
-                  ${hasRoomDescription ? `text-base-content/45` : `
-                    text-base-content/25
+                  ${hasRoomDescription ? `text-base-content/50` : `
+                    text-base-content/50
                   `}
                 `}
                 title={roomDescriptionPreview}
@@ -283,6 +304,18 @@ function RoomHeaderBarImpl({
                         <li>
                           <button
                             type="button"
+                            disabled={!canManageMute || isTogglingMute}
+                            onClick={() => {
+                              closeMobileToolsMenu();
+                              handleToggleMute();
+                            }}
+                          >
+                            {spaceMuteLabel}
+                          </button>
+                        </li>
+                        <li>
+                          <button
+                            type="button"
                             onClick={() => {
                               closeMobileToolsMenu();
                               toggleUseChatBubbleStyle();
@@ -321,8 +354,28 @@ function RoomHeaderBarImpl({
                         onClick={onToggleContentMode}
                       >
                         {contentMode === "doc"
-                          ? <Bubble2 className="size-6" />
+                          ? <RoomChatIcon className="size-6" />
                           : <ArticleIcon className="size-6" />}
+                      </button>
+                      <ToolbarDivider />
+                      <button
+                        type="button"
+                        className={[
+                          "tooltip tooltip-bottom relative z-50 inline-flex size-8 items-center justify-center rounded-md transition-all duration-150",
+                          isSpaceMuted
+                            ? "bg-error/15 text-error shadow-[inset_0_0_0_1px_color-mix(in_oklab,currentColor_35%,transparent)] hover:bg-error/20"
+                            : "text-base-content/70 hover:bg-base-300/60 hover:text-error",
+                          !canManageMute || isTogglingMute ? "cursor-not-allowed opacity-50" : "",
+                        ].join(" ")}
+                        data-tip={spaceMuteLabel}
+                        aria-label={spaceMuteLabel}
+                        aria-pressed={isSpaceMuted}
+                        disabled={!canManageMute || isTogglingMute}
+                        onClick={handleToggleMute}
+                      >
+                        <BellSlashIcon className={isSpaceMuted ? `
+                          size-5 drop-shadow-[0_0_6px_currentColor]
+                        ` : `size-5`} />
                       </button>
                       <ToolbarDivider />
                       <button
@@ -353,17 +406,17 @@ function RoomHeaderBarImpl({
         </div>
       </div>
       <MobileSearchPage isOpen={isMobileSearchOpen} onClose={() => setIsMobileSearchOpen(false)} />
-      <ConfirmModal
-        isOpen={isClearReloadConfirmOpen}
-        onClose={() => {
+      <ConfirmDialog
+        open={isClearReloadConfirmOpen}
+        onOpenChange={() => {
           if (isReloadingAllMessages) {
             return;
           }
           setIsClearReloadConfirmOpen(false);
         }}
         title="确认清空并重拉消息"
-        message="此操作会清空当前房间本地缓存消息，并从服务端重新拉取全量历史消息。是否继续？"
-        confirmText="确认执行"
+        description="此操作会清空当前房间本地缓存消息，并从服务端重新拉取全量历史消息。是否继续？"
+        confirmLabel="确认执行"
         variant="warning"
         onConfirm={() => {
           if (!onClearAndReloadAllMessages) {

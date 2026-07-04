@@ -259,7 +259,7 @@ export default function MaterialPackageEditor({
       case "pending":
         return "text-base-content/55";
       default:
-        return "text-base-content/45";
+        return "text-base-content/50";
     }
   }, [autoSaveEnabled, autoSaveState]);
 
@@ -279,7 +279,7 @@ export default function MaterialPackageEditor({
                 inline-flex w-full items-center justify-center gap-2 rounded-md
                 border border-base-300 bg-base-100/80 px-4 py-2.5 text-sm
                 font-medium text-base-content shadow-sm transition
-                hover:border-primary/30 hover:bg-base-100
+                hover:border-info/30 hover:bg-base-100
                 sm:w-auto
               "
               onClick={onBack}
@@ -307,11 +307,11 @@ export default function MaterialPackageEditor({
               type="button"
               className="
                 inline-flex min-h-10 w-full items-center justify-center
-                rounded-md bg-primary px-5 py-2.5 text-sm font-semibold
-                text-primary-content shadow-[0_8px_16px_rgba(59,130,246,0.15)]
+                rounded-md bg-info px-5 py-2.5 text-sm font-semibold
+                text-info-content shadow-md
                 transition
                 hover:-translate-y-0.5
-                hover:shadow-[0_12px_24px_rgba(59,130,246,0.22)]
+                hover:shadow-lg
                 disabled:opacity-60
                 disabled:hover:translate-y-0 disabled:hover:shadow-none
                 sm:w-auto
@@ -328,11 +328,11 @@ export default function MaterialPackageEditor({
               type="button"
               className="
                 inline-flex min-h-10 w-full items-center justify-center
-                rounded-md bg-primary px-6 py-2.5 text-sm font-semibold
-                text-primary-content shadow-[0_8px_16px_rgba(59,130,246,0.15)]
+                rounded-md bg-info px-6 py-2.5 text-sm font-semibold
+                text-info-content shadow-md
                 transition
                 hover:-translate-y-0.5
-                hover:shadow-[0_12px_24px_rgba(59,130,246,0.22)]
+                hover:shadow-lg
                 disabled:opacity-60
                 disabled:hover:translate-y-0 disabled:hover:shadow-none
                 sm:w-auto

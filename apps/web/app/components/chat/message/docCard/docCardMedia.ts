@@ -1,12 +1,11 @@
 import { getDocCardExtra } from "@/types/messageExtra";
-import { imageLowUrl, imageLowUrlFromUrl, imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/media/mediaUrl";
+import { imageLowUrl, imageMediumUrl } from "@/utils/media/mediaUrl";
 
 type DocCardCoverQuality = "low" | "medium";
 
 export type DocCardCoverSource = {
   imageFileId?: unknown;
   imageMediaType?: unknown;
-  imageUrl?: unknown;
   originalImageFileId?: unknown;
 };
 
@@ -15,7 +14,6 @@ export type DocCardReferencePayload = {
   excerpt?: string;
   imageFileId?: number;
   imageMediaType?: string;
-  imageUrl?: string;
   originalImageFileId?: number;
   roomId?: number;
   spaceId?: number;
@@ -39,20 +37,8 @@ function toRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function getDocCardCompatExtra(extra: unknown): Record<string, unknown> | null {
-  const nested = toRecord(getDocCardExtra(extra));
-  if (nested) {
-    return nested;
-  }
-
-  const record = toRecord(extra);
-  const rawDocId = normalizeText(record?.docId);
-  const roomId = toPositiveNumber(record?.roomId);
-  return rawDocId || roomId ? record : null;
-}
-
-export function normalizeLegacyDocCardImageUrl(url: unknown): string {
-  return normalizeText(url);
+function getDocCardExtraRecord(extra: unknown): Record<string, unknown> | null {
+  return toRecord(getDocCardExtra(extra));
 }
 
 export function resolveDocCardCoverFileId(source: DocCardCoverSource | null | undefined): number | undefined {
@@ -69,28 +55,19 @@ export function resolveDocCardDisplayCoverUrl(
     return fromFileId;
   }
 
-  const legacyUrl = normalizeLegacyDocCardImageUrl(source?.imageUrl);
-  return quality === "low" ? imageLowUrlFromUrl(legacyUrl) : imageMediumUrlFromUrl(legacyUrl);
+  return "";
 }
 
 export function buildDocCardCoverReferenceFields(
   source: DocCardCoverSource | null | undefined,
-): Pick<DocCardReferencePayload, "imageFileId" | "imageMediaType" | "imageUrl" | "originalImageFileId"> {
+): Pick<DocCardReferencePayload, "imageFileId" | "imageMediaType" | "originalImageFileId"> {
   const imageFileId = toPositiveNumber(source?.imageFileId);
   const originalImageFileId = toPositiveNumber(source?.originalImageFileId);
   const imageMediaType = normalizeText(source?.imageMediaType);
-  const imageUrl = normalizeLegacyDocCardImageUrl(source?.imageUrl);
-
-  if (imageFileId || originalImageFileId) {
-    return {
-      ...(imageFileId ? { imageFileId } : {}),
-      ...(originalImageFileId ? { originalImageFileId } : {}),
-      ...(imageMediaType ? { imageMediaType } : {}),
-    };
-  }
 
   return {
-    ...(imageUrl ? { imageUrl } : {}),
+    ...(imageFileId ? { imageFileId } : {}),
+    ...(originalImageFileId ? { originalImageFileId } : {}),
     ...(imageMediaType ? { imageMediaType } : {}),
   };
 }
@@ -100,7 +77,6 @@ export function buildDocCardReferencePayload(source: {
   excerpt?: unknown;
   imageFileId?: unknown;
   imageMediaType?: unknown;
-  imageUrl?: unknown;
   originalImageFileId?: unknown;
   roomId?: unknown;
   spaceId?: unknown;
@@ -123,7 +99,7 @@ export function buildDocCardReferencePayload(source: {
 }
 
 export function extractDocCardReferencePayload(extra: unknown): DocCardReferencePayload | null {
-  const docCard = getDocCardCompatExtra(extra);
+  const docCard = getDocCardExtraRecord(extra);
   const roomId = toPositiveNumber(docCard?.roomId);
   const spaceId = toPositiveNumber(docCard?.spaceId);
   const rawDocId = normalizeText(docCard?.docId);
@@ -137,7 +113,6 @@ export function extractDocCardReferencePayload(extra: unknown): DocCardReference
     ...(roomId ? { roomId } : {}),
     ...(spaceId ? { spaceId } : {}),
     title: docCard?.title,
-    imageUrl: docCard?.imageUrl,
     imageFileId: docCard?.imageFileId,
     originalImageFileId: docCard?.originalImageFileId,
     imageMediaType: docCard?.imageMediaType,

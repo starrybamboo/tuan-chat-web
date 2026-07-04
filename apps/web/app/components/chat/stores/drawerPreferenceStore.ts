@@ -86,11 +86,9 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>((set, get)
       return;
     hasHydrated = true;
 
-    // 旧版本 WebGAL 预览单独保存 webgalDrawerWidth；现在与跑团侧窗共用 subRoomWindowWidth。
-    const legacyWebgalDrawerWidth = readNumber("webgalDrawerWidth", DEFAULT_DRAWER_WIDTHS.subRoomWindowWidth);
     const next = {
       chatLeftPanelWidth: readNumber("chatLeftPanelWidth", DEFAULT_DRAWER_WIDTHS.chatLeftPanelWidth),
-      subRoomWindowWidth: readNumber("subRoomWindowWidth", legacyWebgalDrawerWidth),
+      subRoomWindowWidth: readNumber("subRoomWindowWidth", DEFAULT_DRAWER_WIDTHS.subRoomWindowWidth),
       userDrawerWidth: readNumber("userDrawerWidth", DEFAULT_DRAWER_WIDTHS.userDrawerWidth),
       roleDrawerWidth: readNumber("roleDrawerWidth", DEFAULT_DRAWER_WIDTHS.roleDrawerWidth),
       initiativeDrawerWidth: readNumber("initiativeDrawerWidth", DEFAULT_DRAWER_WIDTHS.initiativeDrawerWidth),

@@ -11,6 +11,7 @@ type ChatToolbarProps = React.ComponentProps<typeof ChatToolbar>;
 export default function ChatToolbarFromStore({
   roomId,
   isKP,
+  isSpaceMuted,
   onStopBgmForAll,
   noRole,
   notMember,
@@ -19,6 +20,7 @@ export default function ChatToolbarFromStore({
 }: Omit<ChatToolbarProps, "disableSendMessage" | "isRealtimeRenderActive" | "updateEmojiUrls" | "updateImgFiles" | "updateFileAttachments" | "setAudioFile" | "roomId" | "isKP" | "onStopBgmForAll"> & {
   roomId: number;
   isKP?: boolean;
+  isSpaceMuted?: boolean;
   onStopBgmForAll?: () => void;
   noRole: boolean;
   notMember: boolean;
@@ -42,14 +44,15 @@ export default function ChatToolbarFromStore({
   const disableSendMessage = React.useMemo(() => {
     // 与 useChatMessageSubmit 的实际可发送条件保持一致：
     // KP 在旁白模式（noRole=true）下仍可发送；观战文本则不再强制转成场外。
-    return isSubmitting || (noRole && !isKP && !notMember);
-  }, [isKP, noRole, notMember, isSubmitting]);
+    return isSubmitting || (isSpaceMuted && !isKP) || (noRole && !isKP && !notMember);
+  }, [isKP, isSpaceMuted, noRole, notMember, isSubmitting]);
 
   return (
     <ChatToolbar
       {...rest}
       roomId={roomId}
       isKP={isKP}
+      isSpaceMuted={isSpaceMuted}
       onStopBgmForAll={onStopBgmForAll}
       webgalLinkMode={webgalLinkMode}
       updateEmojiUrls={updateEmojiUrls}

@@ -1,8 +1,7 @@
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import BetterImg from "@/components/common/betterImg";
-import { MediaImage } from "@/components/common/mediaImage";
+import { UserAvatarByUser } from "@/components/common/userAccess";
 import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
-import { avatarThumbUrl } from "@/utils/media/mediaUrl";
 
 import type { MessageDirectResponse } from "../../../../api";
 
@@ -32,13 +31,15 @@ function MessageAvatar({ name, fileId }: { name?: string; fileId?: number }) {
     ">
       {fileId
         ? (
-            <MediaImage
-              src={avatarThumbUrl(fileId)}
-              alt=""
-              width={32}
-              height={32}
-              className="h-full w-full object-cover"
-              loading="lazy"
+            <UserAvatarByUser
+              user={{
+                avatarFileId: fileId,
+                username: name,
+              }}
+              width={8}
+              isRounded={true}
+              stopToastWindow={true}
+              clickEnterProfilePage={false}
             />
           )
         : (
@@ -107,10 +108,10 @@ export default function MessageBubble({ message, isOwn, groupedWithPrevious = fa
     }
 
     if (isOwn) {
-      return `${baseClass} bg-blue-500 text-white px-3 py-1.5`;
+      return `${baseClass} bg-info text-white px-3 py-1.5`;
     }
     else {
-      return `${baseClass} bg-base-300/80 dark:bg-gray-700 text-base-content px-3 py-1.5`;
+      return `${baseClass} bg-base-300/80 dark:bg-base-300 text-base-content px-3 py-1.5`;
     }
   };
 
@@ -134,13 +135,17 @@ export default function MessageBubble({ message, isOwn, groupedWithPrevious = fa
         relative flex max-w-[min(70%,680px)] min-w-0 flex-col
         ${isOwn ? `items-end` : `items-start`}
       `}>
-        <div className={getMessageBubbleClass()}>
+        <div
+          className={getMessageBubbleClass()}
+          data-message-id={message.messageId}
+          data-private-message-menu-anchor="true"
+        >
           {renderMessageContent()}
         </div>
         {messageTimeLabel && (
           <div className="
             pointer-events-none absolute bottom-full right-0 z-10 mb-1 px-1
-            text-[11px] leading-none text-base-content/45 opacity-0
+            text-[11px] leading-none text-base-content/50 opacity-0
             translate-y-0.5 transition-all duration-150
             group-hover/message:opacity-100 group-hover/message:translate-y-0
           ">

@@ -265,6 +265,10 @@ export default function MaterialLibraryPage({
     }
   };
 
+  const preloadDiscoverMaterialMineRoute = () => {
+    void router.preloadRoute({ to: "/chat/discover/material/my" });
+  };
+
   const sidebarNode = (
     <MaterialPackageLibrarySidebar
       description="在这里切换素材广场与我的素材包。"
@@ -328,6 +332,7 @@ export default function MaterialLibraryPage({
               caption: "适合沉淀你自己的常用内容",
               icon: "package",
               onClick: handleNavigateToMine,
+              onPreload: mode === "public" && embedded ? preloadDiscoverMaterialMineRoute : undefined,
             }]
           : []}
       emptyTitle={activeTab === "mine" ? "你还没有自己的素材包" : "当前没有匹配的公开素材包"}

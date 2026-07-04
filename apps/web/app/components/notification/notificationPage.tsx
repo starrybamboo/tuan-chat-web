@@ -80,7 +80,7 @@ export default function NotificationPage() {
         lg:px-8
       ">
         <div className="
-          rounded-[28px] border border-base-300 bg-base-100 shadow-sm
+          rounded-2xl border border-base-300 bg-base-100 shadow-sm
         ">
           <div className="
             flex flex-col gap-4 border-b border-base-300 px-6 py-5
@@ -89,7 +89,7 @@ export default function NotificationPage() {
             <div>
               <div className="
                 text-xs font-medium uppercase tracking-[0.24em]
-                text-base-content/45
+                text-base-content/50
               ">Notification Center</div>
               <h1 className="mt-2 text-3xl font-semibold">通知中心</h1>
               <p className="mt-2 text-sm opacity-70">反馈的创建、状态变更、评论和回复会持久化记录在这里。</p>
@@ -99,7 +99,7 @@ export default function NotificationPage() {
                 type="button"
                 className={`
                   btn btn-sm
-                  ${!unreadOnly ? "btn-primary" : `btn-ghost`}
+                  ${!unreadOnly ? "btn-info" : `btn-ghost`}
                 `}
                 onClick={() => setUnreadOnly(false)}
               >
@@ -109,7 +109,7 @@ export default function NotificationPage() {
                 type="button"
                 className={`
                   btn btn-sm
-                  ${unreadOnly ? "btn-primary" : `btn-ghost`}
+                  ${unreadOnly ? "btn-info" : `btn-ghost`}
                 `}
                 onClick={() => setUnreadOnly(true)}
               >

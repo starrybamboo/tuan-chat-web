@@ -55,9 +55,8 @@ export function StandardHistoryPanel({
   return (
     <div className="
       h-full min-h-0 w-[160px] shrink-0 overflow-hidden border-l
-      border-[#D6DCE3] bg-[#F3F5F7] p-3
-      dark:border-[#2A3138] dark:bg-[#161A1F]
-    ">
+      border-base-300 bg-base-200 p-3
+           ">
       <div className="flex h-full flex-col">
         <div className="mb-3 flex items-center gap-2 px-1">
           <div className="flex items-center gap-1">
@@ -75,15 +74,14 @@ export function StandardHistoryPanel({
             title="收起历史记录侧边栏"
             onClick={onCollapse}
           >
-            <CaretRightIcon className="size-3.5" weight="bold" />
+            <CaretRightIcon className="size-3.5" weight="regular" />
           </button>
         </div>
         <div className="ai-image-fade-scrollbar flex-1 overflow-auto pr-1">
           <div className="
             grid grid-cols-1 justify-items-center gap-2 border-t
-            border-[#D6DCE3] py-3
-            dark:border-[#2A3138]
-          ">
+            border-base-300 py-3
+                      ">
             {currentResultCards.map(({ item, index, row }) => (
               <HistoryImageTile
                 key={`${item.batchId}-${item.batchIndex}`}

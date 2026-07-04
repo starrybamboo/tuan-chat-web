@@ -51,8 +51,8 @@ export default function RoomButton({
           pr-10 text-left text-sm font-bold select-none transition-colors
           ${
           isActive ? `
-            bg-primary/20 text-base-content ring-1 ring-primary/40
-            dark:bg-primary/30 dark:ring-primary/60
+            bg-info/15 text-base-content ring-1 ring-info/40
+            dark:bg-info/20 dark:ring-info/55
           ` : `hover:bg-base-300`
         }
         `}

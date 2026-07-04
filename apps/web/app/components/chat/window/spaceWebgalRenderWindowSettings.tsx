@@ -249,7 +249,7 @@ export function SpaceWebgalRenderWindowSettings({
                       <span className="text-sm">自动填充立绘</span>
                       <input
                         type="checkbox"
-                        className="toggle toggle-sm toggle-primary"
+                        className="toggle toggle-sm toggle-info"
                         checked={autoFigureEnabled}
                         onChange={event => setAutoFigureEnabled(event.target.checked)}
                       />
@@ -261,7 +261,7 @@ export function SpaceWebgalRenderWindowSettings({
                       <span className="text-sm">小头像</span>
                       <input
                         type="checkbox"
-                        className="toggle toggle-sm toggle-primary"
+                        className="toggle toggle-sm toggle-info"
                         checked={miniAvatarEnabled}
                         onChange={event => setMiniAvatarEnabled(event.target.checked)}
                       />
@@ -284,7 +284,7 @@ export function SpaceWebgalRenderWindowSettings({
                       <span>AI 配音</span>
                       <input
                         type="checkbox"
-                        className="toggle toggle-xs toggle-primary"
+                        className="toggle toggle-xs toggle-info"
                         checked={ttsEnabled}
                         onChange={event => setTtsEnabled(event.target.checked)}
                       />
@@ -301,7 +301,10 @@ export function SpaceWebgalRenderWindowSettings({
                     <div className="text-sm mb-2">TTS API 地址</div>
                     <div className="flex gap-2">
                       <input
-                        type="text"
+                        type="url"
+                        inputMode="url"
+                        autoComplete="off"
+                        aria-label="TTS API 地址"
                         className="input input-bordered input-sm flex-1"
                         placeholder="http://localhost:9000"
                         value={ttsApiInput}

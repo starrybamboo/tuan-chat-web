@@ -128,10 +128,6 @@ function AiImagePage() {
       <style>
         {`
         .ai-image-shell {
-          --color-primary: #2fb7a8;
-          --color-primary-content: #ffffff;
-          --color-info: #59cabc;
-          --color-info-content: #ffffff;
           --ai-image-surface-radius: 0.375rem;
         }
 
@@ -182,13 +178,13 @@ function AiImagePage() {
               justify-center bg-base-100/52 backdrop-blur-[2px]
             ">
               <div className="
-                flex size-[88px] items-center justify-center rounded-[24px]
-                bg-[#242636]/78 shadow-[0_16px_34px_rgba(0,0,0,0.24)]
+                flex size-[88px] items-center justify-center rounded-2xl
+                bg-[#242636]/78 shadow-lg
                 backdrop-blur-sm
               ">
                 <UploadSimpleIcon className="
                   size-11 text-white/90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.28)]
-                " weight="bold" aria-hidden="true" />
+                " weight="regular" aria-hidden="true" />
               </div>
             </div>
           )
@@ -259,8 +255,8 @@ function AiImagePage() {
                     <span className="
                       mx-auto my-3 block h-[calc(100%-1.5rem)] w-px rounded-full
                       bg-base-300/70 transition-colors
-                      group-hover:bg-primary/45
-                      group-active:bg-primary
+                      group-hover:bg-info/45
+                      group-active:bg-info
                     " />
                   </button>
                 </div>

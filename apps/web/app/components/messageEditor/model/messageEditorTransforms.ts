@@ -109,7 +109,6 @@ type MessageEditorMediaRecord = {
   payload: Record<string, unknown>;
 };
 
-const LEGACY_MESSAGE_EDITOR_EXTRA_KEY = "messageEditor";
 const runtimeBlockIds = new WeakMap<object, string>();
 
 function createMessageEditorEntityId(prefix = "block"): string {
@@ -327,8 +326,7 @@ function toMessageEditorExtra(value: unknown): MessageEditorExtra | undefined {
     return undefined;
   }
 
-  const { [LEGACY_MESSAGE_EDITOR_EXTRA_KEY]: _legacyMessageEditor, ...extra } = value;
-  return Object.keys(extra).length > 0 ? extra as MessageEditorExtra : undefined;
+  return Object.keys(value).length > 0 ? { ...value } as MessageEditorExtra : undefined;
 }
 
 function normalizeMessageType(value: unknown): number {

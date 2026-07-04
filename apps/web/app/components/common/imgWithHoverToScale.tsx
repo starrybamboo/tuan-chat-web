@@ -2,13 +2,14 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { loadMediaImageWithOriginalFallback, MediaImage } from "@/components/common/mediaImage";
-import { imagePreviewUrlFromUrl } from "@/utils/media/mediaUrl";
+import { imageMediumUrlFromUrl } from "@/utils/media/mediaUrl";
 import { markObservedWebgalAsset } from "@/webGAL/browserAssetCache";
 
 type ImgWithHoverProps = {
   enableScale?: boolean;
   hoverTime?: number;
   imgViewHeight?: number;
+  fallbackSrc?: string;
 } & React.ImgHTMLAttributes<HTMLImageElement>
 
 type HoverPreviewImageMetrics = Pick<HTMLImageElement, "height" | "naturalHeight" | "naturalWidth" | "width">;
@@ -71,7 +72,7 @@ export default function ImgWithHoverToScale({
   const hoverTimer = useRef<NodeJS.Timeout | null>(null);
   const previewLoadRequestId = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const previewSrc = typeof src === "string" ? imagePreviewUrlFromUrl(src) : src;
+  const previewSrc = typeof src === "string" ? imageMediumUrlFromUrl(src) : src;
 
   const handleMouseEnter = () => {
     if (!enableScale) {

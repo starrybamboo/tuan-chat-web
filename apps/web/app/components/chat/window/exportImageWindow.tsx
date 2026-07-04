@@ -303,7 +303,7 @@ export default function ExportImageWindow({
             type="checkbox"
             checked={showQRCode}
             onChange={e => setShowQRCode(e.target.checked)}
-            className="checkbox checkbox-sm checkbox-primary"
+            className="checkbox checkbox-sm checkbox-info"
           />
           <span className="text-sm">显示二维码</span>
         </label>
@@ -312,7 +312,7 @@ export default function ExportImageWindow({
             type="checkbox"
             checked={useBubbleStyle}
             onChange={e => setUseBubbleStyle(e.target.checked)}
-            className="checkbox checkbox-sm checkbox-primary"
+            className="checkbox checkbox-sm checkbox-info"
           />
           <span className="text-sm">气泡样式</span>
         </label>

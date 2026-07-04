@@ -320,7 +320,7 @@ function SwatchMenu({
             type="button"
             className={[
               "size-7 rounded-md border transition hover:scale-105",
-              selectedColor.toLowerCase() === color.toLowerCase() ? "border-base-content ring-2 ring-primary/25" : "border-base-300",
+              selectedColor.toLowerCase() === color.toLowerCase() ? "border-base-content ring-2 ring-info/25" : "border-base-300",
             ].join(" ")}
             style={{ backgroundColor: color }}
             onMouseDown={(event) => {
@@ -392,7 +392,7 @@ function FontSizeMenu({
             type="button"
             className={[
               "h-8 rounded-md px-2.5 text-left transition hover:bg-base-200",
-              selectedFontSize === size ? "bg-primary/10 text-primary" : "text-base-content/80",
+              selectedFontSize === size ? "bg-info/10 text-info" : "text-base-content/80",
             ].join(" ")}
             onMouseDown={(event) => {
               preventSelectionLoss(event);
@@ -443,7 +443,7 @@ function FieldLabel({ children }: { children: ReactNode }) {
 }
 
 function textInputClassName(extra = "", mono = false) {
-  return `h-8 rounded-md border border-base-300 bg-base-100 px-2 text-sm transition placeholder:text-base-content/30 hover:border-base-content/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/40 ${mono ? "font-mono" : ""} ${extra}`;
+  return `h-8 rounded-md border border-base-300 bg-base-100 px-2 text-sm transition placeholder:text-base-content/30 hover:border-base-content/30 focus:border-info focus:outline-none focus:ring-1 focus:ring-info/40 ${mono ? "font-mono" : ""} ${extra}`;
 }
 
 function DialogToggle({
@@ -463,7 +463,7 @@ function DialogToggle({
       className={[
         "flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-sm transition",
         active
-          ? "border-primary bg-primary/10 text-primary"
+          ? "border-info bg-info/10 text-info"
           : "border-base-300 text-base-content/70 hover:border-base-content/30 hover:text-base-content",
       ].join(" ")}
       onClick={onToggle}
@@ -492,7 +492,7 @@ function DialogSection({
 }) {
   return (
     <section className={`flex flex-col gap-2.5 ${divider ? "border-t border-base-300 pt-4" : ""} ${className}`}>
-      <span className="text-xs font-medium text-base-content/45">{title}</span>
+      <span className="text-xs font-medium text-base-content/50">{title}</span>
       {children}
     </section>
   );
@@ -657,7 +657,7 @@ function CompactColorField({
         ? (
             <button
               type="button"
-              className="flex size-6 items-center justify-center rounded-md text-base-content/40 transition hover:text-base-content"
+              className="flex size-6 items-center justify-center rounded-md text-base-content/50 transition hover:text-base-content"
               onClick={() => onChange("")}
               title={`清除${label}`}
               aria-label={`清除${label}`}
@@ -720,7 +720,7 @@ function CssPropertyRepeater({
             list="css-property-suggestions"
             onChange={event => updateRow(row.id, { property: event.target.value })}
           />
-          <span className="text-base-content/40">:</span>
+          <span className="text-base-content/50">:</span>
           <input
             type="text"
             className={textInputClassName("min-w-0 flex-1", true)}
@@ -730,7 +730,7 @@ function CssPropertyRepeater({
           />
           <button
             type="button"
-            className="flex size-8 shrink-0 items-center justify-center rounded-md text-base-content/45 transition hover:text-error"
+            className="flex size-8 shrink-0 items-center justify-center rounded-md text-base-content/50 transition hover:text-error"
             onClick={() => removeRow(row.id)}
             title="删除"
             aria-label="删除该属性"
@@ -744,7 +744,7 @@ function CssPropertyRepeater({
       </datalist>
       <button
         type="button"
-        className="flex h-8 items-center justify-center gap-1.5 self-start rounded-md px-2 text-xs text-base-content/55 transition hover:text-primary"
+        className="flex h-8 items-center justify-center gap-1.5 self-start rounded-md px-2 text-xs text-base-content/55 transition hover:text-info"
         onClick={() => onChange([...rows, createCssRow()])}
       >
         <PlusIcon size={15} weight="bold" />
@@ -779,7 +779,7 @@ function PreviewBgSwitcher({
             "rounded px-1.5 py-0.5 transition",
             value === option.value
               ? "text-base-content"
-              : "text-base-content/40 hover:text-base-content/70",
+              : "text-base-content/50 hover:text-base-content/70",
           ].join(" ")}
           onClick={() => onChange(option.value)}
         >
@@ -807,7 +807,7 @@ function TextStylePreview({
   return (
     <div className="sticky top-0 z-10 -mx-6 -mt-5 mb-1 bg-base-100 px-6 pb-4 pt-5">
       <div className="flex items-center justify-between pb-2">
-        <span className="text-xs font-medium text-base-content/45">预览</span>
+        <span className="text-xs font-medium text-base-content/50">预览</span>
         <PreviewBgSwitcher value={previewBg} onChange={onChangeBg} />
       </div>
       <div className={[
@@ -1054,7 +1054,7 @@ function AdvancedStyleDialog({
                         title="渐变角度"
                         aria-label="渐变角度"
                       />
-                      <span className="text-xs text-base-content/45">deg</span>
+                      <span className="text-xs text-base-content/50">deg</span>
                     </label>
                   </div>
                 )
@@ -1071,7 +1071,7 @@ function AdvancedStyleDialog({
                 className={[
                   "rounded-md border px-2.5 py-1 text-xs transition",
                   animation === preset.css
-                    ? "border-primary bg-primary/10 text-primary"
+                    ? "border-info bg-info/10 text-info"
                     : "border-base-300 text-base-content/70 hover:border-base-content/30 hover:text-base-content",
                 ].join(" ")}
                 onClick={() => setAnimation(preset.css)}
@@ -1086,7 +1086,7 @@ function AdvancedStyleDialog({
           <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs font-medium text-base-content/55 transition hover:text-base-content">
             <CaretRightIcon size={13} weight="bold" className="transition group-open:rotate-90" />
             高级
-            <span className="font-normal text-base-content/35">注音、间距、效果、盒模型与自定义 CSS</span>
+            <span className="font-normal text-base-content/50">注音、间距、效果、盒模型与自定义 CSS</span>
           </summary>
           <div className="mt-3 flex flex-col gap-4">
             <DialogSection title="注音" divider={false}>
@@ -1179,7 +1179,7 @@ function AdvancedStyleDialog({
         </button>
         <button
           type="button"
-          className="rounded-md bg-primary px-5 py-2 text-sm font-medium text-primary-content transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-md bg-info px-5 py-2 text-sm font-medium text-info-content transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
           disabled={!normalizeTextInput(text)}
           onClick={() => {
             const normalizedText = normalizeTextInput(text);

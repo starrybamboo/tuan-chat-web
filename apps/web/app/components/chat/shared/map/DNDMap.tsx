@@ -1,7 +1,6 @@
-import { TrashIcon, WarningCircleIcon, XIcon } from "@phosphor-icons/react";
+import { WarningCircleIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
 
 import type { StateRuntimeContextValue } from "@/components/chat/state/stateRuntimeContext";
@@ -9,12 +8,12 @@ import type { StateEventAtom } from "@/types/stateEvent";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useOptionalStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { MediaImage } from "@/components/common/mediaImage";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
   buildCommandStateEventExtra,
-  buildMapStateEventsFromSnapshot,
   formatStateNumericValue,
   toApiMessageExtraWithStateEvent,
 } from "@/types/stateEvent";
@@ -120,7 +119,7 @@ const RoleToken = React.memo(({
       className={`
         group relative rounded-full border border-base-300 bg-base-100 shadow-sm
         ${
-        isSelected ? "ring-2 ring-primary" : ""
+        isSelected ? "ring-2 ring-info" : ""
       }
         cursor-pointer select-none touch-none
       `}
@@ -175,13 +174,13 @@ const RoleToken = React.memo(({
                   <span
                     key={`${state}:${index}`}
                     className="
-                      rounded-full bg-primary/10 px-1.5 py-0.5 text-primary
+                      rounded-full bg-info/10 px-1.5 py-0.5 text-info
                     "
                   >
                     {state}
                   </span>
                 ))
-              : <span className="text-base-content/45">暂无状态</span>}
+              : <span className="text-base-content/50">暂无状态</span>}
           </div>
         </div>
       )}
@@ -401,7 +400,7 @@ function MapStateStrip({
                 <span
                   key={state.instanceId}
                   className="
-                    rounded-full bg-primary/10 px-1.5 py-0.5 text-primary
+                    rounded-full bg-info/10 px-1.5 py-0.5 text-info
                   "
                 >
                   {state.statusName}
@@ -416,94 +415,6 @@ function MapStateStrip({
   );
 }
 
-function ClearMapConfirmDialog({
-  isOpen,
-  onCancel,
-  onConfirm,
-}: {
-  isOpen: boolean;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  if (!isOpen) {
-    return null;
-  }
-  if (typeof document === "undefined") {
-    return null;
-  }
-
-  return createPortal(
-    <div className="modal modal-open z-[9999]" role="dialog" aria-modal="true" aria-labelledby="clear-map-title">
-      <div className="
-        modal-box max-w-md rounded-lg border border-base-300 bg-base-100 p-0
-        shadow-2xl
-      ">
-        <div className="
-          flex items-start gap-3 border-b border-base-300 px-5 py-4
-        ">
-          <div className="
-            grid size-10 shrink-0 place-items-center rounded-md bg-error/12
-            text-error
-          ">
-            <WarningCircleIcon className="size-6" weight="fill" aria-hidden="true" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 id="clear-map-title" className="
-              text-base font-semibold text-base-content
-            ">
-              清空地图
-            </h3>
-            <p className="mt-1 text-sm leading-6 text-base-content/68">
-              当前地图图片、网格设置和所有角色位置都会被清空。这个操作会写入房间记录，所有成员都会看到变化。
-            </p>
-          </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-square btn-xs"
-            aria-label="取消清空地图"
-            onClick={onCancel}
-          >
-            <XIcon className="size-4" />
-          </button>
-        </div>
-
-        <div className="
-          bg-base-200/35 px-5 py-3 text-xs leading-5 text-base-content/60
-        ">
-          如果只是想移动某个角色，可以选中角色后放回角色池，不需要清空整张地图。
-        </div>
-
-        <div className="flex justify-end gap-2 px-5 py-4">
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={onCancel}
-          >
-            取消
-          </button>
-          <button
-            type="button"
-            className="btn btn-error btn-sm"
-            onClick={onConfirm}
-          >
-            <TrashIcon className="size-4" weight="regular" />
-            清空地图
-          </button>
-        </div>
-      </div>
-      <button
-        type="button"
-        className="modal-backdrop"
-        aria-label="关闭清空地图确认"
-        onClick={onCancel}
-      >
-        关闭
-      </button>
-    </div>,
-    document.body,
-  );
-}
-
 export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DNDMapProps) {
   const roomContext = use(RoomContext);
   const roomId = roomIdProp ?? roomContext.roomId ?? -1;
@@ -514,8 +425,6 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
   const [isClearMapConfirmOpen, setIsClearMapConfirmOpen] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const draggingTokenRef = useRef<DraggingMapTokenState | null>(null);
-  const migratedLegacyMapKeysRef = useRef(new Set<string>());
-  const migratingLegacyMapKeyRef = useRef<string | null>(null);
   const mapConfigUpdateChainRef = useRef<Promise<void>>(Promise.resolve());
   const suppressNextTokenClickRef = useRef(false);
 
@@ -689,6 +598,10 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
 
       try {
         const response = await tuanchat.chatController.patchRoomMessages({
+          mutationMeta: {
+            operationCause: "normal",
+            sourceSurface: "chat_input",
+          },
           roomId,
           operations: [
             buildMapConfigMessageUpdateOperation(target.message, {
@@ -720,44 +633,6 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
     roomContext.chatHistory,
     roomId,
     sendMapStateEvents,
-  ]);
-
-  useEffect(() => {
-    if (!mapQuery.isSuccess || !map || !stateRuntime || stateRuntime.hasMapConfigState) {
-      return;
-    }
-    const migrationEvents = buildMapStateEventsFromSnapshot(map, {
-      includeTokens: !stateRuntime.hasMapState,
-    });
-    if (migrationEvents.length === 0) {
-      return;
-    }
-
-    const migrationKey = [
-      roomId,
-      map.mapFileId ?? "no-map",
-      map.updatedAt ?? "no-updated-at",
-      stateRuntime.hasMapState ? "config-only" : "with-tokens",
-    ].join(":");
-    if (migratedLegacyMapKeysRef.current.has(migrationKey) || migratingLegacyMapKeyRef.current === migrationKey) {
-      return;
-    }
-
-    migratingLegacyMapKeyRef.current = migrationKey;
-    void sendMapStateEvents(migrationEvents, ".combat map-migrate").then((ok) => {
-      if (ok) {
-        migratedLegacyMapKeysRef.current.add(migrationKey);
-      }
-      if (migratingLegacyMapKeyRef.current === migrationKey) {
-        migratingLegacyMapKeyRef.current = null;
-      }
-    });
-  }, [
-    map,
-    mapQuery.isSuccess,
-    roomId,
-    sendMapStateEvents,
-    stateRuntime,
   ]);
 
   const buildMapConfigUpsertEvent = useCallback((patch: {
@@ -1095,10 +970,28 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
 
   return (
     <div className="w-full h-full bg-base-200 flex flex-col overflow-hidden">
-      <ClearMapConfirmDialog
-        isOpen={isClearMapConfirmOpen}
-        onCancel={() => setIsClearMapConfirmOpen(false)}
+      <ConfirmDialog
+        open={isClearMapConfirmOpen}
+        onOpenChange={(open) => {
+          if (!open)
+            setIsClearMapConfirmOpen(false);
+        }}
         onConfirm={handleConfirmReset}
+        title="清空地图"
+        description={(
+          <div className="space-y-2">
+            <p>
+              当前地图图片、网格设置和所有角色位置都会被清空。这个操作会写入房间记录，所有成员都会看到变化。
+            </p>
+            <p className="text-xs text-base-content/60">
+              如果只是想移动某个角色，可以选中角色后放回角色池，不需要清空整张地图。
+            </p>
+          </div>
+        )}
+        confirmLabel="清空地图"
+        cancelLabel="取消"
+        icon={<WarningCircleIcon className="size-6" weight="regular" />}
+        variant="danger"
       />
       {draggingPoolRole && draggingToken?.isDragging && (
         <div
@@ -1134,7 +1027,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
             ref={overlayRef}
             className={`
               absolute transition-colors
-              ${selectedRoleId ? `rounded-sm ring-2 ring-primary/30 ring-inset` : ""}
+              ${selectedRoleId ? `rounded-sm ring-2 ring-info/30 ring-inset` : ""}
             `}
             style={{
               left: `${rect.left}px`,
@@ -1148,7 +1041,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
               className={`
                 absolute inset-0 transition-colors
                 ${
-                selectedRoleId ? "cursor-crosshair bg-primary/5" : `
+                selectedRoleId ? "cursor-crosshair bg-info/5" : `
                   cursor-default
                 `
               }
@@ -1244,11 +1137,11 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
                   }
                 }}
                 className="
-                  w-10 bg-transparent text-center text-sm outline-none
+                  w-10 bg-transparent text-center text-sm outline-none focus:ring-2 focus:ring-info/30
                   [appearance:textfield]
                 "
               />
-              <span className="px-1 text-xs text-base-content/40">×</span>
+              <span className="px-1 text-xs text-base-content/50">×</span>
               <input
                 type="text"
                 inputMode="numeric"
@@ -1270,7 +1163,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
                   }
                 }}
                 className="
-                  w-10 bg-transparent text-center text-sm outline-none
+                  w-10 bg-transparent text-center text-sm outline-none focus:ring-2 focus:ring-info/30
                   [appearance:textfield]
                 "
               />
@@ -1292,7 +1185,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
                       ${option.className}
                       ${
                       isSelected ? `
-                        ring-2 ring-primary/60 ring-offset-2
+                        ring-2 ring-info/60 ring-offset-2
                         ring-offset-base-100
                       ` : ""
                     }
@@ -1316,8 +1209,8 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
               ${
               selectedRoleId && tokenByRoleId.has(selectedRoleId)
                 ? `
-                  cursor-pointer border-primary/40 bg-primary/5
-                  hover:bg-primary/10
+                  cursor-pointer border-info/40 bg-info/5
+                  hover:bg-info/10
                 `
                 : "hover:bg-base-200/30"
             }

@@ -23,11 +23,13 @@ export default function WorkflowConditionEditor({
           ">条件：</label>
           <input
             type="text"
+            autoComplete="off"
+            aria-label="条件"
             className="
               w-full rounded-md border border-base-300 bg-base-100 px-3 py-2
               text-sm transition
-              focus:border-primary focus:outline-none focus:ring-2
-              focus:ring-primary/20
+              focus:border-info focus:outline-none focus:ring-2
+              focus:ring-info/20
             "
             value={value}
             onChange={event => setValue(event.target.value)}
@@ -50,9 +52,9 @@ export default function WorkflowConditionEditor({
         <button
           type="button"
           className="
-            rounded-md bg-primary px-3 py-2 text-sm font-medium
-            text-primary-content transition
-            hover:bg-primary/90
+            rounded-md bg-info px-3 py-2 text-sm font-medium
+            text-info-content transition
+            hover:bg-info/90
           "
           onClick={() => onConfirm(value)}
         >

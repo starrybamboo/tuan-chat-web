@@ -23,6 +23,8 @@ type ChatToolbarProps = {
   roomId?: number;
   /** 是否为KP（房主） */
   isKP?: boolean;
+  /** 当前空间是否已开启除 KP 外全员禁言 */
+  isSpaceMuted?: boolean;
   /** KP：发送停止全员BGM指令 */
   onStopBgmForAll?: () => void;
 
@@ -101,6 +103,8 @@ function UnreadBadge({ count }: { count?: number }) {
 
 function ChatToolbar({
   roomId,
+  isKP,
+  isSpaceMuted = false,
   updateEmojiUrls,
   updateImgFiles,
   updateFileAttachments,
@@ -222,6 +226,7 @@ function ChatToolbar({
     e.target.value = "";
   };
 
+  const sendButtonTip = isSpaceMuted && !isKP ? "当前空间已开启全员禁言" : "发送";
   const richActionDisabledClass = disableRichMessageActions ? "cursor-not-allowed opacity-20" : "cursor-pointer";
   const runModeToggleTip = runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/文档/战斗";
   const openMediaPicker = useCallback(() => {
@@ -409,7 +414,7 @@ function ChatToolbar({
 
               {/* 发送按钮 */}
               {showSendButton && !isStacked && (
-                <div className="tooltip tooltip-top" data-tip="发送">
+                <div className="tooltip tooltip-top" data-tip={sendButtonTip}>
                   <SendIcon
                     className={`size-6 font-light hover:text-info md:mb-1 ${disableSendMessage ? "cursor-not-allowed opacity-20" : ""}`.trim()}
                     onClick={handleMessageSubmit}
@@ -473,7 +478,7 @@ function ChatToolbar({
                 )}
 
                 {showSendButton && (
-                  <div className="tooltip tooltip-top" data-tip="发送">
+                  <div className="tooltip tooltip-top" data-tip={sendButtonTip}>
                     <SendIcon
                       className={`size-6 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20" : ""}`.trim()}
                       onClick={handleMessageSubmit}

@@ -48,8 +48,8 @@ export default function RoomSidebarCategoryHeader({
   const handleToggleExpanded = () => {
     toggleCategoryExpanded(categoryId);
   };
-  const toggleButtonClassName = "inline-flex size-7 shrink-0 items-center justify-center rounded-md text-base-content/60 transition hover:bg-base-300/55 hover:text-base-content/88 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30";
-  const actionButtonClassName = "ml-auto inline-flex size-7 shrink-0 items-center justify-center rounded-md text-base-content/62 opacity-0 transition-[opacity,color,background-color] duration-150 hover:bg-base-300/55 hover:text-base-content/90 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 group-hover:opacity-100";
+  const toggleButtonClassName = "inline-flex size-7 shrink-0 items-center justify-center rounded-md text-base-content/60 transition hover:bg-base-300/55 hover:text-base-content/88 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30";
+  const actionButtonClassName = "ml-auto inline-flex size-7 shrink-0 items-center justify-center rounded-md text-base-content/62 opacity-0 transition-[opacity,color,background-color] duration-150 hover:bg-base-300/55 hover:text-base-content/90 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30 group-hover:opacity-100";
 
   return (
     <div

@@ -33,7 +33,7 @@ function PackageSourceCard({
         <div className="min-w-0 space-y-2">
           <div className="flex items-center gap-2">
             <div className="font-medium truncate">{getMaterialPackageDisplayName(item.name)}</div>
-            {item.isPublic ? <span className="badge badge-primary badge-outline">公开</span> : <span className="
+            {item.isPublic ? <span className="badge badge-info badge-outline">公开</span> : <span className="
               badge badge-outline
             ">私有</span>}
           </div>
@@ -93,7 +93,7 @@ export default function MaterialPackageImportModal({
 
   return (
     <dialog className="modal modal-open">
-      <div className="modal-box max-w-4xl rounded-[28px] p-0">
+      <div className="modal-box max-w-4xl rounded-2xl p-0">
         <div className="border-b border-base-300 px-6 py-5">
           <div className="text-xl font-semibold">导入局外素材包</div>
           <div className="mt-1 text-sm opacity-70">导入时会整包复制到当前空间，之后局内修改不会影响局外原包。</div>
@@ -128,7 +128,9 @@ export default function MaterialPackageImportModal({
             </div>
 
             <input
-              type="text"
+              type="search"
+              autoComplete="off"
+              aria-label="按名称搜索"
               className="
                 input input-bordered
                 md:w-72

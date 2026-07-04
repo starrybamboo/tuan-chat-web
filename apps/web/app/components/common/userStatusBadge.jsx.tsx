@@ -36,8 +36,8 @@ const UserStatusDot: React.FC<UserStatusDotProps> = ({
 
   // 状态颜色映射
   const statusColorMap = {
-    1: "bg-green-500",
-    2: "bg-gray-600",
+    1: "bg-success",
+    2: "bg-base-300",
     // busy: "bg-warning",
     // away: "bg-info",
   };

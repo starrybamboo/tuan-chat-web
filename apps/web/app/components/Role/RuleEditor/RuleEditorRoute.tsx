@@ -21,19 +21,8 @@ export default function RuleEditorRoute({ onBack }: RuleEditorRouteProps) {
   const ruleIdParam = searchParams.get("ruleId");
 
   const parsed = useMemo(() => {
-    // mode 缺失：优先兼容 ruleId 直达编辑，否则默认进入入口页
     if (!modeParam) {
-      if (!ruleIdParam) {
-        return { view: "entry" as const };
-      }
-
-      const inferredRuleId = Number(ruleIdParam);
-      const isInferredRuleIdValid = Number.isFinite(inferredRuleId) && inferredRuleId > 0;
-      if (isInferredRuleIdValid) {
-        return { view: "edit" as const, ruleId: inferredRuleId };
-      }
-
-      return { view: "entry" as const, shouldCanonicalize: true };
+      return { view: "entry" as const, shouldCanonicalize: Boolean(ruleIdParam) };
     }
 
     if (modeParam === "entry") {

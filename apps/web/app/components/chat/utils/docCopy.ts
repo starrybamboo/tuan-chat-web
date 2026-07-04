@@ -40,7 +40,6 @@ export async function copyDocToSpaceDoc(params: {
   sourceDocId: string;
   sourceSpaceId?: number;
   title?: string;
-  imageUrl?: string;
   imageFileId?: number;
   originalImageFileId?: number;
   imageMediaType?: string;

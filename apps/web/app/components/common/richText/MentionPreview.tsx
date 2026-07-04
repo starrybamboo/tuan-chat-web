@@ -296,7 +296,7 @@ function MentionPreview(props: MentionPreviewProps) {
     >
       <div className="
         px-3 py-2 font-semibold border-b border-base-300 flex items-center gap-2
-        text-primary
+        text-info
       ">
         <span className="text-xs uppercase tracking-wide opacity-70">{category}</span>
         <span className="truncate" title={name}>{name}</span>

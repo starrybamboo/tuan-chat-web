@@ -16,7 +16,7 @@ export function LoggedInView({ handleLogout }: LoggedInViewProps) {
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         <Link to="/" className="btn btn-primary w-full gap-2">
-          <HouseIcon className="size-4" weight="bold" />
+          <HouseIcon className="size-4" weight="regular" />
           前往主页
         </Link>
         <button
@@ -24,7 +24,7 @@ export function LoggedInView({ handleLogout }: LoggedInViewProps) {
           onClick={handleLogout}
           className="btn btn-outline btn-error w-full gap-2"
         >
-          <SignOutIcon className="size-4" weight="bold" />
+          <SignOutIcon className="size-4" weight="regular" />
           退出登录
         </button>
       </div>

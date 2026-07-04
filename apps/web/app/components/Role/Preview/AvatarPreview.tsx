@@ -178,6 +178,3 @@ function AvatarPreviewComponent({
 }
 
 export const AvatarPreview = React.memo(AvatarPreviewComponent);
-
-
-

@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "@/../api/instance";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
-import { avatarThumbUrl, avatarUrl } from "@/utils/media/mediaUrl";
+import { avatarUrl, imageLowUrl } from "@/utils/media/mediaUrl";
 import { invalidateRoleCreateQueries } from "api/hooks/roleMutationInvalidation";
 import { seedUserRoleQueryCache, upsertUserRoleListQueryCache } from "api/roleQueryCache";
 
@@ -75,7 +75,7 @@ export function useCreateRoleWithAbilityMutation() {
       }
 
       const avatarSrc = avatarUrl(avatarFileId) || ROLE_DEFAULT_AVATAR_URL;
-      const avatarThumb = avatarThumbUrl(avatarFileId) || avatarSrc;
+      const avatarThumb = imageLowUrl(avatarFileId) || avatarSrc;
 
       const role: Role = {
         id: roleId,
@@ -96,7 +96,6 @@ export function useCreateRoleWithAbilityMutation() {
         avatarId,
         avatarFileId,
         type: input.type ?? 0,
-        diceMaiden: input.type === 1,
         extra: {},
       };
       seedUserRoleQueryCache(queryClient, userRole);

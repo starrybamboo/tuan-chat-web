@@ -183,7 +183,7 @@ function RoomMemberActionButton({
       type="button"
       className={`
         btn btn-xs btn-ghost px-2
-        ${action.danger ? "text-error" : `text-primary`}
+        ${action.danger ? "text-error" : `text-info`}
       `}
       onClick={action.kind === "invite" ? onInvite : onRemove}
       aria-label={action.label}

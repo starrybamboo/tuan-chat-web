@@ -132,7 +132,7 @@ function RoleLayout() {
               justify-center shadow-md transition-all duration-200
             "
           >
-            <CaretRightIcon size={16} weight="bold" />
+            <CaretRightIcon size={16} weight="regular" />
           </button>
         </div>
       )}
@@ -172,8 +172,8 @@ function RoleLayout() {
 
       {/* 主内容区域 */}
       <div className="
-        flex-1 w-full min-w-0 overflow-hidden min-h-0 border-t border-gray-300
-        dark:border-gray-700
+        flex-1 w-full min-w-0 overflow-hidden min-h-0 border-t border-base-300
+        dark:border-base-300
       ">
         <div className="
           h-full min-h-0 overflow-y-auto overflow-x-hidden

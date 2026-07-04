@@ -130,16 +130,6 @@ export async function resolveEmojiImageMeta({
   };
 }
 
-export async function buildMessageDraftsFromComposerSnapshot(
-  params: BuildMessageDraftsFromComposerSnapshotParams,
-): Promise<MessageDraft[]> {
-  const result = await buildMessageDraftUploadResultFromComposerSnapshot(params);
-  if (result.failedAttachments.length > 0) {
-    throw result.failedAttachments[0]!.error;
-  }
-  return result.drafts;
-}
-
 export async function buildMessageDraftUploadResultFromComposerSnapshot({
   inputText,
   imgFiles,

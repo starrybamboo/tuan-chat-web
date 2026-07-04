@@ -16,6 +16,7 @@ type ContextMenuProps = {
 const MENU_GAP = 8;
 const VIEWPORT_PADDING = 8;
 const MENU_WIDTH = 160;
+const MESSAGE_MENU_ANCHOR_SELECTOR = "data-private-message-menu-anchor";
 
 export default function ContextMenu({
   allMessages,
@@ -40,7 +41,9 @@ export default function ContextMenu({
     }
 
     const updatePosition = () => {
-      const messageElement = document.querySelector<HTMLElement>(`[data-message-id="${contextMenu.messageId}"]`);
+      const messageElement = document.querySelector<HTMLElement>(
+        `[${MESSAGE_MENU_ANCHOR_SELECTOR}="true"][data-message-id="${contextMenu.messageId}"]`,
+      );
       if (!messageElement) {
         setMenuPosition(null);
         return;

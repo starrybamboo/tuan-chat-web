@@ -3,7 +3,7 @@ import { vi } from "vitest";
 import type { UploadUtils } from "@/utils/media/UploadUtils";
 
 import { MessageType } from "../../../../api/wsModels";
-import { buildMessageDraftsFromComposerSnapshot, buildMessageDraftUploadResultFromComposerSnapshot, resolveEmojiImageMeta } from "./messageDraftBuilder";
+import { buildMessageDraftUploadResultFromComposerSnapshot, resolveEmojiImageMeta } from "./messageDraftBuilder";
 
 const { getImageSizeMock } = vi.hoisted(() => ({
   getImageSizeMock: vi.fn(),
@@ -138,7 +138,7 @@ describe("messageDraftBuilder", () => {
     const uploadUtils = createUploadUtilsMock();
     const pdfFile = new File(["pdf"], "notes.pdf", { type: "application/pdf" });
 
-    const drafts = await buildMessageDraftsFromComposerSnapshot({
+    const result = await buildMessageDraftUploadResultFromComposerSnapshot({
       inputText: "",
       imgFiles: [],
       emojiUrls: [],
@@ -150,7 +150,8 @@ describe("messageDraftBuilder", () => {
       uploadUtils,
     });
 
-    expect(drafts).toEqual([]);
+    expect(result.drafts).toEqual([]);
+    expect(result.failedAttachments).toEqual([]);
     expect(uploadUtils.uploadVideo).not.toHaveBeenCalled();
     expect(uploadUtils.uploadFile).not.toHaveBeenCalled();
   });
@@ -160,7 +161,7 @@ describe("messageDraftBuilder", () => {
     const videoFile = new File(["video"], "clip.mp4", { type: "video/mp4" });
     const pdfFile = new File(["pdf"], "notes.pdf", { type: "application/pdf" });
 
-    const drafts = await buildMessageDraftsFromComposerSnapshot({
+    const result = await buildMessageDraftUploadResultFromComposerSnapshot({
       inputText: "",
       imgFiles: [],
       emojiUrls: [],
@@ -172,6 +173,8 @@ describe("messageDraftBuilder", () => {
       uploadUtils,
     });
 
+    const drafts = result.drafts;
+    expect(result.failedAttachments).toEqual([]);
     expect(drafts).toHaveLength(1);
     expect(drafts[0]?.messageType).toBe(MessageType.VIDEO);
     expect(drafts[0]?.extra).toMatchObject({
@@ -199,7 +202,7 @@ describe("messageDraftBuilder", () => {
       });
     });
 
-    const draftsPromise = buildMessageDraftsFromComposerSnapshot({
+    const draftsPromise = buildMessageDraftUploadResultFromComposerSnapshot({
       inputText: "",
       imgFiles: [fileA, fileB],
       emojiUrls: [],
@@ -231,8 +234,10 @@ describe("messageDraftBuilder", () => {
       url: "https://example.com/b.png/medium",
     });
 
-    const drafts = await draftsPromise;
+    const result = await draftsPromise;
+    const drafts = result.drafts;
 
+    expect(result.failedAttachments).toEqual([]);
     expect(drafts).toHaveLength(2);
     expect(drafts[0]?.extra).toMatchObject({
       imageMessage: {
@@ -299,29 +304,11 @@ describe("messageDraftBuilder", () => {
     ]);
   });
 
-  it("兼容旧草稿构建入口：存在失败附件时继续抛出首个错误", async () => {
-    const uploadUtils = createUploadUtilsMock();
-    const file = new File(["b"], "b.png", { type: "image/png" });
-    uploadUtils.uploadDualImage.mockRejectedValueOnce(new Error("b.png 上传失败"));
-
-    await expect(buildMessageDraftsFromComposerSnapshot({
-      inputText: "",
-      imgFiles: [file],
-      emojiUrls: [],
-      emojiMetaByUrl: {},
-      fileAttachments: [],
-      audioFile: null,
-      composerAnnotations: [],
-      tempAnnotations: [],
-      uploadUtils,
-    })).rejects.toThrow("b.png 上传失败");
-  });
-
   it("表情消息会保留内部媒体 source", async () => {
     const uploadUtils = createUploadUtilsMock();
     const emojiUrl = "/media/v1/files/077/77/image/low.webp";
 
-    const drafts = await buildMessageDraftsFromComposerSnapshot({
+    const result = await buildMessageDraftUploadResultFromComposerSnapshot({
       inputText: "",
       imgFiles: [],
       emojiUrls: [emojiUrl],
@@ -342,6 +329,8 @@ describe("messageDraftBuilder", () => {
       uploadUtils,
     });
 
+    const drafts = result.drafts;
+    expect(result.failedAttachments).toEqual([]);
     expect(drafts).toHaveLength(1);
     expect(drafts[0]?.extra).toMatchObject({
       imageMessage: {
@@ -392,7 +381,7 @@ describe("messageDraftBuilder", () => {
   it("纯空白输入会保留原样生成文本草稿", async () => {
     const uploadUtils = createUploadUtilsMock();
 
-    const drafts = await buildMessageDraftsFromComposerSnapshot({
+    const result = await buildMessageDraftUploadResultFromComposerSnapshot({
       inputText: " \n\t ",
       imgFiles: [],
       emojiUrls: [],
@@ -404,7 +393,8 @@ describe("messageDraftBuilder", () => {
       uploadUtils,
     });
 
-    expect(drafts).toEqual([expect.objectContaining({
+    expect(result.failedAttachments).toEqual([]);
+    expect(result.drafts).toEqual([expect.objectContaining({
       content: " \n\t ",
       messageType: MessageType.TEXT,
     })]);
@@ -413,7 +403,7 @@ describe("messageDraftBuilder", () => {
   it("真正空字符串不再生成空文本草稿", async () => {
     const uploadUtils = createUploadUtilsMock();
 
-    const drafts = await buildMessageDraftsFromComposerSnapshot({
+    const result = await buildMessageDraftUploadResultFromComposerSnapshot({
       inputText: "",
       imgFiles: [],
       emojiUrls: [],
@@ -425,7 +415,8 @@ describe("messageDraftBuilder", () => {
       uploadUtils,
     });
 
-    expect(drafts).toEqual([]);
+    expect(result.drafts).toEqual([]);
+    expect(result.failedAttachments).toEqual([]);
   });
 
   it("音频时长探测失败时不再补默认 1 秒", async () => {
@@ -445,7 +436,7 @@ describe("messageDraftBuilder", () => {
       },
     });
 
-    await expect(buildMessageDraftsFromComposerSnapshot({
+    const result = await buildMessageDraftUploadResultFromComposerSnapshot({
       inputText: "",
       imgFiles: [],
       emojiUrls: [],
@@ -455,8 +446,14 @@ describe("messageDraftBuilder", () => {
       composerAnnotations: [],
       tempAnnotations: [],
       uploadUtils,
-    })).rejects.toThrow("无法读取音频时长");
+    });
 
+    expect(result.drafts).toEqual([]);
+    expect(result.failedAttachments).toEqual([expect.objectContaining({
+      error: expect.objectContaining({ message: "无法读取音频时长，请换用可识别的音频文件后重试。" }),
+      file: audioFile,
+      kind: "audio",
+    })]);
     expect(uploadUtils.uploadAudioAsset).not.toHaveBeenCalled();
   });
 });

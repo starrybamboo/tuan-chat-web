@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildCommandStateEventExtra,
-  buildMapStateEventsFromSnapshot,
   buildRoleStateEventScope,
   formatStateEventAtomDetail,
   formatStateEventPreviewText,
@@ -166,56 +165,5 @@ describe("state-event atoms", () => {
         gridColor: "#64748b",
       }]),
     })).toBe("[战斗] 更新地图配置");
-  });
-
-  it("从旧地图 snapshot 构造一次性迁移状态事件", () => {
-    expect(buildMapStateEventsFromSnapshot({
-      mapFileId: "200",
-      gridRows: "8",
-      gridCols: "9",
-      gridColor: " #64748b ",
-      tokens: [
-        { roleId: "3", rowIndex: "1", colIndex: "2" },
-        { roleId: "4", rowIndex: "99", colIndex: "2" },
-        { roleId: "bad", rowIndex: "1", colIndex: "2" },
-      ],
-    })).toEqual([
-      {
-        type: "mapConfigUpsert",
-        mapFileId: 200,
-        gridRows: 8,
-        gridCols: 9,
-        gridColor: "#64748b",
-        clearTokens: true,
-      },
-      {
-        type: "mapTokenUpsert",
-        roleId: 3,
-        rowIndex: 1,
-        colIndex: 2,
-      },
-    ]);
-  });
-
-  it("旧地图 snapshot 已存在 token 时间线时只迁移地图配置", () => {
-    expect(buildMapStateEventsFromSnapshot({
-      mapFileId: 200,
-      gridRows: 8,
-      gridCols: 9,
-      gridColor: "#64748b",
-      tokens: [
-        { roleId: 3, rowIndex: 1, colIndex: 2 },
-      ],
-    }, {
-      includeTokens: false,
-    })).toEqual([
-      {
-        type: "mapConfigUpsert",
-        mapFileId: 200,
-        gridRows: 8,
-        gridCols: 9,
-        gridColor: "#64748b",
-      },
-    ]);
   });
 });

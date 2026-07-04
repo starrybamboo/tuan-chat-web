@@ -11,7 +11,7 @@ import { createRoomUiStore } from "../stores/roomUiStore";
 import useChatMessageSubmit from "./useChatMessageSubmit";
 
 const mocks = vi.hoisted(() => ({
-  buildMessageDraftsFromComposerSnapshotMock: vi.fn(),
+  buildMessageDraftUploadResultFromComposerSnapshotMock: vi.fn(),
   triggerAudioAutoPlayMock: vi.fn(),
   toastErrorMock: vi.fn(),
   toastSuccessMock: vi.fn(),
@@ -38,7 +38,7 @@ vi.mock("react-hot-toast", () => ({
 
 vi.mock("@/components/chat/utils/messageDraftBuilder", () => ({
   buildMessageDraftUploadResultFromComposerSnapshot: async (...args: unknown[]) => {
-    const result = await mocks.buildMessageDraftsFromComposerSnapshotMock(...args);
+    const result = await mocks.buildMessageDraftUploadResultFromComposerSnapshotMock(...args);
     if (Array.isArray(result)) {
       return { drafts: result, failedAttachments: [] };
     }
@@ -111,18 +111,18 @@ function createDeferred<T>() {
 describe("useChatMessageSubmit", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.buildMessageDraftsFromComposerSnapshotMock.mockReset();
+    mocks.buildMessageDraftUploadResultFromComposerSnapshotMock.mockReset();
     mocks.isCommandMock.mockReset();
     mocks.writeRoleVarOpsThroughAbilitiesMock.mockReset();
     mocks.isCommandMock.mockReturnValue(false);
     mocks.writeRoleVarOpsThroughAbilitiesMock.mockResolvedValue({ changedAbilities: [], changedRoleIds: [], roleVarOps: [] });
-    mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue([]);
+    mocks.buildMessageDraftUploadResultFromComposerSnapshotMock.mockResolvedValue([]);
     useChatInputUiStore.getState().reset();
     useChatComposerStore.getState().reset();
   });
 
   it("批量发送失败时保留当前草稿和回复态", async () => {
-    mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue([
+    mocks.buildMessageDraftUploadResultFromComposerSnapshotMock.mockResolvedValue([
       {
         content: "第一条",
         messageType: MessageType.TEXT,
@@ -204,7 +204,7 @@ describe("useChatMessageSubmit", () => {
   });
 
   it("开始发送后会立即清空输入框，不等待发送回包", async () => {
-    mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue([
+    mocks.buildMessageDraftUploadResultFromComposerSnapshotMock.mockResolvedValue([
       {
         content: "普通消息",
         messageType: MessageType.TEXT,
@@ -259,7 +259,7 @@ describe("useChatMessageSubmit", () => {
       annotations?: string[];
       extra: Record<string, unknown>;
     }>>();
-    mocks.buildMessageDraftsFromComposerSnapshotMock.mockReturnValue(draftDeferred.promise);
+    mocks.buildMessageDraftUploadResultFromComposerSnapshotMock.mockReturnValue(draftDeferred.promise);
 
     useChatInputUiStore.setState({
       plainText: "附件说明",
@@ -409,7 +409,7 @@ describe("useChatMessageSubmit", () => {
   it("多附件部分上传成功时提交成功附件并只回填失败附件", async () => {
     const okImage = new File(["ok"], "ok.png", { type: "image/png" });
     const failedImage = new File(["failed"], "failed.png", { type: "image/png" });
-    mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue({
+    mocks.buildMessageDraftUploadResultFromComposerSnapshotMock.mockResolvedValue({
       drafts: [
         {
           content: "图片说明",
@@ -493,7 +493,7 @@ describe("useChatMessageSubmit", () => {
 
   it("多附件全部上传失败时恢复原输入并不提交文本或空附件消息", async () => {
     const failedImage = new File(["failed"], "failed.png", { type: "image/png" });
-    mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue({
+    mocks.buildMessageDraftUploadResultFromComposerSnapshotMock.mockResolvedValue({
       drafts: [
         {
           content: "图片说明",
@@ -558,7 +558,7 @@ describe("useChatMessageSubmit", () => {
   });
 
   it("发送失败时会回填原始输入框内容", async () => {
-    mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue([
+    mocks.buildMessageDraftUploadResultFromComposerSnapshotMock.mockResolvedValue([
       {
         content: "普通消息",
         messageType: MessageType.TEXT,
@@ -639,7 +639,7 @@ describe("useChatMessageSubmit", () => {
     expect(mocks.toastErrorMock).toHaveBeenCalledWith("消息不能为无");
     expect(setIsSubmitting).not.toHaveBeenCalled();
     expect(setInputText).not.toHaveBeenCalled();
-    expect(mocks.buildMessageDraftsFromComposerSnapshotMock).not.toHaveBeenCalled();
+    expect(mocks.buildMessageDraftUploadResultFromComposerSnapshotMock).not.toHaveBeenCalled();
     expect(sendMessageWithInsert).not.toHaveBeenCalled();
   });
 
@@ -675,14 +675,14 @@ describe("useChatMessageSubmit", () => {
 
     await handleMessageSubmit();
 
-    expect(mocks.buildMessageDraftsFromComposerSnapshotMock).toHaveBeenCalledWith(expect.objectContaining({
+    expect(mocks.buildMessageDraftUploadResultFromComposerSnapshotMock).toHaveBeenCalledWith(expect.objectContaining({
       inputText: " \n\t ",
       allowEmptyTextMessage: false,
     }));
   });
 
   it("首发带 BGM annotation 的音频消息会直接触发自动播放，即使回包未回显 annotation", async () => {
-    mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue([
+    mocks.buildMessageDraftUploadResultFromComposerSnapshotMock.mockResolvedValue([
       {
         content: "",
         messageType: MessageType.SOUND,
@@ -759,7 +759,7 @@ describe("useChatMessageSubmit", () => {
   });
 
   it("以 % 开头的纯文本保持为普通文本消息", async () => {
-    mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue([
+    mocks.buildMessageDraftUploadResultFromComposerSnapshotMock.mockResolvedValue([
       {
         content: "%bgm:1",
         messageType: MessageType.TEXT,
@@ -897,9 +897,6 @@ describe("useChatMessageSubmit", () => {
       content: ".st hp -2",
       replayMessageId: 99,
       extra: expect.objectContaining({
-        diceResult: {
-          result: "状态已更新：角色 #3 · HP 10 -> 8",
-        },
         diceTurn: {
           command: ".st hp -2",
           replies: [{

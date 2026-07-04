@@ -22,8 +22,8 @@ export default function RepositoryCoverImage({
   return (
     <div className="mb-5">
       <p className="
-        text-xl font-bold mb-5 text-indigo-600
-        dark:text-green-600
+        text-xl font-bold mb-5 text-info
+        dark:text-success
       ">3. 添加仓库封面</p>
       <div
         className="flex items-center justify-center relative"
@@ -53,7 +53,7 @@ export default function RepositoryCoverImage({
                 <div className="
                   h-96 w-full bg-base-300 rounded-lg border-2 border-dashed
                   border-base-content/30
-                  hover:border-primary hover:bg-base-200
+                  hover:border-info hover:bg-base-200
                   transition-colors cursor-pointer flex flex-col items-center
                   justify-center group
                 ">
@@ -98,7 +98,7 @@ export default function RepositoryCoverImage({
                           <svg
                             className="
                               w-8 h-8 text-base-content/50
-                              group-hover:text-primary
+                              group-hover:text-info
                               mb-2
                             "
                             fill="none"
@@ -120,7 +120,7 @@ export default function RepositoryCoverImage({
                           </svg>
                           <span className="
                             text-xs text-base-content/60
-                            group-hover:text-primary
+                            group-hover:text-info
                             text-center
                           ">
                             点击上传

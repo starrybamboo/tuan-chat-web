@@ -121,7 +121,7 @@ const Pagination: React.FC<PaginationProps> = ({
             className={`
               join-item btn btn-square
               ${
-              page === currentPage ? "btn-active bg-success" : ""
+              page === currentPage ? "btn-active bg-info text-info-content" : ""
             }
               ${isEllipsis ? "cursor-pointer" : ""}
             `}

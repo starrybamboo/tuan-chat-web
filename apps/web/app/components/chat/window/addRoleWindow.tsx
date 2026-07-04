@@ -159,7 +159,8 @@ export function AddRoleWindow({
       <div className="bg-base-100 rounded-box p-6">
         <div className="form-control mb-4">
           <input
-            type="text"
+            type="search"
+            autoComplete="off"
             className="input input-bordered w-full"
             placeholder={activeTab === "my" ? "搜索我的角色（名称/ID）" : "搜索空间角色（名称/ID）"}
             aria-label={activeTab === "my" ? "搜索我的角色" : "搜索空间角色"}
@@ -177,6 +178,8 @@ export function AddRoleWindow({
             <div className="flex items-center gap-2">
               <input
                 type="text"
+                inputMode="numeric"
+                autoComplete="off"
                 className="input input-bordered input-sm w-full"
                 placeholder={isRoomScope ? "输入角色ID，强制加入当前房间" : "输入角色ID，强制加入当前空间库"}
                 aria-label="按角色ID强制添加"

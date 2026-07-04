@@ -28,17 +28,17 @@ describe("drawerPreferenceStore", () => {
     vi.resetModules();
   });
 
-  it("旧 WebGAL 侧栏宽度会迁移为跑团侧窗宽度", async () => {
+  it("忽略旧 WebGAL 侧栏宽度", async () => {
     const storage = new MemoryStorage();
     storage.setItem("webgalDrawerWidth", "720");
     const { useDrawerPreferenceStore } = await loadDrawerPreferenceStore(storage);
 
     useDrawerPreferenceStore.getState().hydrateFromLocalStorage();
 
-    expect(useDrawerPreferenceStore.getState().subRoomWindowWidth).toBe(720);
+    expect(useDrawerPreferenceStore.getState().subRoomWindowWidth).toBe(560);
   });
 
-  it("已有跑团侧窗宽度优先于旧 WebGAL 宽度", async () => {
+  it("读取跑团侧窗宽度", async () => {
     const storage = new MemoryStorage();
     storage.setItem("webgalDrawerWidth", "720");
     storage.setItem("subRoomWindowWidth", "640");

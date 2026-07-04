@@ -29,7 +29,7 @@ export default function TrendingTopics() {
               className={`
                 text-sm font-medium w-4 text-center
                 ${
-                index < 3 ? "text-primary font-bold" : "text-base-content/60"
+                index < 3 ? "text-info font-bold" : "text-base-content/60"
               }
               `}
             >
@@ -39,7 +39,7 @@ export default function TrendingTopics() {
               <div className="flex items-center space-x-2">
                 <span className="
                   font-medium text-base-content
-                  group-hover:text-primary
+                  group-hover:text-info
                   transition-colors text-sm
                 ">
                   #

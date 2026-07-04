@@ -88,8 +88,8 @@ export default function MessageFilterWindow({
   return (
     <div className="
       pointer-events-auto w-[min(92vw,560px)] overflow-hidden rounded-md border
-      border-primary/20 bg-base-100/94 text-base-content shadow-2xl
-      shadow-primary/10 backdrop-blur-xl
+      border-info/20 bg-base-100/94 text-base-content shadow-2xl
+      shadow-info/10 backdrop-blur-xl
     ">
       <div className="
         flex items-center justify-between gap-3 border-b border-base-content/10
@@ -98,7 +98,7 @@ export default function MessageFilterWindow({
         <div className="flex min-w-0 items-center gap-2">
           <span className="
             inline-flex size-7 shrink-0 items-center justify-center rounded-md
-            bg-primary/10 text-primary
+            bg-info/10 text-info
           ">
             <Funnel className="size-4" />
           </span>
@@ -122,7 +122,7 @@ export default function MessageFilterWindow({
             type="button"
             className={`
               join-item btn btn-sm h-8 min-h-0 rounded-md px-3
-              ${filterAction === "remove" ? `btn-primary` : `
+              ${filterAction === "remove" ? `btn-info` : `
                 btn-ghost border border-base-content/15
               `}
             `}
@@ -134,7 +134,7 @@ export default function MessageFilterWindow({
             type="button"
             className={`
               join-item btn btn-sm h-8 min-h-0 rounded-md px-3
-              ${filterAction === "keep" ? `btn-primary` : `
+              ${filterAction === "keep" ? `btn-info` : `
                 btn-ghost border border-base-content/15
               `}
             `}
@@ -155,7 +155,7 @@ export default function MessageFilterWindow({
             px-3 py-2 transition
             ${
             filterOutOfCharacterSpeech
-              ? "border-primary/40 bg-primary/10 text-primary"
+              ? "border-info/40 bg-info/10 text-info"
               : `
                 border-base-content/12 bg-base-200/35 text-base-content/70
                 hover:border-base-content/25
@@ -182,7 +182,7 @@ export default function MessageFilterWindow({
             px-3 py-2 transition
             ${
             filterStateMessages
-              ? "border-primary/40 bg-primary/10 text-primary"
+              ? "border-info/40 bg-info/10 text-info"
               : `
                 border-base-content/12 bg-base-200/35 text-base-content/70
                 hover:border-base-content/25

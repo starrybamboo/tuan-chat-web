@@ -36,9 +36,9 @@ export function HistoryImageTile({
     <div className={`
       group relative w-[100px] overflow-hidden rounded-xl border bg-base-100
       shadow-sm transition-colors
-      ${active ? `border-primary shadow-[0_0_0_1px_rgba(99,102,241,0.35)]` : `
+      ${active ? `border-info shadow-sm` : `
         border-base-300
-        hover:border-primary/45
+        hover:border-info/45
       `}
     `}>
       <button
@@ -65,7 +65,7 @@ export function HistoryImageTile({
                 items-center justify-center rounded-md bg-black/28 text-white/78
                 backdrop-blur-[1px]
               ">
-                <SelectionPlusIcon className="size-3.5" weight="bold" />
+                <SelectionPlusIcon className="size-3.5" weight="regular" />
               </div>
             )
           : null}

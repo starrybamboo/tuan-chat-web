@@ -102,7 +102,7 @@ export default function RoleCreationFlow({
           {
             id: "create-role",
             label: isSaving ? "创建中..." : "创建角色",
-            icon: <Plus className="size-4" weight="bold" />,
+            icon: <Plus className="size-4" weight="regular" />,
             onClick: handleComplete,
             disabled: !canCreate || isSaving,
             variant: "primary",
@@ -138,7 +138,7 @@ export default function RoleCreationFlow({
               ? <span className="loading loading-spinner loading-xs"></span>
               : (
                   <span className="flex items-center gap-1">
-                    <Plus className="size-4" weight="bold" />
+                    <Plus className="size-4" weight="regular" />
                     创建角色
                   </span>
                 )}

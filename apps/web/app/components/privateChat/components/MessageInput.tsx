@@ -93,7 +93,7 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
             <Emoji updateEmojiUrls={updateEmojiUrls} setEmojiMetaByUrl={setEmojiMetaByUrl}>
               <EmojiIcon className="
                 size-6 cursor-pointer
-                hover:text-blue-500
+                hover:text-info
                 transition-colors
               " />
             </Emoji>
@@ -101,7 +101,7 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
             <Image updateImgFiles={updateImgFiles}>
               <Image2Fill className="
                 size-6 cursor-pointer
-                hover:text-blue-500
+                hover:text-info
                 transition-colors
               " />
             </Image>
@@ -153,20 +153,20 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
         <div className="
           flex min-h-11 w-full items-end gap-2 rounded-xl border border-base-300
           bg-base-200/60 px-3 py-2
-          focus-within:border-primary/60 focus-within:ring-2
-          focus-within:ring-primary/20
+          focus-within:border-info/60 focus-within:ring-2
+          focus-within:ring-info/20
         ">
           <div className="flex h-8 shrink-0 items-center gap-1">
             <Emoji updateEmojiUrls={updateEmojiUrls} setEmojiMetaByUrl={setEmojiMetaByUrl}>
               <EmojiIcon className="
                 size-5 cursor-pointer text-base-content/60 transition-colors
-                hover:text-blue-500
+                hover:text-info
               " />
             </Emoji>
             <Image updateImgFiles={updateImgFiles}>
               <Image2Fill className="
                 size-5 cursor-pointer text-base-content/60 transition-colors
-                hover:text-blue-500
+                hover:text-info
               " />
             </Image>
           </div>
@@ -191,7 +191,7 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
 
           <button
             type="button"
-            className="btn btn-primary btn-sm min-h-8 h-8 shrink-0"
+            className="btn btn-info btn-sm min-h-8 h-8 shrink-0"
             onClick={handleSendMessage}
             disabled={!messageInput.trim() && imgFiles.length === 0 && emojiUrls.length === 0}
           >

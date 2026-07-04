@@ -16,6 +16,7 @@ type UseChatPageSidebarTreeParams = {
 type UseChatPageSidebarTreeResult = {
   sidebarTree: SidebarTree | null;
   isSidebarTreeReady: boolean;
+  sidebarTreeRemoteUpdateKey: string | null;
   saveSidebarTree: (tree: SidebarTree) => void;
 };
 
@@ -86,6 +87,15 @@ export default function useChatPageSidebarTree({
       : cachedTreeJson;
     return parseSidebarTree(effectiveTreeJson);
   }, [cachedTreeJson, remoteTreeJson]);
+  const sidebarTreeRemoteUpdateKey = useMemo(() => {
+    if (!activeSpaceId || activeSpaceId <= 0) {
+      return null;
+    }
+    if (isOptimisticTree || typeof remoteTreeJson !== "string" || remoteTreeJson.trim().length === 0) {
+      return null;
+    }
+    return `${activeSpaceId}:${sidebarTreeVersion}`;
+  }, [activeSpaceId, isOptimisticTree, remoteTreeJson, sidebarTreeVersion]);
 
   const saveSidebarTree = useCallback((tree: SidebarTree) => {
     if (!activeSpaceId || activeSpaceId <= 0)
@@ -103,6 +113,7 @@ export default function useChatPageSidebarTree({
   return {
     sidebarTree,
     isSidebarTreeReady: spaceSidebarTreeQuery.isFetched || hasCachedTree,
+    sidebarTreeRemoteUpdateKey,
     saveSidebarTree,
   };
 }

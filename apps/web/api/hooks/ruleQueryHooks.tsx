@@ -268,7 +268,7 @@ export function useRulePageSuspenseQuery(page: number, keyword?: string, pageSiz
   };
 }
 
-export function useRuleListQuery() {
+export function useRuleListQuery(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["ruleList"],
     queryFn: async (): Promise<Rule[]> => {
@@ -279,6 +279,7 @@ export function useRuleListQuery() {
       throw new Error('获取规则列表失败');
     },
     staleTime: 300000, // 5分钟缓存
+    enabled: options?.enabled ?? true,
   });
 }
 

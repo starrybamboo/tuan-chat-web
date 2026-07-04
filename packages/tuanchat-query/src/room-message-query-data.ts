@@ -8,16 +8,9 @@ export type RoomMessagesSyncResult = {
   mode: RoomMessagesFetchMode;
 };
 
-type RoomMessagesLegacyQueryData = {
-  data?: ChatMessageResponse[] | {
-    list?: ChatMessageResponse[];
-  };
-};
-
 export type RoomMessagesQueryData
   = | ChatMessageResponse[]
     | RoomMessagesSyncResult
-    | RoomMessagesLegacyQueryData
     | undefined;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -46,11 +39,7 @@ function extractRoomMessages(value: unknown): ChatMessageResponse[] {
     ? value
     : isRoomMessagesSyncResult(value)
       ? value.messages
-      : isRecord(value) && Array.isArray(value.data)
-        ? value.data
-        : isRecord(value) && isRecord(value.data) && Array.isArray(value.data.list)
-          ? value.data.list
-          : [];
+      : [];
 
   return rawList.flatMap((item): ChatMessageResponse[] => {
     if (isChatMessageResponse(item)) {
@@ -79,21 +68,6 @@ export function updateRoomMessagesQueryData(
   if (isRoomMessagesSyncResult(currentData)) {
     // Sync results are raw queryFn payloads; manual cache merges are no longer fetch deltas.
     return nextMessages;
-  }
-  if (isRecord(currentData) && Array.isArray(currentData.data)) {
-    return {
-      ...currentData,
-      data: nextMessages,
-    };
-  }
-  if (isRecord(currentData) && isRecord(currentData.data) && Array.isArray(currentData.data.list)) {
-    return {
-      ...currentData,
-      data: {
-        ...currentData.data,
-        list: nextMessages,
-      },
-    };
   }
   return nextMessages;
 }

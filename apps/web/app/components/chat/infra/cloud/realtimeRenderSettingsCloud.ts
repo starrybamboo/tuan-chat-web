@@ -7,20 +7,17 @@ import {
 import { tuanchat } from "../../../../../api/instance";
 
 export type RealtimeRenderCloudSettings = {
+  settingsVersion?: number;
   ttsApiUrl?: string;
   terrePort?: number | null;
   autoFigureEnabled?: boolean;
   roomContentAlertThreshold?: number;
   baseTemplate?: string;
   coverFromRoomAvatarEnabled?: boolean;
-  titleImageUrl?: string;
   titleImageFileId?: number;
-  originalTitleImageUrl?: string;
   originalTitleImageFileId?: number;
   startupLogoFromRoomAvatarEnabled?: boolean;
-  startupLogoUrl?: string;
   startupLogoFileId?: number;
-  originalStartupLogoUrl?: string;
   originalStartupLogoFileId?: number;
   gameIconFromRoomAvatarEnabled?: boolean;
   gameNameFromRoomNameEnabled?: boolean;
@@ -34,9 +31,10 @@ export type RealtimeRenderCloudSettings = {
   typingSoundEnabled?: boolean;
   figureDefaultEnterDuration?: number;
   figureDefaultExitDuration?: number;
+  figureDefaultEnterAnimation?: string;
+  figureDefaultExitAnimation?: string;
   typingSoundInterval?: number;
   typingSoundPunctuationPause?: number;
-  typingSoundSeUrl?: string;
   typingSoundSeFileId?: number;
   typingSoundSeMediaType?: string;
 };

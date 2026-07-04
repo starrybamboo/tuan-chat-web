@@ -129,8 +129,8 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
   return (
     <div className="size-full overflow-hidden">
       <div className="
-        flex items-center gap-2 h-10 px-2 border-y border-gray-300
-        dark:border-gray-700
+        flex items-center gap-2 h-10 px-2 border-y border-base-300
+        dark:border-base-300
         bg-base-100
       ">
         <button

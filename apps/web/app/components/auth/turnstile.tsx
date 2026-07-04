@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef } from "react";
 
 const TURNSTILE_SCRIPT_ID = "cloudflare-turnstile-script";
 const TURNSTILE_SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+const PRODUCTION_TURNSTILE_SITE_KEY = "0x4AAAAAADuhW4KyzfPxtfWu";
+const DEVELOPMENT_TURNSTILE_SITE_KEY = "1x00000000000000000000AA";
 
 let turnstileScriptPromise: Promise<void> | null = null;
 
@@ -28,7 +30,16 @@ declare global {
 }
 
 function getTurnstileSiteKey() {
-  return String(import.meta.env.VITE_TURNSTILE_SITE_KEY || "").trim();
+  const envSiteKey = String(import.meta.env.VITE_TURNSTILE_SITE_KEY || "").trim();
+  if (import.meta.env.DEV) {
+    return envSiteKey && envSiteKey !== PRODUCTION_TURNSTILE_SITE_KEY
+      ? envSiteKey
+      : DEVELOPMENT_TURNSTILE_SITE_KEY;
+  }
+
+  return String(
+    envSiteKey || PRODUCTION_TURNSTILE_SITE_KEY,
+  ).trim();
 }
 
 export function hasTurnstileSiteKey() {

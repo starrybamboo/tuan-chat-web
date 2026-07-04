@@ -78,16 +78,6 @@ describe("chatPageRouteUtils", () => {
   });
 
   describe("getIsRoomSettingRoute", () => {
-    it("returns true for legacy messageId based setting routes", () => {
-      expect(getIsRoomSettingRoute({
-        activeRoomId: 3,
-        isDocRoute: false,
-        pathname: "/chat/1/3/setting",
-        roomSettingMatched: false,
-        urlMessageId: "setting",
-      })).toBe(true);
-    });
-
     it("returns true for direct room setting pathnames when matchRoute misses", () => {
       expect(getIsRoomSettingRoute({
         activeRoomId: 3,
@@ -103,7 +93,6 @@ describe("chatPageRouteUtils", () => {
         isDocRoute: true,
         pathname: "/chat/1/doc/setting",
         roomSettingMatched: true,
-        urlMessageId: "setting",
       })).toBe(false);
     });
   });

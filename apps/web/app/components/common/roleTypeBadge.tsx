@@ -5,24 +5,24 @@ type RoleTypeMeta = {
   className: string;
 }
 
-export function getUserRoleTypeMeta(role: Pick<UserRole, "type" | "npc" | "role" | "diceMaiden">): RoleTypeMeta {
-  if (role.type === 2 || role.npc) {
+export function getUserRoleTypeMeta(role: Pick<UserRole, "type">): RoleTypeMeta {
+  if (role.type === 2) {
     return {
       label: "NPC",
-      className: "border-amber-500/30 bg-amber-500/10 text-amber-700",
+      className: "border-warning/30 bg-warning/10 text-warning",
     };
   }
 
-  if (role.type === 1 || role.diceMaiden) {
+  if (role.type === 1) {
     return {
       label: "骰娘",
-      className: "border-violet-500/30 bg-violet-500/10 text-violet-700",
+      className: "border-info/30 bg-info/10 text-info",
     };
   }
 
   return {
     label: "角色",
-    className: "border-sky-500/30 bg-sky-500/10 text-sky-700",
+    className: "border-base-content/15 bg-base-200 text-base-content/70",
   };
 }
 
@@ -30,7 +30,7 @@ export function RoleTypeBadge({
   role,
   className,
 }: {
-  role: Pick<UserRole, "type" | "npc" | "role" | "diceMaiden">;
+  role: Pick<UserRole, "type">;
   className?: string;
 }) {
   const meta = getUserRoleTypeMeta(role);

@@ -2,7 +2,6 @@ import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSo
 import { MediaImage } from "@/components/common/mediaImage";
 import { getImageMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { imageMediumUrlFromUrl } from "@/utils/media/mediaUrl";
 
 import type { Message } from "../../../../../api";
 
@@ -18,27 +17,11 @@ type MessagePreviewContentProps = {
   withMediaPreview?: boolean;
 }
 
-function getStringField(value: unknown, key: string): string {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return "";
-  }
-  const field = (value as Record<string, unknown>)[key];
-  return typeof field === "string" ? field.trim() : "";
-}
-
 function resolveImagePreviewUrl(imageMessage: unknown): string {
   const imageRecord = imageMessage && typeof imageMessage === "object" && !Array.isArray(imageMessage)
     ? imageMessage as { source?: { kind?: string; fileId?: number; url?: string } }
     : undefined;
-  const fileUrl = resolveMessageMediaUrl(imageRecord, "medium", "image");
-  if (fileUrl) {
-    return fileUrl;
-  }
-
-  const legacyUrl = getStringField(imageMessage, "imageUrl")
-    || getStringField(imageMessage, "url")
-    || getStringField(imageMessage, "src");
-  return imageMediumUrlFromUrl(legacyUrl);
+  return resolveMessageMediaUrl(imageRecord, "medium", "image");
 }
 
 export function MessagePreviewContent({

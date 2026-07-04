@@ -11,7 +11,7 @@ type StateMessageCardProps = {
 }
 
 const STATE_MESSAGE_CARD_CLASS = "inline-flex min-w-0 max-w-full items-center gap-1 rounded px-1.5 py-0.5 text-[11px] leading-4 transition-colors duration-150";
-const STATE_MESSAGE_IDLE_CLASS = "text-base-content/45 hover:text-base-content/70";
+const STATE_MESSAGE_IDLE_CLASS = "text-base-content/50 hover:text-base-content/70";
 const STATE_MESSAGE_TEXT_CLASS = "min-w-0 break-words text-center text-current";
 const STATE_MESSAGE_ACTION_CLASS = "shrink-0 text-[11px] text-current opacity-45 transition-opacity hover:opacity-75";
 const STATE_MESSAGE_DETAIL_CLASS = "mt-1 w-full max-w-[32rem] space-y-2 rounded-md border border-base-content/8 bg-base-100/75 px-2.5 py-2 text-xs text-base-content/65 shadow-sm backdrop-blur-sm";
@@ -152,7 +152,7 @@ export default function StateMessageCard({ message }: StateMessageCardProps) {
           <div className="
             flex flex-wrap items-center gap-2 text-base-content/60
           ">
-            <span className="uppercase tracking-wide text-base-content/42">来源</span>
+            <span className="uppercase tracking-wide text-base-content/50">来源</span>
             <span className="break-all">{sourceLabel}</span>
           </div>
 

@@ -106,10 +106,10 @@ function SceneNode({ data, selected }: SceneNodeProps) {
             relative overflow-hidden rounded-sm bg-base-100
             ${
             selected
-              ? "border-2 border-primary"
+              ? "border-2 border-info"
               : "border border-base-content"
           }
-            ${isDragOver ? "ring-2 ring-green-400 ring-opacity-75" : ""}
+            ${isDragOver ? "ring-2 ring-success ring-opacity-75" : ""}
           `}
         >
           {/* 右下偏移的背景层，仅作用于本内容区 */}

@@ -94,14 +94,14 @@ export function MessageEditorSpeakerAvatarMenu({
 
       {loading && items.length === 0
         ? (
-            <div className="bg-base-100 px-3 py-3 text-sm text-base-content/45">
+            <div className="bg-base-100 px-3 py-3 text-sm text-base-content/50">
               载入中
             </div>
           )
         : items.length === 0
           ? (
               <div className="
-                bg-base-100 px-3 py-3 text-sm text-base-content/45
+                bg-base-100 px-3 py-3 text-sm text-base-content/50
               ">
                 没有可选头像
               </div>
@@ -123,7 +123,7 @@ export function MessageEditorSpeakerAvatarMenu({
                         <div key={category} className="space-y-1">
                           <div className="
                             flex items-center gap-1 px-3 pt-1 text-[11px]
-                            font-medium text-base-content/45
+                            font-medium text-base-content/50
                           ">
                             <span className="truncate">{category}</span>
                             <span className="shrink-0">{categoryItems.length}</span>
@@ -145,9 +145,9 @@ export function MessageEditorSpeakerAvatarMenu({
                           >
                             <span className="
                               flex size-6 shrink-0 items-center justify-center
-                              rounded-full bg-base-200/70 text-base-content/45
+                              rounded-full bg-base-200/70 text-base-content/50
                             ">
-                              <X className="size-3.5" weight="bold" />
+                              <X className="size-3.5" weight="regular" />
                             </span>
                             <span className="min-w-0 flex-1">
                               <span className="
@@ -155,7 +155,7 @@ export function MessageEditorSpeakerAvatarMenu({
                               ">{item.avatarTitle}</span>
                               <span className="
                                 mt-0.5 block truncate text-xs
-                                text-base-content/45
+                                text-base-content/50
                               ">
                                 取消头像
                               </span>
@@ -176,7 +176,7 @@ export function MessageEditorSpeakerAvatarMenu({
                       <div key={category} className="space-y-1">
                         <div className="
                           flex items-center gap-1 px-3 pt-1 text-[11px]
-                          font-medium text-base-content/45
+                          font-medium text-base-content/50
                         ">
                           <span className="truncate">{category}</span>
                           <span className="shrink-0">{categoryItems.length}</span>

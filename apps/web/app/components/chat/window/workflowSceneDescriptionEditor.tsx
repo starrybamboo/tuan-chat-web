@@ -74,6 +74,8 @@ export default function WorkflowSceneDescriptionEditor({
 
       <textarea
         className="textarea textarea-bordered rounded-md h-40 w-full resize-y"
+        autoComplete="off"
+        aria-label="场景描述"
         value={value}
         onChange={event => setValue(event.target.value)}
       />

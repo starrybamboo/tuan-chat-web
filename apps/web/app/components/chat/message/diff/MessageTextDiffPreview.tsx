@@ -15,7 +15,7 @@ type DiffLineTone = "before" | "after";
 
 function renderSegments(segments: MessageTextDiffSegment[], tone: DiffLineTone): React.ReactNode {
   if (segments.length === 0) {
-    return <span className="text-base-content/40">暂无内容</span>;
+    return <span className="text-base-content/50">暂无内容</span>;
   }
 
   return segments.map((segment, index) => {
@@ -66,7 +66,7 @@ export default function MessageTextDiffPreview({
         ">
           <div className="whitespace-pre-wrap wrap-break-word text-sm/6">
             {isPendingRewrite
-              ? (activeDiff.beforeText || <span className="text-base-content/40">暂无内容</span>)
+              ? (activeDiff.beforeText || <span className="text-base-content/50">暂无内容</span>)
               : renderSegments(activeDiff.beforeSegments, "before")}
           </div>
         </section>
@@ -77,7 +77,7 @@ export default function MessageTextDiffPreview({
           <div className="whitespace-pre-wrap wrap-break-word text-sm/6">
             {activeDiff.afterText
               ? renderSegments(activeDiff.afterSegments, "after")
-              : <span className="text-base-content/40">{emptyAfterText}</span>}
+              : <span className="text-base-content/50">{emptyAfterText}</span>}
           </div>
         </section>
       </div>

@@ -157,7 +157,7 @@ export default function RepositoryCommitChainPage() {
                     absolute left-0 top-0 flex h-8 w-8 items-center
                     justify-center rounded-full border text-xs
                     ${
-                    isHead ? "border-primary bg-primary/10 text-primary" : `
+                    isHead ? "border-info bg-info/10 text-info" : `
                       border-base-300 bg-base-200 text-base-content/70
                     `
                   }
@@ -173,7 +173,7 @@ export default function RepositoryCommitChainPage() {
                         {`#${commitId}`}
                       </span>
                       {isHead && <span className="
-                        badge badge-primary badge-outline
+                        badge badge-info badge-outline
                       ">HEAD</span>}
                       <span className="badge badge-outline">{formatCommitType(commit.commitType)}</span>
                     </div>

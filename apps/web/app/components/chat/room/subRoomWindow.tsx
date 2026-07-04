@@ -277,12 +277,12 @@ function SubRoomWindowImpl() {
   const runPanel = (
     <div className="
       h-full flex flex-col min-h-0 bg-base-200
-      dark:bg-slate-950/25
+      dark:bg-base-300/25
       backdrop-blur-xl
     ">
       <div className="
-        border-gray-300
-        dark:border-gray-700
+        border-base-300
+        dark:border-base-300
         border-y flex justify-between items-center overflow-visible relative
         z-50
       ">
@@ -344,7 +344,7 @@ function SubRoomWindowImpl() {
     >
       <div className="
         h-full flex flex-col min-h-0 bg-base-200
-        dark:bg-slate-950/25
+        dark:bg-base-300/25
         backdrop-blur-xl border-l border-base-300 shadow-none
       ">
         {splitEnabled
@@ -366,7 +366,7 @@ function SubRoomWindowImpl() {
                     group flex shrink-0 items-center justify-center
                     cursor-row-resize touch-none transition-[background-color]
                     duration-150 focus:outline-none
-                    focus-visible:ring-2 focus-visible:ring-primary/40
+                    focus-visible:ring-2 focus-visible:ring-info/40
                     ${isDraggingWebgalRunSplit ? `
                       bg-base-300/80
                     ` : `hover:bg-base-300/55`}
@@ -380,7 +380,7 @@ function SubRoomWindowImpl() {
                 >
                   <div className={`
                     h-px w-full transition-colors
-                    ${isDraggingWebgalRunSplit ? `bg-primary/45` : `
+                    ${isDraggingWebgalRunSplit ? `bg-info/45` : `
                       bg-base-300/80
                       group-hover:bg-base-content/28
                     `}

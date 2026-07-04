@@ -64,6 +64,10 @@ export type RealtimeGameConfig = {
   figureDefaultEnterDuration: number;
   /** 默认角色立绘出场时长（Figure_Default_Exit_Duration） */
   figureDefaultExitDuration: number;
+  /** 默认角色立绘入场动画 JSON 名（Figure_Default_Enter_Animation） */
+  figureDefaultEnterAnimation: string;
+  /** 默认角色立绘出场动画 JSON 名（Figure_Default_Exit_Animation） */
+  figureDefaultExitAnimation: string;
   /** 打字音播放间隔（每隔多少个字符播放一次） */
   typingSoundInterval: number;
   /** 标点符号额外停顿（毫秒） */
@@ -94,8 +98,10 @@ export const DEFAULT_REALTIME_GAME_CONFIG: RealtimeGameConfig = {
   defaultLanguage: "",
   enableAppreciation: true,
   typingSoundEnabled: false,
-  figureDefaultEnterDuration: 100,
-  figureDefaultExitDuration: 100,
+  figureDefaultEnterDuration: 0,
+  figureDefaultExitDuration: 300,
+  figureDefaultEnterAnimation: "tuanchat/default-enter",
+  figureDefaultExitAnimation: "tuanchat/default-exit",
   typingSoundInterval: 1.5,
   typingSoundPunctuationPause: 100,
   typingSoundSeUrl: "",
@@ -107,4 +113,12 @@ export function normalizeFigureDefaultTransitionDuration(value: unknown): number
     return 100;
   }
   return Math.max(0, Math.min(5000, Math.floor(raw)));
+}
+
+export function normalizeFigureDefaultTransitionAnimation(value: unknown, fallback: string): string {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+  const normalized = value.trim();
+  return normalized || fallback;
 }

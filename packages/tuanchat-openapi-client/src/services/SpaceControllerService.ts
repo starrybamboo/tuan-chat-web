@@ -16,6 +16,7 @@ import type { SpaceCloneByCommitRequest } from '../models/SpaceCloneByCommitRequ
 import type { SpaceCloneByRepositoryRequest } from '../models/SpaceCloneByRepositoryRequest';
 import type { SpaceExtraRequest } from '../models/SpaceExtraRequest';
 import type { SpaceExtraSetRequest } from '../models/SpaceExtraSetRequest';
+import type { SpaceMuteRequest } from '../models/SpaceMuteRequest';
 import type { SpaceOwnerTransferRequest } from '../models/SpaceOwnerTransferRequest';
 import type { SpaceRecoverRequest } from '../models/SpaceRecoverRequest';
 import type { SpaceUpdateRequest } from '../models/SpaceUpdateRequest';
@@ -67,6 +68,22 @@ export class SpaceControllerService {
         return this.httpRequest.request({
             method: 'PUT',
             url: '/space/transfer',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * 更新空间禁言状态
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public updateSpaceMuteStatus(
+        requestBody: SpaceMuteRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/space/mute',
             body: requestBody,
             mediaType: 'application/json',
         });
@@ -278,6 +295,28 @@ export class SpaceControllerService {
         return this.httpRequest.request({
             method: 'GET',
             url: '/space/list/active',
+        });
+    }
+    /**
+     * 获取广场已归档空间
+     * @returns ApiResultListSpace OK
+     * @throws ApiError
+     */
+    public listArchivedSpacesSquare(): CancelablePromise<ApiResultListSpace> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/space/archive/square',
+        });
+    }
+    /**
+     * 获取当前用户归档的空间
+     * @returns ApiResultListSpace OK
+     * @throws ApiError
+     */
+    public listMyArchivedSpaces(): CancelablePromise<ApiResultListSpace> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/space/archive/my',
         });
     }
 }

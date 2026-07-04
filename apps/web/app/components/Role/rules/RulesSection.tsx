@@ -99,7 +99,9 @@ export default function RulesSection({
           md:flex-none
         ">
           <input
-            type="text"
+            type="search"
+            autoComplete="off"
+            aria-label="搜索规则"
             placeholder="搜索规则..."
             value={keyword}
             onChange={e => handleSearchInput(e.target.value)}
@@ -114,14 +116,14 @@ export default function RulesSection({
             ? (
                 <span className="
                   absolute left-2.5 top-1/2 -translate-y-1/2 loading
-                  loading-spinner loading-xs text-gray-400
+                  loading-spinner loading-xs text-base-content/50
                 " />
               )
             : (
                 <svg
                   className="
                     absolute left-2.5 top-1/2 transform -translate-y-1/2 size-4
-                    text-gray-400
+                    text-base-content/50
                   "
                   fill="none"
                   stroke="currentColor"
@@ -194,7 +196,7 @@ export default function RulesSection({
                 className="btn btn-sm btn-primary"
                 onClick={() => router.history.push("/role?type=rule&mode=entry")}
               >
-                <Plus className="size-4" weight="bold" />
+                <Plus className="size-4" weight="regular" />
                 自定义规则
               </button>
             </div>
@@ -339,7 +341,7 @@ function RulesList({
                 card cursor-pointer transition-all bg-base-100 shadow-xs
                 rounded-2xl border border-base-content/10
                 ${currentRuleId === rule.ruleId
-                ? "border-primary"
+                ? "border-info"
                 : `
                   border-base-300
                   hover:border-base-400 hover:bg-base-200/60
@@ -404,7 +406,7 @@ function RulesList({
                 hover:bg-base-200
                 transition-colors cursor-pointer border
                 ${currentRuleId === rule.ruleId
-                ? "border-primary"
+                ? "border-info"
                 : "border-base-content/10"
               }
               `
@@ -413,7 +415,7 @@ function RulesList({
                 hover:bg-base-200
                 transition-colors cursor-pointer border-2
                 ${currentRuleId === rule.ruleId
-                ? "border-primary"
+                ? "border-info"
                 : "border-transparent"
               }
               `}
@@ -452,7 +454,7 @@ function RulesList({
               `}
           >
             <div className="
-              flex items-center justify-center text-base-content/40
+              flex items-center justify-center text-base-content/50
             ">
               <div className="text-center">
                 <h3 className={`

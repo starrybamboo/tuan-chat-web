@@ -146,7 +146,7 @@ function FeedbackStatusButtons({
         })}
       </div>
       {!canSetProcessingStatus && (
-        <p className="text-xs text-base-content/45">“处理中”状态仅开发人员可设置。</p>
+        <p className="text-xs text-base-content/50">“处理中”状态仅开发人员可设置。</p>
       )}
     </div>
   );
@@ -245,7 +245,7 @@ export default function FeedbackIssueDetail({
           <div className="text-xl font-semibold text-base-content">反馈不存在或已无法访问</div>
           <p className="text-sm text-base-content/65">返回列表后可以重新选择。</p>
           {onBack && (
-            <button type="button" className="btn btn-primary btn-sm" onClick={onBack}>
+            <button type="button" className="btn btn-info btn-sm" onClick={onBack}>
               返回反馈列表
             </button>
           )}
@@ -315,7 +315,7 @@ export default function FeedbackIssueDetail({
         relative
       ">
         <div className="
-          absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/40
+          absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-info/40
           to-transparent
         "></div>
         <div className="
@@ -357,7 +357,7 @@ export default function FeedbackIssueDetail({
                       params={{ userId: String(issue.author?.userId ?? 0) }}
                       className="
                         font-medium text-base-content
-                        hover:text-primary
+                        hover:text-info
                         transition-colors
                         hover:underline hover:underline-offset-2
                       "

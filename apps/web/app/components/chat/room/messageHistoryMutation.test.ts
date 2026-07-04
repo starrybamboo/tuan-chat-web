@@ -31,6 +31,7 @@ describe("messageHistoryMutation", () => {
     expect(request).toEqual({
       mutationMeta: {
         operationCause: "undo",
+        sourceSurface: "message_editor",
       },
       operations: [{
         messageId: 11,
@@ -48,6 +49,7 @@ describe("messageHistoryMutation", () => {
     expect(request).toEqual({
       mutationMeta: {
         operationCause: "redo",
+        sourceSurface: "message_editor",
       },
       operations: [{
         messageId: 12,

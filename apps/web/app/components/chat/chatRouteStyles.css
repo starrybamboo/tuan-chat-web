@@ -223,7 +223,7 @@
 }
 
 .chatInputTextarea {
-  transition: height 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: height 0.2s var(--ease-emphasized);
 }
 
 body.avatar-sampler-active,

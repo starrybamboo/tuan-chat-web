@@ -1,6 +1,6 @@
 import type { ChangeEvent, ClipboardEvent, DragEvent, MouseEvent } from "react";
 
-import { FilmSlateIcon } from "@phosphor-icons/react";
+import { FilmSlateIcon, ImageIcon, MusicNotesIcon, PlusIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 import {
@@ -27,8 +27,9 @@ import { setClueRefDragData } from "@/components/chat/utils/clueRef";
 import { isFileDrag } from "@/components/chat/utils/dndUpload";
 import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { hasHostPrivileges, isObserverLike } from "@/components/chat/utils/memberPermissions";
+import { confirm } from "@/components/common/ConfirmDialog";
 import { useGlobalWebSocket } from "@/components/globalContextProvider";
-import { BaselineDeleteOutline, CloseIcon, FileTextIcon, ImageIcon, MusicNotesIcon, PlusIcon, SaveIcon } from "@/icons";
+import { BaselineDeleteOutline, CloseIcon, FileTextIcon, SaveIcon } from "@/icons";
 import { buildChatMessageRequestFromDraft, buildMessageDraftsFromUploadedMedia } from "@/types/messageDraft";
 import { getImageMessageExtra } from "@/types/messageExtra";
 import { getImageSize } from "@/utils/media/getImgSize";
@@ -396,7 +397,7 @@ function ClueFolderSection({
     <div className="space-y-1">
       {isLoading && (
         <div className="
-          flex items-center gap-2 px-2 py-1.5 text-xs text-base-content/45
+          flex items-center gap-2 px-2 py-1.5 text-xs text-base-content/50
         ">
           <span className="loading loading-spinner loading-xs"></span>
           <span>正在加载线索...</span>
@@ -404,7 +405,7 @@ function ClueFolderSection({
       )}
 
       {!isLoading && clueMessages.length === 0 && (
-        <div className="px-2 py-1.5 text-xs text-base-content/45">
+        <div className="px-2 py-1.5 text-xs text-base-content/50">
           暂无线索
         </div>
       )}
@@ -424,8 +425,8 @@ function ClueFolderSection({
             className={`
               group relative w-full rounded-md border border-base-content/10 px-2 py-1.5
               select-none text-left text-xs text-base-content/80 transition-colors
-              hover:border-primary hover:bg-primary/12
-              ${activeMessageId === messageId ? `border-primary bg-primary/12 ring-1 ring-primary/35` : ""}
+              hover:border-info hover:bg-info/12
+              ${activeMessageId === messageId ? `border-info bg-info/12 ring-1 ring-info/35` : ""}
             `}
             data-clue-message-id={messageId}
             draggable
@@ -990,8 +991,7 @@ export default function ClueFolderSidebar({
       toast.error("线索不存在，无法删除");
       return;
     }
-    // eslint-disable-next-line no-alert
-    const confirmed = window.confirm("确定删除这条线索吗？");
+    const confirmed = await confirm({ title: "删除线索", description: "确定删除这条线索吗？", variant: "danger" });
     if (!confirmed) {
       return;
     }
@@ -1039,7 +1039,7 @@ export default function ClueFolderSidebar({
               />
             )
           : (
-              <div className="px-2 py-1.5 text-xs text-base-content/45">
+              <div className="px-2 py-1.5 text-xs text-base-content/50">
                 暂无线索
               </div>
             )}
@@ -1179,13 +1179,15 @@ export default function ClueFolderSidebar({
               "
               value={draftContent}
               maxLength={CLUE_CONTENT_MAX_LENGTH}
+              autoComplete="off"
+              aria-label="线索内容"
               placeholder="写下这条线索..."
               disabled={isSaving || isDeleting}
               onPaste={handleAttachmentPaste}
               onChange={event => handleDraftContentChange(event.target.value)}
             />
 
-            <div className="mt-1 text-right text-xs text-base-content/45">
+            <div className="mt-1 text-right text-xs text-base-content/50">
               {draftContent.length}
               /
               {CLUE_CONTENT_MAX_LENGTH}

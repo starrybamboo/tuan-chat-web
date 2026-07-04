@@ -10,8 +10,6 @@ export type DocRefDragPayload = {
   spaceId?: number;
   /** 发送时的标题兜底（预览加载前展示） */
   title?: string;
-  /** 发送时的封面兜底（预览加载前展示） */
-  imageUrl?: string;
   /** 发送时的封面媒体文件 ID */
   imageFileId?: number;
   originalImageFileId?: number;
@@ -35,7 +33,6 @@ function normalizePayload(raw: any): DocRefDragPayload | null {
     : undefined;
 
   const title = typeof raw?.title === "string" ? raw.title.trim() : "";
-  const imageUrl = typeof raw?.imageUrl === "string" ? raw.imageUrl.trim() : "";
   const imageFileId = typeof raw?.imageFileId === "number" && Number.isFinite(raw.imageFileId) && raw.imageFileId > 0 ? raw.imageFileId : undefined;
   const originalImageFileId = typeof raw?.originalImageFileId === "number" && Number.isFinite(raw.originalImageFileId) && raw.originalImageFileId > 0 ? raw.originalImageFileId : undefined;
   const imageMediaType = typeof raw?.imageMediaType === "string" ? raw.imageMediaType.trim() : "";
@@ -46,7 +43,6 @@ function normalizePayload(raw: any): DocRefDragPayload | null {
     ...(roomId ? { roomId } : {}),
     ...(spaceId ? { spaceId } : {}),
     ...(title ? { title } : {}),
-    ...(imageUrl ? { imageUrl } : {}),
     ...(imageFileId ? { imageFileId } : {}),
     ...(originalImageFileId ? { originalImageFileId } : {}),
     ...(imageMediaType ? { imageMediaType } : {}),

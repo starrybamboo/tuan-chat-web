@@ -28,10 +28,10 @@ type MetadataImportDialogProps = {
   onConfirmMetadataImport: () => void;
 }
 
-const IMAGE_TARGET_BUTTON_CLASS_NAME = "inline-flex h-10 min-w-[9.25rem] items-center justify-center gap-2 rounded-md border border-[#f3efc6] bg-[#f3efc6] px-3 text-[14px] font-semibold text-[#1b2141] transition enabled:hover:bg-[#fff7c9] enabled:hover:border-[#fff7c9] disabled:cursor-not-allowed disabled:border-[#f3efc6]/22 disabled:bg-[#f3efc6]/14 disabled:text-[#f3efc6]/32";
-const METADATA_CHECKBOX_CLASS_NAME = "size-4 shrink-0 rounded-[2px] border border-[#f3efc6] bg-[#f3efc6] accent-[#f3efc6] transition focus:outline-none focus:ring-2 focus:ring-[#f3efc6]/25 focus:border-[#f3efc6] disabled:cursor-not-allowed disabled:opacity-40";
+const IMAGE_TARGET_BUTTON_CLASS_NAME = "inline-flex h-10 min-w-36 items-center justify-center gap-2 rounded-md border border-warning bg-warning px-3 text-sm font-semibold text-warning-content transition enabled:hover:bg-warning/90 enabled:hover:border-warning/90 disabled:cursor-not-allowed disabled:border-warning/22 disabled:bg-warning/14 disabled:text-warning/32";
+const METADATA_CHECKBOX_CLASS_NAME = "size-4 shrink-0 rounded-sm border border-warning bg-warning accent-warning transition focus:outline-none focus:ring-2 focus:ring-warning/25 focus:border-warning disabled:cursor-not-allowed disabled:opacity-40";
 const METADATA_LABEL_ENABLED_CLASS_NAME = "cursor-pointer text-base-content";
-const METADATA_LABEL_DISABLED_CLASS_NAME = "cursor-not-allowed text-base-content/35";
+const METADATA_LABEL_DISABLED_CLASS_NAME = "cursor-not-allowed text-base-content/50";
 const CLEAN_IMPORTS_HINT_TEXT = "Remove[] / {}, add spaces after commas";
 
 function CleanImportsHint() {
@@ -50,9 +50,9 @@ function CleanImportsHint() {
         type="button"
         className="
           flex size-4 cursor-help items-center justify-center rounded-full
-          bg-transparent text-base-content/28 transition
+          bg-transparent text-base-content/50 transition
           hover:text-base-content/55
-          focus:outline-none
+          focus:outline-none focus:ring-2 focus:ring-info/30
         "
         aria-label={CLEAN_IMPORTS_HINT_TEXT}
       >
@@ -117,7 +117,7 @@ export function MetadataImportDialog({
             rounded-full border border-base-content/5
           " />
           <div className="
-            absolute -left-20 top-48 h-44 w-44 rounded-full bg-primary/10
+            absolute -left-20 top-48 h-44 w-44 rounded-full bg-info/10
             blur-3xl
           " />
           <div className="
@@ -138,7 +138,7 @@ export function MetadataImportDialog({
             title="关闭图片导入弹窗"
             onClick={onClose}
           >
-            <XIcon className="size-6" weight="bold" />
+            <XIcon className="size-6" weight="regular" />
           </button>
 
           <div className="max-w-[320px] pr-12">
@@ -260,7 +260,7 @@ export function MetadataImportDialog({
                         pl-7 flex items-center gap-3 text-[12px] leading-none
                         ${canImportMetadataCharacters && metadataImportSelection.characters ? `
                           cursor-pointer text-base-content/80
-                        ` : `cursor-not-allowed text-base-content/22`}
+                        ` : `cursor-not-allowed text-base-content/50`}
                       `}>
                         <input
                           type="checkbox"
@@ -310,11 +310,11 @@ export function MetadataImportDialog({
                         className="
                           inline-flex h-12 items-center justify-center
                           rounded-md border border-base-300 bg-base-200 px-5
-                          text-[14px] font-semibold text-base-content transition
-                          enabled:hover:border-primary/40
+                          text-sm font-semibold text-base-content transition
+                          enabled:hover:border-info/40
                           enabled:hover:bg-base-300
                           disabled:cursor-not-allowed disabled:border-base-300
-                          disabled:bg-base-200 disabled:text-base-content/35
+                          disabled:bg-base-200 disabled:text-base-content/50
                         "
                         disabled={!hasAnyMetadataImportSelection}
                         onClick={onConfirmMetadataImport}

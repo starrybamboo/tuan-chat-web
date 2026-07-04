@@ -254,7 +254,7 @@ export default function NumericalEditorSmall({
                     className={`
                       badge badge-sm
                       ${
-                      editingKey === key ? "badge-primary" : "badge-outline"
+                      editingKey === key ? "badge-info" : "badge-outline"
                     }
                     `}
                     title="点击编辑字段"

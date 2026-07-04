@@ -1,11 +1,10 @@
 import { useCallback, useState } from "react";
 
 import { FollowButton } from "@/components/common/Follow/FollowButton";
-import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { UserAvatarByUser } from "@/components/common/userAccess";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { imageLowUrl } from "@/utils/media/mediaUrl";
 import { useGetUserProfileQuery } from "api/hooks/UserHooks";
 
 export default function Author({ userId }: { userId?: number }) {
@@ -22,7 +21,6 @@ export default function Author({ userId }: { userId?: number }) {
   const userData = userInfoData?.data;
   const data = {
     name: userData?.username || "未知用户",
-    avatar: imageLowUrl(userData?.avatarFileId) || "favicon.ico",
     description: userData?.description || "暂无简介",
   };
 
@@ -47,16 +45,22 @@ export default function Author({ userId }: { userId?: number }) {
             <div className="skeleton h-14 w-14 shrink-0 rounded-full"></div>
           )
         : (
-            <MediaImage
+            <button
+              type="button"
               className="
-                h-14 w-14 shrink-0 rounded-full object-cover transition-opacity
-                hover:opacity-80
-                cursor-pointer
+                shrink-0 cursor-pointer transition-opacity hover:opacity-80
               "
-              src={data.avatar}
               onClick={handleAvatarClick}
-              alt="用户头像"
-            />
+            >
+              <UserAvatarByUser
+                user={userData}
+                fallbackUserId={userId}
+                width={14}
+                isRounded={true}
+                stopToastWindow={true}
+                clickEnterProfilePage={false}
+              />
+            </button>
           )}
 
       <div className="min-w-0 flex-1">

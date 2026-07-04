@@ -120,6 +120,8 @@ export const SimpleEditorContent = memo(({
                 <div className="relative">
                   <textarea
                     className={simplePromptTextareaClassName}
+                    autoComplete="off"
+                    aria-label="提示词"
                     value={simpleText}
                     onChange={(e) => {
                       const next = e.target.value;
@@ -145,7 +147,7 @@ export const SimpleEditorContent = memo(({
                           `}
                           onClick={handleReturnToSimpleTags}
                         >
-                          <ArrowCounterClockwise className="size-3.5" weight="bold" />
+                          <ArrowCounterClockwise className="size-3.5" weight="regular" />
                           返回tags
                         </button>
                       )
@@ -164,10 +166,9 @@ export const SimpleEditorContent = memo(({
         `}>
           <div className="min-h-0 overflow-hidden">
             <div className={`
-              rounded-2xl border border-[#D6DCE3] bg-base-100 p-3 shadow-sm
+              rounded-2xl border border-base-300 bg-base-100 p-3 shadow-sm
               transition-all duration-300 ease-out
-              dark:border-[#2A3138] dark:bg-[#1B2026]
-              ${simpleConverted ? `translate-y-0 scale-100` : `
+                             ${simpleConverted ? `translate-y-0 scale-100` : `
                 translate-y-2 scale-[0.98]
               `}
             `}>
@@ -175,7 +176,7 @@ export const SimpleEditorContent = memo(({
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="
                     flex size-9 shrink-0 items-center justify-center rounded-xl
-                    border border-primary/20 bg-primary/10 text-primary
+                    border border-info/20 bg-info/10 text-info
                   ">
                     <SparkleIcon className="size-4" weight="fill" />
                   </div>
@@ -185,8 +186,8 @@ export const SimpleEditorContent = memo(({
                   </div>
                 </div>
                 <div className="
-                  rounded-full border border-primary/20 bg-primary/[0.08] px-2
-                  py-1 text-[11px] font-medium text-primary
+                  rounded-full border border-info/20 bg-info/[0.08] px-2
+                  py-1 text-[11px] font-medium text-info
                 ">
                   预览
                 </div>
@@ -328,7 +329,7 @@ export const SimpleEditorContent = memo(({
                           `}
                           onClick={handleReturnToSimpleText}
                         >
-                          <ArrowCounterClockwise className="size-3.5" weight="bold" />
+                          <ArrowCounterClockwise className="size-3.5" weight="regular" />
                           返回描述
                         </button>
                       )
@@ -351,7 +352,7 @@ export const SimpleEditorContent = memo(({
                       className="
                         flex items-center gap-2 rounded-box border
                         border-base-300 bg-base-100 pr-2
-                        hover:border-primary
+                        hover:border-info
                       "
                       onClick={() => setIsStylePickerOpen(true)}
                       title="点击继续添加画风"

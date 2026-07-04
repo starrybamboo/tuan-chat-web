@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 
-import { MediaImage } from "@/components/common/mediaImage";
-import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
+import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { useGetRoleQuery, useGetUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
 
@@ -26,13 +25,11 @@ function DiceMaidenRoleItem({
   isSelected: boolean;
   onSelect: () => void;
 }) {
-  const avatarUrl = useResolvedRoleAvatarUrl(role);
-
   return (
     <div
       className={`card cursor-pointer transition-all duration-200 ${
         isSelected
-          ? "bg-primary/20 border-2 border-primary"
+          ? "bg-info/20 border-2 border-info"
           : "bg-base-200 hover:bg-base-300"
       }`}
       onClick={onSelect}
@@ -40,10 +37,14 @@ function DiceMaidenRoleItem({
       <div className="card-body p-4">
         <div className="flex items-center gap-3">
           {/* 骰娘头像 */}
-          <div className="avatar">
-            <div className="w-12 h-12 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
-              <MediaImage src={avatarUrl} alt={role.roleName || "骰娘"} fallbackSrc="/favicon.ico" />
-            </div>
+          <div className="rounded-full ring ring-info ring-offset-base-100 ring-offset-2">
+            <RoleAvatarByRole
+              role={role}
+              width={12}
+              isRounded={true}
+              stopToastWindow={true}
+              alt={role.roleName || "骰娘"}
+            />
           </div>
           <div className="flex-1">
             <h4 className="font-semibold">{role.roleName || "未命名骰娘"}</h4>
@@ -54,7 +55,7 @@ function DiceMaidenRoleItem({
             </p>
           </div>
           {isSelected && (
-            <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-5 h-5 text-info" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
           )}
@@ -70,19 +71,22 @@ function DiceMaidenRoleItem({
 function ManualRolePreview({ roleId }: { roleId: number }) {
   const { data: roleData } = useGetRoleQuery(roleId);
   const role = roleData?.data;
-  const avatarUrl = useResolvedRoleAvatarUrl(role);
 
   if (!role)
     return null;
 
   return (
-    <div className="card bg-primary/10 border-2 border-primary">
+    <div className="card bg-info/10 border-2 border-info">
       <div className="card-body p-4">
         <div className="flex items-center gap-3">
-          <div className="avatar">
-            <div className="w-12 h-12 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
-              <MediaImage src={avatarUrl} alt={role.roleName || "骰娘"} fallbackSrc="/favicon.ico" />
-            </div>
+          <div className="rounded-full ring ring-info ring-offset-base-100 ring-offset-2">
+            <RoleAvatarByRole
+              role={role}
+              width={12}
+              isRounded={true}
+              stopToastWindow={true}
+              alt={role.roleName || "骰娘"}
+            />
           </div>
           <div className="flex-1">
             <h4 className="font-semibold">{role.roleName || "未命名骰娘"}</h4>
@@ -92,7 +96,7 @@ function ManualRolePreview({ roleId }: { roleId: number }) {
               {role.roleId}
             </p>
           </div>
-          <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-5 h-5 text-info" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
         </div>
@@ -202,14 +206,14 @@ export default function DiceMaidenLinkModal({
           <div className="flex gap-2">
             <button
               type="button"
-              className={`btn btn-sm flex-1 ${inputMode === "select" ? "btn-primary" : "btn-ghost"}`}
+              className={`btn btn-sm flex-1 ${inputMode === "select" ? "btn-info" : "btn-ghost"}`}
               onClick={() => setInputMode("select")}
             >
               选择骰娘
             </button>
             <button
               type="button"
-              className={`btn btn-sm flex-1 ${inputMode === "manual" ? "btn-primary" : "btn-ghost"}`}
+              className={`btn btn-sm flex-1 ${inputMode === "manual" ? "btn-info" : "btn-ghost"}`}
               onClick={() => setInputMode("manual")}
             >
               手动输入ID

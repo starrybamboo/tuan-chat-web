@@ -1,17 +1,19 @@
-import type { RoleAvatar, RoleAvatarVariant } from "api";
 import type { ReactNode } from "react";
 
-import { CheckCircle, ImageSquare, UserCircle } from "@phosphor-icons/react";
-import { useSetDefaultRoleAvatarMutation, useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
+import { UserCircle } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
+import type { RoleAvatar, RoleAvatarVariant } from "api";
+
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { Button } from "@/components/common/Button";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { MediaImage } from "@/components/common/mediaImage";
 import { DisplayChatBubble } from "@/components/Role/Preview/displayChatBubble";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
 import { canvasPreview, createFullImageCrop } from "@/utils/imgCropper";
+import { useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 
 import type { Transform } from "../TransformControl";
 
@@ -35,12 +37,8 @@ type AvatarSettingsTabProps = {
   characterName: string;
   /** 可绑定的立绘组列表 */
   availableVariants?: RoleAvatarVariant[];
-  /** 当前角色正在使用的默认头像 ID */
-  defaultAvatarId?: number;
   /** 应用完成后的回调（用于关闭弹窗等） */
   onApply?: () => void;
-  /** 默认头像设置成功后的回调，用于同步外层选中状态 */
-  onDefaultAvatarApplied?: (avatar: RoleAvatar) => void;
   /** 显示将当前头像移出立绘组的动作 */
   showUnassignVariantAction?: boolean;
   /** 将当前头像移出立绘组 */
@@ -55,10 +53,6 @@ type AvatarSettingsTabProps = {
   canOpenSpriteCropper?: boolean;
   /** 当前头像是否有可用于头像校正的立绘源图 */
   canOpenAvatarCropper?: boolean;
-  /** 替换当前头像源图，替换后进入立绘校正 */
-  onReplaceAvatarSource?: (avatar: RoleAvatar, file: File) => Promise<void>;
-  /** 当前是否正在替换头像源图 */
-  isReplacingAvatarSource?: boolean;
 }
 
 type PreviewProps = {
@@ -76,6 +70,7 @@ type CalibrationPreviewShellProps = {
   disabledLabel: string;
   canOpen: boolean;
   onOpen?: () => void;
+  className?: string;
   children: ReactNode;
 }
 
@@ -194,42 +189,25 @@ function CalibrationPreviewShell({
   disabledLabel,
   canOpen,
   onOpen,
+  className,
   children,
 }: CalibrationPreviewShellProps) {
   const isInteractive = canOpen && Boolean(onOpen);
-
-  return (
-    <div
-      role="button"
-      className={`
-        group relative block w-full overflow-hidden rounded-md text-left
-        outline-none transition
-        ${isInteractive
-        ? "cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-base-100"
-        : "cursor-default"}
-      `}
-      onClick={() => {
-        if (isInteractive) {
-          onOpen?.();
-        }
-      }}
-      onKeyDown={(event) => {
-        if (!isInteractive || (event.key !== "Enter" && event.key !== " ")) {
-          return;
-        }
-        event.preventDefault();
-        onOpen?.();
-      }}
-      aria-disabled={!isInteractive}
-      tabIndex={isInteractive ? 0 : -1}
-      title={isInteractive ? actionLabel : disabledLabel}
-      aria-label={isInteractive ? actionLabel : disabledLabel}
-    >
+  const shellClassName = `
+    group relative block overflow-hidden rounded-md text-left
+    outline-none transition
+    ${className ?? "w-full"}
+    ${isInteractive
+    ? "cursor-pointer focus-visible:ring-2 focus-visible:ring-info focus-visible:ring-offset-2 focus-visible:ring-offset-base-100"
+    : "cursor-default"}
+  `;
+  const content = (
+    <>
       <span className="pointer-events-none block">{children}</span>
       <span
         className={`
-            pointer-events-none absolute inset-y-0 right-0 flex w-14/15 items-center justify-center
-            bg-black/0 opacity-0 transition
+          pointer-events-none absolute inset-0 flex items-center justify-center
+          bg-black/0 opacity-0 transition
           ${isInteractive ? "group-hover:bg-black/35 group-hover:opacity-100 group-focus-visible:bg-black/35 group-focus-visible:opacity-100" : ""}
         `}
       >
@@ -249,88 +227,59 @@ function CalibrationPreviewShell({
       ">
         {title}
       </span>
-    </div>
+    </>
+  );
+
+  if (!isInteractive) {
+    return (
+      <div className={shellClassName} title={disabledLabel}>
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={shellClassName}
+      onClick={onOpen}
+      title={actionLabel}
+      aria-label={actionLabel}
+    >
+      {content}
+    </button>
   );
 }
-
-function getStepStatusLabel(
-  progress: AvatarCalibrationStepProgress,
-  blockedLabel: string,
-) {
-  if (progress.totalCount > 1) {
-    if (progress.status === "complete") {
-      return "全部完成";
-    }
-    if (progress.completeCount > 0) {
-      return `${progress.completeCount}/${progress.totalCount} 已完成`;
-    }
-    if (progress.status === "actionable") {
-      return `${progress.sourceCount}/${progress.totalCount} 可校正`;
-    }
-  }
-  if (progress.status === "complete") {
-    return "已完成";
-  }
-  if (progress.status === "actionable") {
-    return "待校正";
-  }
-  return blockedLabel;
-}
-
-const CHEVRON_STEP_CUT = "16px";
-const CHEVRON_STEP_CLIP_PATHS = [
-  `polygon(0 0, 100% 0, 100% calc(100% - ${CHEVRON_STEP_CUT}), 50% 100%, 0 calc(100% - ${CHEVRON_STEP_CUT}))`,
-  `polygon(0 0, 50% ${CHEVRON_STEP_CUT}, 100% 0, 100% calc(100% - ${CHEVRON_STEP_CUT}), 50% 100%, 0 calc(100% - ${CHEVRON_STEP_CUT}))`,
-] as const;
 
 function isCalibrationStepReady(progress: AvatarCalibrationStepProgress) {
   return progress.totalCount > 0 && progress.completeCount >= progress.totalCount;
 }
 
-function getChevronStepToneClassName(isReady: boolean) {
-  return isReady
-    ? "bg-emerald-500/85 shadow-emerald-950/25"
-    : "bg-rose-500/85 shadow-rose-950/25";
-}
-
-function ChevronFlowStep({
-  progress,
-  title,
-  blockedLabel,
-  readyLabel,
-  shape,
-  className = "",
-}: {
-  progress: AvatarCalibrationStepProgress;
-  title: string;
-  blockedLabel: string;
-  readyLabel: string;
-  shape: 0 | 1;
-  className?: string;
-}) {
-  const isReady = isCalibrationStepReady(progress);
-  const statusLabel = isReady ? readyLabel : getStepStatusLabel(progress, blockedLabel);
-  const style = shape === 1
-    ? {
-        clipPath: CHEVRON_STEP_CLIP_PATHS[shape],
-        height: `calc(100% + ${CHEVRON_STEP_CUT})`,
-        marginTop: `-${CHEVRON_STEP_CUT}`,
-      }
-    : { clipPath: CHEVRON_STEP_CLIP_PATHS[shape] };
-
+/**
+ * 立绘 → 头像 的树形连接线：单条 SVG 圆角路径避免转角分段显隐。
+ */
+function TreeConnector({ hasAvatar, drawKey }: { hasAvatar: boolean; drawKey: string }) {
+  const lineColor = hasAvatar ? "text-success/80" : "text-error/80";
   return (
-    <div
-      role="img"
-      className={`
-        hidden h-full min-h-24 w-5 shrink-0 self-stretch shadow-sm
-        transition-colors md:block
-        ${getChevronStepToneClassName(isReady)}
-        ${className}
-      `}
-      style={style}
-      title={`${title}：${statusLabel}`}
-      aria-label={`${title}：${statusLabel}`}
-    />
+    <svg
+      key={drawKey}
+      aria-hidden="true"
+      className={`avatar-connector-draw-line absolute -top-3 left-7 h-20 overflow-visible ${lineColor}`}
+      style={{ width: "max(42px, calc(0.25rem + (100% - 2rem) / 15 - 0.25rem))" }}
+      preserveAspectRatio="none"
+      viewBox="0 0 100 100"
+    >
+      <path
+        d="M2 0 V68 Q2 94 28 94 H100"
+        fill="none"
+        pathLength={1}
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="4"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
   );
 }
 
@@ -411,12 +360,12 @@ function ChatAvatarPreview({ characterName, imageUrl }: PreviewProps) {
 
   return (
     <section
-      className="min-w-0 overflow-hidden pt-3"
+      className="min-w-0 overflow-hidden"
       aria-label="头像预览"
     >
       <div className="
-        ml-auto min-w-0 w-14/15 overflow-hidden rounded-md border
-        px-3 pt-3
+        min-w-0 overflow-hidden rounded-md border
+        border-base-300/70 bg-black py-3 pl-4 pr-3 shadow-sm
       ">
         <DisplayChatBubble
           roleName={characterName}
@@ -445,48 +394,32 @@ export function AvatarCalibrationPreviewPanel({
 }: AvatarCalibrationPreviewPanelProps) {
   return (
     <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-      <div className={`
-        ${PREVIEW_GROUP_CLASS_NAME} grid min-h-0 min-w-0 flex-1
-        grid-cols-1 gap-x-2 md:grid-cols-[1.25rem_minmax(0,1fr)]
-      `}>
-        <ChevronFlowStep
-          progress={workflowProgress.sprite}
-          title="立绘校正"
-          readyLabel="有立绘"
-          blockedLabel="无立绘"
-          shape={0}
-          className="z-[1] md:col-start-1 md:row-start-1"
-        />
-        <div className="min-w-0 md:col-start-2 md:row-start-1">
-          <CalibrationPreviewShell
-            title="立绘预览"
-            actionLabel="进入立绘校正"
-            disabledLabel="当前头像缺少可用于立绘校正的原图"
-            canOpen={canOpenSpriteCropper}
-            onOpen={onOpenSpriteCropper}
-          >
-            <WebgalSpritePreview
-              characterName={characterName}
-              imageUrl={spriteImageUrl}
-              transform={spriteTransform}
-            />
-          </CalibrationPreviewShell>
-        </div>
-        <ChevronFlowStep
-          progress={workflowProgress.avatar}
-          title="头像校正"
-          readyLabel="有头像"
-          blockedLabel="缺头像"
-          shape={1}
-          className="md:col-start-1 md:row-start-2"
-        />
-        <div className="min-w-0 md:col-start-2 md:row-start-2">
+      <div className={`${PREVIEW_GROUP_CLASS_NAME} flex min-h-0 min-w-0 flex-1 flex-col gap-3`}>
+        <CalibrationPreviewShell
+          title="立绘预览"
+          actionLabel="进入立绘校正"
+          disabledLabel="当前头像缺少可用于立绘校正的原图"
+          canOpen={canOpenSpriteCropper}
+          onOpen={onOpenSpriteCropper}
+        >
+          <WebgalSpritePreview
+            characterName={characterName}
+            imageUrl={spriteImageUrl}
+            transform={spriteTransform}
+          />
+        </CalibrationPreviewShell>
+        <div className="relative min-w-0 pl-8 pt-3">
+          <TreeConnector
+            hasAvatar={isCalibrationStepReady(workflowProgress.avatar)}
+            drawKey={`${spriteImageUrl}|${avatarImageUrl}`}
+          />
           <CalibrationPreviewShell
             title="聊天头像预览"
             actionLabel="进入头像校正"
             disabledLabel="当前头像缺少可用于头像校正的立绘源图"
             canOpen={canOpenAvatarCropper}
             onOpen={onOpenAvatarCropper}
+            className="ml-auto w-14/15"
           >
             <ChatAvatarPreview
               characterName={characterName}
@@ -509,8 +442,6 @@ export function AvatarSettingsTab({
   selectedIndex,
   characterName,
   availableVariants = [],
-  defaultAvatarId,
-  onDefaultAvatarApplied,
   showUnassignVariantAction = false,
   onUnassignVariant,
   onAssignVariant,
@@ -518,10 +449,7 @@ export function AvatarSettingsTab({
   onOpenAvatarCropper,
   canOpenSpriteCropper = false,
   canOpenAvatarCropper = false,
-  onReplaceAvatarSource,
-  isReplacingAvatarSource = false,
 }: AvatarSettingsTabProps) {
-  const replaceAvatarInputRef = useRef<HTMLInputElement | null>(null);
   // 当前选中的头像（从完整列表中根据 spritesAvatars 的 avatarId 查找）
   const currentSpriteAvatar = spritesAvatars[selectedIndex];
   const currentAvatar = useMemo(() => {
@@ -532,15 +460,9 @@ export function AvatarSettingsTab({
   // 头像标题设置
   const [editingName, setEditingName] = useState("");
   const [editingCategory, setEditingCategory] = useState("");
-  const [localDefaultAvatarId, setLocalDefaultAvatarId] = useState(defaultAvatarId);
   const [isUnassigningVariant, setIsUnassigningVariant] = useState(false);
-  const [isLocalReplacingAvatarSource, setIsLocalReplacingAvatarSource] = useState(false);
   const roleIdForMutation = currentAvatar?.roleId ?? currentSpriteAvatar?.roleId ?? 0;
   const { mutateAsync: updateAvatar, isPending: isSaving } = useUpdateRoleAvatarMutation(roleIdForMutation);
-  const {
-    mutateAsync: setDefaultAvatar,
-    isPending: isSettingDefaultAvatar,
-  } = useSetDefaultRoleAvatarMutation(roleIdForMutation);
   const previewCharacterName = characterName.trim() || "角色";
   const fallbackAvatarTitle = currentAvatar ? `头像${selectedIndex + 1}` : "未命名头像";
   const avatarTitleRecord = useMemo<Record<string, string>>(() => {
@@ -558,10 +480,6 @@ export function AvatarSettingsTab({
       queueMicrotask(() => setEditingCategory(currentAvatar.category?.trim() || DEFAULT_CATEGORY));
     }
   }, [currentAvatar, avatarTitleRecord, fallbackAvatarTitle]);
-
-  useEffect(() => {
-    setLocalDefaultAvatarId(defaultAvatarId);
-  }, [defaultAvatarId]);
 
   const variantOptions = useMemo(() => {
     const map = new Map<number, RoleAvatarVariant>();
@@ -695,48 +613,12 @@ export function AvatarSettingsTab({
   const workflowProgress = useMemo(() => (
     buildAvatarCalibrationWorkflowProgress(currentAvatar ? [currentAvatar] : [])
   ), [currentAvatar]);
-  const isCurrentDefaultAvatar = Boolean(
-    currentAvatar?.avatarId
-    && localDefaultAvatarId
-    && currentAvatar.avatarId === localDefaultAvatarId,
-  );
-  const canSetDefaultAvatar = Boolean(currentAvatar?.avatarId && roleIdForMutation);
   const canUnassignVariant = Boolean(
     showUnassignVariantAction
     && onUnassignVariant
     && currentAvatar?.avatarId
     && currentVariantId,
   );
-  const isReplacingSource = isReplacingAvatarSource || isLocalReplacingAvatarSource;
-  const canReplaceAvatarSource = Boolean(currentAvatar?.avatarId && onReplaceAvatarSource);
-
-  const handleSetDefaultAvatar = useCallback(async () => {
-    if (!currentAvatar?.avatarId || !roleIdForMutation) {
-      toast.error("头像信息缺失，无法设为默认头像");
-      return;
-    }
-    if (isCurrentDefaultAvatar || isSettingDefaultAvatar) {
-      return;
-    }
-
-    try {
-      const result = await setDefaultAvatar(currentAvatar);
-      setLocalDefaultAvatarId(result.avatar.avatarId);
-      toast.success("已设为默认头像");
-      onDefaultAvatarApplied?.(result.avatar);
-    }
-    catch (error) {
-      console.error("设置默认头像失败:", error);
-      toast.error(error instanceof Error ? error.message : "设置默认头像失败，请稍后重试");
-    }
-  }, [
-    currentAvatar,
-    isCurrentDefaultAvatar,
-    isSettingDefaultAvatar,
-    onDefaultAvatarApplied,
-    roleIdForMutation,
-    setDefaultAvatar,
-  ]);
 
   const handleUnassignVariant = useCallback(async () => {
     if (!currentAvatar?.avatarId || !onUnassignVariant || !currentVariantId) {
@@ -760,34 +642,6 @@ export function AvatarSettingsTab({
     }
   }, [currentAvatar, currentVariantId, isUnassigningVariant, onUnassignVariant]);
 
-  const handleReplaceAvatarFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0];
-    event.currentTarget.value = "";
-    if (!file) {
-      return;
-    }
-    if (!currentAvatar?.avatarId || !onReplaceAvatarSource) {
-      toast.error("头像信息缺失，无法替换头像");
-      return;
-    }
-    if (isReplacingSource) {
-      return;
-    }
-
-    void (async () => {
-      try {
-        setIsLocalReplacingAvatarSource(true);
-        await onReplaceAvatarSource(currentAvatar, file);
-      }
-      catch (error) {
-        console.error("替换头像失败:", error);
-      }
-      finally {
-        setIsLocalReplacingAvatarSource(false);
-      }
-    })();
-  }, [currentAvatar, isReplacingSource, onReplaceAvatarSource]);
-
   return (
     <div className="mx-auto flex h-full w-full max-w-7xl flex-col">
       {currentAvatar && (
@@ -795,13 +649,6 @@ export function AvatarSettingsTab({
           mb-3 flex w-full shrink-0 flex-wrap items-center gap-2 border-b
           border-base-300/70 pb-3
         ">
-          <input
-            ref={replaceAvatarInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleReplaceAvatarFileChange}
-          />
           <div className="
             flex min-w-0 flex-1 flex-wrap items-center gap-2
           ">
@@ -869,53 +716,25 @@ export function AvatarSettingsTab({
           <div className="
             ml-auto flex min-w-0 shrink-0 items-center gap-2
           ">
-            <button
-              type="button"
-              className="btn btn-outline btn-sm h-8 min-h-8 gap-1.5 rounded-md px-3"
-              onClick={() => replaceAvatarInputRef.current?.click()}
-              disabled={!canReplaceAvatarSource || isSaving || isReplacingSource}
-              title={canReplaceAvatarSource ? "替换当前头像的源图" : "当前头像无法替换源图"}
-            >
-              {isReplacingSource
-                ? <span className="loading loading-spinner loading-xs" aria-hidden="true" />
-                : <ImageSquare className="size-4 shrink-0" aria-hidden="true" />}
-              <span>{isReplacingSource ? "替换中" : "替换头像"}</span>
-            </button>
-
-            <button
-              type="button"
-              className={`
-                btn btn-sm h-8 min-h-8 gap-1.5 rounded-md px-3
-                ${isCurrentDefaultAvatar ? "btn-outline btn-success" : "btn-primary"}
-              `}
-              onClick={() => void handleSetDefaultAvatar()}
-              disabled={!canSetDefaultAvatar || isSaving || isSettingDefaultAvatar || isCurrentDefaultAvatar}
-              title={isCurrentDefaultAvatar ? "当前头像已是默认头像" : "将当前头像设为默认头像"}
-            >
-              {isSettingDefaultAvatar
-                ? <span className="loading loading-spinner loading-xs" aria-hidden="true" />
-                : <CheckCircle className="size-4 shrink-0" weight={isCurrentDefaultAvatar ? "fill" : "regular"} aria-hidden="true" />}
-              <span>{isSettingDefaultAvatar ? "设置中" : isCurrentDefaultAvatar ? "默认头像" : "设为默认"}</span>
-            </button>
-
             {showUnassignVariantAction && (
-              <button
-                type="button"
-                className="btn btn-outline btn-warning btn-sm h-8 min-h-8 gap-1.5 rounded-md px-3"
+              <Button
+                variant="warning"
+                size="sm"
+                className="h-8 min-h-8 gap-1.5 rounded-md px-3"
                 onClick={() => void handleUnassignVariant()}
                 disabled={!canUnassignVariant || isSaving || isUnassigningVariant}
                 title={canUnassignVariant ? "将当前头像移出立绘组" : "当前头像未绑定立绘组"}
               >
                 {isUnassigningVariant && <span className="loading loading-spinner loading-xs" aria-hidden="true" />}
                 <span>{isUnassigningVariant ? "移出中" : "移出立绘组"}</span>
-              </button>
+              </Button>
             )}
 
             <select
               className="
                 select select-sm select-bordered h-8 min-h-8 max-w-[14rem]
                 rounded-md bg-base-100/70 pr-8 text-sm text-base-content/85
-                disabled:text-base-content/35
+                disabled:text-base-content/50
               "
               value={String(currentVariantId ?? UNGROUPED_VARIANT_VALUE)}
               onChange={(event) => {
@@ -940,17 +759,6 @@ export function AvatarSettingsTab({
                 );
               })}
             </select>
-
-            <span
-              className="
-                flex h-8 shrink-0 items-center rounded-md bg-base-200/60
-                px-2.5 font-mono text-xs text-base-content/55
-              "
-              title={`头像 ID：${currentAvatar.avatarId ?? "-"}`}
-            >
-              #
-              {currentAvatar.avatarId ?? "-"}
-            </span>
 
             {isSaving && (
               <span
@@ -986,7 +794,7 @@ export function AvatarSettingsTab({
                   flex flex-col items-center justify-center h-full
                   text-base-content/50
                 ">
-                  <UserCircle className="size-16 mb-2 opacity-50" weight="duotone" aria-hidden="true" />
+                  <UserCircle className="size-16 mb-2 opacity-50" weight="regular" aria-hidden="true" />
                   <p>请从左侧选择一个头像</p>
                 </div>
               )}
@@ -996,6 +804,3 @@ export function AvatarSettingsTab({
     </div>
   );
 }
-
-
-

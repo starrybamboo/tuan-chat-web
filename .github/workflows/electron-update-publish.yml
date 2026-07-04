@@ -69,9 +69,8 @@ jobs:
           # 避免复用 release/win-unpacked 触发 app.asar 文件占用，使用本次运行专属输出目录。
           $outputDir = "release_ci/windows-${{ github.run_id }}-${{ github.run_attempt }}"
 
-          pnpm -s electron:prepare:resources
-          pnpm -s build
-          pnpm exec electron-builder build --config electron-builder.json --win nsis --config.directories.output=$outputDir
+          pnpm --filter @tuanchat/desktop run build:app
+          pnpm --dir apps/desktop exec electron-builder build --config electron-builder.config.cjs --win nsis --config.directories.output="../../$outputDir"
 
           "ELECTRON_OUTPUT_DIR=$outputDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 

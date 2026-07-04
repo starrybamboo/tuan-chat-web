@@ -100,7 +100,7 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
           >
             <div className="transform origin-left">
               <span className="
-                font-mono text-blue-600
+                font-mono text-info
                 dark:text-cyan-400
               ">
                 {commands.get(cmd)?.name}
@@ -124,25 +124,25 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
               })()}
               <span className="
                 ml-2 text-sm
-                dark:text-gray-300
+                dark:text-base-content/50
               ">{commands.get(cmd)?.description}</span>
             </div>
             <div className="transform origin-left">
               <span className="
-                font-mono text-blue-600
+                font-mono text-info
                 dark:text-cyan-400
               ">
                 用法：
               </span>
               <span className="
                 ml-2 text-sm
-                dark:text-gray-300
+                dark:text-base-content/50
               ">
                 {commands.get(cmd)?.usage || "无用法说明"}
               </span>
               <div className="transform origin-left">
                 <span className="
-                  font-mono text-blue-600
+                  font-mono text-info
                   dark:text-cyan-400
                 ">
                   示例：
@@ -151,8 +151,8 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
                   <div key={`example-${example}`}>
                     <span className="
                       ml-2 text-sm
-                      dark:text-gray-300
-                    "><code className="dark:text-amber-300">{example}</code></span>
+                      dark:text-base-content/50
+                    "><code className="dark:text-warning">{example}</code></span>
                   </div>
                 ))}
               </div>
@@ -282,7 +282,7 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
         >
           <div className="transform origin-left">
             <span className="
-              font-mono text-blue-600
+              font-mono text-info
               dark:text-cyan-400
             ">
               {cmd}
@@ -300,7 +300,7 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
             )}
             <span className="
               ml-2 text-sm
-              dark:text-gray-300
+              dark:text-base-content/50
             ">{commands.get(cmd)?.description}</span>
           </div>
         </motion.div>

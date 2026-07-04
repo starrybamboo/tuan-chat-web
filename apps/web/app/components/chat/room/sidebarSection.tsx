@@ -43,7 +43,7 @@ export default function SidebarSection({
   const actionButtonVisibilityClassName = actionVisibility === "always"
     ? "opacity-100"
     : "opacity-0 focus-visible:opacity-100 group-hover:opacity-100";
-  const actionButtonClassName = `ml-auto inline-flex size-7 shrink-0 items-center justify-center rounded-md text-base-content/62 transition-[opacity,color,background-color] duration-150 hover:bg-base-100/70 hover:text-base-content/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${actionButtonVisibilityClassName}`;
+  const actionButtonClassName = `ml-auto inline-flex size-7 shrink-0 items-center justify-center rounded-md text-base-content/62 transition-[opacity,color,background-color] duration-150 hover:bg-base-100/70 hover:text-base-content/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30 ${actionButtonVisibilityClassName}`;
 
   return (
     <section className={sectionClassName}>

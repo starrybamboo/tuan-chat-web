@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { Outlet, useLocation } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -15,7 +16,7 @@ import useChatPageAutoNavigation from "@/components/chat/hooks/useChatPageAutoNa
 import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextMenus";
 import useChatPageCreateInCategory from "@/components/chat/hooks/useChatPageCreateInCategory";
 import useChatPageDetailPanels from "@/components/chat/hooks/useChatPageDetailPanels";
-import useChatPageLeftDrawer from "@/components/chat/hooks/useChatPageLeftDrawer";
+import useChatPageLeftDrawer, { CHAT_LEFT_DRAWER_STATE_KEY } from "@/components/chat/hooks/useChatPageLeftDrawer";
 import useChatPageMemberActions from "@/components/chat/hooks/useChatPageMemberActions";
 import useChatPageNavigation from "@/components/chat/hooks/useChatPageNavigation";
 import useChatPageOrdering from "@/components/chat/hooks/useChatPageOrdering";
@@ -41,10 +42,19 @@ import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextP
 import { useGetSpaceInfoQuery, useGetSpaceMembersQuery, useGetUserActiveSpacesQuery, useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
 import { useSpaceMaterialPackagesQuery } from "api/hooks/materialPackageQueryHooks";
 
+import type { ApiResultRoomListResponse, Room } from "../../../api";
+
 const EMPTY_ARRAY: never[] = [];
 type CachedDocRoute = {
   spaceId: number;
   docId: string;
+}
+
+function getFirstValidRoomId(rooms: Array<Pick<Room, "roomId">> | undefined): number | null {
+  const roomId = rooms
+    ?.map(room => room.roomId)
+    .find((id): id is number => typeof id === "number" && Number.isFinite(id) && id > 0);
+  return roomId ?? null;
 }
 
 /**
@@ -52,6 +62,7 @@ type CachedDocRoute = {
  */
 export default function ChatPage() {
   const location = useLocation();
+  const queryClient = useQueryClient();
   const {
     urlSpaceId,
     urlRoomId,
@@ -94,6 +105,7 @@ export default function ChatPage() {
     isPrivateChatMode,
     urlSpaceId,
     urlRoomId,
+    drawerStateKey: CHAT_LEFT_DRAWER_STATE_KEY,
   });
 
   useEffect(() => {
@@ -178,6 +190,7 @@ export default function ChatPage() {
   const {
     sidebarTree,
     isSidebarTreeReady,
+    sidebarTreeRemoteUpdateKey,
     saveSidebarTree: handleSaveSidebarTree,
   } = useChatPageSidebarTree({ activeSpaceId });
   const sidebarTreeRef = useRef(sidebarTree);
@@ -344,6 +357,26 @@ export default function ChatPage() {
     }
     return null;
   }, [orderedRooms, sidebarTree]);
+
+  const getPreferredRoomIdForSpace = useCallback((spaceId: number) => {
+    if (!Number.isFinite(spaceId) || spaceId <= 0) {
+      return null;
+    }
+
+    if (spaceId === activeSpaceId) {
+      return sidebarTreeFirstRoomId ?? getFirstValidRoomId(orderedRooms);
+    }
+
+    const cachedRooms = queryClient.getQueryData<ApiResultRoomListResponse>(["getUserRooms", spaceId])?.data?.rooms;
+    const cachedRoomId = getFirstValidRoomId(cachedRooms);
+    if (cachedRoomId != null) {
+      return cachedRoomId;
+    }
+
+    // 目标空间未挂载时，沿用已记录的房间顺序，避免先跳空空间页再二次导航。
+    const storedRoomIds = spaceRoomIdsByUser[String(userId)]?.[String(spaceId)] ?? [];
+    return storedRoomIds.find((roomId): roomId is number => Number.isFinite(roomId) && roomId > 0) ?? null;
+  }, [activeSpaceId, orderedRooms, queryClient, sidebarTreeFirstRoomId, spaceRoomIdsByUser, userId]);
 
   const { setActiveSpaceId, setActiveRoomId, handleOpenPrivate } = useChatPageNavigation({
     activeSpaceId,
@@ -767,8 +800,6 @@ export default function ChatPage() {
   const sidePanelProps = {
     isPrivateChatMode,
     onCloseLeftDrawer: closeLeftDrawer,
-    onToggleLeftDrawer: toggleLeftDrawer,
-    isLeftDrawerOpen: isOpenLeftDrawer,
     currentUserId: userId,
     activeSpaceId,
     activeSpaceName: activeSpaceNameForUi,
@@ -780,6 +811,8 @@ export default function ChatPage() {
     roomOrderIds: orderedRoomIds,
     onReorderRoomIds: setUserRoomOrder,
     sidebarTree,
+    isSidebarTreeReady,
+    sidebarTreeRemoteUpdateKey,
     onSaveSidebarTree: handleSaveSidebarTree,
     onResetSidebarTreeToDefault: resetSidebarTreeToDefault,
     docMetas: spaceDocMetasList,
@@ -813,18 +846,12 @@ export default function ChatPage() {
     onToggleLeftDrawer: toggleLeftDrawer,
     isLeftDrawerOpen: isOpenLeftDrawer,
     onSelectSpace: setActiveSpaceId,
+    getPreferredRoomIdForSpace,
     onCreateSpace: openSpaceHandle,
   };
-  const leftDrawerToggleLabel = isOpenLeftDrawer ? "收起侧边栏" : "展开侧边栏";
-  const hasMainContentDrawerToggle = isPrivateChatMode
-    || isDocRoute
-    || (!isDocRoute && !isRoomSettingRoute && !isSpaceDetailRoute && Boolean(activeSpaceId) && activeRoomId != null);
-  const shouldShowLeftDrawerToggle = screenSize === "sm" && !isOpenLeftDrawer && !hasMainContentDrawerToggle;
   const layoutProps = {
     screenSize,
     isOpenLeftDrawer,
-    shouldShowLeftDrawerToggle,
-    leftDrawerToggleLabel,
     toggleLeftDrawer,
     chatLeftPanelWidth,
     setChatLeftPanelWidth,

@@ -2,23 +2,18 @@ import type { MediaQualityInput, MediaType } from "@tuanchat/domain/media-url";
 
 import {
   avatarOriginalUrl as _avatarOriginalUrl,
-  avatarThumbUrl as _avatarThumbUrl,
   avatarUrl as _avatarUrl,
   imageHighUrl as _imageHighUrl,
   imageLowUrl as _imageLowUrl,
   imageMediumUrl as _imageMediumUrl,
   imageOriginalUrl as _imageOriginalUrl,
-  imagePreviewUrl as _imagePreviewUrl,
   mediaFileUrl as _mediaFileUrl,
-  mediaPreviewUrl as _mediaPreviewUrl,
-  mediaThumbUrl as _mediaThumbUrl,
   mediaUrl as _mediaUrl,
   extractMediaFileIdFromUrl,
   imageHighUrlFromUrl,
   imageLowUrlFromUrl,
   imageMediumUrlFromUrl,
   imageOriginalUrlFromUrl,
-  imagePreviewUrlFromUrl,
   imageUrlWithQuality,
   mediaFileUrlWithQuality,
   mediaShard,
@@ -33,39 +28,21 @@ export {
   imageLowUrlFromUrl,
   imageMediumUrlFromUrl,
   imageOriginalUrlFromUrl,
-  imagePreviewUrlFromUrl,
   imageUrlWithQuality,
   mediaFileUrlWithQuality,
   mediaShard,
   normalizeMediaType,
 };
 
-export type { LegacyMediaQuality, MediaQuality, MediaQualityInput, MediaType } from "@tuanchat/domain/media-url";
+export type { MediaQuality, MediaQualityInput, MediaType } from "@tuanchat/domain/media-url";
 
 const DEFAULT_MEDIA_CDN_BASE_URL = "https://media.tuan.chat";
-const LEGACY_MEDIA_CDN_HOSTNAMES = new Set([
-  "tuan.chat",
-  "www.tuan.chat",
-  "test.tuan.chat",
-  "www.test.tuan.chat",
-]);
 
 function normalizeConfiguredMediaBaseUrl(rawBaseUrl: string): string {
   const value = rawBaseUrl.trim();
   if (!value) {
     return DEFAULT_MEDIA_CDN_BASE_URL;
   }
-
-  try {
-    const hostname = new URL(value).hostname.toLowerCase();
-    if (LEGACY_MEDIA_CDN_HOSTNAMES.has(hostname)) {
-      return DEFAULT_MEDIA_CDN_BASE_URL;
-    }
-  }
-  catch {
-    // 非标准 URL 交给运行时归一化处理。
-  }
-
   return value;
 }
 
@@ -91,28 +68,9 @@ export function mediaFileUrl(
 }
 
 /** @deprecated Use `mediaUrl(fileId, normalizeMediaType(mediaType), "medium")` instead. */
-export function mediaPreviewUrl(
-  fileId: number | string | null | undefined,
-  mediaType: string | null | undefined,
-) {
-  return _mediaPreviewUrl(fileId, mediaType, getCdnBaseUrl());
-}
-
-/** @deprecated Use `mediaUrl(fileId, normalizeMediaType(mediaType), "low")` instead. */
-export function mediaThumbUrl(
-  fileId: number | string | null | undefined,
-  mediaType: string | null | undefined,
-) {
-  return _mediaThumbUrl(fileId, mediaType, getCdnBaseUrl());
-}
-
 export const imageLowUrl = (fileId?: number | string | null) => _imageLowUrl(fileId, getCdnBaseUrl());
-/** @deprecated Use `mediaUrl(fileId, "image", "medium")` instead. */
-export const imagePreviewUrl = (fileId?: number | string | null) => _imagePreviewUrl(fileId, getCdnBaseUrl());
 export const imageMediumUrl = (fileId?: number | string | null) => _imageMediumUrl(fileId, getCdnBaseUrl());
 export const imageHighUrl = (fileId?: number | string | null) => _imageHighUrl(fileId, getCdnBaseUrl());
 export const imageOriginalUrl = (fileId?: number | string | null) => _imageOriginalUrl(fileId, getCdnBaseUrl());
-/** @deprecated Use `mediaUrl(fileId, "image", "low")` instead. */
-export const avatarThumbUrl = (fileId?: number | string | null) => _avatarThumbUrl(fileId, getCdnBaseUrl());
 export const avatarUrl = (fileId?: number | string | null) => _avatarUrl(fileId, getCdnBaseUrl());
 export const avatarOriginalUrl = (fileId?: number | string | null) => _avatarOriginalUrl(fileId, getCdnBaseUrl());

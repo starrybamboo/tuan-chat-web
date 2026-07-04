@@ -82,8 +82,10 @@ describe("spaceWebgalCompiler", () => {
     expect(projectedConfig).toContain("Game_name:测试空间_42;");
     expect(projectedConfig).toContain(`Title_img:${mediaFileUrl(1001, "image", "medium")};`);
     expect(projectedConfig).toContain(`Game_Logo:${mediaFileUrl(1002, "image", "medium")};`);
-    expect(projectedConfig).toContain("Figure_Default_Enter_Duration:100;");
-    expect(projectedConfig).toContain("Figure_Default_Exit_Duration:100;");
+    expect(projectedConfig).toContain("Figure_Default_Enter_Duration:0;");
+    expect(projectedConfig).toContain("Figure_Default_Exit_Duration:300;");
+    expect(projectedConfig).toContain("Figure_Default_Enter_Animation:tuanchat/default-enter;");
+    expect(projectedConfig).toContain("Figure_Default_Exit_Animation:tuanchat/default-exit;");
     expect(projectedConfig).toContain(`TypingSoundSe:${mediaFileUrl(1003, "audio", "low")};`);
   });
 
@@ -96,6 +98,8 @@ describe("spaceWebgalCompiler", () => {
       gameConfig: {
         figureDefaultEnterDuration: 90,
         figureDefaultExitDuration: 150,
+        figureDefaultEnterAnimation: "position/enter",
+        figureDefaultExitAnimation: "position/exit",
       },
     });
 
@@ -103,6 +107,8 @@ describe("spaceWebgalCompiler", () => {
 
     expect(projectedConfig).toContain("Figure_Default_Enter_Duration:90;");
     expect(projectedConfig).toContain("Figure_Default_Exit_Duration:150;");
+    expect(projectedConfig).toContain("Figure_Default_Enter_Animation:position/enter;");
+    expect(projectedConfig).toContain("Figure_Default_Exit_Animation:position/exit;");
   });
 
   it("语音消息（SOUND voice）会编译为带配音的角色台词", () => {

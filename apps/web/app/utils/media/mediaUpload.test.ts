@@ -199,7 +199,7 @@ describe("mediaUpload", () => {
     expect(compressImageMock).not.toHaveBeenCalledWith(expect.any(File), expect.objectContaining({ maxSizeKB: 800 }));
   });
 
-  it("聊天室场景上传图片时会上传 original、low 和 medium，跳过后端遗留 high 目标", async () => {
+  it("聊天室场景上传图片时会上传 original、low 和 medium，并向后端声明实际质量列表", async () => {
     const file = new File([new Uint8Array(1024)], "room.png", { type: "image/png" });
     compressImageMock.mockImplementation(async (_file: File, profile: { maxSizeKB?: number }) => {
       const bytes = profile.maxSizeKB === 3072 ? 900 * 1024 : 1024;
@@ -216,7 +216,6 @@ describe("mediaUpload", () => {
           original: { uploadUrl: "https://oss.example.com/original" },
           low: { uploadUrl: "https://oss.example.com/low" },
           medium: { uploadUrl: "https://oss.example.com/medium" },
-          high: { uploadUrl: "https://oss.example.com/high" },
         },
       },
     });
@@ -231,9 +230,11 @@ describe("mediaUpload", () => {
       degraded: false,
     }));
     expect(globalThis.fetch).toHaveBeenCalledTimes(3);
-    expect(globalThis.fetch).not.toHaveBeenCalledWith("https://oss.example.com/high", expect.anything());
     expect(prepareUploadMock).toHaveBeenCalledWith(expect.objectContaining({
       scene: 1,
+      metadata: expect.objectContaining({
+        uploadedQualities: ["original", "low", "medium"],
+      }),
     }));
     expect(completeUploadMock).toHaveBeenCalledWith(99, expect.objectContaining({
       availableQualities: ["original", "low", "medium"],
@@ -380,7 +381,7 @@ describe("mediaUpload", () => {
     }));
   });
 
-  it("派生 target 凭证失效时不会继续重试旧 URL，并以 pending 状态完成", async () => {
+  it("派生 target 凭证失效时不会继续重试同一上传目标，并以 pending 状态完成", async () => {
     const original = new File(["original"], "original.webp", { type: "image/webp" });
     const low = new File(["low"], "low.webp", { type: "image/webp" });
     prepareUploadMock.mockResolvedValueOnce({

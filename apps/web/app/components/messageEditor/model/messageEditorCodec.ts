@@ -1,14 +1,11 @@
 import type { StoredMessageStreamSnapshot, StoredSnapshot } from "@/components/chat/infra/doc/document/docSnapshotTypes";
 
 import { base64ToString, stringToBase64 } from "@/components/chat/infra/doc/shared/base64";
-import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { MessageEditorMessage } from "../messageEditorTypes";
 
 import {
-  createMessageEditorTextDraft,
   ensureMessageEditorMessages,
-  normalizeMessageEditorAnnotations,
   normalizeMessageEditorContent,
   normalizeMessageEditorDraft,
   serializeMessageEditorMessages,
@@ -19,49 +16,6 @@ import {
  */
 export type MessageEditorSnapshot = StoredMessageStreamSnapshot;
 
-type LegacyUserReadMeNode = {
-  nodeId?: string;
-  messageType?: number;
-  content?: string;
-  annotations?: string[];
-  extra?: Record<string, unknown>;
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function toTrimmedString(value: unknown): string | undefined {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : undefined;
-}
-
-function normalizeLegacyUserReadMeNode(rawNode: unknown): MessageEditorMessage | null {
-  if (!isRecord(rawNode)) {
-    return null;
-  }
-
-  const node = rawNode as LegacyUserReadMeNode;
-  const messageType = node.messageType === MESSAGE_TYPE.INTRO_TEXT ? MESSAGE_TYPE.INTRO_TEXT : MESSAGE_TYPE.TEXT;
-  const content = normalizeMessageEditorContent(node.content);
-  const extraRecord = isRecord(node.extra) ? { ...node.extra } : {};
-
-  return createMessageEditorTextDraft({
-    annotations: normalizeMessageEditorAnnotations(node.annotations),
-    blockId: toTrimmedString(node.nodeId),
-    content,
-    extra: Object.keys(extraRecord).length > 0 ? extraRecord as MessageEditorMessage["extra"] : undefined,
-    messageType,
-  });
-}
-
-function isLegacyUserReadMeNode(value: unknown): boolean {
-  return isRecord(value) && "nodeId" in value;
-}
-
 function decodeMessageEditorDrafts(updateB64: string): MessageEditorMessage[] {
   try {
     const parsed = JSON.parse(base64ToString(updateB64));
@@ -70,11 +24,7 @@ function decodeMessageEditorDrafts(updateB64: string): MessageEditorMessage[] {
     }
 
     return parsed
-      .map((item) => {
-        return isLegacyUserReadMeNode(item)
-          ? normalizeLegacyUserReadMeNode(item)
-          : normalizeMessageEditorDraft(item);
-      })
+      .map(normalizeMessageEditorDraft)
       .filter((item): item is MessageEditorMessage => item !== null);
   }
   catch {

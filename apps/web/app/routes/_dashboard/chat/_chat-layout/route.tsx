@@ -3,6 +3,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { RouteMetaArgs } from "@/routes/routeTypes";
 
 import ChatPage from "@/components/chat/chatPage";
+import { preloadChatRouteData } from "@/components/chat/hooks/preloadChatRouteData";
+import { queryClient } from "@/queryClient";
 import { createSeoMeta } from "@/utils/seo";
 import "@/components/chat/chatRouteStyles.css";
 import "@/components/common/scrollbar.css";
@@ -17,6 +19,7 @@ export function meta(_args: RouteMetaArgs) {
 }
 
 export const Route = createFileRoute("/_dashboard/chat/_chat-layout")({
+  loader: () => preloadChatRouteData(queryClient),
   head: () => ({
     meta: meta({ params: {} }),
   }),

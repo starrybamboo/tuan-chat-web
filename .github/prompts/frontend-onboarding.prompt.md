@@ -28,7 +28,7 @@
 
 Electron（仅当任务涉及）：
 - 开发：`pnpm electron:dev`
-- 打包：`pnpm electron:build`（需要按 README 准备 `extraResources/`）
+- 打包：`pnpm electron:build`（需要本地 `D:\A_collection\WebGAL_Terre\release`，或设置 `WEBGAL_TERRE_RELEASE_DIR`）
 
 ## 3. 目录与职责（强约定）
 - `app/`：业务源码根目录

@@ -204,8 +204,8 @@ export default function AddFieldForm({
   const stackedAddTip = fieldStatus === "duplicate" ? "key 已存在" : "Ctrl + ↩︎ 添加";
   const tileShellStateClassName = canAdd
     ? `
-      border-primary/55 bg-primary/8 shadow-sm shadow-primary/10
-      ring-1 ring-primary/25
+      border-info/55 bg-info/8 shadow-sm shadow-info/10
+      ring-1 ring-info/25
     `
     : fieldStatus === "duplicate"
       ? "border-error/45 bg-error/5 ring-1 ring-error/15"
@@ -215,8 +215,8 @@ export default function AddFieldForm({
     : isSubmitError
       ? "btn-error text-error-content shadow-sm shadow-error/20"
       : canAdd || isSubmitting
-        ? "btn-primary text-primary-content shadow-sm shadow-primary/25"
-        : "btn-ghost text-base-content/35 hover:text-primary hover:bg-primary/10";
+        ? "btn-info text-info-content shadow-sm shadow-info/25"
+        : "btn-ghost text-base-content/50 hover:text-info hover:bg-info/10";
 
   if (layout === "stacked") {
     if (!isStackedOpen) {
@@ -229,9 +229,9 @@ export default function AddFieldForm({
               flex h-full min-h-16 w-full items-center justify-center gap-2
               rounded-xl border border-dashed border-base-content/14
               bg-base-100/25 px-3 text-sm font-medium text-base-content/52
-              transition hover:border-primary/35 hover:bg-base-100/45
-              hover:text-primary focus-visible:outline-none
-              focus-visible:ring-2 focus-visible:ring-primary/25
+              transition hover:border-info/35 hover:bg-base-100/45
+              hover:text-info focus-visible:outline-none
+              focus-visible:ring-2 focus-visible:ring-info/25
             "
           >
             <span className="
@@ -248,7 +248,7 @@ export default function AddFieldForm({
       <div className={`
         h-full rounded-xl border border-dashed border-base-content/18
         bg-base-100/35 p-3 transition-colors
-        hover:border-primary/35 hover:bg-base-100/55
+        hover:border-info/35 hover:bg-base-100/55
         ${className}
       `}>
         {showTitle && (
@@ -259,14 +259,14 @@ export default function AddFieldForm({
             ">
               <span className="
                 inline-flex size-5 items-center justify-center rounded-md
-                bg-primary/10 text-primary
+                bg-info/10 text-info
               ">+</span>
               {title}
             </span>
             <button
               type="button"
               onClick={() => setIsStackedOpen(false)}
-              className="btn btn-ghost btn-xs text-base-content/45 hover:text-base-content"
+              className="btn btn-ghost btn-xs text-base-content/50 hover:text-base-content"
             >
               收起
             </button>
@@ -275,13 +275,14 @@ export default function AddFieldForm({
         <div className="space-y-3">
           <label className="
             input flex w-full items-center gap-2 rounded-lg border-base-content/12
-            bg-base-200/35 transition focus-within:border-primary
+            bg-base-200/35 transition focus-within:border-info
             focus-within:outline-none focus-within:ring-2
-            focus-within:ring-primary/20
+            focus-within:ring-info/20
           ">
             <input
               ref={keyInputRef}
               type="text"
+              autoComplete="off"
               onChange={e => setKeyDraft(e.currentTarget.value)}
               onKeyDown={(e) => {
                 handleKeyInputArrowSwitch(e);
@@ -291,7 +292,7 @@ export default function AddFieldForm({
               data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
               className="
                 grow border-none bg-transparent outline-none
-                placeholder:text-base-content/35 focus:outline-none
+                placeholder:text-base-content/35 focus:outline-none focus:ring-2 focus:ring-info/30
               "
             />
           </label>
@@ -299,11 +300,12 @@ export default function AddFieldForm({
             <label className="
               textarea flex w-full items-center gap-2 rounded-lg
               border-base-content/12 bg-base-200/35 p-0 transition
-              focus-within:border-primary focus-within:outline-none
-              focus-within:ring-2 focus-within:ring-primary/20
+              focus-within:border-info focus-within:outline-none
+              focus-within:ring-2 focus-within:ring-info/20
             ">
               <textarea
                 ref={valueTextareaRef}
+                autoComplete="off"
                 onKeyDown={(e) => {
                   handleValueInputArrowSwitch(e);
                   handleCtrlEnterToAdd(e);
@@ -312,7 +314,7 @@ export default function AddFieldForm({
                 data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
                 className="
                   textarea min-h-28 grow border-none bg-transparent pb-12 pr-20
-                  outline-none placeholder:text-base-content/35 focus:outline-none
+                  outline-none placeholder:text-base-content/35 focus:outline-none focus:ring-2 focus:ring-info/30
                 "
               />
             </label>
@@ -338,8 +340,8 @@ export default function AddFieldForm({
         <label className={`
           relative flex items-center gap-2 rounded-lg border
           py-2 px-3 transition-all
-          focus-within:border-primary focus-within:ring-1
-          focus-within:ring-primary/20
+          focus-within:border-info focus-within:ring-1
+          focus-within:ring-info/20
           max-md:flex-col max-md:items-stretch max-md:h-auto max-md:gap-0
           w-full
           md:input md:input-ghost md:h-10
@@ -354,10 +356,11 @@ export default function AddFieldForm({
               handleEnterToAdd(e);
             }}
             placeholder={placeholder.key || "字段名"}
+            autoComplete="off"
             data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
             className="
               bg-transparent border-none outline-none font-medium
-              focus:outline-none
+              focus:outline-none focus:ring-2 focus:ring-info/30
               text-xs
               md:text-sm
               w-full
@@ -379,10 +382,11 @@ export default function AddFieldForm({
               handleEnterToAdd(e);
             }}
             placeholder={placeholder.value || "字段值"}
+            autoComplete="off"
             data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
             className="
               bg-transparent border-none outline-none
-              focus:outline-none
+              focus:outline-none focus:ring-2 focus:ring-info/30
               grow min-w-0 text-sm
               max-md:w-full max-md:font-semibold max-md:text-base-content
               placeholder:text-base-content/30
@@ -422,8 +426,8 @@ export default function AddFieldForm({
       )}
       <label className="
         input flex items-center gap-2 rounded-md transition
-        focus-within:ring-2 focus-within:ring-primary/20
-        focus-within:border-primary focus-within:outline-none
+        focus-within:ring-2 focus-within:ring-info/20
+        focus-within:border-info focus-within:outline-none
       ">
         <input
           ref={keyInputRef}
@@ -434,10 +438,11 @@ export default function AddFieldForm({
             handleEnterToAdd(e);
           }}
           placeholder={placeholder.key || "字段名"}
+          autoComplete="off"
           data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
           className="
             text-sm font-medium bg-transparent border-none
-            focus:outline-none
+            focus:outline-none focus:ring-2 focus:ring-info/30
             outline-none w-24 shrink-0
           "
         />
@@ -450,10 +455,11 @@ export default function AddFieldForm({
             handleEnterToAdd(e);
           }}
           placeholder={placeholder.value || "字段值"}
+          autoComplete="off"
           data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
           className="
             grow
-            focus:outline-none
+            focus:outline-none focus:ring-2 focus:ring-info/30
             border-none outline-none
           "
         />

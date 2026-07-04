@@ -193,7 +193,6 @@ export type DocCardRenderData = {
   excerpt: string;
   imageFileId?: number;
   imageMediaType: string;
-  imageUrl: string;
   originalImageFileId?: number;
   roomId?: number;
   spaceId?: number;
@@ -212,7 +211,6 @@ export function getDocCardRenderData(extra: unknown, fallbackContent = ""): DocC
     excerpt: safeTrim(docCard?.excerpt),
     imageFileId,
     imageMediaType: safeTrim(docCard?.imageMediaType),
-    imageUrl: imageFileId || originalImageFileId ? "" : safeTrim(docCard?.imageUrl),
     originalImageFileId,
     roomId: toPositiveNumber(docCard?.roomId),
     spaceId: toPositiveNumber(docCard?.spaceId),

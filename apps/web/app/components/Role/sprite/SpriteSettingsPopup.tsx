@@ -21,13 +21,13 @@ import { Drawer } from "vaul";
 
 import type { RoleAvatar, RoleAvatarVariant, RoleAvatarVariantCompositionConfig } from "api";
 
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ensureRoleAvatarDefaultMedia } from "@/components/Role/RoleCreation/hooks/createRoleDefaultAvatar";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { canvasPreview, canvasToBlob } from "@/utils/imgCropper";
 import { normalizeImageFileOrNull } from "@/utils/media/mediaMime";
-import { uploadMediaFile } from "@/utils/media/mediaUpload";
 import { imageOriginalUrlFromUrl } from "@/utils/media/mediaUrl";
 import {
   useApplyCropAvatarMutation,
@@ -37,6 +37,7 @@ import {
   useDeleteRoleAvatarVariantMutation,
   useGetDeletedRoleAvatarsQuery,
   useRestoreRoleAvatarMutation,
+  useSetDefaultRoleAvatarMutation,
   useRoleAvatarVariantsQuery,
   useUpdateRoleAvatarMutation,
   useUpdateRoleAvatarVariantMutation,
@@ -361,6 +362,7 @@ function VariantNameDialog({
           <input
             ref={inputRef}
             className="input input-bordered w-full"
+            autoComplete="off"
             value={draft}
             onChange={event => setDraft(event.currentTarget.value)}
             onCompositionStart={() => {
@@ -486,8 +488,14 @@ export function SpriteSettingsPopup({
   const updateVariantMutation = useUpdateRoleAvatarVariantMutation(role?.id);
   const deleteVariantMutation = useDeleteRoleAvatarVariantMutation(role?.id);
   const updateRoleAvatarMutation = useUpdateRoleAvatarMutation(role?.id ?? 0);
+  const setDefaultAvatarMutation = useSetDefaultRoleAvatarMutation(role?.id);
   const applyCropMutation = useApplyCropMutation();
   const applyCropAvatarMutation = useApplyCropAvatarMutation();
+  const [localDefaultAvatarId, setLocalDefaultAvatarId] = useState(role?.avatarId);
+
+  useEffect(() => {
+    setLocalDefaultAvatarId(role?.avatarId);
+  }, [role?.avatarId]);
 
   const variantGroups = useMemo(() => {
     const groupMap = new Map<number, RoleAvatarVariant>();
@@ -1083,6 +1091,7 @@ export function SpriteSettingsPopup({
       return;
     }
 
+    setLocalDefaultAvatarId(avatar.avatarId);
     const nextIndex = spritesAvatars.findIndex(item => item.avatarId === avatar.avatarId);
     if (nextIndex === -1) {
       return;
@@ -1091,6 +1100,31 @@ export function SpriteSettingsPopup({
     handleInternalIndexChange(nextIndex);
     onSpriteIndexChange?.(nextIndex);
   }, [handleInternalIndexChange, onSpriteIndexChange, spritesAvatars]);
+
+  const handleSetDefaultAvatar = useCallback(async (avatar: RoleAvatar) => {
+    if (!avatar.avatarId || !(avatar.roleId ?? role?.id)) {
+      toast.error("头像信息缺失，无法设为默认头像");
+      return;
+    }
+    if (localDefaultAvatarId === avatar.avatarId || setDefaultAvatarMutation.isPending) {
+      return;
+    }
+
+    try {
+      const result = await setDefaultAvatarMutation.mutateAsync(avatar);
+      handleDefaultAvatarApplied(result.avatar);
+      toast.success("已设为默认头像");
+    }
+    catch (error) {
+      console.error("设置默认头像失败:", error);
+      toast.error(error instanceof Error ? error.message : "设置默认头像失败，请稍后重试");
+    }
+  }, [
+    handleDefaultAvatarApplied,
+    localDefaultAvatarId,
+    role?.id,
+    setDefaultAvatarMutation,
+  ]);
 
   const queryClient = useQueryClient();
   const repairedDefaultAvatarIdsRef = useRef<Set<number>>(new Set());
@@ -1762,6 +1796,23 @@ export function SpriteSettingsPopup({
     selectedVariantSummary,
   ]);
 
+  const handleRequestVariantFolderRemoval = useCallback((variantId: number, label: string, avatarCount: number) => {
+    if (!role?.id) {
+      toast.error("角色信息缺失，无法解散立绘组");
+      return;
+    }
+    if (!variantId) {
+      toast.error("请选择立绘组");
+      return;
+    }
+    setVariantRemovalConfirm({
+      mode: "deleteVariant",
+      variantId,
+      label,
+      avatarCount,
+    });
+  }, [role?.id]);
+
   const handleConfirmVariantRemoval = useCallback(async () => {
     if (!variantRemovalConfirm) {
       return;
@@ -2217,17 +2268,18 @@ export function SpriteSettingsPopup({
           const isSelected = selectedVariantKey === item.variantKey;
           return (
             <div key={item.variantKey} className="min-w-0">
+              <div className="group/variant-folder relative w-full overflow-visible">
               <button
                 type="button"
                 className={`
                   relative aspect-square w-full overflow-hidden rounded-lg border-2
                   bg-base-200 transition-[border-color,box-shadow,background-color]
                   ${isSelected
-                    ? "border-primary shadow-lg ring-2 ring-primary/30"
-                    : "border-base-300 hover:border-primary/50 hover:bg-base-300"}
-                  ${isDropTarget ? "border-primary bg-primary/10 ring-2 ring-primary/40" : ""}
+                    ? "border-info shadow-lg ring-2 ring-info/30"
+                    : "border-base-300 hover:border-info/50 hover:bg-base-300"}
+                  ${isDropTarget ? "border-info bg-info/10 ring-2 ring-info/40" : ""}
                 `}
-                title={`${item.label} · ${item.count}`}
+                title={`立绘组 ID：${item.variantId}`}
                 aria-label={`选择立绘组 ${item.label}`}
                 onClick={() => handleSelectVariantFolder(item.variantKey)}
                 onDragOver={event => handleVariantFolderDragOver(event, item.variantKey)}
@@ -2252,32 +2304,81 @@ export function SpriteSettingsPopup({
                       <div className="
                         flex size-full items-center justify-center text-base-content/45
                       ">
-                        <FolderOpenIcon className="size-9" weight="duotone" aria-hidden="true" />
+                        <FolderOpenIcon className="size-9" weight="regular" aria-hidden="true" />
                       </div>
                     )}
-                <span className="
-                  absolute right-1 top-1 rounded-md bg-base-100/90 p-1
-                  text-base-content shadow-sm
-                ">
-                  <FolderOpenIcon className="size-3.5" weight="fill" aria-hidden="true" />
-                </span>
                 {isDropTarget && (
                   <span className="
                     absolute inset-0 flex items-center justify-center
-                    bg-primary/15 text-xs font-semibold text-primary
+                    bg-info/15 text-xs font-semibold text-info
                   ">
                     放入
                   </span>
                 )}
-                {isSelected && !isDropTarget && (
-                  <span className="
-                    absolute inset-0 flex items-center justify-center bg-primary/10
-                    text-primary
-                  ">
-                    <CheckCircleIcon className="size-6" weight="fill" aria-hidden="true" />
-                  </span>
-                )}
               </button>
+              <div className="
+                pointer-events-none absolute right-1.5 top-1.5 z-20 flex items-center gap-0.5
+                rounded-full bg-neutral/80 p-0.5 shadow-md ring-1 ring-white/20 backdrop-blur
+                opacity-0 transition-opacity duration-200
+                group-hover/variant-folder:opacity-100 group-focus-within/variant-folder:opacity-100
+              ">
+                <div className="group/tool relative pointer-events-auto">
+                  <button
+                    type="button"
+                    className="
+                      inline-flex size-7 items-center justify-center rounded-full
+                      border-0 bg-transparent p-0 text-neutral-content
+                      transition-[border-radius,transform] duration-150
+                      hover:scale-105 hover:rounded-lg active:scale-95
+                    "
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleSelectVariantFolder(item.variantKey);
+                      handleVariantFilterChange(item.variantKey);
+                    }}
+                    aria-label={`进入立绘组 ${item.label}`}
+                  >
+                    <FolderOpenIcon className="size-4" aria-hidden="true" />
+                  </button>
+                  <span className="
+                    pointer-events-none absolute bottom-full left-1/2 mb-1 -translate-x-1/2 rounded-md
+                    bg-neutral/95 px-2 py-1 text-xs whitespace-nowrap text-neutral-content
+                    opacity-0 shadow-md ring-1 ring-white/15 transition
+                    group-hover/tool:opacity-100 group-focus-within/tool:opacity-100
+                  ">
+                    进入组内管理
+                  </span>
+                </div>
+                <div className="group/tool relative pointer-events-auto">
+                  <button
+                    type="button"
+                    className="
+                      inline-flex size-7 items-center justify-center rounded-full
+                      border-0 bg-transparent p-0 text-neutral-content
+                      transition-[border-radius,transform] duration-150
+                      hover:scale-105 hover:rounded-lg active:scale-95
+                      disabled:text-neutral-content/50
+                    "
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleRequestVariantFolderRemoval(item.variantId, item.label, item.count);
+                    }}
+                    disabled={isVariantMutationPending}
+                    aria-label={`解散立绘组 ${item.label}`}
+                  >
+                    <TrashIcon className="size-4" aria-hidden="true" />
+                  </button>
+                  <span className="
+                    pointer-events-none absolute bottom-full left-1/2 mb-1 -translate-x-1/2 rounded-md
+                    bg-neutral/95 px-2 py-1 text-xs whitespace-nowrap text-neutral-content
+                    opacity-0 shadow-md ring-1 ring-white/15 transition
+                    group-hover/tool:opacity-100 group-focus-within/tool:opacity-100
+                  ">
+                    解散立绘组
+                  </span>
+                </div>
+              </div>
+              </div>
               <button
                 type="button"
                 className="
@@ -2288,7 +2389,7 @@ export function SpriteSettingsPopup({
                 onClick={() => handleSelectVariantFolder(item.variantKey)}
               >
                 {item.label}
-                <span className="text-base-content/45">
+                <span className="text-base-content/50">
                   {" "}
                   ·
                   {" "}
@@ -2334,12 +2435,6 @@ export function SpriteSettingsPopup({
   const canOpenBatchAvatarCropper = effectiveSelectedAvatarItems.some(({ avatar }) => getSpriteCropSourceUrl(avatar));
   const batchHeaderTitle = isVariantBatchSelection ? selectedVariantSummary : "批量设置";
   const batchHeaderSubtitle = isVariantBatchSelection ? "立绘组" : "已选";
-  const batchHeaderId = normalizeVariantId(editingVariantGroup?.variantId);
-  const batchHeaderIdLabel = batchHeaderId
-    ? `#${batchHeaderId}`
-    : selectedAvatarIds.length > 0
-      ? `#${selectedAvatarIds.slice(0, 3).join(" #")}${selectedAvatarIds.length > 3 ? " ..." : ""}`
-      : "#-";
 
   const batchSettingsPanel = (
     <div className="mx-auto flex h-full w-full max-w-7xl flex-col">
@@ -2443,46 +2538,32 @@ export function SpriteSettingsPopup({
             </>
           )}
 
-          {isVariantFolderSelected && (
+          {!isVariantBatchSelection && (
             <button
               type="button"
-              className="btn btn-outline btn-sm h-8 min-h-8 gap-1.5 rounded-md px-3"
-              onClick={handleEnterSelectedVariantGroup}
+              className="btn btn-error btn-square btn-sm h-8 min-h-8 rounded-md"
+              onClick={handleRequestVariantRemoval}
+              disabled={isVariantMutationPending || selectedWithVariantCount === 0}
+              title="移回未分组"
+              aria-label="移回未分组"
             >
-              <FolderOpenIcon className="size-4" aria-hidden="true" />
-              <span>进入组内管理</span>
+              {isVariantMutationPending
+                ? <span className="loading loading-spinner loading-xs" aria-hidden="true" />
+                : <TrashIcon className="size-4" aria-hidden="true" />}
             </button>
           )}
-
-          <button
-            type="button"
-            className="btn btn-error btn-sm h-8 min-h-8 rounded-md px-3"
-            onClick={handleRequestVariantRemoval}
-            disabled={isVariantMutationPending || selectedWithVariantCount === 0}
-          >
-            {isVariantMutationPending
-              ? "处理中"
-              : isVariantBatchSelection ? "解散立绘组" : "移回未分组"}
-          </button>
           {!isVariantGroupView && !isVariantFolderSelected && (
             <button
               type="button"
-              className="btn btn-error btn-sm h-8 min-h-8 rounded-md px-3"
+              className="btn btn-error btn-square btn-sm h-8 min-h-8 rounded-md"
               onClick={handleBatchDeleteRequest}
               disabled={selectedAvatarCount === 0}
+              title="删除所选"
+              aria-label="删除所选"
             >
-              删除所选
+              <TrashIcon className="size-4" aria-hidden="true" />
             </button>
           )}
-          <span
-            className="
-              flex h-8 shrink-0 items-center rounded-md bg-base-200/60
-              px-2.5 font-mono text-xs text-base-content/55
-            "
-            title={isVariantBatchSelection ? `立绘组 ID：${batchHeaderId ?? "-"}` : "所选头像 ID"}
-          >
-            {batchHeaderIdLabel}
-          </span>
         </div>
       </div>
 
@@ -2609,6 +2690,11 @@ export function SpriteSettingsPopup({
           onAvatarChange={handleAvatarChange}
           onAvatarSelect={handleAvatarSelectById}
           onAvatarDeleted={handleAvatarDeleted}
+          defaultAvatarId={localDefaultAvatarId}
+          onSetDefaultAvatar={handleSetDefaultAvatar}
+          isSettingDefaultAvatar={setDefaultAvatarMutation.isPending}
+          onReplaceAvatarSource={handleReplaceAvatarSource}
+          isReplacingAvatarSource={updateRoleAvatarMutation.isPending}
           onUploadFilesSelected={handleAvatarUploadFilesSelected}
           selectedIndices={filteredSelectedIndices}
           isMultiSelectMode={isMultiSelectMode}
@@ -2654,7 +2740,7 @@ export function SpriteSettingsPopup({
             transition-colors whitespace-nowrap
             ${
             activeTab === "setting"
-              ? "bg-primary text-primary-content"
+              ? "bg-info text-info-content"
               : "hover:bg-base-300"
           }
           `}
@@ -2681,7 +2767,7 @@ export function SpriteSettingsPopup({
             transition-colors whitespace-nowrap
             ${
             activeTab === "trash"
-              ? "bg-primary text-primary-content"
+              ? "bg-info text-info-content"
               : "hover:bg-base-300"
           }
           `}
@@ -2710,8 +2796,8 @@ export function SpriteSettingsPopup({
         ">
           <div className="flex min-w-0 items-center gap-2 text-sm">
             {activeTab === "cropper"
-              ? <CropIcon className="size-4 shrink-0 text-primary" aria-hidden="true" />
-              : <UserFocusIcon className="size-4 shrink-0 text-primary" aria-hidden="true" />}
+              ? <CropIcon className="size-4 shrink-0 text-info" aria-hidden="true" />
+              : <UserFocusIcon className="size-4 shrink-0 text-info" aria-hidden="true" />}
             <span className="min-w-0 truncate font-medium">{activeTabLabel}</span>
           </div>
           <button
@@ -2793,14 +2879,6 @@ export function SpriteSettingsPopup({
             </div>
           )}
 
-          {/* 桌面端 Tab 导航栏 */}
-          <div className="
-            hidden
-            md:block
-          ">
-            {tabNavigation}
-          </div>
-
           {/* Tab 内容区域 */}
           <div className="
             flex-1 overflow-y-auto overflow-x-hidden p-3
@@ -2817,7 +2895,7 @@ export function SpriteSettingsPopup({
                         {pendingUploadSpriteCalibration && (
                           <div className="
                             flex shrink-0 items-center justify-between gap-3
-                            rounded-md border border-primary/30 bg-primary/5 px-3 py-2
+                            rounded-md border border-info/30 bg-info/5 px-3 py-2
                             text-sm text-base-content
                           ">
                             <span className="min-w-0 truncate">
@@ -2842,7 +2920,7 @@ export function SpriteSettingsPopup({
                         {pendingVariantSpriteCalibrationIndices && (
                           <div className="
                             flex shrink-0 items-center justify-between gap-3
-                            rounded-md border border-primary/30 bg-primary/5 px-3 py-2
+                            rounded-md border border-info/30 bg-info/5 px-3 py-2
                             text-sm text-base-content
                           ">
                             <span className="min-w-0 truncate">
@@ -2892,7 +2970,7 @@ export function SpriteSettingsPopup({
                           flex flex-1 flex-col items-center justify-center
                           text-base-content/70
                         ">
-                          <ImageIcon className="size-12 mb-2" weight="duotone" aria-hidden="true" />
+                          <ImageIcon className="size-12 mb-2" weight="regular" aria-hidden="true" />
                           <p>当前没有可用的立绘进行校正</p>
                         </div>
                       </div>
@@ -2910,7 +2988,7 @@ export function SpriteSettingsPopup({
                         {pendingVariantInitialization && (
                           <div className="
                             flex shrink-0 items-center justify-between gap-3
-                            rounded-md border border-primary/30 bg-primary/5 px-3 py-2
+                            rounded-md border border-info/30 bg-info/5 px-3 py-2
                             text-sm text-base-content
                           ">
                             <span className="min-w-0 truncate">
@@ -2965,7 +3043,7 @@ export function SpriteSettingsPopup({
                           flex flex-1 flex-col items-center justify-center
                           text-base-content/70
                         ">
-                          <UserCircleIcon className="size-12 mb-2" weight="duotone" aria-hidden="true" />
+                          <UserCircleIcon className="size-12 mb-2" weight="regular" aria-hidden="true" />
                           <p>当前没有可用的立绘进行头像裁剪，请先完成立绘裁剪。</p>
                         </div>
                       </div>
@@ -2984,9 +3062,7 @@ export function SpriteSettingsPopup({
                       selectedIndex={internalIndex}
                       characterName={characterName}
                       availableVariants={variantGroups}
-                      defaultAvatarId={role?.avatarId}
                       onApply={handleApply}
-                      onDefaultAvatarApplied={handleDefaultAvatarApplied}
                       showUnassignVariantAction={isVariantGroupView}
                       onUnassignVariant={handleUnassignSingleAvatarVariant}
                       onAssignVariant={(avatar, variantId) => assignAvatarItemsToVariant(
@@ -3001,8 +3077,6 @@ export function SpriteSettingsPopup({
                       onOpenAvatarCropper={handleOpenAvatarCropperForCurrentAvatar}
                       canOpenSpriteCropper={canOpenCurrentSpriteCropper}
                       canOpenAvatarCropper={canOpenCurrentAvatarCropper}
-                      onReplaceAvatarSource={handleReplaceAvatarSource}
-                      isReplacingAvatarSource={updateRoleAvatarMutation.isPending}
                     />
                   )
             )}
@@ -3100,7 +3174,7 @@ export function SpriteSettingsPopup({
                                         <div className="font-medium truncate">{name}</div>
                                         {avatar.avatarId && (
                                           <div className="
-                                            text-xs text-base-content/40 mt-1
+                                            text-xs text-base-content/50 mt-1
                                           ">
                                             头像ID：
                                             {avatar.avatarId}
@@ -3308,12 +3382,17 @@ export function SpriteSettingsPopup({
         </div>
       )}
 
-      {/* Batch Delete Confirmation Dialog */}
-      {batchDeleteConfirmOpen && (
-        <div className="modal modal-open">
-          <div className="modal-box w-[92vw] max-w-md">
-            <h3 className="font-bold text-lg">确认批量删除</h3>
-            <p className="py-4">
+      <ConfirmDialog
+        open={batchDeleteConfirmOpen}
+        onOpenChange={(open) => {
+          if (!open)
+            setBatchDeleteConfirmOpen(false);
+        }}
+        onConfirm={handleBatchDeleteConfirm}
+        title="确认批量删除"
+        description={(
+          <div className="space-y-3">
+            <p>
               确定要删除选中的
               {" "}
               <span className="font-bold text-error">{selectedIndices.size}</span>
@@ -3321,37 +3400,18 @@ export function SpriteSettingsPopup({
               个头像吗？删除后会进入回收站，可在回收站恢复。
             </p>
             {selectedIndices.size >= spritesAvatars.length && (
-              <div className="alert alert-warning mb-4">
+              <div className="alert alert-warning text-left">
                 <WarningCircleIcon className="shrink-0 size-6" aria-hidden="true" />
                 <span>无法删除所有头像，至少需要保留一个</span>
               </div>
             )}
-            <div className="modal-action">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setBatchDeleteConfirmOpen(false)}
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                className="btn btn-error"
-                onClick={handleBatchDeleteConfirm}
-                disabled={selectedIndices.size >= spritesAvatars.length || isDeletingAvatar}
-              >
-                {isDeletingAvatar ? "删除中..." : "确认删除"}
-              </button>
-            </div>
           </div>
-          <button
-            type="button"
-            className="modal-backdrop"
-            onClick={() => setBatchDeleteConfirmOpen(false)}
-            aria-label="关闭批量删除确认弹窗"
-          />
-        </div>
-      )}
+        )}
+        confirmLabel={isDeletingAvatar ? "删除中..." : "确认删除"}
+        cancelLabel="取消"
+        icon={<TrashIcon className="size-6" weight="regular" />}
+        variant="danger"
+      />
     </ToastWindow>
   );
 }

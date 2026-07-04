@@ -189,10 +189,10 @@ export default function AudioUploadModal({
                 transition-colors
                 ${
                 isDragOver
-                  ? "border-primary bg-primary/5"
+                  ? "border-info bg-info/5"
                   : `
                     border-base-300
-                    hover:border-primary/50
+                    hover:border-info/50
                   `
               }
               `}
@@ -255,9 +255,9 @@ export default function AudioUploadModal({
                     <div className="space-y-3">
                       <div className="
                         flex items-center justify-center size-12 mx-auto
-                        bg-secondary/10 rounded-full
+                        bg-base-200 rounded-full
                       ">
-                        <svg className="size-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="size-6 text-base-content/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                         </svg>
                       </div>
@@ -273,7 +273,7 @@ export default function AudioUploadModal({
                       </div>
                       <button
                         type="button"
-                        className="btn btn-secondary btn-sm"
+                        className="btn btn-outline btn-sm"
                         onClick={() => document.getElementById("audioFileInput")?.click()}
                       >
                         选择文件

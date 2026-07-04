@@ -177,7 +177,7 @@ export default function MaterialMessageEditorCard({
           content={message.content ?? ""}
           onCommit={handleContentUpdate}
           className="editable-field whitespace-pre-wrap break-words"
-          editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full"
+          editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded w-full"
           onEditingChange={setIsEditingContent}
           editInputRef={editInputRef}
           shouldIgnoreBlur={shouldIgnoreEditBlur}
@@ -192,7 +192,7 @@ export default function MaterialMessageEditorCard({
           content={message.content ?? ""}
           onCommit={handleContentUpdate}
           className="editable-field whitespace-pre-wrap break-words"
-          editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full"
+          editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded w-full"
           onEditingChange={setIsEditingContent}
           editInputRef={editInputRef}
           shouldIgnoreBlur={shouldIgnoreEditBlur}
@@ -211,7 +211,7 @@ export default function MaterialMessageEditorCard({
               content={result}
               onCommit={handleDiceContentUpdate}
               className="editable-field whitespace-pre-wrap break-words"
-              editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full"
+              editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded w-full"
               onEditingChange={setIsEditingContent}
               editInputRef={editInputRef}
               shouldIgnoreBlur={shouldIgnoreEditBlur}

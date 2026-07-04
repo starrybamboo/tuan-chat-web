@@ -48,7 +48,7 @@ export default function PerformanceField({
       group/form-field form-control h-full w-full rounded-xl border
       border-base-content/10 bg-base-100/55 p-3
       transition-colors hover:border-base-content/18 hover:bg-base-100/75
-      focus-within:border-primary/45 focus-within:bg-base-100
+      focus-within:border-info/45 focus-within:bg-base-100
     ">
       <div className={`
         flex min-h-6 items-center gap-2
@@ -58,8 +58,8 @@ export default function PerformanceField({
           ? (
               <label className={`
                 input flex flex-1 items-center gap-2 rounded-md bg-base-200/60
-                transition focus-within:border-primary focus-within:outline-none
-                focus-within:ring-2 focus-within:ring-primary/20
+                transition focus-within:border-info focus-within:outline-none
+                focus-within:ring-2 focus-within:ring-info/20
                 ${
                 isCompact ? "input-xs" : "input-sm"
               }
@@ -67,6 +67,8 @@ export default function PerformanceField({
               >
                 <input
                   type="text"
+                  autoComplete="off"
+                  aria-label="字段名"
                   value={tempFieldKey}
                   onChange={e => setTempFieldKey(e.target.value)}
                   onBlur={() => {
@@ -86,7 +88,7 @@ export default function PerformanceField({
                   data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
                   className={`
                     grow
-                    focus:outline-none
+                    focus:outline-none focus:ring-2 focus:ring-info/30
                     border-none outline-none bg-transparent font-semibold
                     ${isCompact ? `text-xs` : `text-base`}
                   `}
@@ -98,7 +100,7 @@ export default function PerformanceField({
               <span
                 className={`
                   label-text min-w-0 flex-1 cursor-pointer truncate font-semibold
-                  text-base-content/90 hover:text-primary
+                  text-base-content/90 hover:text-info
                   ${
                   isCompact ? "text-xs" : "text-base"
                 }
@@ -117,7 +119,7 @@ export default function PerformanceField({
           onClick={() => onDelete(fieldKey)}
           className="
             btn btn-ghost btn-xs size-6 min-h-6 shrink-0 rounded-md p-0
-            text-base-content/30 opacity-100 transition
+            text-base-content/50 opacity-100 transition
             hover:bg-error/10 hover:text-error
             md:opacity-0 md:group-hover/form-field:opacity-100
             md:focus-visible:opacity-100
@@ -131,8 +133,8 @@ export default function PerformanceField({
       <label className={`
         textarea flex size-full items-center gap-2 rounded-lg border-base-content/10
         bg-base-200/45 p-0 transition
-        focus-within:border-primary focus-within:outline-none
-        focus-within:ring-2 focus-within:ring-primary/20
+        focus-within:border-info focus-within:outline-none
+        focus-within:ring-2 focus-within:ring-info/20
         ${
         isCompact ? "textarea-sm" : ""
       }
@@ -141,13 +143,14 @@ export default function PerformanceField({
         <textarea
           className={`
             textarea h-full grow resize-none border-none bg-transparent
-            leading-relaxed outline-none focus:outline-none
+            leading-relaxed outline-none focus:outline-none focus:ring-2 focus:ring-info/30
             placeholder:text-base-content/35
             ${
             isCompact ? "text-xs" : ""
           }
           `}
           style={{ minHeight: `${minHeight}rem` }}
+          autoComplete="off"
           placeholder={placeholder}
           value={value === "0" ? "" : String(value ?? "")}
           onChange={e => onValueChange(fieldKey, e.target.value)}

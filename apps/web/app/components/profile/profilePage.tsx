@@ -65,15 +65,15 @@ function ProfilePage() {
         role="tablist"
         ref={navRef}
         className="
-          relative flex border-gray-300 border-y bg-base-200
+          relative flex border-base-300 border-y bg-base-200
           md:pl-10
-          dark:border-gray-700
+          dark:border-base-300
         "
       >
         {/* 高亮条 */}
         <div
           className="
-            absolute bottom-0 h-1.5 bg-primary rounded-t-full transition-all
+            absolute bottom-0 h-1.5 bg-info rounded-t-full transition-all
             duration-300 ease-out
           "
           style={{
@@ -92,7 +92,7 @@ function ProfilePage() {
               px-4 py-3 font-semibold transition-all duration-300 ease-out
               cursor-pointer flex items-center gap-2 no-underline
             "
-            activeProps={{ className: "text-primary" }}
+            activeProps={{ className: "text-info" }}
             inactiveProps={{ className: "text-base-content" }}
           >
             {tab.icon}

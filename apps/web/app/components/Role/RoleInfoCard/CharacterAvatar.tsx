@@ -69,7 +69,7 @@ export default function CharacterAvatar({
         }}
       >
         <div className="
-          relative w-full overflow-hidden rounded-xl ring ring-primary
+          relative w-full overflow-hidden rounded-xl ring ring-info
           ring-offset-2 ring-offset-base-100
         ">
           <div className={`

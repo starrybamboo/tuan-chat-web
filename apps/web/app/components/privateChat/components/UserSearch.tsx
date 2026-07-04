@@ -4,9 +4,8 @@ import { useRouter } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
-import { MediaImage } from "@/components/common/mediaImage";
+import { UserAvatarByUser } from "@/components/common/userAccess";
 import { HomeIcon, Search, XMarkICon } from "@/icons";
-import { imageLowUrl } from "@/utils/media/mediaUrl";
 import {
   useAcceptFriendRequestMutation,
   useCheckFriendQuery,
@@ -123,6 +122,8 @@ export default function UserSearch() {
       ">
         <input
           type="text"
+          autoComplete="off"
+          aria-label="搜索用户"
           className="input input-md w-full"
           placeholder="输入用户ID或用户名，按 Enter 或搜索按钮"
           value={inputKeyword}
@@ -184,13 +185,13 @@ export default function UserSearch() {
                       "
                     >
                       <div className="flex items-center gap-2">
-                        <MediaImage
-                          className="rounded-full"
-                          src={imageLowUrl(user?.avatarFileId)}
-                          alt="UserAvatar"
-                          width={32}
-                          height={32}
-                          fallbackSrc="/favicon.ico"
+                        <UserAvatarByUser
+                          user={user}
+                          fallbackUserId={user?.userId}
+                          width={8}
+                          isRounded={true}
+                          stopToastWindow={true}
+                          clickEnterProfilePage={false}
                         />
                         <span className="font-bold">{user?.username}</span>
                         <span className="opacity-70">
@@ -203,7 +204,7 @@ export default function UserSearch() {
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          className="btn btn-xs btn-primary"
+                          className="btn btn-xs btn-info"
                           disabled={acceptFriendRequestMutation.isPending || !req.id}
                           onClick={() => {
                             if (!req.id)
@@ -270,13 +271,13 @@ export default function UserSearch() {
                           router.history.push(`/chat/private/${searchUserInfo?.userId}`);
                         }}
                       >
-                        <MediaImage
-                          className="rounded-full"
-                          src={imageLowUrl(searchUserInfo?.avatarFileId)}
-                          alt="FriendAvatar"
-                          width={40}
-                          height={40}
-                          fallbackSrc="/favicon.ico"
+                        <UserAvatarByUser
+                          user={searchUserInfo}
+                          fallbackUserId={searchUserInfo?.userId}
+                          width={10}
+                          isRounded={true}
+                          stopToastWindow={true}
+                          clickEnterProfilePage={false}
                         />
                         <span>{searchUserInfo?.userId}</span>
                         <span className="font-bold">{searchUserInfo?.username}</span>
@@ -293,6 +294,8 @@ export default function UserSearch() {
                             <>
                               <input
                                 type="text"
+                                autoComplete="off"
+                                aria-label="验证信息"
                                 className="input input-xs w-48"
                                 placeholder="验证信息（必填）"
                                 value={verifyMsg}
@@ -301,7 +304,7 @@ export default function UserSearch() {
                               />
                               <button
                                 type="button"
-                                className="btn btn-xs btn-primary"
+                                className="btn btn-xs btn-info"
                                 disabled={
                                   sendFriendRequestMutation.isPending
                                   || !searchUserInfo?.userId
@@ -388,13 +391,13 @@ export default function UserSearch() {
                         "
                         onClick={() => router.history.push(`/chat/private/${friend?.userId}`)}
                       >
-                        <MediaImage
-                          className="rounded-full"
-                          src={imageLowUrl(friend?.avatarFileId)}
-                          alt="FriendAvatar"
-                          width={40}
-                          height={40}
-                          fallbackSrc="/favicon.ico"
+                        <UserAvatarByUser
+                          user={friend}
+                          fallbackUserId={friend?.userId}
+                          width={10}
+                          isRounded={true}
+                          stopToastWindow={true}
+                          clickEnterProfilePage={false}
                         />
                         <span>{friend?.userId}</span>
                         <span className="font-bold">{friend?.username}</span>

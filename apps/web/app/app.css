@@ -12,7 +12,7 @@
 }
 @plugin "../../node_modules/daisyui/theme/index.js" {
   name: "light";
-  default: false;
+  default: true;
   prefersdark: false;
   color-scheme: "light";
   --radius-selector: 0.375rem;
@@ -27,7 +27,7 @@
 
 @plugin "../../node_modules/daisyui/theme/index.js" {
   name: "dark";
-  default: true;
+  default: false;
   prefersdark: true;
   color-scheme: "dark";
   --radius-selector: 0.375rem;
@@ -46,6 +46,30 @@
   --font-sans:
     "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
     "Noto Color Emoji";
+
+  /*
+   * design token：只覆盖/新增与 Tailwind 默认不同的项；与默认值相同的别名不重复定义。
+   * 颜色：统一用 daisyUI 语义色——base-100/200/300、base-content、primary/secondary/accent/error/warning/info/success 及其 -content。
+   *      禁止裸用 gray-*、rose-*、slate-* 等原始色相类（不随主题切换）。
+   * 圆角：直接用 Tailwind 内置 rounded-{none,sm,md,lg,xl,2xl,full}（值即默认）；daisyUI 组件圆角由 --radius-selector/field/box 统一为 0.375rem。
+   * 阴影（elevation）：只用 Tailwind 内置 shadow-{none,sm,md,lg,xl}（值即默认）；禁止散写 shadow-[...] 自定义。
+   * 动效：时长 + 缓动，见下方动效 token 块。
+   */
+
+  /*
+   * 动效 token（时长 + 缓动）。
+   * 时长：--duration-* 是语义命名档（源码声明 + motion 侧 motionDuration 镜像）；
+   *       无对应工具类、无 var() 引用，故不输出到产物。Tailwind 侧用 duration-150/200/300/500 裸值（值等同）。
+   * 缓动：基础曲线直接用 Tailwind 内置 ease-out/ease-in-out/ease-in（本就是语义名）；
+   *       仅 --ease-emphasized 是项目独有、Tailwind 未内置，自动生成 ease-emphasized 工具类。
+   *       禁止散写 ease-[cubic-bezier(...)] 任意值或 CSS cubic-bezier() 字面量。
+   */
+  --duration-fast:   150ms;
+  --duration-base:   200ms;
+  --duration-slow:   300ms;
+  --duration-slower: 500ms;
+
+  --ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 :root {

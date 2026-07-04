@@ -31,7 +31,7 @@ export default function RoomSidebarCategoryContainer({
       className={`
         px-1 relative
         ${isDocCopyDropTarget ? `
-          outline outline-2 outline-primary/50 rounded-lg
+          outline outline-2 outline-info/50 rounded-lg
         ` : ""}
       `}
       onDragOver={e => handleDocCopyCategoryDragOver(e, categoryId)}
@@ -45,11 +45,11 @@ export default function RoomSidebarCategoryContainer({
       {isDocCopyDropTarget && (
         <div className="
           pointer-events-none absolute inset-0 z-20 rounded-lg border-2
-          border-primary/60 bg-primary/5 flex items-center justify-center
+          border-info/60 bg-info/5 flex items-center justify-center
         ">
           <div className="
-            px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-xs
-            font-medium text-primary shadow-sm
+            px-3 py-2 rounded bg-base-100/80 border border-info/20 text-xs
+            font-medium text-info shadow-sm
           ">
             {isSpaceOwner ? "松开复制到侧边栏" : "仅主持可复制到空间侧边栏"}
           </div>

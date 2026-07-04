@@ -13,7 +13,7 @@ import {
   readGroupMessagePopupEnabledFromLocalStorage,
 } from "@/components/settings/notificationPreferences";
 import { showDesktopNotification } from "@/utils/desktopNotification";
-import { avatarThumbUrl } from "@/utils/media/mediaUrl";
+import { imageLowUrl } from "@/utils/media/mediaUrl";
 import { isRunningInsideNativeAppWebView, postNativeAppNotification } from "@/utils/nativeAppBridge";
 import { useCallback } from "react";
 import toast from "react-hot-toast";
@@ -62,7 +62,7 @@ export function useWebSocketNotifications({
       const userInfo = isReceived ? req?.fromUser : req?.toUser;
       const displayName = userInfo?.username
         || (isReceived ? (req?.fromId != null ? `用户${req.fromId}` : "某位用户") : (req?.toId != null ? `用户${req.toId}` : "某位用户"));
-      const avatar = avatarThumbUrl(userInfo?.avatarFileId);
+      const avatar = imageLowUrl(userInfo?.avatarFileId);
       const verifyMsg = (req?.verifyMsg ?? event?.data?.verifyMsg ?? "").trim();
 
       if (isRunningInsideNativeAppWebView()) {
@@ -137,11 +137,7 @@ export function useWebSocketNotifications({
     const toastId = `direct-msg-${message.messageId}`;
     let senderInfo = queryClient.getQueryData<ApiResultUserInfoResponse>(["getUserInfo", message.senderId])?.data;
     const senderNameFromMessage = message.senderUsername?.trim() || "";
-    const senderAvatarFileId = (message as { senderAvatarFileId?: number }).senderAvatarFileId;
-    const senderAvatarFromMessage = avatarThumbUrl(senderAvatarFileId)
-      || message.senderAvatarThumbUrl?.trim()
-      || message.senderAvatar?.trim()
-      || "";
+    const senderAvatarFromMessage = imageLowUrl(message.senderAvatarFileId);
 
     if (!senderInfo && (!senderNameFromMessage || !senderAvatarFromMessage)) {
       try {
@@ -154,7 +150,7 @@ export function useWebSocketNotifications({
     }
 
     const displayName = senderNameFromMessage || senderInfo?.username || `用户${message.senderId}`;
-    const avatar = senderAvatarFromMessage || avatarThumbUrl(senderInfo?.avatarFileId);
+    const avatar = senderAvatarFromMessage || imageLowUrl(senderInfo?.avatarFileId);
     const previewText = getDirectMessagePreview(message);
     const targetPath = `/chat/private/${message.senderId}`;
 
@@ -178,7 +174,7 @@ export function useWebSocketNotifications({
               toastId={t.id}
               senderId={message.senderId}
               displayName={displayName}
-              avatar={avatar}
+              avatarUrl={avatar}
               previewText={previewText}
             />
           </div>
@@ -292,7 +288,7 @@ export function useWebSocketNotifications({
     }
 
     const senderName = senderInfo?.username || `用户${message.userId}`;
-    const senderAvatar = avatarThumbUrl(senderInfo?.avatarFileId);
+    const senderAvatarUrl = imageLowUrl(senderInfo?.avatarFileId);
     const previewText = getGroupMessagePreview(chatMessageResponse);
     const targetPath = roomSpaceId == null ? null : `/chat/${roomSpaceId}/${message.roomId}`;
     const notificationTitle = `${roomName} · ${senderName}`;
@@ -318,7 +314,7 @@ export function useWebSocketNotifications({
               targetPath={targetPath}
               roomName={roomName}
               senderName={senderName}
-              senderAvatar={senderAvatar}
+              senderAvatarUrl={senderAvatarUrl}
               previewText={previewText}
             />
           </div>
@@ -335,7 +331,7 @@ export function useWebSocketNotifications({
       void showDesktopNotification({
         title: notificationTitle,
         body: previewText,
-        icon: senderAvatar,
+        icon: senderAvatarUrl,
         targetPath,
         tag: toastId,
       });

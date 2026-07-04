@@ -88,7 +88,7 @@ export function renderProBottomSettingsDrawerContent({
                 items-center gap-[10px] rounded-t-2xl border border-base-300
                 bg-base-100 px-3 text-left text-base-content transition
                 hover:bg-base-200
-                focus:outline-none focus:ring-2 focus:ring-primary/20
+                focus:outline-none focus:ring-2 focus:ring-info/20
                 dark:text-white
               "
               aria-expanded={isProBottomSettingsOpen}
@@ -135,7 +135,7 @@ export function renderProBottomSettingsDrawerContent({
                 ">{SAMPLER_LABELS[sampler] || sampler}</div>
               </div>
               <div className="flex items-center justify-end">
-                <CaretUpIcon className="size-4" weight="bold" />
+                <CaretUpIcon className="size-4" weight="regular" />
               </div>
             </button>
           )
@@ -144,11 +144,10 @@ export function renderProBottomSettingsDrawerContent({
       <div
         className={`
           absolute inset-x-4 bottom-0 z-20 origin-bottom overflow-hidden
-          rounded-t-2xl border border-[#D6DCE3] bg-[#F3F5F7] text-base-content
-          shadow-[0_-16px_36px_rgba(15,23,42,0.18)] transition-all duration-300
+          rounded-t-2xl border border-base-300 bg-base-200 text-base-content
+          shadow-xl transition-all duration-300
           ease-out
-          dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-white
-          dark:shadow-[0_-20px_36px_rgba(0,0,0,0.35)]
+            dark:text-white
           ${
           isProBottomSettingsOpen
             ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
@@ -169,7 +168,7 @@ export function renderProBottomSettingsDrawerContent({
                   inline-flex size-8 items-center justify-center rounded-md
                   text-base-content/72 transition
                   hover:bg-black/5 hover:text-base-content
-                  focus:outline-none
+                  focus:outline-none focus:ring-2 focus:ring-info/30
                   dark:text-white/72
                   dark:hover:bg-white/8 dark:hover:text-white
                 "
@@ -177,7 +176,7 @@ export function renderProBottomSettingsDrawerContent({
                 title="重置绘图设置"
                 onClick={onResetCurrentImageSettings}
               >
-                <ArrowCounterClockwise className="size-4" weight="bold" />
+                <ArrowCounterClockwise className="size-4" weight="regular" />
               </button>
               <button
                 type="button"
@@ -185,7 +184,7 @@ export function renderProBottomSettingsDrawerContent({
                   inline-flex size-8 items-center justify-center rounded-md
                   text-base-content/72 transition
                   hover:bg-black/5 hover:text-base-content
-                  focus:outline-none
+                  focus:outline-none focus:ring-2 focus:ring-info/30
                   dark:text-white/72
                   dark:hover:bg-white/8 dark:hover:text-white
                 "
@@ -193,7 +192,7 @@ export function renderProBottomSettingsDrawerContent({
                 title="收起 AI 设置"
                 onClick={onCloseDrawer}
               >
-                <CaretDownIcon className="size-4" weight="bold" />
+                <CaretDownIcon className="size-4" weight="regular" />
               </button>
             </div>
           </div>
@@ -230,15 +229,15 @@ export function renderProBottomSettingsDrawerContent({
                   className={`
                     inline-flex h-7 items-center rounded-md border px-2.5
                     text-xs font-semibold transition
-                    focus:outline-none
+                    focus:outline-none focus:ring-2 focus:ring-info/30
                     ${
                     qualityToggle
-                      ? "border-transparent bg-primary/10 text-primary"
+                      ? "border-transparent bg-info/10 text-info"
                       : `
-                        border-transparent bg-[#F3F5F7] text-base-content/72
-                        hover:text-primary
-                        dark:bg-[#161A1F] dark:text-white/72
-                        dark:hover:text-primary
+                        border-transparent bg-base-200 text-base-content/72
+                        hover:text-info
+                         dark:text-white/72
+                        dark:hover:text-info
                       `
                   }
                   `}
@@ -270,12 +269,12 @@ export function renderProBottomSettingsDrawerContent({
                 <input
                   className={`
                     ${subtleInputClassName}
-                    border-[#D6DCE3] bg-[#F3F5F7] text-base-content
+                    border-base-300 bg-base-200 text-base-content
                     placeholder:text-base-content/28
                     [-moz-appearance:textfield]
                     [&::-webkit-inner-spin-button]:appearance-none
                     [&::-webkit-outer-spin-button]:appearance-none
-                    dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-white
+                      dark:text-white
                     dark:placeholder:text-white/28
                   `}
                   type="number"
@@ -294,8 +293,8 @@ export function renderProBottomSettingsDrawerContent({
                 ">Sampler</div>
                 <select className={`
                   ${subtleSelectClassName}
-                  border-[#D6DCE3] bg-[#F3F5F7] text-base-content
-                  dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-white
+                  border-base-300 bg-base-200 text-base-content
+                    dark:text-white
                 `} value={sampler} onChange={e => setSampler(e.target.value)}>
                   {samplerOptions.map(s => <option key={s} value={s}>{SAMPLER_LABELS[s] || s}</option>)}
                 </select>
@@ -342,9 +341,8 @@ export function renderProBottomSettingsDrawerContent({
                         ">Noise Schedule</span>
                         <select className={`
                           ${subtleSelectClassName}
-                          border-[#D6DCE3] bg-[#F3F5F7] text-base-content
-                          dark:border-[#2A3138] dark:bg-[#161A1F]
-                          dark:text-white
+                          border-base-300 bg-base-200 text-base-content
+                                                     dark:text-white
                         `} value={noiseSchedule} onChange={e => setNoiseSchedule(e.target.value)}>
                           {noiseScheduleOptions.map(s => <option key={s} value={s}>{SCHEDULE_LABELS[s] || s}</option>)}
                         </select>

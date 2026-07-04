@@ -1,4 +1,5 @@
-import { motion } from "motion/react";
+import { motion, useAnimate } from "motion/react";
+import { useEffect, useRef } from "react";
 
 import { MediaImage } from "@/components/common/mediaImage";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
@@ -8,17 +9,52 @@ import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/media/mediaUrl";
 import type { Space } from "../../../../../api";
 
 import { resolveEntityImageUrl } from "./entityImageUrl";
+import SidebarActiveCursor from "./sidebarActiveCursor";
 
-export default function SpaceButton({ space, unreadMessageNumber, onclick, isActive }: {
+const sidebarIconButtonBaseClass = "w-10 btn btn-square border border-transparent relative";
+const sidebarIconButtonActiveClass = "border-info/40 text-info";
+const collapsedButtonAnimation = {
+  scale: [1, 0.9, 1.12, 0.98, 1],
+  rotate: [0, -4, 4, -2, 0],
+  x: [0, -1, 1, 0],
+};
+const collapsedButtonAnimationOptions = {
+  duration: 0.42,
+  ease: "easeOut",
+} as const;
+
+export default function SpaceButton({ space, unreadMessageNumber, onclick, onPreload, isActive, isLeftDrawerCollapsed, isCollapseToggleClick, collapseAnimationKey }: {
   space: Space;
   unreadMessageNumber: number | undefined;
   onclick: () => void;
+  onPreload?: () => void;
   isActive: boolean;
+  isLeftDrawerCollapsed?: boolean;
+  isCollapseToggleClick?: boolean;
+  collapseAnimationKey?: string;
 }) {
   const displayName = space.name || "未命名空间";
   const fallbackAvatar = "/favicon.ico";
   const displayAvatar = imageLowUrlFromUrl(resolveEntityImageUrl(imageLowUrl(space.avatarFileId), fallbackAvatar));
   const isDev = typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV);
+  const previousAnimationKeyRef = useRef(collapseAnimationKey);
+  const [buttonScope, animateButton] = useAnimate<HTMLButtonElement>();
+
+  useEffect(() => {
+    if (!collapseAnimationKey || previousAnimationKeyRef.current === collapseAnimationKey) {
+      previousAnimationKeyRef.current = collapseAnimationKey;
+      return;
+    }
+    previousAnimationKeyRef.current = collapseAnimationKey;
+    void animateButton(buttonScope.current, collapsedButtonAnimation, collapsedButtonAnimationOptions);
+  }, [animateButton, buttonScope, collapseAnimationKey]);
+
+  const handleClick = () => {
+    if (isCollapseToggleClick) {
+      void animateButton(buttonScope.current, collapsedButtonAnimation, collapsedButtonAnimationOptions);
+    }
+    onclick();
+  };
 
   return (
     <div
@@ -29,23 +65,23 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
       "
       key={space.spaceId}
     >
-      <div
-        className={`
-          absolute left-[-6px] z-10 top-1/2 -translate-y-1/2 h-8 w-1
-          rounded-full bg-info transition-transform duration-300
-          ${
-          isActive ? "scale-y-100" : "scale-y-0"
-        }
-        `}
-      >
-      </div>
+      <SidebarActiveCursor isActive={isActive} tone={isLeftDrawerCollapsed ? "collapsed" : "default"} />
       <PortalTooltip label={displayName} placement="right">
         <motion.button
-          className="w-10 btn btn-square relative"
+          className={`
+            ${sidebarIconButtonBaseClass}
+            ${isActive ? sidebarIconButtonActiveClass : ""}
+          `}
+          ref={buttonScope}
           type="button"
           aria-label={displayName}
-          onClick={onclick}
-          {...interactiveButtonMotionProps}
+          aria-pressed={isActive}
+          onClick={handleClick}
+          onFocus={onPreload}
+          onPointerEnter={onPreload}
+          {...(isCollapseToggleClick
+            ? { whileHover: interactiveButtonMotionProps.whileHover, transition: interactiveButtonMotionProps.transition }
+            : interactiveButtonMotionProps)}
         >
           <div className="indicator">
             {(unreadMessageNumber && unreadMessageNumber > 0)

@@ -174,10 +174,12 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
             <SearchFilled className="size-4 text-base-content/60 mr-2 shrink-0" />
             <input
               ref={inputRef}
-              type="text"
+              type="search"
+              autoComplete="off"
+              aria-label="搜索聊天记录"
               placeholder="搜索聊天记录..."
               className="
-                bg-transparent border-none outline-none flex-1 min-w-0 text-sm
+                bg-transparent border-none outline-none flex-1 min-w-0 text-sm focus:ring-2 focus:ring-info/30
                 placeholder:text-base-content/60
               "
               value={searchText}

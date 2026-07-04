@@ -575,7 +575,7 @@ export default function RuleEditor({
                 type="button"
                 className={`
                   btn
-                  ${mode === "edit" && !isEditing ? "btn-accent" : `btn-primary`}
+                  ${mode === "edit" && !isEditing ? "btn-info" : `btn-primary`}
                   btn-sm
                   md:btn-lg
                   rounded-lg
@@ -691,7 +691,7 @@ export default function RuleEditor({
                           type="button"
                           className={`
                             btn
-                            ${mode === "edit" && !isEditing ? `btn-accent` : `
+                            ${mode === "edit" && !isEditing ? `btn-info` : `
                               btn-primary
                             `}
                             btn-md rounded-lg px-4

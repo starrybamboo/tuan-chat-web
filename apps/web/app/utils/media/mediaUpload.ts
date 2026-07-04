@@ -704,9 +704,6 @@ async function uploadDerivativeTarget({
   | { status: "failed"; quality: string; failedTarget: FailedUploadTarget }
 > {
   if (!file) {
-    if (quality === "high") {
-      return { status: "skipped", quality };
-    }
     return {
       status: "failed",
       quality,
@@ -759,10 +756,10 @@ async function putMediaTargetWithRetry(
       }
       const uploadError = normalizeUploadTargetError(error);
       lastError = uploadError;
-      const canRetryOldUrl = uploadError.retryable
+      const canRetryUploadTarget = uploadError.retryable
         && !uploadError.credentialExpired
         && attempt < retryPolicy.maxAttempts;
-      if (!canRetryOldUrl) {
+      if (!canRetryUploadTarget) {
         throw uploadError;
       }
       await sleepUploadRetryDelay(resolveRetryDelayMs(attempt, retryPolicy), signal);

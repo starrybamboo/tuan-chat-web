@@ -8868,12 +8868,6 @@
             "type": "string",
             "description": "标题兜底（可选）"
           },
-          "imageUrl": {
-            "maxLength": 1024,
-            "minLength": 0,
-            "type": "string",
-            "description": "封面兜底（可选）"
-          },
           "imageFileId": {
             "type": "integer",
             "description": "封面媒体文件 ID；替代 imageUrl",
@@ -8950,13 +8944,6 @@
         "properties": {
           "source": {
             "$ref": "#/components/schemas/MediaSource"
-          },
-          "fileId": {
-            "type": "integer",
-            "description": "兼容旧版扁平媒体文件 ID，读取后会转换为 source",
-            "format": "int64",
-            "writeOnly": true,
-            "deprecated": true
           },
           "size": {
             "type": "integer",
@@ -9239,13 +9226,6 @@
           "source": {
             "$ref": "#/components/schemas/MediaSource"
           },
-          "fileId": {
-            "type": "integer",
-            "description": "兼容旧版扁平媒体文件 ID，读取后会转换为 source",
-            "format": "int64",
-            "writeOnly": true,
-            "deprecated": true
-          },
           "size": {
             "type": "integer",
             "description": "大小（字节）",
@@ -9443,13 +9423,6 @@
         "properties": {
           "source": {
             "$ref": "#/components/schemas/MediaSource"
-          },
-          "fileId": {
-            "type": "integer",
-            "description": "兼容旧版扁平媒体文件 ID，读取后会转换为 source",
-            "format": "int64",
-            "writeOnly": true,
-            "deprecated": true
           },
           "size": {
             "type": "integer",

@@ -8,10 +8,10 @@ import RepositoryContentCard from "@/components/common/acticityAndFeedPostsCard/
 import CommentPanel from "@/components/common/comment/commentPanel";
 import DislikeIconButton from "@/components/common/dislikeIconButton";
 import ShareIconButton from "@/components/common/share/shareIconButton";
-import UserAvatarComponent from "@/components/common/userAvatar";
+import { UserAvatarByUser } from "@/components/common/userAccess";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { CommentOutline } from "@/icons";
-import { imageLowUrl, imageMediumUrl } from "@/utils/media/mediaUrl";
+import { imageMediumUrl } from "@/utils/media/mediaUrl";
 
 import { useDeleteMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
@@ -73,7 +73,6 @@ const PostsCard: React.FC<PostsCardProps> = ({
   const userData = userInfoData?.data;
   const userDisplayData = {
     name: userData?.username || "未知用户",
-    avatar: imageLowUrl(userData?.avatarFileId) || "favicon.ico",
   };
 
   const deleteMutation = useDeleteMomentFeedMutation();
@@ -210,7 +209,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
             absolute inset-0 bg-base-100/80 rounded-xl flex items-center
             justify-center z-10
           ">
-            <div className="loading loading-spinner loading-lg text-primary" />
+            <div className="loading loading-spinner loading-lg text-info" />
           </div>
         )}
 
@@ -222,7 +221,12 @@ const PostsCard: React.FC<PostsCardProps> = ({
                   <div className="skeleton w-12 h-12 rounded-full flex-shrink-0"></div>
                 )
               : (
-                  <UserAvatarComponent userId={userId} width={12} isRounded={true} />
+                  <UserAvatarByUser
+                    user={userData}
+                    fallbackUserId={userId}
+                    width={12}
+                    isRounded={true}
+                  />
                 )}
             <div className="flex flex-col justify-between min-w-0 flex-1">
               {userInfoLoading
@@ -249,7 +253,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
             <div className="relative ml-auto">
               <button
                 className="
-                  text-base-content/40
+                  text-base-content/50
                   hover:text-base-content/80
                   transition-colors p-2 rounded-2xl
                   hover:bg-base-200
@@ -313,11 +317,10 @@ const PostsCard: React.FC<PostsCardProps> = ({
         <div className="mb-4 feed-container">
           {/* 渲染特殊内容卡片 */}
           {renderSpecialContent() || (
-            <div
-              className="cursor-pointer group space-y-2"
+            <button
+              type="button"
+              className="block w-full cursor-pointer group space-y-2 text-left"
               onClick={handleContentClick}
-              tabIndex={0}
-              role="button"
             >
 
               {/* 内容或描述 */}
@@ -325,7 +328,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
                 ? (
                     <div className="
                       text-base-content whitespace-pre-wrap
-                      hover:text-primary
+                      hover:text-info
                       transition-colors rounded-lg p-2 -m-2
                     ">
                       <div className="line-clamp-4 transition-all duration-200">
@@ -337,13 +340,13 @@ const PostsCard: React.FC<PostsCardProps> = ({
                     <p className="
                       text-sm text-base-content/85 whitespace-pre-line
                       leading-relaxed
-                      group-hover:text-primary
+                      group-hover:text-info
                       transition-colors
                     ">
                       {description}
                     </p>
                   )}
-            </div>
+            </button>
           )}
 
           {/* 图片预览（非 Feed 且没有特殊内容卡片时） */}
@@ -364,9 +367,9 @@ const PostsCard: React.FC<PostsCardProps> = ({
             onClick={handleComment}
             className="
               flex items-center space-x-1 text-sm
-              hover:text-primary
+              hover:text-info
               cursor-pointer
-              hover:bg-primary/10
+              hover:bg-info/10
               transition-colors px-2 py-1 rounded-full
             "
           >
@@ -376,7 +379,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
 
           <div className="
             flex items-center space-x-1 text-sm cursor-pointer
-            hover:bg-blue-500/10
+            hover:bg-info/10
             transition-colors px-2 py-1 rounded-full data-html-image-exclude
           ">
             <ShareIconButton

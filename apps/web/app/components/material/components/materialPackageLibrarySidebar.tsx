@@ -8,6 +8,7 @@ type MaterialPackageLibrarySidebarItem = {
   icon: MaterialPackageLibrarySidebarIcon;
   active?: boolean;
   onClick?: () => void;
+  onPreload?: () => void;
 }
 
 type MaterialPackageLibrarySidebarProps = {
@@ -54,7 +55,7 @@ export default function MaterialPackageLibrarySidebar({
         sm:mb-8
       ">
         <div className="
-          text-[11px] uppercase tracking-[0.28em] text-base-content/45
+          text-[11px] uppercase tracking-[0.28em] text-base-content/50
         ">Material</div>
         <div className="
           mt-2 text-xl font-semibold tracking-tight text-base-content
@@ -96,6 +97,8 @@ export default function MaterialPackageLibrarySidebar({
               type="button"
               className={className}
               onClick={item.onClick}
+              onFocus={item.onPreload}
+              onPointerEnter={item.onPreload}
             >
               <SidebarItemIcon icon={item.icon} active={item.active} />
               <span className="truncate">{item.label}</span>

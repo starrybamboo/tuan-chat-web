@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   avatarOriginalUrl,
-  avatarThumbUrl,
   avatarUrl,
   extractMediaFileIdFromUrl,
   imageHighUrl,
@@ -13,14 +12,10 @@ import {
   imageMediumUrlFromUrl,
   imageOriginalUrl,
   imageOriginalUrlFromUrl,
-  imagePreviewUrl,
-  imagePreviewUrlFromUrl,
   imageUrlWithQuality,
   mediaFileUrl,
   mediaFileUrlWithQuality,
-  mediaPreviewUrl,
   mediaShard,
-  mediaThumbUrl,
   mediaUrl,
   normalizeMediaType,
 } from "./media-url";
@@ -160,44 +155,14 @@ describe("extractMediaFileIdFromUrl", () => {
   });
 });
 
-describe("deprecated 函数兼容性", () => {
-  it("imagePreviewUrl 等价于 medium", () => {
-    expect(imagePreviewUrl(45)).toBe(imageMediumUrl(45));
-  });
-
+describe("图片质量便捷函数", () => {
   it("imageHighUrl 返回 high", () => {
     expect(imageHighUrl(45)).toBe("https://media.tuan.chat/media/v1/files/045/45/image/high.webp");
-  });
-
-  it("imagePreviewUrlFromUrl 等价于 imageMediumUrlFromUrl", () => {
-    const url = "/media/v1/files/007/7/image/low.webp";
-    expect(imagePreviewUrlFromUrl(url)).toBe(imageMediumUrlFromUrl(url));
   });
 
   it("imageHighUrlFromUrl 返回 high", () => {
     const url = "/media/v1/files/007/7/image/low.webp";
     expect(imageHighUrlFromUrl(url)).toBe("/media/v1/files/007/7/image/high.webp");
-  });
-
-  it("avatarThumbUrl 等价于 imageLowUrl", () => {
-    expect(avatarThumbUrl(45)).toBe(imageLowUrl(45));
-  });
-
-  it("mediaPreviewUrl 对图片返回 medium", () => {
-    expect(mediaPreviewUrl(45, "image")).toBe("https://media.tuan.chat/media/v1/files/045/45/image/medium.webp");
-  });
-
-  it("mediaPreviewUrl 对音频/视频回退到 low（resolveAvailableQuality 行为）", () => {
-    expect(mediaPreviewUrl(45, "audio")).toBe("https://media.tuan.chat/media/v1/files/045/45/audio/low.webm");
-    expect(mediaPreviewUrl(45, "video")).toBe("https://media.tuan.chat/media/v1/files/045/45/video/low.webm");
-  });
-
-  it("mediaThumbUrl 对图片返回 low", () => {
-    expect(mediaThumbUrl(45, "image")).toBe("https://media.tuan.chat/media/v1/files/045/45/image/low.webp");
-  });
-
-  it("mediaThumbUrl 对非图片回退到 mediaPreviewUrl 行为", () => {
-    expect(mediaThumbUrl(45, "audio")).toBe(mediaPreviewUrl(45, "audio"));
   });
 });
 

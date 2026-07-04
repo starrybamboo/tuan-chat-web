@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { canManageRoomRoles, hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
-import ConfirmModal from "@/components/common/comfirmModel";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
@@ -170,14 +170,14 @@ export default function RoleChooser({
           />
         )}
       </ToastWindow>
-      <ConfirmModal
-        isOpen={kickRoleId !== null}
-        onClose={() => setKickRoleId(null)}
+      <ConfirmDialog
+        open={kickRoleId !== null}
+        onOpenChange={() => setKickRoleId(null)}
         title="确认踢出角色"
-        message="确定要将该角色从当前房间移除吗？此操作将解除该角色与房间的关联。"
+        description="确定要将该角色从当前房间移除吗？此操作将解除该角色与房间的关联。"
         onConfirm={handleKickOut}
-        confirmText="确认踢出"
-        cancelText="取消"
+        confirmLabel="确认踢出"
+        cancelLabel="取消"
         variant="warning"
       />
     </div>

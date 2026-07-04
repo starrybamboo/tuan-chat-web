@@ -29,7 +29,6 @@ type RoomSidebarDocItemProps = {
   setContextMenu: (next: SidebarTreeContextMenuState) => void;
   docHeaderOverrides: Record<string, {
     title?: string;
-    imageUrl?: string;
     imageFileId?: number;
     originalImageFileId?: number;
     imageMediaType?: string;
@@ -66,13 +65,9 @@ export default function RoomSidebarDocItem({
   const docId = String(node.targetId);
   const docOverride = docHeaderOverrides[docId];
   const docOverrideTitle = typeof docOverride?.title === "string" ? docOverride.title.trim() : "";
-  const docOverrideImageUrl = typeof docOverride?.imageUrl === "string" ? docOverride.imageUrl.trim() : "";
   const docOverrideImageFileId = typeof docOverride?.imageFileId === "number" && docOverride.imageFileId > 0 ? docOverride.imageFileId : undefined;
   const docOverrideOriginalImageFileId = typeof docOverride?.originalImageFileId === "number" && docOverride.originalImageFileId > 0 ? docOverride.originalImageFileId : undefined;
   const docOverrideImageMediaType = typeof docOverride?.imageMediaType === "string" ? docOverride.imageMediaType.trim() : "";
-  const docFallbackImageUrl = typeof (node as any)?.fallbackImageUrl === "string"
-    ? String((node as any).fallbackImageUrl).trim()
-    : "";
   const docFallbackImageFileId = typeof (node as any)?.fallbackImageFileId === "number" && (node as any).fallbackImageFileId > 0
     ? (node as any).fallbackImageFileId
     : undefined;
@@ -83,7 +78,6 @@ export default function RoomSidebarDocItem({
   const docMeta = docMetaMap.get(docId);
 
   const title = docOverrideTitle || (docMeta?.title ?? (node as any)?.fallbackTitle ?? docId);
-  const coverUrl = docOverrideImageUrl || docFallbackImageUrl;
   const coverFileId = docOverrideImageFileId ?? docMeta?.imageFileId ?? docFallbackImageFileId;
   const originalCoverFileId = docOverrideOriginalImageFileId ?? docMeta?.originalImageFileId ?? docFallbackOriginalImageFileId;
   const imageMediaType = docOverrideImageMediaType || docMeta?.imageMediaType || docFallbackImageMediaType;
@@ -91,7 +85,6 @@ export default function RoomSidebarDocItem({
     docId,
     ...(typeof activeSpaceId === "number" && activeSpaceId > 0 ? { spaceId: activeSpaceId } : {}),
     ...(title ? { title } : {}),
-    imageUrl: coverUrl,
     imageFileId: coverFileId,
     originalImageFileId: originalCoverFileId,
     imageMediaType,

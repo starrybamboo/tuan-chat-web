@@ -150,7 +150,12 @@ export async function sendInitialImportChatMessages(
   const requests = buildInitialImportChatRequests(roomId, messages, availableRoles, dicerAvatars);
   await ensureInitialImportRoomMembers(roomId, messages, availableRoles);
   await ensureInitialImportRoomRoles(roomId, messages, availableRoles);
-  const result = await patchInsertMessages(tuanchat, requests);
+  const result = await patchInsertMessages(tuanchat, requests, {
+    mutationMeta: {
+      operationCause: "normal",
+      sourceSurface: "import",
+    },
+  });
   if (!result.success) {
     throw new Error(result.errMsg || "导入初始对话失败");
   }

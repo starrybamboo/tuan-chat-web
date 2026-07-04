@@ -59,7 +59,7 @@ export function InitiativeImportDialog({
             <button
               type="button"
               className="
-                btn btn-secondary btn-sm h-8 min-h-8 shrink-0 rounded-lg px-3
+                btn btn-outline btn-sm h-8 min-h-8 shrink-0 rounded-lg px-3
                 text-xs
               "
               disabled={isRollingAllInitiative}

@@ -36,9 +36,9 @@ export function HistoryHint() {
         type="button"
         className="
           flex size-4 cursor-help items-center justify-center rounded-full
-          bg-transparent text-base-content/28 transition
+          bg-transparent text-base-content/50 transition
           hover:text-base-content/55
-          focus:outline-none
+          focus:outline-none focus:ring-2 focus:ring-info/30
         "
         aria-label={hintText}
         onBlur={() => setTooltipState(prev => ({ ...prev, visible: false }))}

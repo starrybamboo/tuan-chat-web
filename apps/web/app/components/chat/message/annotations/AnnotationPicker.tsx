@@ -47,7 +47,7 @@ function AnnotationPickerLabelTooltip({ label, description, className }: { label
         className={className ?? `
           cursor-help decoration-dotted underline-offset-2
           hover:text-base-content/75 focus-visible:outline-none
-          focus-visible:text-base-content/75
+          focus-visible:text-base-content/75 focus-visible:ring-2 focus-visible:ring-info/30
         `}
         tabIndex={0}
       >
@@ -152,7 +152,7 @@ export default function AnnotationPicker({ initialSelected = DEFAULT_SELECTED, m
                   text-[11px] font-semibold leading-none text-base-content/50
                   hover:border-base-content/18 hover:bg-base-content/8
                   hover:text-base-content/70 focus-visible:outline-none
-                  focus-visible:ring-2 focus-visible:ring-primary/35
+                  focus-visible:ring-2 focus-visible:ring-info/35
                 "
               />
             </div>
@@ -191,7 +191,7 @@ export default function AnnotationPicker({ initialSelected = DEFAULT_SELECTED, m
 
         {sections.length === 0 && (
             <div className="
-              rounded-lg bg-base-200/38 py-8 text-center text-sm text-base-content/40
+              rounded-lg bg-base-200/38 py-8 text-center text-sm text-base-content/50
             ">
               没有匹配的标注
             </div>
@@ -200,7 +200,7 @@ export default function AnnotationPicker({ initialSelected = DEFAULT_SELECTED, m
 
       <div className="mt-5 flex flex-col gap-3 border-t border-base-content/8 pt-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 flex-1">
-          <div className="mb-2 text-xs font-semibold text-base-content/45">当前</div>
+          <div className="mb-2 text-xs font-semibold text-base-content/50">当前</div>
           <div className="flex max-h-16 flex-wrap gap-1.5 overflow-y-auto pr-1">
             {selectedAnnotations.length > 0
               ? selectedAnnotations.map(annotation => (
@@ -214,7 +214,7 @@ export default function AnnotationPicker({ initialSelected = DEFAULT_SELECTED, m
                   />
                 ))
               : (
-                  <span className="text-xs text-base-content/35">无</span>
+                  <span className="text-xs text-base-content/50">无</span>
                 )}
           </div>
         </div>

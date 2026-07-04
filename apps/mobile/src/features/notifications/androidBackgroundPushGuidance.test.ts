@@ -86,7 +86,27 @@ describe("androidBackgroundPushGuidance", () => {
       notificationsEnabled: true,
       running: true,
     }, true)).toBe(false);
-    expect(shouldShowAndroidBackgroundPushOnboarding(null, null, false)).toBe(false);
+    expect(shouldShowAndroidBackgroundPushOnboarding({
+      manufacturer: "Xiaomi",
+      ignoringBatteryOptimizations: null,
+      backgroundRestricted: false,
+    }, {
+      connected: true,
+      messageChannelImportance: 4,
+      notificationsEnabled: true,
+      running: true,
+    }, false)).toBe(true);
+    expect(shouldShowAndroidBackgroundPushOnboarding({
+      manufacturer: "Google",
+      ignoringBatteryOptimizations: true,
+      backgroundRestricted: null,
+    }, {
+      connected: true,
+      messageChannelImportance: 4,
+      notificationsEnabled: true,
+      running: true,
+    }, false)).toBe(true);
+    expect(shouldShowAndroidBackgroundPushOnboarding(null, null, false)).toBe(true);
     expect(shouldShowAndroidBackgroundPushOnboarding({
       manufacturer: "Google",
       ignoringBatteryOptimizations: true,
@@ -95,6 +115,14 @@ describe("androidBackgroundPushGuidance", () => {
       connected: true,
       messageChannelImportance: 0,
       notificationsEnabled: false,
+      running: true,
+    }, false)).toBe(true);
+    expect(shouldShowAndroidBackgroundPushOnboarding({
+      manufacturer: "Google",
+      ignoringBatteryOptimizations: true,
+      backgroundRestricted: false,
+    }, {
+      connected: true,
       running: true,
     }, false)).toBe(true);
   });

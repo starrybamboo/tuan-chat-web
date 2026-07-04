@@ -180,8 +180,8 @@ function restoreEditableSelection(editor: HTMLElement, snapshot: EditableSelecti
   selection.addRange(range);
 }
 
-const TEXT_SELECTION_CLASS_NAME = "rounded-[3px] bg-sky-200/20 px-0.5 text-inherit ring-1 ring-inset ring-sky-300/35 box-decoration-clone";
-const TEXT_SELECTION_EMPTY_CLASS_NAME = "block min-h-7 w-full rounded-md bg-sky-200/10 ring-1 ring-inset ring-sky-300/40";
+const TEXT_SELECTION_CLASS_NAME = "rounded-sm bg-info/10 px-0.5 text-inherit ring-1 ring-inset ring-info/35 box-decoration-clone";
+const TEXT_SELECTION_EMPTY_CLASS_NAME = "block min-h-7 w-full rounded-md bg-info/10 ring-1 ring-inset ring-info/40";
 
 function renderSelectedLineBreak(showLineBreakAfter: boolean | undefined) {
   if (!showLineBreakAfter) {
@@ -220,7 +220,7 @@ function renderSourceContentWithSelection(content: string, selectionSegment: { e
 
 function blockClassName(message: MessageEditorMessage, previewKind: ReturnType<typeof parseMessageEditorMarkdownPreview>["kind"]) {
   const base = [
-    "relative rounded-md px-0 py-0 text-base leading-7 transition selection:bg-sky-200/25 selection:text-base-content",
+    "relative rounded-md px-0 py-0 text-base leading-7 transition selection:bg-info/20 selection:text-base-content",
     "bg-transparent",
   ];
 
@@ -245,7 +245,7 @@ function blockClassName(message: MessageEditorMessage, previewKind: ReturnType<t
 
 function textContentClassName(message: MessageEditorMessage, previewKind: ReturnType<typeof parseMessageEditorMarkdownPreview>["kind"]) {
   return [
-    "min-h-7 whitespace-pre-wrap break-words text-base leading-7 [word-break:normal] outline-none selection:bg-sky-200/25 selection:text-base-content",
+    "min-h-7 whitespace-pre-wrap break-words text-base leading-7 [word-break:normal] outline-none selection:bg-info/20 selection:text-base-content",
     message.messageType === MESSAGE_TYPE.INTRO_TEXT ? "text-white" : "",
     previewKind === "heading1" ? "text-3xl font-semibold leading-tight" : "",
     previewKind === "heading2" ? "text-2xl font-semibold leading-tight" : "",
@@ -385,7 +385,7 @@ export function MessageEditorTextBlock({
       <div className="min-w-0">
         <div className="min-w-0 flex-1">
           {!content && !active && !readOnly && (
-            <div className="pointer-events-none text-base-content/25">
+            <div className="pointer-events-none text-base-content/50">
               {placeholder}
             </div>
           )}

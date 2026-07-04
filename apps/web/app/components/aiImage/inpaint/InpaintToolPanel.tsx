@@ -33,7 +33,7 @@ export function InpaintToolPanel({
             inline-flex size-6 items-center justify-center rounded-md border
             border-base-300 bg-base-200 text-base-content/86
           ">
-            <PencilSimpleLineIcon className="size-[16px]" weight="bold" />
+            <PencilSimpleLineIcon className="size-[16px]" weight="regular" />
           </span>
           <span className="leading-none">Draw Mask</span>
         </div>
@@ -53,7 +53,7 @@ export function InpaintToolPanel({
             value={brushSize}
             className="
               mt-2.5 h-1.5 w-full cursor-pointer appearance-none bg-transparent
-              focus:outline-none
+              focus:outline-none focus:ring-2 focus:ring-info/30
               [&::-webkit-slider-runnable-track]:h-1.5
               [&::-webkit-slider-runnable-track]:rounded-full
               [&::-webkit-slider-runnable-track]:bg-base-content/12
@@ -62,12 +62,12 @@ export function InpaintToolPanel({
               [&::-webkit-slider-thumb]:appearance-none
               [&::-webkit-slider-thumb]:rounded-full
               [&::-webkit-slider-thumb]:border-0
-              [&::-webkit-slider-thumb]:bg-primary
+              [&::-webkit-slider-thumb]:bg-info
               [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(17,18,36,0.18)]
               [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full
               [&::-moz-range-track]:bg-base-content/12
               [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full
-              [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-primary
+              [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-info
             "
             onChange={event => onBrushSizeChange(Number(event.target.value))}
           />

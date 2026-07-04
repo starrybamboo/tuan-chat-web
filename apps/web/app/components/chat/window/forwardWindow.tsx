@@ -255,7 +255,9 @@ function ForwardWindow({
                   <path d="m21 21-4.3-4.3"></path>
                 </svg>
                 <input
-                  type="text"
+                  type="search"
+                  autoComplete="off"
+                  aria-label="搜索房间"
                   value={roomKeyword}
                   onChange={event => setRoomKeyword(event.target.value)}
                   placeholder="搜索房间"
@@ -321,7 +323,7 @@ function ForwardWindow({
                           `}
                           aria-hidden="true"
                         >
-                          <Check size={13} weight="bold" />
+                          <Check size={13} weight="regular" />
                         </span>
                         <div className="avatar">
                           <div className="mask mask-squircle size-9">
@@ -334,7 +336,7 @@ function ForwardWindow({
                         </div>
                         <div className="min-w-0">
                           <div className="truncate text-sm font-medium">{displayName}</div>
-                          <div className="truncate text-xs text-base-content/45">{selectedSpaceName}</div>
+                          <div className="truncate text-xs text-base-content/50">{selectedSpaceName}</div>
                         </div>
                       </div>
                     </button>
@@ -418,7 +420,7 @@ function ForwardWindow({
                               disabled={isForwarding}
                               aria-label={`移除 ${displayName}`}
                             >
-                              <X size={14} weight="bold" />
+                              <X size={14} weight="regular" />
                             </button>
                           </div>
                         );

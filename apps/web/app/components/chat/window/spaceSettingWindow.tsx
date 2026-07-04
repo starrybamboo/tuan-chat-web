@@ -332,6 +332,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                     </div>
                     <input
                       className="input input-bordered w-full"
+                      autoComplete="off"
                       value={formData.name}
                       onChange={(event) => {
                         setFormData(prev => ({ ...prev, name: event.target.value }));
@@ -347,6 +348,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                       className="
                         textarea textarea-bordered min-h-40 w-full resize-y
                       "
+                      autoComplete="off"
                       value={formData.description}
                       onChange={(event) => {
                         setFormData(prev => ({ ...prev, description: event.target.value }));

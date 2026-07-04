@@ -259,7 +259,6 @@ export default function useRoomImportActions({
       ...(payloadRoomId ? { roomId: payloadRoomId } : {}),
       ...(payload?.spaceId ? { spaceId: payload.spaceId } : {}),
       title: payload?.title,
-      imageUrl: payload?.imageUrl,
       imageFileId: payload?.imageFileId,
       originalImageFileId: payload?.originalImageFileId,
       imageMediaType: payload?.imageMediaType,
@@ -272,7 +271,6 @@ export default function useRoomImportActions({
       payloadSpaceId: requestedDocCard.spaceId,
       hasExcerpt: Boolean(requestedDocCard.excerpt?.trim()),
       hasTitle: Boolean(requestedDocCard.title?.trim()),
-      hasImageUrl: Boolean(requestedDocCard.imageUrl?.trim()),
       hasImageFileId: Boolean(requestedDocCard.imageFileId),
     });
     if (!docId) {

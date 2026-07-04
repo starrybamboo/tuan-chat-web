@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { ChatCircleIcon, FileTextIcon, PlusIcon } from "@phosphor-icons/react";
+import { FileTextIcon, PlusIcon } from "@phosphor-icons/react";
 import React from "react";
 
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -10,6 +10,7 @@ import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import CreateRoomWindow from "@/components/chat/window/createRoomWindow";
 import CreateSpaceWindow from "@/components/chat/window/createSpaceWindow";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { RoomChatIcon } from "@/icons";
 
 type ChatPageModalsProps = {
   isSpaceHandleOpen: boolean;
@@ -126,7 +127,7 @@ export default function ChatPageModals({
               <CreateModeOption
                 active={createInCategoryMode === "room"}
                 description="新的聊天房间会放入当前分类。"
-                icon={<ChatCircleIcon className="size-4" weight="regular" />}
+                icon={<RoomChatIcon className="size-4" />}
                 inputName="create_in_category_mode"
                 label="创建房间"
                 disabled={isCreateRoomSubmitting}
@@ -199,7 +200,7 @@ export default function ChatPageModals({
                           void createDocInSelectedCategory(nextTitle);
                         }}
                       >
-                        <PlusIcon className="size-4" weight="bold" />
+                        <PlusIcon className="size-4" weight="regular" />
                         创建文档
                       </button>
                     </footer>
@@ -277,10 +278,10 @@ function CreateModeOption({
       }
         ${
         active
-          ? "border-primary/60 bg-primary/10 shadow-sm shadow-primary/10"
+          ? "border-info/60 bg-info/10 shadow-sm shadow-info/10"
           : `
             border-base-300/70 bg-base-100/60
-            hover:border-primary/30 hover:bg-base-100
+            hover:border-info/30 hover:bg-base-100
           `
       }
       `}
@@ -291,7 +292,7 @@ function CreateModeOption({
           transition
           ${
           active
-            ? "bg-primary/15 text-primary"
+            ? "bg-info/15 text-info"
             : `
               bg-base-200/70 text-base-content/70
               group-hover:bg-base-200
@@ -304,7 +305,7 @@ function CreateModeOption({
       <span className="min-w-0 flex-1">
         <span className={`
           block text-sm font-semibold
-          ${active ? "text-primary" : `text-base-content`}
+          ${active ? "text-info" : `text-base-content`}
         `}>
           {label}
         </span>
@@ -325,7 +326,7 @@ function CreateModeOption({
           ${
           active
             ? `
-              border-primary bg-primary
+              border-info bg-info
               shadow-[inset_0_0_0_3px_var(--fallback-b1,oklch(var(--b1)))]
             `
             : "border-base-300"

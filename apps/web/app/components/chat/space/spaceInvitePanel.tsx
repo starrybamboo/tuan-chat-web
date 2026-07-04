@@ -107,7 +107,7 @@ function InviteModeCard({
       className={`
         flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition
         ${
-        active ? "border-primary/50 bg-primary/10" : `
+        active ? "border-info/50 bg-info/10" : `
           border-base-300 bg-base-100
           hover:bg-base-200/60
         `

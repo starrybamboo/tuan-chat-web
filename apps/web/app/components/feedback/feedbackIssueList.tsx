@@ -170,6 +170,7 @@ export default function FeedbackIssueList({
             type="search"
             id="feedback-search"
             name="feedback-search"
+            autoComplete="off"
             aria-label="搜索 issue"
             className="input input-bordered input-sm w-full rounded-md"
             value={keyword}
@@ -236,7 +237,7 @@ export default function FeedbackIssueList({
               id="feedback-mine-only"
               name="feedback-mine-only"
               aria-label="仅看我提出的反馈"
-              className="checkbox checkbox-sm rounded-[4px]"
+              className="checkbox checkbox-sm rounded-sm"
               checked={Boolean(filters.mineOnly)}
               onChange={event => onFilterChange({ mineOnly: event.target.checked })}
             />
@@ -274,7 +275,7 @@ export default function FeedbackIssueList({
                     className="
                       group w-full px-4 py-4 text-left transition
                       hover:bg-base-200/50
-                      focus:bg-base-200/50 focus:outline-none
+                      focus:bg-base-200/50 focus:outline-none focus:ring-2 focus:ring-info/30
                     "
                     onClick={() => onSelectIssue(issue.feedbackIssueId)}
                     {...listItemMotionProps(index, { direction: "left", distance: 10, duration: 0.25, staggerDelay: 0.03, maxDelay: 0.3 })}
@@ -288,7 +289,7 @@ export default function FeedbackIssueList({
                           <div className="
                             text-[16px] font-semibold text-base-content
                             transition-colors
-                            group-hover:text-primary
+                            group-hover:text-info
                           ">
                             {issue.title}
                           </div>
@@ -326,7 +327,7 @@ export default function FeedbackIssueList({
                           <Link
                             to="/profile/$userId"
                             params={{ userId: String(issue.author?.userId ?? 0) }}
-                            className="hover:text-primary"
+                            className="hover:text-info"
                             onClick={event => event.stopPropagation()}
                           >
                             {getFeedbackAuthorName(issue.author)}

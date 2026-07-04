@@ -184,6 +184,8 @@ export default function DicerConfigJsonModal({
         <div className="mb-4">
           <textarea
             value={jsonText}
+            autoComplete="off"
+            aria-label="JSON 配置"
             onChange={e => handleJsonChange(e.target.value)}
             className={`
               textarea textarea-bordered w-full h-96 font-mono text-sm

@@ -124,9 +124,6 @@ describe("mobileDiceCommandExecutor", () => {
       messageType: MESSAGE_TYPE.DICE,
       roleId: actorRole.roleId,
       extra: expect.objectContaining({
-        diceResult: expect.objectContaining({
-          result: "掷骰结果：1d6 = 1d6[1] = 1",
-        }),
         diceTurn: expect.objectContaining({
           command: ".r 1d6",
           replies: [

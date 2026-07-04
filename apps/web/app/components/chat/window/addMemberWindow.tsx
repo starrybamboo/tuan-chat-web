@@ -210,7 +210,7 @@ export default function AddMemberWindow({
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
             <h4 className="text-sm/6 font-semibold">好友邀请</h4>
-            <span className="text-xs text-base-content/45">
+            <span className="text-xs text-base-content/50">
               {filteredFriends.length}
               {" "}
               人
@@ -222,7 +222,8 @@ export default function AddMemberWindow({
               -translate-y-1/2 text-base-content/45
             " />
             <input
-              type="text"
+              type="search"
+              autoComplete="off"
               className="input input-bordered w-full bg-base-100 pl-9"
               placeholder="搜索好友"
               aria-label="搜索好友"
@@ -263,10 +264,10 @@ export default function AddMemberWindow({
           <section>
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <UsersIcon className="size-4 text-primary" weight="regular" />
+                <UsersIcon className="size-4 text-info" weight="regular" />
                 <h4 className="text-sm/6 font-semibold">从空间添加</h4>
               </div>
-              <span className="text-xs text-base-content/45">
+              <span className="text-xs text-base-content/50">
                 {spaceMembers.length}
                 {" "}
                 人
@@ -353,7 +354,7 @@ function PanelSection({
       <div className="mb-4 flex items-start gap-3">
         <div className="
           flex size-10 shrink-0 items-center justify-center rounded-lg border
-          border-base-300 bg-base-200/55 text-primary
+          border-base-300 bg-base-200/55 text-info
         ">
           {icon}
         </div>
@@ -445,7 +446,7 @@ function MemberIdentity({ user }: { user: MemberLike }) {
       <div className="min-w-0">
         <div className="truncate text-sm font-medium">{username}</div>
         {typeof user.userId === "number" && (
-          <div className="text-xs text-base-content/45">
+          <div className="text-xs text-base-content/50">
             UID
             {" "}
             {user.userId}

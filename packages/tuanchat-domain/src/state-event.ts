@@ -134,20 +134,6 @@ export type StateEventExtra = {
   events: StateEventAtom[];
 };
 
-export type LegacyMapTokenSnapshot = {
-  roleId?: unknown;
-  rowIndex?: unknown;
-  colIndex?: unknown;
-};
-
-export type LegacyMapConfigSnapshot = {
-  mapFileId?: unknown;
-  gridRows?: unknown;
-  gridCols?: unknown;
-  gridColor?: unknown;
-  tokens?: LegacyMapTokenSnapshot[] | null;
-};
-
 export type StateScopeLabelOptions = {
   roleNameById?: Record<number, string | null | undefined>;
   roomLabel?: string;
@@ -449,56 +435,6 @@ export function buildUiStateEventExtra(events: StateEventAtom[]): StateEventExtr
     },
     events,
   };
-}
-
-export function buildMapStateEventsFromSnapshot(
-  map: LegacyMapConfigSnapshot | null | undefined,
-  options: {
-    clearTokens?: boolean;
-    includeTokens?: boolean;
-  } = {},
-): StateEventAtom[] {
-  const mapFileId = toPositiveInteger(map?.mapFileId);
-  if (!mapFileId) {
-    return [];
-  }
-  const gridRows = toPositiveInteger(map?.gridRows) ?? 10;
-  const gridCols = toPositiveInteger(map?.gridCols) ?? 10;
-  const gridColor = toTrimmedString(map?.gridColor) ?? "#808080";
-  const includeTokens = options.includeTokens ?? true;
-  const clearTokens = options.clearTokens ?? includeTokens;
-  const events: StateEventAtom[] = [{
-    type: "mapConfigUpsert",
-    mapFileId,
-    gridRows,
-    gridCols,
-    gridColor,
-    ...(clearTokens ? { clearTokens: true } : {}),
-  }];
-
-  if (!includeTokens) {
-    return events;
-  }
-
-  (map?.tokens ?? []).forEach((token) => {
-    const roleId = toPositiveInteger(token.roleId);
-    const rowIndex = toNonNegativeInteger(token.rowIndex);
-    const colIndex = toNonNegativeInteger(token.colIndex);
-    if (!roleId || typeof rowIndex !== "number" || typeof colIndex !== "number") {
-      return;
-    }
-    if (rowIndex >= gridRows || colIndex >= gridCols) {
-      return;
-    }
-    events.push({
-      type: "mapTokenUpsert",
-      roleId,
-      rowIndex,
-      colIndex,
-    });
-  });
-
-  return events;
 }
 
 export function toApiStateEventExtra(extra: StateEventExtra): ApiStateEventExtra {

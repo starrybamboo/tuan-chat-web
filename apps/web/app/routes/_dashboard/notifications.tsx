@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import {
+  fetchNotificationsFirstPageWithCache,
+  fetchNotificationUnreadCountWithCache,
+} from "@/components/notification/notificationHooks";
 import NotificationPage from "@/components/notification/notificationPage";
+import { queryClient } from "@/queryClient";
 import { createSeoMeta } from "@/utils/seo";
 
 export function meta() {
@@ -13,6 +18,13 @@ export function meta() {
 }
 
 export const Route = createFileRoute("/_dashboard/notifications")({
+  loader: async () => {
+    await Promise.allSettled([
+      fetchNotificationUnreadCountWithCache(queryClient),
+      fetchNotificationsFirstPageWithCache(queryClient, { pageSize: 20, unreadOnly: false }),
+    ]);
+    return null;
+  },
   head: () => ({
     meta: meta(),
   }),

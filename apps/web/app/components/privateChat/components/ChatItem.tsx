@@ -4,30 +4,13 @@ import { useEffect, useRef } from "react";
 
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
 import { unreadBadgeBounceMotionProps } from "@/components/common/motion/chatMessageMotion";
+import UserAvatarComponent from "@/components/common/userAvatar";
 import { resolveUserDisplayName, useResolvedUserInfo } from "@/components/common/userAccess.shared";
 import { XMarkICon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 
-type MessageDirectType = {
-  messageId?: number;
-  userId?: number;
-  syncId?: number;
-  senderId?: number;
-  senderUsername?: string;
-  senderAvatar?: string;
-  senderAvatarThumbUrl?: string;
-  receiverId?: number;
-  receiverUsername?: string;
-  receiverAvatar?: string;
-  receiverAvatarThumbUrl?: string;
-  content?: string;
-  messageType?: number;
-  replyMessageId?: number;
-  status?: number;
-  extra?: Record<string, any>;
-  createTime?: string;
-  updateTime?: string;
-}
+import type { MessageDirectType } from "../types/messageDirect";
+import type { DirectContactUser } from "../utils/directContactUser";
 
 export default function ChatItem({
   id,
@@ -42,12 +25,7 @@ export default function ChatItem({
   openContextMenu,
 }: {
   id: number;
-  user?: {
-    userId?: number;
-    username?: string;
-    avatar?: string;
-    avatarThumbUrl?: string;
-  };
+  user?: DirectContactUser;
   lastMessage: MessageDirectType | null;
   isSmallScreen: boolean;
   unreadMessageNumber: number;
@@ -155,22 +133,23 @@ export default function ChatItem({
         onClick={handleClick}
       >
         <div className="
-          avatar mask mask-squircle w-9 h-9 flex-shrink-0 bg-base-300 text-xs
-          font-semibold text-base-content/60
+          w-9 h-9 flex-shrink-0 text-xs font-semibold text-base-content/60
         ">
           {avatarSrc
             ? (
-                <img
-                  src={avatarSrc}
-                  alt=""
-                  width={36}
-                  height={36}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
+                <UserAvatarComponent
+                  userId={resolvedUser.userId}
+                  username={displayName}
+                  avatar={resolvedUser.avatar}
+                  avatarThumbUrl={resolvedUser.avatarThumbUrl}
+                  width={9}
+                  isRounded={true}
+                  stopToastWindow={true}
+                  clickEnterProfilePage={false}
                 />
               )
             : (
-                <div className="flex h-full w-full items-center justify-center" aria-hidden="true">
+                <div className="flex h-full w-full items-center justify-center rounded-full bg-base-300" aria-hidden="true">
                   {displayName.slice(0, 1)}
                 </div>
               )}
@@ -216,7 +195,7 @@ export default function ChatItem({
             transition-opacity duration-150 cursor-pointer
             hover:bg-base-300
             focus-visible:opacity-100 focus-visible:outline-none
-            focus-visible:ring-2 focus-visible:ring-primary/50
+            focus-visible:ring-2 focus-visible:ring-info/50
             group-hover:opacity-100
             z-10
           "

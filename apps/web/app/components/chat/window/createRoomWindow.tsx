@@ -1,4 +1,4 @@
-import { ChatCircleText, Trash } from "@phosphor-icons/react";
+import { PlusIcon, Trash } from "@phosphor-icons/react";
 import { useEffect, useId, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -7,7 +7,7 @@ import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { PlusIcon } from "@/icons";
+import { RoomChatIcon } from "@/icons";
 import { imageLowUrl } from "@/utils/media/mediaUrl";
 import { useCreateRoomMutation, useGetSpaceInfoQuery } from "api/hooks/chatQueryHooks";
 import { useGetUserInfoQuery } from "api/hooks/UserHooks";
@@ -182,6 +182,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
                 <input
                   id={roomNameInputId}
                   type="text"
+                  autoComplete="off"
                   value={roomName}
                   placeholder={defaultRoomName}
                   className="input input-bordered w-full bg-base-100 text-base"
@@ -201,7 +202,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
                       <div className="
                         flex items-center gap-2 text-sm font-semibold
                       ">
-                        <ChatCircleText className="size-4 text-primary" weight="duotone" />
+                        <RoomChatIcon className="size-4 text-info" />
                         初始对话
                       </div>
                       <p className="mt-1 text-xs text-base-content/55">
@@ -228,7 +229,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
                         onClick={() => setIsImportDialogOpen(true)}
                         disabled={isSubmitting}
                       >
-                        <ChatCircleText className="size-4" />
+                        <RoomChatIcon className="size-4" />
                         {initialImportMessages.length > 0 ? "重新配置" : "导入对话"}
                       </button>
                     </div>

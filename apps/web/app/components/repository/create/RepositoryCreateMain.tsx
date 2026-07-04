@@ -19,14 +19,14 @@ export default function RepositoryCreateMain() {
       ">
         <h1 className="text-3xl font-bold">创建你的专属仓库</h1>
         <p className="
-          text-gray-600
-          dark:text-gray-300
+          text-base-content/70
+          dark:text-base-content/50
           text-lg mt-4
         ">
           为你的故事设定规则，填写基础信息。想添加更多细节？随时可以前往
           <a onClick={() => goToWorkSpace()} className="
-            cursor-pointer font-semibold text-blue-600
-            hover:text-indigo-600
+            cursor-pointer font-semibold text-info
+            hover:text-info
             transition
           ">创作工作台</a>
           进行丰富。
@@ -57,10 +57,10 @@ export default function RepositoryCreateMain() {
             {/* 提交按钮 */}
             <button type="submit" className="
               mt-6 w-full px-3 py-2 cursor-pointer text-white rounded-xl
-              font-bold text-lg shadow-md bg-indigo-600
-              hover:bg-indigo-700
-              dark:bg-green-600
-              dark:hover:bg-green-700
+              font-bold text-lg shadow-md bg-info
+              hover:bg-info
+              dark:bg-success
+              dark:hover:bg-success
               transition-all duration-200
             ">创建仓库</button>
           </section>

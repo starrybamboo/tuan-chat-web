@@ -41,9 +41,7 @@ export function getDirectMessagesForConversation(
   }
 
   const channelMessages = receivedDirectMessages[currentContactUserId] ?? [];
-  const legacySelfKeyMessages = receivedDirectMessages[userId] ?? [];
-  const messages = mergeDirectMessages(channelMessages, legacySelfKeyMessages);
-  return messages.filter((msg) => {
+  return channelMessages.filter((msg) => {
     return (
       msg.senderId === userId && msg.receiverId === currentContactUserId
     ) || (

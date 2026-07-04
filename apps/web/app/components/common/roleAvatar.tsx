@@ -1,7 +1,7 @@
 import { type ImgHTMLAttributes, use, useState } from "react";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
-import ImgWithHoverToScale from "@/components/common/imgWithHoverToScale";
+import { Avatar, AVATAR_HOVER_IMAGE_CLASS, AVATAR_HOVER_SHELL_CLASS, type AvatarSize } from "@/components/common/Avatar";
 import { RoleDetail } from "@/components/common/roleDetail";
 import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
@@ -13,25 +13,6 @@ import {
   useGetRoleAvatarQuery,
   useGetRoleAvatarsQuery,
 } from "../../../api/hooks/RoleAndAvatarHooks";
-
-const sizeMap = {
-  6: "w-6 h-6", // 24px
-  8: "w-8 h-8", // 32px
-  10: "w-10 h-10", // 40px
-  12: "w-12 h-12", // 48px
-  14: "w-14 h-14", // 56px
-  16: "w-16 h-16", // 64px
-  18: "w-18 h-18", // 72px
-  20: "w-20 h-20", // 80px
-  21: "w-[5.125rem] h-[5.125rem]", // 82px
-  24: "w-24 h-24", // 96px
-  30: "w-30 h-30", // 120px
-  32: "w-32 h-32", // 128px
-  36: "w-36 h-36", // 144px
-} as const;
-
-const avatarShellHoverClassName = "transition-all duration-200 ease-out motion-reduce:transition-none hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md hover:shadow-base-content/10";
-const avatarImageHoverClassName = "transition-transform duration-200 ease-out motion-reduce:transition-none group-hover/avatar:scale-105";
 
 /**
  * 用户头像组件
@@ -75,7 +56,7 @@ export default function RoleAvatarComponent({
   roleType?: number;
   roleOwnerUserId?: number;
   roleState?: number;
-  width: keyof typeof sizeMap; // 头像的宽度
+  width: AvatarSize; // 头像的宽度
   isRounded: boolean; // 是否是圆的
   withTitle?: boolean; // 是否在下方显示标题
   stopToastWindow?: boolean; // 点击后是否会产生roleDetail弹窗
@@ -114,74 +95,32 @@ export default function RoleAvatarComponent({
 
   const roomContext = use(RoomContext);
   const roomId = roomContext?.roomId ?? -1;
+  const avatarContent = (
+    <Avatar
+      src={hasAvatar ? displayAvatarUrl : undefined}
+      alt={alt}
+      size={width}
+      rounded={isRounded}
+      fallbackSrc={ROLE_DEFAULT_AVATAR_URL}
+      shellClassName={AVATAR_HOVER_SHELL_CLASS}
+      imgClassName={AVATAR_HOVER_IMAGE_CLASS}
+      hoverToScale={hoverToScale}
+      imageLoading={imageLoading}
+      imageDecoding={imageDecoding}
+    >
+      <span className="text-sm">{alt}</span>
+    </Avatar>
+  );
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="avatar group/avatar">
-        {stopToastWindow
-          ? (
-              <div
-                className={`
-                  ${avatarShellHoverClassName}
-                  ${sizeMap[width]}
-                  ${isRounded ? `rounded-full` : `rounded`}
-                  ${hasAvatar ? "" : `bg-base-300`}
-                  text-center flex items-center justify-center overflow-hidden
-                `}
-              >
-                {!hasAvatar
-                  ? <span className={`
-                    ${sizeMap[width]}
-                    text-sm
-                  `}>{alt}</span>
-                  : (
-                      <ImgWithHoverToScale
-                        enableScale={hoverToScale}
-                        src={displayAvatarUrl}
-                        alt={alt}
-                        loading={imageLoading}
-                        decoding={imageDecoding}
-                        className={`
-                          w-full h-full object-cover
-                          ${avatarImageHoverClassName}
-                        `}
-                      />
-                    )}
-              </div>
-            )
-          : (
-              <button
-                type="button"
-                className={`
-                  ${avatarShellHoverClassName}
-                  ${sizeMap[width]}
-                  ${isRounded ? `rounded-full` : `rounded`}
-                  ${hasAvatar ? "" : `bg-base-300`}
-                  text-center flex items-center justify-center overflow-hidden
-                `}
-                onClick={() => setIsOpen(true)}
-              >
-                {!hasAvatar
-                  ? <span className={`
-                    ${sizeMap[width]}
-                    text-sm
-                  `}>{alt}</span>
-                  : (
-                      <ImgWithHoverToScale
-                        enableScale={hoverToScale}
-                        src={displayAvatarUrl}
-                        alt={alt}
-                        loading={imageLoading}
-                        decoding={imageDecoding}
-                        className={`
-                          w-full h-full object-cover
-                          ${avatarImageHoverClassName}
-                        `}
-                      />
-                    )}
-              </button>
-            )}
-      </div>
+    <div className={`flex flex-col items-center ${width === "full" ? "h-full w-full" : ""}`}>
+      {stopToastWindow
+        ? avatarContent
+        : (
+            <button type="button" className={width === "full" ? "h-full w-full" : ""} onClick={() => setIsOpen(true)}>
+              {avatarContent}
+            </button>
+          )}
       {withTitle && (
         <div className="text-xs truncate max-w-full">
           {typeof avatarQuery.data?.data?.avatarTitle === "string"

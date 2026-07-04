@@ -87,7 +87,7 @@ function MaterialTreeNodeRow({
         className={`
           group flex min-w-0 items-start gap-1.5 rounded-md p-1.5 text-sm
           transition
-          ${isActiveNode ? `bg-primary/10 text-primary` : `
+          ${isActiveNode ? `bg-info/10 text-info` : `
             text-base-content/72
             hover:bg-base-200 hover:text-base-content
           `}
@@ -117,7 +117,7 @@ function MaterialTreeNodeRow({
             <CaretRightIcon className={`
               size-3 transition-transform
               ${isExpanded ? `rotate-90` : ""}
-            `} weight="bold" />
+            `} weight="regular" />
           )}
         </button>
         <button
@@ -194,7 +194,7 @@ function MaterialTreeNodeRow({
             {node.meta && (
               <div className={`
                 truncate text-[11px]
-                ${isActiveNode ? `text-primary/75` : `text-base-content/45`}
+                ${isActiveNode ? `text-info/75` : `text-base-content/50`}
               `}>
                 {node.meta}
               </div>
@@ -203,7 +203,7 @@ function MaterialTreeNodeRow({
           {isMaterialGroup && (
             <span className={`
               mt-0.5 shrink-0 text-[11px]
-              ${isActiveNode ? `text-primary/75` : `text-base-content/45`}
+              ${isActiveNode ? `text-info/75` : `text-base-content/50`}
             `}>
               {`${node.messageCount} 条`}
             </span>
@@ -339,7 +339,7 @@ export default function RoomSidebarMaterialPackageItem({
           <CaretRightIcon className={`
             size-3 transition-transform
             ${isExpanded ? `rotate-90` : ""}
-          `} weight="bold" />
+          `} weight="regular" />
         </button>
         <button
           type="button"
@@ -347,7 +347,7 @@ export default function RoomSidebarMaterialPackageItem({
             group relative flex min-w-0 flex-1 cursor-pointer select-none
             items-center gap-1.5 rounded-lg p-1 pr-2 text-left text-sm
             font-medium transition
-            ${isPackageSelected ? `bg-primary/10 text-primary` : isActivePackage ? `
+            ${isPackageSelected ? `bg-info/10 text-info` : isActivePackage ? `
               bg-base-300/45 text-base-content
             ` : `
               text-base-content/78
@@ -370,7 +370,7 @@ export default function RoomSidebarMaterialPackageItem({
                   />
                 )
               : (
-                  <PackageIcon className="size-4 opacity-70" weight="duotone" />
+                  <PackageIcon className="size-4 opacity-70" weight="regular" />
                 )}
           </div>
           <span className="flex-1 truncate text-left">{packageName}</span>
@@ -435,7 +435,7 @@ export default function RoomSidebarMaterialPackageItem({
                 />
               ))
             : (
-                <div className="px-8 py-1 text-xs text-base-content/45">
+                <div className="px-8 py-1 text-xs text-base-content/50">
                   当前素材包还没有可拖拽的素材条目
                 </div>
               )}

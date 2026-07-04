@@ -82,11 +82,11 @@ export default function RuleExpansionModule({
               type="button"
               className={`
                 btn btn-md inline-flex items-center gap-1.5 rounded-lg
-                ${activeTab === key ? `btn-primary` : `btn-ghost`}
+                ${activeTab === key ? `btn-info` : `btn-ghost`}
               `}
               onClick={() => setActiveTab(key)}
             >
-              <Icon className="size-4 shrink-0" weight="bold" aria-hidden="true" />
+              <Icon className="size-4 shrink-0" weight="regular" aria-hidden="true" />
               <span className="md:hidden">{shortLabel}</span>
               <span className="
                 hidden
@@ -147,7 +147,7 @@ export default function RuleExpansionModule({
         >
           <div className="space-y-6">
             <div className="flex items-center gap-2">
-              <MaskHappyIcon className="size-5 shrink-0 text-base-content/80" weight="bold" aria-hidden="true" />
+              <MaskHappyIcon className="size-5 shrink-0 text-base-content/80" weight="regular" aria-hidden="true" />
               <h4 className="text-lg font-semibold">表演模版</h4>
               <div className="badge badge-info badge-sm">{Object.keys(localRule.actTemplate ?? {}).length}</div>
             </div>

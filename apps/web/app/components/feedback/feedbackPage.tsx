@@ -97,7 +97,7 @@ export default function FeedbackPage({ rawIssueId }: { rawIssueId?: string }) {
                   <div className="space-y-1">
                     <div className="
                       text-xs font-medium uppercase tracking-[0.22em]
-                      text-base-content/45
+                      text-base-content/50
                     ">
                       用户反馈
                     </div>

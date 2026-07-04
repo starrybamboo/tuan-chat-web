@@ -130,7 +130,7 @@ export function InpaintBottomBar({
               title="绘制蒙版"
               onClick={() => onSetTool("paint")}
             >
-              <PencilSimpleLineIcon className="size-[18px]" weight="bold" />
+              <PencilSimpleLineIcon className="size-[18px]" weight="regular" />
             </button>
             <button
               type="button"
@@ -142,7 +142,7 @@ export function InpaintBottomBar({
               title="擦除蒙版"
               onClick={() => onSetTool("erase")}
             >
-              <EraserIcon className="size-[18px]" weight="bold" />
+              <EraserIcon className="size-[18px]" weight="regular" />
             </button>
           </div>
           <div className="flex items-center gap-1.5">
@@ -154,7 +154,7 @@ export function InpaintBottomBar({
                 title="调色板"
                 onClick={onToggleBoardPanel}
               >
-                <PaletteIcon className="size-[18px]" weight="bold" />
+                <PaletteIcon className="size-[18px]" weight="regular" />
               </button>
               {isBoardPanelOpen
                 ? (
@@ -171,10 +171,10 @@ export function InpaintBottomBar({
                               inline-flex size-6 items-center justify-center
                               rounded-full border transition
                               focus:outline-none focus:ring-2
-                              focus:ring-primary/20
+                              focus:ring-info/20
                               ${
                               maskColor === color ? `
-                                border-base-content/85 ring-2 ring-primary/20
+                                border-base-content/85 ring-2 ring-info/20
                               ` : `border-base-300`
                             }
                             `}
@@ -205,7 +205,7 @@ export function InpaintBottomBar({
                         className="
                           mt-2 h-1.5 w-full cursor-pointer appearance-none
                           bg-transparent
-                          focus:outline-none
+                          focus:outline-none focus:ring-2 focus:ring-info/30
                           [&::-webkit-slider-runnable-track]:h-1.5
                           [&::-webkit-slider-runnable-track]:rounded-full
                           [&::-webkit-slider-runnable-track]:bg-base-content/10
@@ -254,7 +254,7 @@ export function InpaintBottomBar({
               disabled={!hasMask}
               onClick={onClearMask}
             >
-              <TrashIcon className="size-[18px]" weight="bold" />
+              <TrashIcon className="size-[18px]" weight="regular" />
             </button>
             <button
               type="button"
@@ -264,7 +264,7 @@ export function InpaintBottomBar({
               disabled={!canUndo}
               onClick={onUndo}
             >
-              <ArrowCounterClockwiseIcon className="size-[18px]" weight="bold" />
+              <ArrowCounterClockwiseIcon className="size-[18px]" weight="regular" />
             </button>
             <button
               type="button"
@@ -274,7 +274,7 @@ export function InpaintBottomBar({
               disabled={!canRedo}
               onClick={onRedo}
             >
-              <ArrowClockwiseIcon className="size-[18px]" weight="bold" />
+              <ArrowClockwiseIcon className="size-[18px]" weight="regular" />
             </button>
           </div>
         </div>

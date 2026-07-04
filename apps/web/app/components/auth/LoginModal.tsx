@@ -1,9 +1,8 @@
-import { XIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation, useRouter } from "@tanstack/react-router";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { Modal } from "@/components/common/Modal";
 import {
   requestForgotPasswordByEmail,
   sendEmailVerificationCode,
@@ -17,17 +16,35 @@ import { runAuthSuccessFlow } from "./authSuccessFlow";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
 import { LoggedInView } from "./LoggedInView";
 import { LoginForm } from "./LoginForm";
-import { RegisterForm } from "./RegisterForm";
+import {
+  RegisterForm,
+  resolveRegisterInviteCodeError,
+  resolveRegisterPasswordError,
+  resolveRegisterUsernameError,
+} from "./RegisterForm";
 import { resolveRegisterInviteCodeFromLocation, withRegisterInviteCode } from "./registerInviteCode";
 import { hasTurnstileSiteKey, TurnstileWidget } from "./turnstile";
 import { useVerificationCodeCooldown } from "./useVerificationCodeCooldown";
 
 type AuthMode = "login" | "register" | "forgot";
+type LoginMethod = "username" | "userId";
 
 type LoginModalProps = {
   isOpen: boolean;
+  mobileCallbackEnabled?: boolean;
   onClose: () => void;
   onAuthenticated?: () => void;
+}
+
+function buildMobileAuthCallbackUrl(token: string, uid?: number) {
+  const callbackUrl = new URL("tuanchat://auth/callback");
+  callbackUrl.searchParams.set("token", token);
+
+  if (typeof uid === "number" && uid > 0) {
+    callbackUrl.searchParams.set("userId", String(uid));
+  }
+
+  return callbackUrl.toString();
 }
 
 function resolveAuthMode(modeValue: string | null): AuthMode {
@@ -35,6 +52,12 @@ function resolveAuthMode(modeValue: string | null): AuthMode {
     return modeValue;
   }
   return "login";
+}
+
+const PURE_NUMERIC_LOGIN_IDENTIFIER_PATTERN = /^\d+$/;
+
+export function resolveLoginMethod(identifier: string): LoginMethod {
+  return PURE_NUMERIC_LOGIN_IDENTIFIER_PATTERN.test(identifier.trim()) ? "userId" : "username";
 }
 
 function resolveForgotPasswordErrorMessage(error: unknown): string {
@@ -72,7 +95,7 @@ function useTurnstileChallenge() {
 }
 
 // 登录弹窗组件
-export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginModalProps) {
+export default function LoginModal({ isOpen, mobileCallbackEnabled = false, onClose, onAuthenticated }: LoginModalProps) {
   const location = useLocation();
   const router = useRouter();
   const searchParams = useMemo(() => new URLSearchParams(location.searchStr), [location.searchStr]);
@@ -86,13 +109,10 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [loginMethod, setLoginMethod] = useState<"username" | "userId">("username"); // 默认用户名登录
   const timeoutIdsRef = useRef<number[]>([]);
   const loginTurnstile = useTurnstileChallenge();
   const registerTurnstile = useTurnstileChallenge();
   const forgotTurnstile = useTurnstileChallenge();
-  const shouldReduceMotion = useReducedMotion();
-  const titleId = useId();
 
   const registerCodeCooldown = useVerificationCodeCooldown(60);
 
@@ -157,35 +177,6 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
 
   useEffect(() => clearPendingTimeouts, [clearPendingTimeouts]);
 
-  // 打开时支持 Esc 关闭
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        handleClose();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleClose, isOpen]);
-
-  // 打开时锁定背景滚动，关闭/卸载时还原
-  useEffect(() => {
-    if (!isOpen || typeof document === "undefined") {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isOpen]);
-
   useEffect(() => {
     if (isRegisterMode) {
       setRegisterInviteCode(inviteCodeFromLocation);
@@ -209,7 +200,6 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
     setForgotEmail("");
     setRegisterInviteCode("");
     setRegisterVerificationCode("");
-    setLoginMethod("username");
     loginTurnstile.reset();
     registerTurnstile.reset();
     forgotTurnstile.reset();
@@ -243,13 +233,14 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
     }, 1500);
   }
 
-  const handleAuthenticated = useCallback(() => {
+  const handleAuthenticated = useCallback((token?: string, uid?: number) => {
     runAuthSuccessFlow({
       invalidateRouter: () => router.invalidate(),
+      mobileCallbackUrl: mobileCallbackEnabled && token ? buildMobileAuthCallbackUrl(token, uid) : null,
       onClose: handleClose,
       onSuccess: onAuthenticated,
     });
-  }, [handleClose, onAuthenticated, router]);
+  }, [handleClose, mobileCallbackEnabled, onAuthenticated, router]);
 
   const handleLogoutComplete = useCallback(() => {
     handleClose();
@@ -257,12 +248,18 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
   }, [handleClose, router]);
 
   const loginMutation = useMutation({
-    mutationFn: (data: { username: string; password: string; loginMethod: "username" | "userId"; turnstileToken?: string }) =>
+    mutationFn: (data: { username: string; password: string; loginMethod: LoginMethod; turnstileToken?: string }) =>
       loginUser({ username: data.username, password: data.password, turnstileToken: data.turnstileToken }, data.loginMethod),
     onSuccess: (res) => {
       if (res.data) {
-        showTemporaryMessage("登录成功！", "success");
-        scheduleTimeout(handleAuthenticated, 1000);
+        // 独立登录页（传 onAuthenticated）：登录成功后直接跳转；弹窗入口：显示成功反馈后关闭。
+        if (onAuthenticated || mobileCallbackEnabled) {
+          handleAuthenticated(res.data, authStatus?.uid);
+        }
+        else {
+          showTemporaryMessage("登录成功！", "success");
+          scheduleTimeout(() => handleAuthenticated(res.data, authStatus?.uid), 1000);
+        }
       }
       else {
         showTemporaryMessage(res.errMsg || "登录失败，请重试", "error");
@@ -273,6 +270,11 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
         error instanceof Error ? error.message : "登录失败，请重试",
         "error",
       );
+    },
+    onSettled: () => {
+      if (hasTurnstileSiteKey()) {
+        loginTurnstile.reset();
+      }
     },
   });
 
@@ -288,6 +290,11 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
         error instanceof Error ? error.message : "验证码发送失败，请重试",
         "error",
       );
+    },
+    onSettled: () => {
+      if (hasTurnstileSiteKey()) {
+        registerTurnstile.reset();
+      }
     },
   });
 
@@ -307,21 +314,19 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
     },
     onSuccess: (res, variables) => {
       if (res.success && res.data) {
-        const userId = String(res.data);
         const registeredPassword = variables.password;
 
         resetFormState();
-        applyMode("login");
-        setUsername(userId);
+        setUsername(variables.username);
         setPassword(registeredPassword);
-        setLoginMethod("userId");
 
-        showTemporaryMessage("注册成功！正在登录您的账号", "success");
-        loginMutation.mutate({
-          username: userId,
-          password: registeredPassword,
-          loginMethod: "userId",
-        });
+        if (onAuthenticated || mobileCallbackEnabled) {
+          handleAuthenticated(res.data, authStatus?.uid);
+        }
+        else {
+          showTemporaryMessage("注册成功！", "success");
+          scheduleTimeout(() => handleAuthenticated(res.data, authStatus?.uid), 1000);
+        }
       }
       else {
         showTemporaryMessage(res.errMsg || "注册失败，请重试", "error");
@@ -332,6 +337,11 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
         error instanceof Error ? error.message : "注册失败，请重试",
         "error",
       );
+    },
+    onSettled: () => {
+      if (hasTurnstileSiteKey()) {
+        registerTurnstile.reset();
+      }
     },
   });
 
@@ -346,13 +356,18 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
     onError: (error) => {
       showTemporaryMessage(resolveForgotPasswordErrorMessage(error), "error");
     },
+    onSettled: () => {
+      if (hasTurnstileSiteKey()) {
+        forgotTurnstile.reset();
+      }
+    },
   });
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
     if (!username.trim()) {
-      showTemporaryMessage(`请输入${loginMethod === "username" ? "用户名" : "用户ID"}`, "error");
+      showTemporaryMessage("请输入用户名", "error");
       return;
     }
     const turnstileToken = hasTurnstileSiteKey() ? loginTurnstile.token.trim() : "";
@@ -360,10 +375,13 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
       showTemporaryMessage("请先完成安全验证", "error");
       return;
     }
-    loginMutation.mutate({ username: username.trim(), password, loginMethod, turnstileToken: turnstileToken || undefined });
-    if (hasTurnstileSiteKey()) {
-      loginTurnstile.reset();
-    }
+    const trimmedUsername = username.trim();
+    loginMutation.mutate({
+      username: trimmedUsername,
+      password,
+      loginMethod: resolveLoginMethod(trimmedUsername),
+      turnstileToken: turnstileToken || undefined,
+    });
   };
 
   const handleSendRegisterVerificationCode = () => {
@@ -380,22 +398,42 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
       return;
     }
     sendRegisterCodeMutation.mutate({ email: email.trim(), turnstileToken: turnstileToken || undefined });
-    if (hasTurnstileSiteKey()) {
-      registerTurnstile.reset();
-    }
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
 
+    const usernameError = resolveRegisterUsernameError(username);
+    if (usernameError) {
+      showTemporaryMessage(usernameError, "error");
+      return;
+    }
+
+    const passwordError = resolveRegisterPasswordError(password);
+    if (passwordError) {
+      showTemporaryMessage(passwordError, "error");
+      return;
+    }
+
     if (password !== confirmPassword) {
       showTemporaryMessage("两次输入的密码不一致", "error");
       return;
     }
 
+    if (!email.trim()) {
+      showTemporaryMessage("请输入邮箱地址", "error");
+      return;
+    }
+
     if (!registerVerificationCode.trim()) {
       showTemporaryMessage("请输入邮箱验证码", "error");
+      return;
+    }
+
+    const inviteCodeError = resolveRegisterInviteCodeError(registerInviteCode);
+    if (inviteCodeError) {
+      showTemporaryMessage(inviteCodeError, "error");
       return;
     }
 
@@ -413,9 +451,6 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
       verificationCode: registerVerificationCode.trim(),
       turnstileToken: turnstileToken || undefined,
     });
-    if (hasTurnstileSiteKey()) {
-      registerTurnstile.reset();
-    }
   };
 
   const handleForgotSubmit = (e: React.FormEvent) => {
@@ -433,9 +468,6 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
       return;
     }
     forgotPasswordMutation.mutate({ email: forgotEmail.trim(), turnstileToken: turnstileToken || undefined });
-    if (hasTurnstileSiteKey()) {
-      forgotTurnstile.reset();
-    }
   };
 
   const handleLogout = () => {
@@ -445,192 +477,152 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div
-          className="modal modal-open"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-        >
-          <motion.div
-            className="
-              modal-box relative max-h-[calc(100dvh-2rem)] w-full max-w-[34rem]
-              overflow-y-auto border border-base-content/10 bg-base-100/95 p-0
-              shadow-2xl dark:bg-base-300/95
-            "
-            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 8 }}
-            animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
-            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 8 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-          >
-            <h2 id={titleId} className="sr-only">登录团剧共创账号</h2>
-            <button
-              type="button"
-              className="
-                btn btn-ghost btn-sm btn-circle absolute right-3 top-3 z-10
-                text-base-content/60 hover:bg-base-200 hover:text-base-content
-              "
-              onClick={handleClose}
-              aria-label="关闭登录弹窗"
-            >
-              <XIcon className="size-4" weight="bold" />
-            </button>
-
-            <div className="space-y-6 px-6 pb-6 pt-12 sm:px-8">
-              {isLoggedIn
-                ? (
-                    <LoggedInView handleLogout={handleLogout} />
-                  )
-                : isLoginMode
-                  ? (
-                      <LoginForm
-                        username={username}
-                        setUsername={setUsername}
-                        password={password}
-                        setPassword={setPassword}
-                        handleSubmit={handleLoginSubmit}
-                        isLoading={loginMutation.isPending}
-                        loginMethod={loginMethod}
-                        setLoginMethod={setLoginMethod}
-                        turnstile={hasTurnstileSiteKey()
-                          ? (
-                              <TurnstileWidget
-                                token={loginTurnstile.token}
-                                onTokenChange={loginTurnstile.setToken}
-                                resetKey={loginTurnstile.resetKey}
-                              />
-                            )
-                          : null}
-                      />
-                    )
-                  : isRegisterMode
+    <Modal
+      open={isOpen}
+      onOpenChange={(next) => {
+        if (!next) {
+          handleClose();
+        }
+      }}
+      size="xl"
+      ariaLabel="登录团剧共创账号"
+      className="relative max-h-[calc(100dvh-2rem)] w-full max-w-[34rem] overflow-y-auto border border-base-content/10 bg-base-100/95 p-0 shadow-2xl dark:bg-base-300/95"
+    >
+      <div className="space-y-6 px-6 py-6 sm:px-8">
+        {isLoggedIn
+          ? (
+              <LoggedInView handleLogout={handleLogout} />
+            )
+          : isLoginMode
+            ? (
+                <LoginForm
+                  username={username}
+                  setUsername={setUsername}
+                  password={password}
+                  setPassword={setPassword}
+                  handleSubmit={handleLoginSubmit}
+                  isLoading={loginMutation.isPending}
+                  turnstile={hasTurnstileSiteKey()
                     ? (
-                        <RegisterForm
-                          username={username}
-                          setUsername={setUsername}
-                          email={email}
-                          setEmail={setEmail}
-                          inviteCode={registerInviteCode}
-                          setInviteCode={setRegisterInviteCode}
-                          verificationCode={registerVerificationCode}
-                          setVerificationCode={setRegisterVerificationCode}
-                          sendVerificationCode={handleSendRegisterVerificationCode}
-                          isSendingVerificationCode={sendRegisterCodeMutation.isPending}
-                          isVerificationCodeCoolingDown={registerCodeCooldown.isCoolingDown}
-                          verificationCodeCooldownSeconds={registerCodeCooldown.remainingSeconds}
-                          password={password}
-                          setPassword={setPassword}
-                          confirmPassword={confirmPassword}
-                          setConfirmPassword={setConfirmPassword}
-                          handleSubmit={handleRegisterSubmit}
-                          isLoading={registerMutation.isPending}
-                          turnstile={hasTurnstileSiteKey()
-                            ? (
-                                <TurnstileWidget
-                                  token={registerTurnstile.token}
-                                  onTokenChange={registerTurnstile.setToken}
-                                  resetKey={registerTurnstile.resetKey}
-                                />
-                              )
-                            : null}
+                        <TurnstileWidget
+                          token={loginTurnstile.token}
+                          onTokenChange={loginTurnstile.setToken}
+                          resetKey={loginTurnstile.resetKey}
                         />
                       )
-                    : (
-                        <ForgotPasswordForm
-                          email={forgotEmail}
-                          setEmail={setForgotEmail}
-                          handleSubmit={handleForgotSubmit}
-                          isLoading={forgotPasswordMutation.isPending}
-                          turnstile={hasTurnstileSiteKey()
-                            ? (
-                                <TurnstileWidget
-                                  token={forgotTurnstile.token}
-                                  onTokenChange={forgotTurnstile.setToken}
-                                  resetKey={forgotTurnstile.resetKey}
-                                />
-                              )
-                            : null}
-                        />
-                      )}
+                    : null}
+                />
+              )
+            : isRegisterMode
+              ? (
+                  <RegisterForm
+                    username={username}
+                    setUsername={setUsername}
+                    email={email}
+                    setEmail={setEmail}
+                    inviteCode={registerInviteCode}
+                    setInviteCode={setRegisterInviteCode}
+                    verificationCode={registerVerificationCode}
+                    setVerificationCode={setRegisterVerificationCode}
+                    sendVerificationCode={handleSendRegisterVerificationCode}
+                    isSendingVerificationCode={sendRegisterCodeMutation.isPending}
+                    isVerificationCodeCoolingDown={registerCodeCooldown.isCoolingDown}
+                    verificationCodeCooldownSeconds={registerCodeCooldown.remainingSeconds}
+                    password={password}
+                    setPassword={setPassword}
+                    confirmPassword={confirmPassword}
+                    setConfirmPassword={setConfirmPassword}
+                    handleSubmit={handleRegisterSubmit}
+                    isLoading={registerMutation.isPending}
+                    turnstile={hasTurnstileSiteKey()
+                      ? (
+                          <TurnstileWidget
+                            token={registerTurnstile.token}
+                            onTokenChange={registerTurnstile.setToken}
+                            resetKey={registerTurnstile.resetKey}
+                          />
+                        )
+                      : null}
+                  />
+                )
+              : (
+                  <ForgotPasswordForm
+                    email={forgotEmail}
+                    setEmail={setForgotEmail}
+                    handleSubmit={handleForgotSubmit}
+                    isLoading={forgotPasswordMutation.isPending}
+                    turnstile={hasTurnstileSiteKey()
+                      ? (
+                          <TurnstileWidget
+                            token={forgotTurnstile.token}
+                            onTokenChange={forgotTurnstile.setToken}
+                            resetKey={forgotTurnstile.resetKey}
+                          />
+                        )
+                      : null}
+                  />
+                )}
 
-              {!isLoggedIn && (
-                <div className="border-t border-base-content/10 pt-4">
-                  {isLoginMode && (
-                    <div className="grid gap-2 text-center text-sm text-base-content/65">
-                      <p>
-                        还没有账号？
-                        <button
-                          type="button"
-                          onClick={() => switchMode("register")}
-                          className="link link-primary ml-1 font-medium"
-                        >
-                          立即注册
-                        </button>
-                      </p>
-                      <p>
-                        忘记密码？
-                        <button
-                          type="button"
-                          onClick={() => switchMode("forgot")}
-                          className="link link-primary ml-1 font-medium"
-                        >
-                          找回密码
-                        </button>
-                      </p>
-                    </div>
-                  )}
+        {!isLoggedIn && (
+          <div className="border-t border-base-content/10 pt-4">
+            {isLoginMode && (
+              <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-base-content/65">
+                <p>
+                  还没有账号？
+                  <button
+                    type="button"
+                    onClick={() => switchMode("register")}
+                    className="link link-primary ml-1 font-medium"
+                  >
+                    立即注册
+                  </button>
+                </p>
+                <p>
+                  忘记密码？
+                  <button
+                    type="button"
+                    onClick={() => switchMode("forgot")}
+                    className="link link-primary ml-1 font-medium"
+                  >
+                    找回密码
+                  </button>
+                </p>
+              </div>
+            )}
 
-                  {isRegisterMode && (
-                    <p className="text-center text-sm text-base-content/65">
-                      已有账号？
-                      <button
-                        type="button"
-                        onClick={() => switchMode("login")}
-                        className="link link-primary ml-1 font-medium"
-                      >
-                        立即登录
-                      </button>
-                    </p>
-                  )}
+            {isRegisterMode && (
+              <p className="text-center text-sm text-base-content/65">
+                已有账号？
+                <button
+                  type="button"
+                  onClick={() => switchMode("login")}
+                  className="link link-primary ml-1 font-medium"
+                >
+                  立即登录
+                </button>
+              </p>
+            )}
 
-                  {isForgotMode && (
-                    <p className="text-center text-sm text-base-content/65">
-                      想起密码了？
-                      <button
-                        type="button"
-                        onClick={() => switchMode("login")}
-                        className="link link-primary ml-1 font-medium"
-                      >
-                        返回登录
-                      </button>
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </motion.div>
+            {isForgotMode && (
+              <p className="text-center text-sm text-base-content/65">
+                想起密码了？
+                <button
+                  type="button"
+                  onClick={() => switchMode("login")}
+                  className="link link-primary ml-1 font-medium"
+                >
+                  返回登录
+                </button>
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
-          <AlertMessage
-            errorMessage={errorMessage}
-            successMessage={successMessage}
-          />
-
-          <motion.button
-            type="button"
-            aria-label="关闭登录弹窗"
-            className="
-              modal-backdrop bg-black/50
-              dark:bg-black/70
-            "
-            onClick={handleClose}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18, ease: "linear" }}
-          />
-        </div>
-      )}
-    </AnimatePresence>
+      <AlertMessage
+        errorMessage={errorMessage}
+        successMessage={successMessage}
+      />
+    </Modal>
   );
 }

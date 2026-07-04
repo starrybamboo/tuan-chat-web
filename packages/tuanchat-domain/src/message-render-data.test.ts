@@ -191,27 +191,18 @@ describe("message-render-data", () => {
     });
   });
 
-  it("does not expose legacy doc card imageUrl when a cover fileId exists", () => {
+  it("uses current doc card cover fileId fields", () => {
     expect(getDocCardRenderData({
       docCard: {
         docId: "42",
-        imageUrl: "https://legacy.example.com/cover.png",
         imageFileId: 9,
         originalImageFileId: 10,
       },
     })).toMatchObject({
       docId: "42",
       imageFileId: 9,
-      imageUrl: "",
       originalImageFileId: 10,
     });
-
-    expect(getDocCardRenderData({
-      docCard: {
-        docId: "43",
-        imageUrl: " https://legacy.example.com/cover.png ",
-      },
-    }).imageUrl).toBe("https://legacy.example.com/cover.png");
   });
 
   it("uses stable fallback labels for incomplete payloads", () => {

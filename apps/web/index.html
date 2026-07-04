@@ -1,14 +1,46 @@
 <!doctype html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
     />
-    <meta name="theme-color" content="#101828" />
+    <meta name="theme-color" content="#ffffff" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <title>团剧共创</title>
+      <script>
+      // 防 FOUC：在 React 加载前根据 localStorage 主题决定 data-theme。
+      // 支持三态：light / dark / system（默认跟随系统）。
+      (function () {
+        try {
+          var raw = localStorage.getItem("theme");
+          var theme;
+          if (raw === null || raw === "" || raw === "undefined" || raw === "null") {
+            theme = "system";
+          }
+          else {
+            try { theme = JSON.parse(raw); }
+            catch (e) { theme = raw; }
+          }
+          if (theme !== "light" && theme !== "dark" && theme !== "system") {
+            theme = "system";
+          }
+          var isDark = theme === "dark"
+            || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          var html = document.documentElement;
+          html.setAttribute("data-theme", isDark ? "dark" : "light");
+          html.classList.toggle("dark", isDark);
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) {
+            meta.setAttribute("content", isDark ? "#030712" : "#ffffff");
+          }
+        }
+        catch (e) {
+          /* 忽略：交由 React 端 ThemeSwitch 兜底 */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,5 +1,4 @@
-import { MediaImage } from "@/components/common/mediaImage";
-import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
+import RoleAvatarComponent from "@/components/common/roleAvatar";
 
 import type { Role } from "../types";
 
@@ -20,8 +19,6 @@ export function RoleListItem({
   onDelete,
   isSelectionMode,
 }: RoleListItemProps) {
-  const avatarSrc = role.avatarThumb || role.avatar || ROLE_DEFAULT_AVATAR_URL;
-
   return (
     <div
       className={`
@@ -34,15 +31,18 @@ export function RoleListItem({
       <button type="button" className="
         flex min-w-0 flex-1 items-center gap-3 text-left
       " onClick={onSelect}>
-        <div className="avatar shrink-0">
-          <div className="
-            size-12
-            md:size-14
-            rounded-full
-          ">
-            <MediaImage src={avatarSrc} alt={role.name || "default avatar"} loading="lazy" fallbackSrc={role.avatar || ROLE_DEFAULT_AVATAR_URL} />
-          </div>
-        </div>
+        <RoleAvatarComponent
+          avatarId={role.avatarId}
+          avatarUrl={role.avatar}
+          avatarThumbUrl={role.avatarThumb}
+          roleId={role.id}
+          roleType={role.type}
+          width={14}
+          isRounded={true}
+          stopToastWindow={true}
+          alt={role.name || "default avatar"}
+          imageLoading="lazy"
+        />
         <div className="flex-1 min-w-0 max-w-32 overflow-hidden">
           <h3 className="font-medium truncate">{role.name || "新角色"}</h3>
           <p className="text-xs text-base-content/70 mt-1">
@@ -59,7 +59,7 @@ export function RoleListItem({
                 transition-all duration-200
                 ${isSelected ? `bg-info border-info` : `
                   border-base-content/30
-                  hover:border-primary
+                  hover:border-info
                 `}
               `}>
                 {isSelected && (
@@ -68,7 +68,7 @@ export function RoleListItem({
                     viewBox="0 0 24 24"
                     width="16"
                     height="16"
-                    className="text-accent-content"
+                    className="text-info-content"
                   >
                     <path
                       fill="currentColor"

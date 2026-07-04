@@ -62,8 +62,8 @@ export default function CommentInputBox({
     <div className={`
       rounded-xl border border-base-300 bg-base-100 p-3 shadow-sm transition-all
       duration-200
-      ${isFocused ? `border-primary/40 shadow-[0_0_0_3px] shadow-primary/10` : `
-        hover:border-primary/20
+      ${isFocused ? `border-info/40 shadow-[0_0_0_3px] shadow-info/10` : `
+        hover:border-info/20
       `}
       ${className ?? ""}
     `}>
@@ -88,7 +88,7 @@ export default function CommentInputBox({
           <div className="flex items-center gap-2 text-xs text-base-content/55">
             <span>{`已输入 ${charCount} 字`}</span>
             <span className="
-              hidden text-base-content/40
+              hidden text-base-content/50
               sm:inline
             ">
               Ctrl+Enter 发送

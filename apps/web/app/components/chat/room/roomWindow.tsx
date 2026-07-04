@@ -59,7 +59,7 @@ import {
   rglMaterialImportPackagesQueryKey,
 } from "@/components/chat/utils/importRglSourceCache";
 import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
-import ConfirmModal from "@/components/common/comfirmModel";
+import { ConfirmDialog, confirm } from "@/components/common/ConfirmDialog";
 import useCommandExecutor from "@/components/common/dicer/cmdPre";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 import { resolveRoleVoiceUrl } from "@/components/Role/roleVoiceMedia";
@@ -76,6 +76,7 @@ import {
   useGetSpaceInfoQuery,
   usePatchMessagesMutation,
   useSendMessageMutation,
+  useUpdateSpaceMuteStatusMutation,
 } from "../../../../api/hooks/chatQueryHooks";
 import { useRepositoryDetailByIdQuery } from "../../../../api/hooks/repositoryQueryHooks";
 import { fetchRoleAvatarWithCache, fetchRoleAvatarsWithCache, fetchRoleWithCache } from "../../../../api/hooks/RoleAndAvatarHooks";
@@ -184,6 +185,7 @@ function RoomWindow({
 
   const sendMessageMutation = useSendMessageMutation(roomId);
   const patchMessagesMutation = usePatchMessagesMutation(roomId);
+  const updateSpaceMuteStatusMutation = useUpdateSpaceMuteStatusMutation();
   const insertMessagesWithPatch = useCallback((messages: ChatMessageRequest[], options?: Parameters<typeof patchInsertMessages>[2]) => {
     return patchInsertMessages(tuanchat, messages, options);
   }, []);
@@ -370,6 +372,24 @@ function RoomWindow({
   const [isApplyingMessageHistory, setIsApplyingMessageHistory] = useState(false);
   const [isReloadingAllMessages, setIsReloadingAllMessages] = useState(false);
   const noRole = curRoleId <= 0;
+  const isSpaceMuted = space?.muteStatus === 1;
+  const handleToggleSpaceMute = useCallback(async () => {
+    if (!spaceId || updateSpaceMuteStatusMutation.isPending) {
+      return;
+    }
+
+    const nextMuteStatus = isSpaceMuted ? 0 : 1;
+    const result = await updateSpaceMuteStatusMutation.mutateAsync({
+      spaceId,
+      muteStatus: nextMuteStatus,
+    });
+
+    if (result?.success) {
+      toast.success(nextMuteStatus === 1 ? "已开启除 KP 外全员禁言" : "已解除全员禁言");
+      return;
+    }
+    toast.error(result?.errMsg?.trim() || "切换禁言失败");
+  }, [isSpaceMuted, spaceId, updateSpaceMuteStatusMutation]);
 
   const {
     containsCommandRequestAllToken,
@@ -427,6 +447,7 @@ function RoomWindow({
     roomId,
     spaceId,
     isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
+    isSpaceMuted,
     curRoleId,
     ruleId: space?.ruleId ?? -1,
     notMember,
@@ -859,8 +880,7 @@ function RoomWindow({
 
     let ttsApiUrl: string | undefined;
 
-    // eslint-disable-next-line no-alert
-    const useVoice = window.confirm("是否生成 AI 语音？\n\n[确定] = 生成语音（需配置 API）。\n[取消] = 不生成语音（仅含图片和字幕）。");
+    const useVoice = await confirm({ title: "生成 AI 语音", description: "是否生成 AI 语音？\n\n确认 = 生成语音（需配置 API）。\n取消 = 不生成语音（仅含图片和字幕）。", variant: "info" });
     if (useVoice) {
       // eslint-disable-next-line no-alert
       const key = window.prompt("请输入 TTS API 地址", "http://127.0.0.1:9000");
@@ -1182,6 +1202,7 @@ function RoomWindow({
     onOpenFullMessageDiff: () => setIsFullMessageDiffOpen(value => !value),
     isFullMessageDiffOpen,
     isKP: spaceContext.isSpaceOwner,
+    isSpaceMuted,
     onStopBgmForAll: handleStopBgmForAll,
     noRole,
     notMember,
@@ -1258,6 +1279,10 @@ function RoomWindow({
               hideSecondaryPanels={hideSecondaryPanels}
               onClearAndReloadAllMessages={handleClearAndReloadAllMessages}
               isReloadingAllMessages={isReloadingAllMessages}
+              canManageMute={Boolean(spaceContext.isSpaceOwner)}
+              isSpaceMuted={isSpaceMuted}
+              onToggleMute={handleToggleSpaceMute}
+              isTogglingMute={updateSpaceMuteStatusMutation.isPending}
             />
           </RoomDocRefDropLayer>
           {!viewMode && (
@@ -1281,13 +1306,13 @@ function RoomWindow({
               handleAddNpcRole={handleAddNpcRole}
             />
           )}
-          <ConfirmModal
-            isOpen={Boolean(pendingImportTextPaste)}
-            onClose={handleUseDocPasteAsPlainText}
+          <ConfirmDialog
+            open={Boolean(pendingImportTextPaste)}
+            onOpenChange={handleUseDocPasteAsPlainText}
             title="检测到可导入记录"
-            message="这段文本看起来像聊天记录。要按导入记录处理，还是作为普通文本粘贴到文档里？"
-            confirmText="按导入记录处理"
-            cancelText="普通粘贴"
+            description="这段文本看起来像聊天记录。要按导入记录处理，还是作为普通文本粘贴到文档里？"
+            confirmLabel="按导入记录处理"
+            cancelLabel="普通粘贴"
             variant="info"
             onConfirm={handleImportDocPasteText}
           />

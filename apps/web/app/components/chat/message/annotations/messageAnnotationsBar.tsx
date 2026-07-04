@@ -83,7 +83,7 @@ export default function MessageAnnotationsBar({
               text-[11px] transition-all select-none shadow-none
               supports-backdrop-filter:backdrop-blur-md
               border-base-content/12 bg-base-content/4 text-base-content/60
-              hover:border-primary/38 hover:bg-base-content/7 hover:text-primary
+              hover:border-info/38 hover:bg-base-content/7 hover:text-info
               ${alwaysShowAddButton ? `opacity-100` : `
                 opacity-0
                 group-hover:opacity-100

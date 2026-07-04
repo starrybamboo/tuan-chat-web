@@ -1,4 +1,4 @@
-import { AddressBookIcon, ArchiveIcon, ArrowCounterClockwise, FolderPlusIcon, HouseIcon, SignOutIcon, TrashIcon, UserPlusIcon } from "@phosphor-icons/react";
+import { AddressBookIcon, ArchiveIcon, ArrowCounterClockwise, SignOutIcon, TrashIcon, UserPlusIcon } from "@phosphor-icons/react";
 import { useRouter } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
 import React from "react";
@@ -11,8 +11,8 @@ import { prepareSpaceDocsForArchive } from "@/components/chat/infra/doc/space/pr
 import { getSpaceArchiveActionDisabledReason } from "@/components/chat/space/spaceArchiveActionPolicy";
 import { canInviteSpectators } from "@/components/chat/utils/memberPermissions";
 import { canViewSpaceDetailTab } from "@/components/chat/utils/spaceDetailPermissions";
-import ConfirmModal from "@/components/common/comfirmModel";
-import { ChevronDown, DiceD6Icon, MemberIcon, Setting, SidebarSimpleIcon, WebgalIcon } from "@/icons";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { ChevronDown, DiceD6Icon, MemberIcon, Setting, WebgalIcon } from "@/icons";
 
 import { useDissolveSpaceMutation, useExitSpaceMutation, useRecoverSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../api/hooks/chatQueryHooks";
 
@@ -25,8 +25,43 @@ type SpaceHeaderBarProps = {
   onAddCategory?: () => void;
   onResetSidebarTreeToDefault?: () => void | Promise<void>;
   onInviteMember: () => void;
-  onToggleLeftDrawer?: () => void;
-  isLeftDrawerOpen?: boolean;
+}
+
+type SpaceHeaderIconButtonProps = {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+  ariaPressed?: boolean;
+  title?: string;
+};
+
+const spaceHeaderIconButtonClassName = `
+  btn btn-ghost btn-sm btn-square
+  text-base-content/70 hover:text-info
+`;
+const spaceHeaderIconClassName = "size-4 shrink-0";
+
+function SpaceHeaderIconButton({
+  label,
+  onClick,
+  children,
+  ariaPressed,
+  title,
+}: SpaceHeaderIconButtonProps) {
+  return (
+    <div className="tooltip tooltip-bottom" data-tip={label}>
+      <button
+        type="button"
+        className={spaceHeaderIconButtonClassName}
+        onClick={onClick}
+        aria-label={label}
+        aria-pressed={ariaPressed}
+        title={title ?? label}
+      >
+        {children}
+      </button>
+    </div>
+  );
 }
 
 export default function SpaceHeaderBar({
@@ -35,11 +70,8 @@ export default function SpaceHeaderBar({
   isSpaceOwner,
   onOpenSpaceDetailPanel,
   onCloseLeftDrawer,
-  onAddCategory,
   onResetSidebarTreeToDefault,
   onInviteMember,
-  onToggleLeftDrawer,
-  isLeftDrawerOpen,
 }: SpaceHeaderBarProps) {
   const router = useRouter();
   const spaceContext = React.use(SpaceContext);
@@ -70,7 +102,6 @@ export default function SpaceHeaderBar({
     isPending: archiveActionPending,
   });
   const archiveActionDisabled = archiveActionDisabledReason != null;
-  const leftDrawerLabel = isLeftDrawerOpen ? "收起侧边栏" : "展开侧边栏";
   const canResetSidebarTree = isDevOrTest && isSpaceOwner && Boolean(onResetSidebarTreeToDefault);
   const canViewMembersDetail = canViewSpaceDetailTab("members", spaceContext.memberType);
   const canViewRolesDetail = canViewSpaceDetailTab("roles", spaceContext.memberType);
@@ -249,8 +280,8 @@ export default function SpaceHeaderBar({
     <>
       <div className="
         flex items-center justify-between h-10 gap-2 min-w-0 border-b
-        border-gray-300
-        dark:border-gray-700
+        border-base-300
+        dark:border-base-300
         rounded-tl-xl px-2
       ">
         <div ref={optionsMenuRef} className="dropdown dropdown-bottom min-w-0">
@@ -266,7 +297,6 @@ export default function SpaceHeaderBar({
             title="打开空间菜单"
             onClick={() => setIsOptionsMenuOpen(current => !current)}
           >
-            <HouseIcon className="size-4 opacity-70 inline-block" weight="fill" />
             <span className="
               text-base font-bold truncate leading-none min-w-0 flex-1 text-left
             ">
@@ -347,21 +377,6 @@ export default function SpaceHeaderBar({
                     </button>
                   </li>
                 )}
-                {isSpaceOwner && onAddCategory && (
-                  <li>
-                    <button
-                      type="button"
-                      className="gap-3"
-                      onClick={() => {
-                        setIsOptionsMenuOpen(false);
-                        onAddCategory();
-                      }}
-                    >
-                      <FolderPlusIcon className="size-4 opacity-70" weight="regular" />
-                      <span className="flex-1 text-left">新增分类</span>
-                    </button>
-                  </li>
-                )}
                 {isSpaceOwner && (
                   <li>
                     <button
@@ -433,43 +448,16 @@ export default function SpaceHeaderBar({
           </AnimatePresence>
         </div>
         <div className="flex gap-2 shrink-0 mr-2">
-          {onToggleLeftDrawer && (
-            <div className="tooltip tooltip-bottom" data-tip={leftDrawerLabel}>
-              <button
-                type="button"
-                className="
-                  btn btn-ghost btn-sm btn-square
-                  hover:text-info
-                "
-                onClick={onToggleLeftDrawer}
-                aria-label={leftDrawerLabel}
-                aria-pressed={Boolean(isLeftDrawerOpen)}
-              >
-                <SidebarSimpleIcon />
-              </button>
-            </div>
-          )}
           {canInviteMembers && (
-            <div className="tooltip tooltip-bottom" data-tip="邀请成员">
-              <button
-                type="button"
-                className="
-                  btn btn-ghost btn-sm btn-square
-                  hover:text-info
-                "
-                onClick={onInviteMember}
-                aria-label="邀请成员"
-                title="邀请成员"
-              >
-                <UserPlusIcon className="size-4" weight="regular" />
-              </button>
-            </div>
+            <SpaceHeaderIconButton label="邀请成员" onClick={onInviteMember}>
+              <UserPlusIcon className={spaceHeaderIconClassName} weight="regular" />
+            </SpaceHeaderIconButton>
           )}
         </div>
       </div>
-      <ConfirmModal
-        isOpen={isDissolveConfirmOpen}
-        onClose={() => {
+      <ConfirmDialog
+        open={isDissolveConfirmOpen}
+        onOpenChange={() => {
           if (dissolveSpace.isPending) {
             return;
           }
@@ -477,16 +465,16 @@ export default function SpaceHeaderBar({
           setDissolveTargetSpaceId(null);
         }}
         title="确认解散空间"
-        message="是否确定要解散当前空间？此操作不可逆。"
-        confirmText="确认解散"
+        description="是否确定要解散当前空间？此操作不可逆。"
+        confirmLabel="确认解散"
         variant="danger"
         onConfirm={() => {
           void handleConfirmDissolveSpace();
         }}
       />
-      <ConfirmModal
-        isOpen={isExitConfirmOpen}
-        onClose={() => {
+      <ConfirmDialog
+        open={isExitConfirmOpen}
+        onOpenChange={() => {
           if (exitSpace.isPending) {
             return;
           }
@@ -494,22 +482,22 @@ export default function SpaceHeaderBar({
           setExitTargetSpaceId(null);
         }}
         title="确认退出空间"
-        message="退出后你将离开当前空间，需要重新加入后才能继续访问。是否继续？"
-        confirmText="确认退出"
+        description="退出后你将离开当前空间，需要重新加入后才能继续访问。是否继续？"
+        confirmLabel="确认退出"
         variant="danger"
         onConfirm={() => {
           void handleConfirmExitSpace();
         }}
       />
-      <ConfirmModal
-        isOpen={isArchiveConfirmOpen}
-        onClose={() => {
+      <ConfirmDialog
+        open={isArchiveConfirmOpen}
+        onOpenChange={() => {
           setIsArchiveConfirmOpen(false);
           setArchiveTargetSpaceId(null);
         }}
         title="确认归档空间"
-        message="归档后空间将进入只读状态，可在之后恢复编辑。是否继续？"
-        confirmText="确认归档"
+        description="归档后空间将进入只读状态，可在之后恢复编辑。是否继续？"
+        confirmLabel="确认归档"
         variant="warning"
         onConfirm={() => {
           if (archiveTargetSpaceId == null) {
@@ -521,17 +509,17 @@ export default function SpaceHeaderBar({
           void handleToggleArchive(targetSpaceId, true);
         }}
       />
-      <ConfirmModal
-        isOpen={isResetConfirmOpen}
-        onClose={() => {
+      <ConfirmDialog
+        open={isResetConfirmOpen}
+        onOpenChange={() => {
           if (isResettingSidebarTree) {
             return;
           }
           setIsResetConfirmOpen(false);
         }}
         title="确认重置侧边树"
-        message="开发者操作：将左侧分类树重置为默认结构。是否继续？"
-        confirmText="确认重置"
+        description="开发者操作：将左侧分类树重置为默认结构。是否继续？"
+        confirmLabel="确认重置"
         variant="warning"
         onConfirm={() => {
           void handleConfirmResetSidebarTree();

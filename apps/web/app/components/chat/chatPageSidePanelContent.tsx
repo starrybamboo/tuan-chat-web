@@ -20,8 +20,6 @@ function SkeletonLine({ className }: { className: string }) {
 type ChatPageSidePanelContentProps = {
   isPrivateChatMode: boolean;
   activeSpaceId: number | null;
-  onToggleLeftDrawer?: () => void;
-  isLeftDrawerOpen?: boolean;
 
   onCloseLeftDrawer: () => void;
 
@@ -35,6 +33,8 @@ type ChatPageSidePanelContentProps = {
   roomOrderIds?: number[];
   onReorderRoomIds?: (nextRoomIds: number[]) => void;
   sidebarTree?: SidebarTree | null;
+  isSidebarTreeReady?: boolean;
+  sidebarTreeRemoteUpdateKey?: string | null;
   docMetas?: MinimalDocMeta[];
   materialPackages?: SpaceMaterialPackageResponse[];
   onSelectDoc: (docId: string) => void;

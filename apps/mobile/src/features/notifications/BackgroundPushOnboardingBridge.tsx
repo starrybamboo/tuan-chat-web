@@ -125,8 +125,8 @@ export function BackgroundPushOnboardingBridge() {
   }, []);
 
   const dismissCurrentReminder = useCallback(() => {
-    setVisible(false);
-  }, []);
+    void refreshReminder();
+  }, [refreshReminder]);
 
   const openSetting = useCallback((target: "batteryOptimization" | "manufacturerBackground" | "notificationSettings") => {
     void openAndroidBackgroundPushSetting(target);

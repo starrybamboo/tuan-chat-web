@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { ChatCircleText, Trash } from "@phosphor-icons/react";
+import { PlusIcon, Trash } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useMemo, useState } from "react";
 import toast from "react-hot-toast";
@@ -12,7 +12,7 @@ import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponen
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
-import { DiceFiveIcon, PlusIcon, WebgalIcon } from "@/icons";
+import { DiceFiveIcon, RoomChatIcon, WebgalIcon } from "@/icons";
 import { imageLowUrl } from "@/utils/media/mediaUrl";
 import { fetchUserRoomsWithCache, useCreateSpaceMutation, useSetSpaceExtraMutation } from "api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
@@ -291,6 +291,7 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
             <input
               id={spaceNameInputId}
               type="text"
+              autoComplete="off"
               value={spaceName}
               placeholder={defaultSpaceName}
               maxLength={32}
@@ -302,7 +303,7 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
             />
             <div className="
               mt-1.5 flex items-center justify-between text-[11px]
-              text-base-content/45
+              text-base-content/50
             ">
               <span>之后可在空间设置中修改</span>
               <span>
@@ -367,7 +368,7 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-sm font-semibold">
-                  <ChatCircleText className="size-4 text-primary" weight="duotone" />
+                  <RoomChatIcon className="size-4 text-info" />
                   初始对话
                 </div>
                 <p className="mt-1 text-xs text-base-content/55">
@@ -394,7 +395,7 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                   onClick={() => setIsImportDialogOpen(true)}
                   disabled={isSubmitting || initialImportMessages.length > 0}
                 >
-                  <ChatCircleText className="size-4" />
+                  <RoomChatIcon className="size-4" />
                   {initialImportMessages.length > 0 ? "已导入" : "导入对话"}
                 </button>
               </div>
@@ -416,21 +417,21 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                     group flex w-full items-center gap-3 rounded-xl border
                     border-base-300/70 bg-base-100 px-4 py-3 text-left
                     transition
-                    hover:border-primary/50 hover:bg-base-200/40
-                    focus:border-primary/60 focus:outline-none focus:ring-2
-                    focus:ring-primary/20
+                    hover:border-info/50 hover:bg-base-200/40
+                    focus:border-info/60 focus:outline-none focus:ring-2
+                    focus:ring-info/20
                   "
                 >
                   <span className="
                     flex size-8 shrink-0 items-center justify-center rounded-lg
-                    bg-primary/10 text-primary
+                    bg-info/10 text-info
                   ">
                     <DiceFiveIcon className="size-4" />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="
                       block text-[11px] uppercase tracking-wide
-                      text-base-content/45
+                      text-base-content/50
                     ">规则</span>
                     <span className="mt-0.5 block truncate text-sm font-medium">
                       {selectedRuleName ?? (getRulesQuery.isLoading ? "加载中..." : "未找到规则")}
@@ -465,7 +466,7 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                             px-3 py-2 text-left text-sm transition
                             ${
                             isActive
-                              ? "bg-primary/10 text-primary"
+                              ? "bg-info/10 text-info"
                               : "hover:bg-base-200"
                           }
                           `}
@@ -500,9 +501,9 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                 className="
                   group flex w-full items-center gap-3 rounded-xl border
                   border-base-300/70 bg-base-100 px-4 py-3 text-left transition
-                  hover:border-primary/50 hover:bg-base-200/40
-                  focus:border-primary/60 focus:outline-none focus:ring-2
-                  focus:ring-primary/20
+                  hover:border-info/50 hover:bg-base-200/40
+                  focus:border-info/60 focus:outline-none focus:ring-2
+                  focus:ring-info/20
                 "
                 onClick={() => setIsDiceMaidenLinkModalOpen(true)}
               >
@@ -520,7 +521,7 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                   : (
                       <span className="
                         flex size-8 shrink-0 items-center justify-center
-                        rounded-lg bg-primary/10 text-primary
+                        rounded-lg bg-info/10 text-info
                       ">
                         <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <rect x="4" y="4" width="16" height="16" rx="2.5" />
@@ -533,7 +534,7 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                 <span className="min-w-0 flex-1">
                   <span className="
                     block text-[11px] uppercase tracking-wide
-                    text-base-content/45
+                    text-base-content/50
                   ">空间骰娘</span>
                   <span className={`
                     mt-0.5 block truncate text-sm font-medium
@@ -545,7 +546,7 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                   </span>
                 </span>
                 <span className="
-                  text-xs text-base-content/45 transition
+                  text-xs text-base-content/50 transition
                   group-hover:text-base-content/70
                 ">
                   {dicerRoleId ? "更改" : "选择"}
@@ -585,10 +586,10 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                       transition
                       ${
                       checked
-                        ? "border-primary/40 bg-primary/5"
+                        ? "border-info/40 bg-info/5"
                         : `
                           border-base-300/70 bg-base-100
-                          hover:border-primary/30 hover:bg-base-200/35
+                          hover:border-info/30 hover:bg-base-200/35
                         `
                     }
                     `}
@@ -601,7 +602,7 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                     </span>
                     <input
                       type="checkbox"
-                      className="toggle toggle-primary toggle-sm shrink-0"
+                      className="toggle toggle-info toggle-sm shrink-0"
                       checked={checked}
                       onChange={event => updateWebgalInitialSetting(option.key, event.target.checked)}
                     />
@@ -666,10 +667,10 @@ function SettingsSection({
           transition
           ${
           isExpanded
-            ? "border-primary/40 bg-primary/5"
+            ? "border-info/40 bg-info/5"
             : `
               border-base-300/70 bg-base-100
-              hover:border-primary/30 hover:bg-base-200/35
+              hover:border-info/30 hover:bg-base-200/35
             `
         }
         `}
@@ -678,7 +679,7 @@ function SettingsSection({
       >
         <span className="
           flex size-9 shrink-0 items-center justify-center rounded-xl
-          bg-primary/10 text-primary
+          bg-info/10 text-info
         ">
           {icon}
         </span>

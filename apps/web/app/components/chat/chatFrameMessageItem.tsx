@@ -14,7 +14,7 @@ import type { ChatMessageResponse } from "../../../api";
 const MESSAGE_DRAG_GUTTER_CLASS = "pl-6 sm:pl-7";
 const MESSAGE_DRAG_HANDLE_CLASS = [
   "absolute left-0 z-[100] flex size-6 items-center justify-center rounded-md",
-  "cursor-grab text-base-content/35 transition-all duration-150 active:cursor-grabbing",
+  "cursor-grab text-base-content/50 transition-all duration-150 active:cursor-grabbing",
   "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
   "hover:bg-base-300/70 hover:text-base-content/70",
 ].join(" ");
@@ -198,10 +198,10 @@ export default function ChatFrameMessageItem({
               isSelecting || isOptimisticMessage
                 ? "bg-transparent"
                 : isInsertTarget
-                  ? "bg-primary"
+                  ? "bg-info"
                   : `
                     bg-transparent
-                    group-hover/insert:bg-primary/50
+                    group-hover/insert:bg-info/50
                   `
             }
             `}

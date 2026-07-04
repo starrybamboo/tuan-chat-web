@@ -183,7 +183,7 @@ export default function RuleNumericalEditor({
     <div className={`
       space-y-4 bg-base-200 rounded-lg p-4 duration-300 transition-opacity
       ${
-      isEditing ? "ring-2 ring-primary" : ""
+      isEditing ? "ring-2 ring-info" : ""
     }
     `}
     >
@@ -192,7 +192,7 @@ export default function RuleNumericalEditor({
         <div className="flex items-center gap-2">
           {typeof forcedEditing !== "boolean" && (!isEditing
             ? (
-                <button type="button" className="btn btn-sm btn-accent" onClick={handleStartEditing}>
+                <button type="button" className="btn btn-sm btn-info" onClick={handleStartEditing}>
                   <span className="flex items-center gap-1">
                     <svg className="size-4" viewBox="0 0 24 24" fill="none">
                       <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />

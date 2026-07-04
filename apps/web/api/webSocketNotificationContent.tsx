@@ -64,13 +64,13 @@ export function DirectMessageToastContent({
   toastId,
   senderId,
   displayName,
-  avatar,
+  avatarUrl,
   previewText,
 }: {
   toastId: string;
   senderId: number;
   displayName: string;
-  avatar?: string;
+  avatarUrl?: string;
   previewText: string;
 }) {
   const router = useRouter();
@@ -96,8 +96,8 @@ export function DirectMessageToastContent({
       <div className="flex items-center gap-3">
         <div className="avatar">
           <div className="w-10 rounded-full">
-            {avatar
-              ? <img src={avatar} alt={displayName} />
+            {avatarUrl
+              ? <img src={avatarUrl} alt={displayName} />
               : <div className="w-10 h-10 rounded-full bg-base-200" />}
           </div>
         </div>
@@ -119,14 +119,14 @@ export function GroupMessageToastContent({
   targetPath,
   roomName,
   senderName,
-  senderAvatar,
+  senderAvatarUrl,
   previewText,
 }: {
   toastId: string;
   targetPath: string | null;
   roomName: string;
   senderName: string;
-  senderAvatar?: string;
+  senderAvatarUrl?: string;
   previewText: string;
 }) {
   const router = useRouter();
@@ -155,8 +155,8 @@ export function GroupMessageToastContent({
       <div className="mt-2 flex items-center gap-3">
         <div className="avatar">
           <div className="w-9 rounded-full">
-            {senderAvatar
-              ? <img src={senderAvatar} alt={senderName} />
+            {senderAvatarUrl
+              ? <img src={senderAvatarUrl} alt={senderName} />
               : <div className="w-9 h-9 rounded-full bg-base-200" />}
           </div>
         </div>

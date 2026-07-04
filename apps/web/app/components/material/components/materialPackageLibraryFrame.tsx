@@ -83,8 +83,8 @@ export default function MaterialPackageLibraryFrame({
             aria-label={isSidebarCollapsed ? `展开${drawerTitle}` : `收起${drawerTitle}`}
           >
             {isSidebarCollapsed
-              ? <CaretRightIcon className="size-3" weight="bold" />
-              : <CaretLeftIcon className="size-3" weight="bold" />}
+              ? <CaretRightIcon className="size-3" weight="regular" />
+              : <CaretLeftIcon className="size-3" weight="regular" />}
           </button>
         </div>
       )}
@@ -104,7 +104,7 @@ export default function MaterialPackageLibraryFrame({
               hover:bg-base-200 hover:text-base-content
             "
           >
-            <CaretRightIcon size={16} weight="bold" />
+            <CaretRightIcon size={16} weight="regular" />
           </button>
         </div>
       )}

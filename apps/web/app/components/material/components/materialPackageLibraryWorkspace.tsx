@@ -17,6 +17,7 @@ type MaterialPackageLibraryAction = {
   icon: "package" | "plus";
   variant?: "primary" | "secondary";
   onClick: () => void;
+  onPreload?: () => void;
 }
 
 type MaterialPackageLibraryShortcut = {
@@ -26,6 +27,7 @@ type MaterialPackageLibraryShortcut = {
   caption: string;
   icon?: "package" | "plus";
   onClick: () => void;
+  onPreload?: () => void;
 }
 
 type MaterialPackageLibraryWorkspaceProps = {
@@ -78,7 +80,7 @@ function getPlaceholderPalette(seed: string) {
 function ActionIcon({
   icon,
   className = "size-4",
-  weight = "bold",
+  weight = "regular",
 }: {
   icon: "house" | "package" | "plus";
   className?: string;
@@ -131,13 +133,13 @@ function MaterialCard({
           ${placeholderPalette}
         `}>
           <div className="
-            rounded-[22px] border border-white/12 bg-black/12 p-6 text-white/72
+            rounded-2xl border border-white/12 bg-black/12 p-6 text-white/72
             backdrop-blur-sm
           ">
             <ActionIcon
               icon={placeholderIcon}
               className="size-10"
-              weight="fill"
+              weight="regular"
             />
           </div>
         </div>
@@ -153,6 +155,7 @@ function ShortcutCard({
   caption,
   icon = "plus",
   onClick,
+  onPreload,
 }: MaterialPackageLibraryShortcut) {
   return (
     <button
@@ -160,20 +163,22 @@ function ShortcutCard({
       className="
         group w-full rounded-md text-left transition-all duration-300
         ease-in-out
-      "
-      onClick={onClick}
-    >
+        "
+        onClick={onClick}
+        onFocus={onPreload}
+        onPointerEnter={onPreload}
+      >
       <div className="flex h-full flex-col">
         <div className="
           relative overflow-hidden rounded-md border border-dashed
-          border-primary/30 bg-base-200 text-primary/75 transition-all
+          border-info/30 bg-base-200 text-info/75 transition-all
           duration-300
-          group-hover:-translate-y-0.5 group-hover:border-primary/45
-          group-hover:bg-primary/6 group-hover:text-primary
+          group-hover:-translate-y-0.5 group-hover:border-info/45
+          group-hover:bg-info/6 group-hover:text-info
         ">
           <div className="flex aspect-square w-full items-center justify-center">
             <div className="
-              rounded-md border border-primary/12 bg-primary/8 p-6 shadow-sm
+              rounded-md border border-info/12 bg-info/8 p-6 shadow-sm
             ">
               <ActionIcon icon={icon} className="size-10" />
             </div>
@@ -260,9 +265,9 @@ export default function MaterialPackageLibraryWorkspace({
     `}>
       {embedded && (
         <div className="
-          sticky top-0 z-20 border-y border-gray-300 bg-base-200/95
+          sticky top-0 z-20 border-y border-base-300 bg-base-200/95
           backdrop-blur
-          dark:border-gray-700
+          dark:border-base-300
         ">
           <div className="
             mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3
@@ -304,15 +309,17 @@ export default function MaterialPackageLibraryWorkspace({
                           inline-flex h-9 shrink-0 items-center gap-1.5
                           rounded-md border border-base-300 bg-base-100 px-3
                           text-xs font-semibold text-base-content transition
-                          hover:border-primary/30 hover:bg-base-100/90
+                          hover:border-info/30 hover:bg-base-100/90
                         `
                         : `
                           inline-flex h-9 shrink-0 items-center gap-1.5
-                          rounded-md border border-primary/35 bg-primary px-3
-                          text-xs font-semibold text-primary-content transition
-                          hover:border-primary/45 hover:brightness-105
+                          rounded-md border border-info/35 bg-info px-3
+                          text-xs font-semibold text-info-content transition
+                          hover:border-info/45 hover:brightness-105
                         `}
                       onClick={action.onClick}
+                      onFocus={action.onPreload}
+                      onPointerEnter={action.onPreload}
                     >
                       <ActionIcon icon={action.icon} className="size-3.5" />
                       <span>{action.label}</span>
@@ -330,19 +337,20 @@ export default function MaterialPackageLibraryWorkspace({
                 <label className="
                   flex h-9 items-center gap-2 rounded-md border border-base-300
                   bg-base-100 px-3 transition
-                  focus-within:border-primary focus-within:ring-2
-                  focus-within:ring-primary/20
+                  focus-within:border-info focus-within:ring-2
+                  focus-within:ring-info/20
                 ">
                   <MagnifyingGlassIcon className="
-                    size-4 shrink-0 text-base-content/38
+                    size-4 shrink-0 text-base-content/50
                   " />
                   <input
-                    type="text"
+                    type="search"
+                    autoComplete="off"
                     className="
                       w-full bg-transparent text-sm text-base-content
                       placeholder:text-base-content/35
                       transition
-                      focus:outline-none
+                      focus:outline-none focus:ring-2 focus:ring-info/30
                     "
                     placeholder={searchPlaceholder}
                     value={keyword}
@@ -375,10 +383,10 @@ export default function MaterialPackageLibraryWorkspace({
             ">
               <SparkleIcon
                 aria-hidden="true"
-                weight="duotone"
+                weight="regular"
                 className="
                   pointer-events-none absolute -right-24 -top-24 hidden h-88
-                  w-88 text-primary/15
+                  w-88 text-info/15
                   sm:block
                 "
               />
@@ -413,7 +421,7 @@ export default function MaterialPackageLibraryWorkspace({
                 <div className="max-w-3xl">
                   <div className="
                     text-xs font-semibold uppercase tracking-[0.28em]
-                    text-base-content/45
+                    text-base-content/50
                   ">
                     {upperLabel}
                   </div>
@@ -445,20 +453,22 @@ export default function MaterialPackageLibraryWorkspace({
                             rounded-md border border-base-300 bg-base-100 px-5
                             py-3 text-sm font-semibold text-base-content
                             transition
-                            hover:border-primary/30 hover:bg-base-100/90
+                            hover:border-info/30 hover:bg-base-100/90
                             sm:w-auto
                           `
                           : `
                             inline-flex w-full items-center justify-center gap-2
-                            rounded-md border border-primary/35 bg-primary px-5
-                            py-3 text-sm font-semibold text-primary-content
-                            shadow-[0_18px_38px_rgba(59,130,246,0.22)]
+                            rounded-md border border-info/35 bg-info px-5
+                            py-3 text-sm font-semibold text-info-content
+                            shadow-xl
                             transition
-                            hover:-translate-y-0.5 hover:border-primary/45
-                            hover:shadow-[0_24px_48px_rgba(59,130,246,0.28)]
+                            hover:-translate-y-0.5 hover:border-info/45
+                            hover:shadow-xl
                             sm:w-auto
                           `}
                         onClick={action.onClick}
+                        onFocus={action.onPreload}
+                        onPointerEnter={action.onPreload}
                       >
                         <ActionIcon icon={action.icon} />
                         <span>{action.label}</span>
@@ -475,17 +485,18 @@ export default function MaterialPackageLibraryWorkspace({
               ">
                 <label className="flex items-center gap-3">
                   <MagnifyingGlassIcon className="
-                    size-5 shrink-0 text-base-content/38
+                    size-5 shrink-0 text-base-content/50
                   " />
                   <input
-                    type="text"
+                    type="search"
+                    autoComplete="off"
                     className="
                       w-full rounded-md border border-transparent bg-transparent
                       text-sm text-base-content
                       placeholder:text-base-content/35
                       transition
-                      focus:outline-none focus:ring-2 focus:ring-primary/20
-                      focus:border-primary
+                      focus:outline-none focus:ring-2 focus:ring-info/20
+                      focus:border-info
                     "
                     placeholder={searchPlaceholder}
                     value={keyword}
@@ -505,6 +516,7 @@ export default function MaterialPackageLibraryWorkspace({
                 caption={shortcut.caption}
                 icon={shortcut.icon}
                 onClick={shortcut.onClick}
+                onPreload={shortcut.onPreload}
               />
             ))}
 
@@ -512,7 +524,7 @@ export default function MaterialPackageLibraryWorkspace({
               <div
                 key={`${skeletonPrefix}-${slot}`}
                 className="
-                  aspect-[1.25/1.42] animate-pulse rounded-[26px] border
+                  aspect-[1.25/1.42] animate-pulse rounded-2xl border
                   border-base-300 bg-base-100/55
                 "
               />
@@ -556,7 +568,7 @@ export default function MaterialPackageLibraryWorkspace({
 
           {!loading && items.length === 0 && (
             <div className="
-              rounded-[26px] border border-dashed border-base-300 bg-base-100/55
+              rounded-2xl border border-dashed border-base-300 bg-base-100/55
               px-5 py-12 text-center
               sm:px-6 sm:py-14
             ">

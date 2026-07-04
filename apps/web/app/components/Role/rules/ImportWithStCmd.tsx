@@ -106,13 +106,15 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
             className="
               bg-base-200 rounded-lg p-4 w-full h-40 overflow-auto resize-none
             "
+            autoComplete="off"
+            aria-label=".st 指令"
             placeholder="输入.st指令导入属性（例：.st 力量80 敏捷70 意志50）"
             value={commandInput}
             onChange={e => setCommandInput(e.target.value)}
           />
           <button
             type="button"
-            className="btn btn-accent absolute bottom-4 right-2"
+            className="btn btn-info absolute bottom-4 right-2"
             onClick={handleImport}
             disabled={!commandInput.trim()}
           >

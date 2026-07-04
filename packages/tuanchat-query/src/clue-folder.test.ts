@@ -31,13 +31,11 @@ describe("clue-folder query cache helpers", () => {
   it("会把创建的线索消息补进房间消息缓存", () => {
     const queryClient = new QueryClient();
     const roomId = 21;
-    queryClient.setQueryData(getAllRoomMessagesQueryKey(roomId), {
-      data: [message(1)],
-    });
+    queryClient.setQueryData(getAllRoomMessagesQueryKey(roomId), [message(1)]);
 
     patchClueMessageCreatedQueryCache(queryClient, roomId, message(2).message);
 
-    expect(queryClient.getQueryData<any>(getAllRoomMessagesQueryKey(roomId))?.data.map((item: ChatMessageResponse) => item.message.messageId)).toEqual([1, 2]);
+    expect(queryClient.getQueryData<ChatMessageResponse[]>(getAllRoomMessagesQueryKey(roomId))?.map(item => item.message.messageId)).toEqual([1, 2]);
   });
 
   it("会把更新后的线索消息写回房间消息缓存", () => {
@@ -59,18 +57,14 @@ describe("clue-folder query cache helpers", () => {
   it("会把删除后的线索消息标记为删除态", () => {
     const queryClient = new QueryClient();
     const roomId = 23;
-    queryClient.setQueryData(getAllRoomMessagesQueryKey(roomId), {
-      data: {
-        list: [
-          message(1),
-          message(2),
-        ],
-      },
-    });
+    queryClient.setQueryData(getAllRoomMessagesQueryKey(roomId), [
+      message(1),
+      message(2),
+    ]);
 
     patchClueMessageDeletedQueryCache(queryClient, roomId, 2);
 
-    expect(queryClient.getQueryData<any>(getAllRoomMessagesQueryKey(roomId))?.data.list.map((item: ChatMessageResponse) => [item.message.messageId, item.message.status])).toEqual([
+    expect(queryClient.getQueryData<ChatMessageResponse[]>(getAllRoomMessagesQueryKey(roomId))?.map(item => [item.message.messageId, item.message.status])).toEqual([
       [1, 0],
       [2, 1],
     ]);

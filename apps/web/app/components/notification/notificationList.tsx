@@ -51,7 +51,7 @@ export default function NotificationList({
           className="
             w-full rounded-2xl border border-base-300 bg-base-100 px-4 py-3
             text-left transition
-            hover:border-primary/35 hover:bg-base-200
+            hover:border-info/35 hover:bg-base-200
             disabled:cursor-wait disabled:opacity-70
           "
           disabled={busyNotificationId === item.notificationId}
@@ -62,7 +62,7 @@ export default function NotificationList({
             <span
               className={`
                 mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full
-                ${item.isRead ? `bg-base-300` : `bg-primary`}
+                ${item.isRead ? `bg-base-300` : `bg-info`}
               `}
               aria-hidden="true"
             />

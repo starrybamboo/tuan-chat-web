@@ -1,5 +1,5 @@
-import type { MediaType } from "@/utils/imgCompressUtils";
-import type { UploadedMediaAssetResult, UploadUtils } from "@/utils/UploadUtils";
+import type { MediaType } from "@/utils/media/imgCompressUtils";
+import type { UploadedMediaAssetResult, UploadUtils } from "@/utils/media/UploadUtils";
 
 import { buildFileToken, normalizeMediaContent } from "@/components/common/content/mediaContent";
 

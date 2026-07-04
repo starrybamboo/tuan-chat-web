@@ -1,18 +1,17 @@
 import React from "react";
 
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
-import { SidebarSimpleIcon } from "@/icons";
 
 type ScreenSize = "sm" | "md" | "lg";
 
 type ChatPageLayoutProps = {
   screenSize: ScreenSize;
   isOpenLeftDrawer: boolean;
-  shouldShowLeftDrawerToggle: boolean;
-  leftDrawerToggleLabel: string;
   toggleLeftDrawer: () => void;
   chatLeftPanelWidth: number;
   setChatLeftPanelWidth: (width: number) => void;
+  isLeftDrawerCollapsePreview?: boolean;
+  setIsLeftDrawerCollapsePreview?: (isPreviewingCollapse: boolean) => void;
   spaceSidebar: React.ReactNode;
   sidePanelContent: React.ReactNode;
   mainContent: React.ReactNode;
@@ -22,11 +21,10 @@ type ChatPageLayoutProps = {
 export default function ChatPageLayout({
   screenSize,
   isOpenLeftDrawer,
-  shouldShowLeftDrawerToggle,
-  leftDrawerToggleLabel,
   toggleLeftDrawer,
   chatLeftPanelWidth,
   setChatLeftPanelWidth,
+  setIsLeftDrawerCollapsePreview,
   spaceSidebar,
   sidePanelContent,
   mainContent,
@@ -41,23 +39,6 @@ export default function ChatPageLayout({
         ` : `bg-base-200`}
       `}
     >
-      {shouldShowLeftDrawerToggle && (
-        <div
-          className="tooltip tooltip-right fixed left-2 z-70"
-          data-tip={leftDrawerToggleLabel}
-          style={{ top: "calc(var(--tc-safe-area-top) + 0.25rem)" }}
-        >
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm btn-square bg-base-100/80"
-            onClick={toggleLeftDrawer}
-            aria-label={leftDrawerToggleLabel}
-            aria-pressed={Boolean(isOpenLeftDrawer)}
-          >
-            <SidebarSimpleIcon />
-          </button>
-        </div>
-      )}
       {screenSize === "sm"
         ? (
             <>
@@ -73,6 +54,8 @@ export default function ChatPageLayout({
                   minWidth={200}
                   maxWidth={700}
                   onWidthChange={setChatLeftPanelWidth}
+                  onCollapseBelowMin={toggleLeftDrawer}
+                  onDragCollapsePreviewChange={setIsLeftDrawerCollapsePreview}
                   handlePosition="right"
                 >
                   <div className="size-full flex flex-col min-w-0 relative">
@@ -121,6 +104,8 @@ export default function ChatPageLayout({
                       maxWidth={700}
                       minRemainingWidth={520}
                       onWidthChange={setChatLeftPanelWidth}
+                      onCollapseBelowMin={toggleLeftDrawer}
+                      onDragCollapsePreviewChange={setIsLeftDrawerCollapsePreview}
                       handlePosition="right"
                     >
                       <div className="

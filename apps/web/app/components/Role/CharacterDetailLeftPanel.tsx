@@ -119,16 +119,16 @@ export default function CharacterDetailLeftPanel({
           <RoleSidebarActionCard
             title="当前规则"
             subtitle={currentRuleName || "未选择规则"}
-            subtitleClassName="text-primary"
+            subtitleClassName="text-info"
             actionLabel="切换"
             onClick={onOpenRuleModal}
             className="mb-4"
             icon={(
               <div className="
                 flex size-8 items-center justify-center rounded-full
-                bg-primary/10
+                bg-info/10
               ">
-                <GearOutline className="size-4 text-primary" />
+                <GearOutline className="size-4 text-info" />
               </div>
             )}
           />
@@ -136,16 +136,16 @@ export default function CharacterDetailLeftPanel({
           <RoleSidebarActionCard
             title="上传音频"
             subtitle={hasRoleVoiceMedia(localRole) ? "已上传音频" : "用于AI生成角色音色"}
-            subtitleClassName="text-secondary"
+            subtitleClassName="text-base-content/70"
             actionLabel="上传"
             onClick={onOpenAudioModal}
             className="mb-4"
             icon={(
               <div className="
                 flex size-8 items-center justify-center rounded-full
-                bg-secondary/10
+                bg-base-200
               ">
-                <MicrophoneIcon className="size-4 text-secondary" />
+                <MicrophoneIcon className="size-4 text-base-content/70" />
               </div>
             )}
             extraContent={(
@@ -163,16 +163,16 @@ export default function CharacterDetailLeftPanel({
               subtitle={currentDicerRoleId
                 ? dicerRoleError || linkedDicerRoleName || `ID: ${currentDicerRoleId}`
                 : "选择使用的骰娘角色"}
-              subtitleClassName={dicerRoleError ? "text-error" : "text-accent"}
+              subtitleClassName={dicerRoleError ? "text-error" : "text-base-content/70"}
               actionLabel={currentDicerRoleId ? "更改" : "设置"}
               onClick={onOpenDiceMaidenLinkModal}
               className="mb-4"
               icon={(
                 <div className="
                   flex size-8 items-center justify-center rounded-full
-                  bg-accent/10
+                  bg-base-200
                 ">
-                  <DiceFiveIcon className="size-4 text-accent" />
+                  <DiceFiveIcon className="size-4 text-base-content/70" />
                 </div>
               )}
             />

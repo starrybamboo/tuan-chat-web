@@ -18,17 +18,17 @@ export default function RepositoryWithTabs() {
         <aside className="
           w-56
           md:w-64
-          shrink-0 bg-base-200 border-l border-t border-gray-300
-          dark:border-gray-700
+          shrink-0 bg-base-200 border-l border-t border-base-300
+          dark:border-base-300
           rounded-tl-xl
         ">
           <div className="sticky top-0">
             <div className="
-              flex items-center h-10 px-2 border-b border-gray-300
-              dark:border-gray-700
+              flex items-center h-10 px-2 border-b border-base-300
+              dark:border-base-300
               text-base font-bold
             ">
-              <CompassIcon className="size-4 mr-2" weight="fill" />
+              <CompassIcon className="size-4 mr-2" weight="regular" />
               发现
             </div>
             <div className="flex flex-col gap-1 py-2 px-2">

@@ -119,10 +119,10 @@ function ItemDetail({ itemName, itemList }: ItemDetailProps) {
             <h4 className="
               font-semibold text-base
               md:text-lg
-              mb-2 text-orange-600
+              mb-2 text-warning
             ">KP提示</h4>
             <div className="
-              bg-orange-50/10 p-3 rounded-lg border-l-4 border-orange-200
+              bg-warning/10 p-3 rounded-lg border-l-4 border-warning/30
               text-sm
               md:text-base
             ">

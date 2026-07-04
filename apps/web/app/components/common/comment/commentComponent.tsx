@@ -11,10 +11,9 @@ import {
 import MediaContentView from "@/components/common/content/mediaContentView";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
-import UserAvatarComponent from "@/components/common/userAvatar";
+import { UserAvatarByUser } from "@/components/common/userAccess";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { ChevronRightIcon, CloseIcon } from "@/icons";
-import { imageLowUrl } from "@/utils/media/mediaUrl";
 
 import {
   DEFAULT_COMMENT_CHILD_LIMIT,
@@ -65,8 +64,8 @@ function CommentActionButton({
   const toneClass = tone === "danger"
     ? "text-base-content/60 hover:bg-error/10 hover:text-error"
     : active || tone === "primary"
-      ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
-      : "text-base-content/60 hover:bg-primary/10 hover:text-primary";
+      ? "bg-info/10 text-info hover:bg-info/15 hover:text-info"
+      : "text-base-content/60 hover:bg-info/10 hover:text-info";
 
   return (
     <button
@@ -175,7 +174,7 @@ export default function CommentComponent({
   }, [displayMode, level, visibleChildren]);
 
   if (typeof comment === "number" && getCommentByIdQuery.isPending) {
-    return <div className="loading loading-spinner text-primary"></div>;
+    return <div className="loading loading-spinner text-info"></div>;
   }
   if (!commentVO) {
     return null;
@@ -191,10 +190,9 @@ export default function CommentComponent({
       ">
         <div className="flex items-start gap-3">
           <div className="shrink-0">
-            <UserAvatarComponent
-              userId={commentVO.userId || -1}
-              username={commentVO.userInfo?.username}
-              avatar={imageLowUrl(commentVO.userInfo?.avatarFileId)}
+            <UserAvatarByUser
+              user={commentVO.userInfo}
+              fallbackUserId={commentVO.userId || -1}
               width={10}
               isRounded={true}
               withName={false}
@@ -285,10 +283,9 @@ export default function CommentComponent({
         {/* Left column for Avatar + Thread Line */}
         <div className="flex flex-col items-center self-stretch shrink-0">
           <div className="h-8 w-8 flex items-center justify-center">
-            <UserAvatarComponent
-              userId={commentVO.userId || -1}
-              username={commentVO.userInfo?.username}
-              avatar={imageLowUrl(commentVO.userInfo?.avatarFileId)}
+            <UserAvatarByUser
+              user={commentVO.userInfo}
+              fallbackUserId={commentVO.userId || -1}
               width={8}
               isRounded={true}
               withName={false}
@@ -309,7 +306,7 @@ export default function CommentComponent({
                 h-full w-[2px] bg-base-content/15
                 hover:bg-base-content/30
                 transition-all duration-200
-                group-hover/threadline:w-[3px] group-hover/threadline:bg-primary
+                group-hover/threadline:w-[3px] group-hover/threadline:bg-info
               " />
             </div>
           )}
@@ -355,8 +352,8 @@ export default function CommentComponent({
                 <button
                   className={`
                     btn btn-ghost btn-xs h-7 min-h-7 w-7 rounded-full p-0
-                    text-base-content/40
-                    hover:bg-primary/10 hover:text-primary
+                    text-base-content/50
+                    hover:bg-info/10 hover:text-info
                     ${isFolded ? `bg-base-200/50` : `
                       opacity-0
                       group-hover/comment:opacity-100
@@ -450,7 +447,7 @@ export default function CommentComponent({
                       <div className="mt-3 ml-1.5">
                         <button
                           className="
-                            text-[13px] font-medium text-primary
+                            text-[13px] font-medium text-info
                             hover:underline
                             disabled:cursor-not-allowed disabled:no-underline
                             disabled:opacity-60
@@ -480,8 +477,8 @@ export default function CommentComponent({
                           btn btn-ghost btn-sm h-8 min-h-8 rounded-full border
                           border-base-300 bg-base-200/35 px-4 text-xs
                           text-base-content/65
-                          hover:border-primary/25 hover:bg-primary/10
-                          hover:text-primary
+                          hover:border-info/25 hover:bg-info/10
+                          hover:text-info
                         "
                         onClick={() => setIsOpen(true)}
                         type="button"

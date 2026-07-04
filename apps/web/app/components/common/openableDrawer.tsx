@@ -17,6 +17,8 @@ import { getScreenSize } from "@/utils/getScreenSize";
  * @param minWidth 最小宽度（仅在大屏时生效）
  * @param maxWidth 最大宽度（仅在大屏时生效）
  * @param onWidthChange 宽度变化回调
+ * @param onCollapseBelowMin 拖拽目标宽度小于最小宽度一半时触发折叠
+ * @param onDragCollapsePreviewChange 拖拽目标宽度小于折叠阈值时，同步临时折叠预览状态
  * @param animationDuration 打开/关闭动画时长。默认保持很快，用于频道树等即时侧栏。
  * @constructor
  */
@@ -31,6 +33,8 @@ export function OpenAbleDrawer({
   maxWidth = 600,
   minRemainingWidth = 0,
   onWidthChange,
+  onCollapseBelowMin,
+  onDragCollapsePreviewChange,
   handlePosition = "left",
   animationDuration = 0.02,
 }: {
@@ -49,6 +53,8 @@ export function OpenAbleDrawer({
    */
   minRemainingWidth?: number;
   onWidthChange?: (width: number) => void;
+  onCollapseBelowMin?: () => void;
+  onDragCollapsePreviewChange?: (isPreviewingCollapse: boolean) => void;
   handlePosition?: "left" | "right";
   animationDuration?: number;
 }) {
@@ -99,7 +105,52 @@ export function OpenAbleDrawer({
     const seed = Number.isFinite(controlledWidth) ? controlledWidth! : initialWidth;
     return clamp(seed, base.min, base.max);
   });
+  const [isResizing, setIsResizing] = useState(false);
+  const [isDragCollapsed, setIsDragCollapsed] = useState(false);
+  const [isDragCollapseAnimating, setIsDragCollapseAnimating] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const isDragCollapsedRef = useRef(false);
+  const shouldCommitCollapseRef = useRef(false);
+  const collapseAnimationTimerRef = useRef<number | null>(null);
+
+  const scheduleCollapseAnimation = useCallback(() => {
+    setIsDragCollapseAnimating(true);
+    if (collapseAnimationTimerRef.current != null) {
+      window.clearTimeout(collapseAnimationTimerRef.current);
+    }
+    collapseAnimationTimerRef.current = window.setTimeout(() => {
+      collapseAnimationTimerRef.current = null;
+      setIsDragCollapseAnimating(false);
+    }, 180);
+  }, []);
+
+  const setDragCollapsedPreview = useCallback((nextCollapsed: boolean) => {
+    if (isDragCollapsedRef.current === nextCollapsed) {
+      return;
+    }
+    isDragCollapsedRef.current = nextCollapsed;
+    scheduleCollapseAnimation();
+    setIsDragCollapsed(nextCollapsed);
+    onDragCollapsePreviewChange?.(nextCollapsed);
+  }, [onDragCollapsePreviewChange, scheduleCollapseAnimation]);
+
+  useEffect(() => {
+    if (isOpen) {
+      shouldCommitCollapseRef.current = false;
+      isDragCollapsedRef.current = false;
+      setIsDragCollapsed(false);
+      setIsDragCollapseAnimating(false);
+      onDragCollapsePreviewChange?.(false);
+    }
+  }, [isOpen, onDragCollapsePreviewChange]);
+
+  useEffect(() => {
+    return () => {
+      if (collapseAnimationTimerRef.current != null) {
+        window.clearTimeout(collapseAnimationTimerRef.current);
+      }
+    };
+  }, []);
 
   const recomputeBounds = useCallback(() => {
     const base = getBaseBounds();
@@ -205,13 +256,36 @@ export function OpenAbleDrawer({
 
   const handlePointerDown = useHorizontalResizeDrag<HTMLDivElement>({
     getStartSize: () => width,
+    onResizeStart: () => {
+      setIsResizing(true);
+    },
     resolveNextSize: ({ startSize, deltaX }) => {
       const directedDeltaX = handlePosition === "left" ? -deltaX : deltaX;
-      return clamp(startSize + directedDeltaX, bounds.min, bounds.max);
+      const rawNextSize = startSize + directedDeltaX;
+      const collapseThreshold = bounds.min / 2;
+      // 先卡在 minWidth；继续拖到最小宽度一半以下时才触发折叠，避免误触。
+      if (onCollapseBelowMin && rawNextSize < collapseThreshold) {
+        shouldCommitCollapseRef.current = true;
+        setDragCollapsedPreview(true);
+        return null;
+      }
+      shouldCommitCollapseRef.current = false;
+      setDragCollapsedPreview(false);
+      return clamp(rawNextSize, bounds.min, bounds.max);
     },
     onResize: (newWidth) => {
       setWidth(newWidth);
       onWidthChange?.(newWidth);
+    },
+    onResizeEnd: () => {
+      setIsResizing(false);
+      if (!shouldCommitCollapseRef.current) {
+        setDragCollapsedPreview(false);
+        return;
+      }
+      shouldCommitCollapseRef.current = false;
+      setDragCollapsedPreview(false);
+      onCollapseBelowMin?.();
     },
   });
 
@@ -237,6 +311,11 @@ export function OpenAbleDrawer({
   }
 
   // 大屏情况下，返回可调整宽度的容器
+  const visibleWidth = isDragCollapsed ? 0 : Math.max(0, renderedWidth);
+  const visibleOpacity = isDragCollapsed ? 0 : 1;
+  const widthAnimationDuration = isDragCollapseAnimating ? 0.16 : isResizing ? 0 : animationDuration;
+  const opacityAnimationDuration = isDragCollapseAnimating ? 0.12 : isResizing ? 0 : Math.min(animationDuration, 0.12);
+
   return (
     <AnimatePresence initial={false}>
       {isOpen && (
@@ -247,11 +326,11 @@ export function OpenAbleDrawer({
             ${className ?? ""}
           `}
           initial={{ width: 0, opacity: 0 }}
-          animate={{ width: Math.max(0, renderedWidth), opacity: 1 }}
+          animate={{ width: visibleWidth, opacity: visibleOpacity }}
           exit={{ width: 0, opacity: 0 }}
           transition={{
-            width: { duration: animationDuration, ease: "easeOut" },
-            opacity: { duration: Math.min(animationDuration, 0.12) },
+            width: { duration: widthAnimationDuration, ease: "easeOut" },
+            opacity: { duration: opacityAnimationDuration },
           }}
           style={{ maxWidth: "100%" }}
         >

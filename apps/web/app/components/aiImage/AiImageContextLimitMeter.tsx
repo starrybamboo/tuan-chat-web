@@ -119,10 +119,10 @@ export function AiImageContextLimitMeter({
                         type="button"
                         className="
                           flex size-4 cursor-help items-center justify-center
-                          rounded-full bg-transparent text-base-content/28
+                          rounded-full bg-transparent text-base-content/50
                           transition
                           hover:text-base-content/55
-                          focus:outline-none
+                          focus:outline-none focus:ring-2 focus:ring-info/30
                         "
                         aria-label={footerHint}
                         onBlur={() => setFooterTooltipState(prev => ({ ...prev, visible: false }))}
@@ -166,13 +166,11 @@ export function AiImageContextLimitMeter({
 
         <div className="
           pointer-events-none absolute left-0 top-[calc(100%+0.5rem)] z-20 w-72
-          rounded-md border border-[#D6DCE3] bg-[#F3F5F7] p-3 opacity-0
-          shadow-[0_18px_36px_rgba(15,23,42,0.16)] transition duration-150
+          rounded-md border border-base-300 bg-base-200 p-3 opacity-0
+          shadow-xl transition duration-150
           peer-hover:opacity-100
           peer-focus:opacity-100
           peer-focus-visible:opacity-100
-          dark:border-[#2A3138] dark:bg-[#161A1F]
-          dark:shadow-[0_20px_40px_rgba(0,0,0,0.38)]
         ">
           <div className="flex items-center justify-between gap-3">
             <div className="text-xs font-semibold text-base-content">Context Limit</div>

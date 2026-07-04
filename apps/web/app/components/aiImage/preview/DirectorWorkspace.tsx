@@ -54,13 +54,13 @@ export function DirectorWorkspace({
   const directorShellClassName = "flex min-h-0 flex-1 flex-col overflow-hidden bg-base-200 text-base-content";
   const directorFrameClassName = "bg-transparent";
   const directorCanvasClassName = "relative flex min-h-[360px] flex-1 items-center justify-center overflow-hidden bg-base-100 p-4";
-  const directorControlButtonClassName = "inline-flex h-9 items-center justify-center rounded-md bg-transparent px-3 text-[12px] font-medium text-base-content transition hover:bg-black/5 hover:text-base-content focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-white/8";
-  const directorThumbButtonClassName = "group relative block overflow-hidden bg-base-100 transition focus:outline-none";
-  const directorToolButtonClassName = "inline-flex h-10 items-center justify-center rounded-md px-3 text-[12px] font-medium transition focus:outline-none";
-  const directorFieldClassName = "h-10 w-full rounded-md border border-base-300 bg-base-100 px-3 text-sm text-base-content placeholder:text-base-content/45 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
-  const directorSelectClassName = "h-10 w-full rounded-md border border-base-300 bg-base-100 px-3 text-sm text-base-content transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
+  const directorControlButtonClassName = "inline-flex h-9 items-center justify-center rounded-md bg-transparent px-3 text-[12px] font-medium text-base-content transition hover:bg-black/5 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-info/30 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-white/8";
+  const directorThumbButtonClassName = "group relative block overflow-hidden bg-base-100 transition focus:outline-none focus:ring-2 focus:ring-info/30";
+  const directorToolButtonClassName = "inline-flex h-10 items-center justify-center rounded-md px-3 text-[12px] font-medium transition focus:outline-none focus:ring-2 focus:ring-info/30";
+  const directorFieldClassName = "h-10 w-full rounded-md border border-base-300 bg-base-100 px-3 text-sm text-base-content placeholder:text-base-content/45 transition focus:outline-none focus:ring-2 focus:ring-info/20 focus:border-info";
+  const directorSelectClassName = "h-10 w-full rounded-md border border-base-300 bg-base-100 px-3 text-sm text-base-content transition focus:outline-none focus:ring-2 focus:ring-info/20 focus:border-info";
   const directorCornerActionsClassName = "absolute bottom-3 flex items-center gap-2";
-  const directorCornerButtonClassName = "inline-flex size-9 items-center justify-center rounded-md border border-base-300 bg-base-100/96 text-base-content/72 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/45 hover:text-base-content active:translate-y-0 active:scale-[0.98] focus:outline-none disabled:cursor-not-allowed disabled:opacity-35";
+  const directorCornerButtonClassName = "inline-flex size-9 items-center justify-center rounded-md border border-base-300 bg-base-100/96 text-base-content/72 shadow-sm transition hover:-translate-y-0.5 hover:border-info/45 hover:text-base-content active:translate-y-0 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-info/30 disabled:cursor-not-allowed disabled:opacity-35";
   const directorCornerPillClassName = "inline-flex items-center rounded-md border border-base-300 bg-base-100/96 px-3 py-2 text-[11px] font-medium text-base-content/72 shadow-sm";
   const directorDefryOptions = [0, 1, 2, 3, 4, 5] as const;
   const directorDisplayedOutput = directorOutputPreview ?? selectedPreviewResult;
@@ -120,21 +120,21 @@ export function DirectorWorkspace({
             type="button"
             className="
               inline-flex h-9 w-[100px] items-center justify-center rounded-md
-              bg-[#f3efc6] text-[#111326]
+              bg-warning text-warning-content
               shadow-[0_8px_18px_rgba(243,239,198,0.18)] transition duration-200
               ease-out
-              hover:-translate-y-0.5 hover:bg-[#fff7c9] hover:text-[#111326]
+              hover:-translate-y-0.5 hover:bg-warning/90 hover:text-warning-content
               hover:shadow-[0_12px_24px_rgba(243,239,198,0.28)]
               active:translate-y-0 active:scale-[0.98]
               active:shadow-[0_6px_14px_rgba(243,239,198,0.2)]
-              focus:outline-none
-              disabled:cursor-not-allowed disabled:bg-[#f3efc6]/30
-              disabled:text-[#111326]/45 disabled:shadow-none
+              focus:outline-none focus:ring-2 focus:ring-info/30
+              disabled:cursor-not-allowed disabled:bg-warning/30
+              disabled:text-warning-content/45 disabled:shadow-none
             "
             disabled={isBusy}
             onClick={() => directorUploadInputRef.current?.click()}
           >
-            <UploadSimpleIcon className="size-4" weight="bold" />
+            <UploadSimpleIcon className="size-4" weight="regular" />
           </button>
 
           <div
@@ -164,11 +164,11 @@ export function DirectorWorkspace({
                         relative h-[100px] w-[100px] rounded-xl border
                         bg-base-100 shadow-sm transition-colors
                         ${isActive ? `
-                          border-primary
+                          border-info
                           shadow-[0_0_0_1px_rgba(99,102,241,0.35)]
                         ` : `
                           border-base-300
-                          hover:border-primary/45
+                          hover:border-info/45
                         `}
                       `}
                     >
@@ -188,7 +188,7 @@ export function DirectorWorkspace({
                           onRemoveDirectorSourceItem(item);
                         }}
                       >
-                        <XIcon className="size-3.5" weight="bold" />
+                        <XIcon className="size-3.5" weight="regular" />
                       </button>
                       <button
                         type="button"
@@ -251,7 +251,7 @@ export function DirectorWorkspace({
                           disabled
                           onClick={() => void onRunDirectorInputUpscale()}
                         >
-                          <FrameCornersIcon className="size-[18px]" weight="bold" />
+                          <FrameCornersIcon className="size-[18px]" weight="regular" />
                         </button>
                       </div>
                       <div className={`
@@ -296,7 +296,7 @@ export function DirectorWorkspace({
                           aria-label="Add to left rail"
                           onClick={onAddDirectorDisplayedToSourceRail}
                         >
-                          <ArrowLeftIcon className="size-[18px]" weight="bold" />
+                          <ArrowLeftIcon className="size-[18px]" weight="regular" />
                         </button>
                         <button
                           type="button"
@@ -340,12 +340,12 @@ export function DirectorWorkspace({
             ">
               <div className="
                 flex size-[88px] items-center justify-center rounded-[24px]
-                bg-[#242636]/78 shadow-[0_16px_34px_rgba(0,0,0,0.24)]
+                bg-base-300/78 shadow-lg
                 backdrop-blur-sm
               ">
                 <UploadSimpleIcon className="
                   size-11 text-white/90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.28)]
-                " weight="bold" aria-hidden="true" />
+                " weight="regular" aria-hidden="true" />
               </div>
             </div>
           )
@@ -377,10 +377,10 @@ export function DirectorWorkspace({
                           className={`
                             inline-flex h-8 min-w-8 items-center justify-center
                             rounded-md px-2 text-[12px] font-medium transition
-                            focus:outline-none
+                            focus:outline-none focus:ring-2 focus:ring-info/30
                             ${
                             isActive
-                              ? "bg-[#f3efc6] text-[#111326]"
+                              ? "bg-warning text-warning-content"
                               : `
                                 text-base-content/75
                                 hover:bg-base-300 hover:text-base-content
@@ -467,9 +467,9 @@ export function DirectorWorkspace({
                   ${directorToolButtonClassName}
                   ${
                   isDisabled
-                    ? "cursor-not-allowed bg-base-300/55 text-base-content/35"
+                    ? "cursor-not-allowed bg-base-300/55 text-base-content/50"
                     : isActive
-                      ? "bg-[#f3efc6] text-[#111326]"
+                      ? "bg-warning text-warning-content"
                       : `
                         bg-transparent text-base-content/82
                         hover:bg-base-300 hover:text-base-content
@@ -488,17 +488,17 @@ export function DirectorWorkspace({
             type="button"
             className="
               ml-auto inline-flex h-10 items-center justify-center gap-2
-              rounded-md border border-[#f3efc6] bg-[#f3efc6] px-4 text-[12px]
-              font-semibold text-[#111326]
+              rounded-md border border-warning bg-warning px-4 text-[12px]
+              font-semibold text-warning-content
               shadow-[0_10px_20px_rgba(243,239,198,0.16)] transition
               duration-200 ease-out
-              hover:-translate-y-0.5 hover:bg-[#fff7c9] hover:border-[#fff7c9]
+              hover:-translate-y-0.5 hover:bg-warning/90 hover:border-warning/90
               hover:shadow-[0_14px_28px_rgba(243,239,198,0.24)]
               active:translate-y-0 active:scale-[0.985]
               active:shadow-[0_7px_16px_rgba(243,239,198,0.18)]
-              focus:outline-none
-              disabled:cursor-not-allowed disabled:border-[#f3efc6]/25
-              disabled:bg-[#f3efc6]/18 disabled:text-[#f3efc6]/40
+              focus:outline-none focus:ring-2 focus:ring-info/30
+              disabled:cursor-not-allowed disabled:border-warning/25
+              disabled:bg-warning/18 disabled:text-warning/40
               disabled:shadow-none
             "
             disabled={!directorInputPreview || isBusy || isActiveDirectorToolDisabled}

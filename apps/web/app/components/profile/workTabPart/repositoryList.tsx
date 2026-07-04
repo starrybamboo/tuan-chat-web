@@ -114,15 +114,15 @@ const UserRepositoriesList: React.FC<UserRepositoriesListProps> = ({
         {currentUserId === userId
           ? (
               <div className="
-                w-full flex flex-col items-center justify-center text-gray-500
+                w-full flex flex-col items-center justify-center text-base-content/60
                 gap-2 mt-8
               ">
                 <Link
                   to="/repository/create"
                   className="
                     w-12 h-12 flex items-center justify-center rounded-full
-                    bg-blue-100 text-blue-500
-                    hover:bg-blue-200
+                    bg-info text-info
+                    hover:bg-info
                     transition-colors duration-200
                   "
                 >
@@ -145,7 +145,7 @@ const UserRepositoriesList: React.FC<UserRepositoriesListProps> = ({
               </div>
             )
           : (
-              <p className="text-gray-500">这里还没有他的仓库...也许正在酝酿下一个传奇...</p>
+              <p className="text-base-content/60">这里还没有他的仓库...也许正在酝酿下一个传奇...</p>
             )}
       </div>
     );
@@ -174,6 +174,15 @@ const UserRepositoriesList: React.FC<UserRepositoriesListProps> = ({
             maxPeople={repositoryCard.maxPeople}
             minTime={repositoryCard.minTime}
             maxTime={repositoryCard.maxTime}
+            onPreload={() => {
+              if (!repositoryCard.repositoryId) {
+                return;
+              }
+              void router.preloadRoute({
+                to: "/repository/detail/{-$id}",
+                params: { id: String(repositoryCard.repositoryId) },
+              });
+            }}
             onClick={() => {
               if (!repositoryCard.repositoryId) {
                 console.error("仓库ID为空，无法跳转");

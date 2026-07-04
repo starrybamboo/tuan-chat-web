@@ -220,31 +220,31 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
   const editorPanelClassName = "rounded-2xl border border-base-300 bg-base-100 p-3 shadow-none";
   const segmentedControlClassName = "join rounded-xl bg-transparent p-0";
   const segmentedButtonBaseClassName = "btn btn-xs join-item border-0";
-  const featureUploadActionClassName = "inline-flex size-11 items-center justify-center rounded-md border border-base-300 bg-base-100 text-base-content/78 transition hover:border-primary/40 hover:bg-base-200 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
-  const characterAddTriggerClassName = "inline-flex h-8 items-center gap-1 rounded-md border border-base-300 bg-base-100 px-2.5 text-[13px] font-semibold text-base-content transition hover:border-primary/40 hover:bg-base-200 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
-  const characterAddMenuPanelClassName = "absolute right-0 top-0 z-30 w-[139.72px] overflow-hidden rounded-md border border-base-300 bg-base-100 shadow-2xl";
-  const characterAddMenuItemClassName = "flex h-8 w-full items-center gap-1.5 px-3 text-left text-[13px] font-medium leading-none text-base-content/90 transition hover:bg-base-200 focus:outline-none";
+  const featureUploadActionClassName = "inline-flex size-11 items-center justify-center rounded-md border border-base-300 bg-base-100 text-base-content/78 transition hover:border-info/40 hover:bg-base-200 hover:text-info focus:outline-none focus:ring-2 focus:ring-info/20";
+  const characterAddTriggerClassName = "inline-flex h-8 items-center gap-1 rounded-md border border-base-300 bg-base-100 px-2.5 text-xs font-semibold text-base-content transition hover:border-info/40 hover:bg-base-200 hover:text-info focus:outline-none focus:ring-2 focus:ring-info/20";
+  const characterAddMenuPanelClassName = "absolute right-0 top-0 z-30 w-36 overflow-hidden rounded-md border border-base-300 bg-base-100 shadow-2xl";
+  const characterAddMenuItemClassName = "flex h-8 w-full items-center gap-1.5 px-3 text-left text-xs font-medium leading-none text-base-content/90 transition hover:bg-base-200 focus:outline-none focus:ring-2 focus:ring-info/30";
   const characterCardClassName = "relative overflow-hidden rounded-2xl border border-base-300 bg-base-100 p-3 shadow-none";
-  const characterCardHeaderActionClassName = "inline-flex size-7 items-center justify-center rounded-md text-base-content/60 transition hover:bg-base-200 hover:text-base-content focus:outline-none disabled:cursor-not-allowed disabled:opacity-35";
+  const characterCardHeaderActionClassName = "inline-flex size-7 items-center justify-center rounded-md text-base-content/60 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-info/30 disabled:cursor-not-allowed disabled:opacity-35";
   const characterCardTitleIconClassName = "size-4 shrink-0 text-base-content/80";
   const characterPositionsSectionClassName = "flex items-center justify-between gap-3 bg-base-100 py-3 pr-4";
-  const characterPositionsToggleBaseClassName = "inline-flex h-9 min-w-[110px] items-center justify-center rounded-md border px-3 text-[14px] font-semibold transition whitespace-nowrap focus:outline-none focus-visible:outline-none";
-  const promptTextareaClassName = "textarea textarea-bordered !rounded-none min-h-36 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
+  const characterPositionsToggleBaseClassName = "inline-flex h-9 min-w-28 items-center justify-center rounded-md border px-3 text-sm font-semibold transition whitespace-nowrap focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-info/30";
+  const promptTextareaClassName = "textarea textarea-bordered min-h-36 w-full resize-none border-base-300 bg-base-200 text-base-content leading-7 transition-colors hover:border-info active:border-info focus:border-info focus:bg-info/[0.03] focus:outline-none   dark:hover:border-info";
   const simplePromptTextareaClassName = promptTextareaClassName;
-  const subtleInputClassName = "input input-bordered input-sm !rounded-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
-  const subtleSelectClassName = "select select-bordered select-sm !rounded-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
-  const simpleResolutionValueInputClassName = "min-w-0 appearance-none bg-transparent text-center text-xs font-semibold leading-none tabular-nums text-base-content focus:outline-none [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
-  const highlightPromptSurfaceClassName = "relative min-h-36 w-full overflow-hidden !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] shadow-none transition-colors hover:border-primary active:border-primary focus-within:border-primary focus-within:bg-primary/[0.03] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
+  const subtleInputClassName = "input input-bordered input-sm border-base-300 bg-base-200 text-base-content  ";
+  const subtleSelectClassName = "select select-bordered select-sm border-base-300 bg-base-200 text-base-content  ";
+  const simpleResolutionValueInputClassName = "min-w-0 appearance-none bg-transparent text-center text-xs font-semibold leading-none tabular-nums text-base-content focus:outline-none focus:ring-2 focus:ring-info/30 [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+  const highlightPromptSurfaceClassName = "relative min-h-36 w-full overflow-hidden border border-base-300 bg-base-200 shadow-none transition-colors hover:border-info active:border-info focus-within:border-info focus-within:bg-info/[0.03]   dark:hover:border-info";
   const highlightPromptContentClassName = "min-h-36 px-3 py-2 text-sm leading-6";
-  const highlightCharSurfaceClassName = "relative min-h-28 w-full overflow-hidden !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] shadow-none transition-colors hover:border-primary active:border-primary focus-within:border-primary focus-within:bg-primary/[0.03] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
+  const highlightCharSurfaceClassName = "relative min-h-28 w-full overflow-hidden border border-base-300 bg-base-200 shadow-none transition-colors hover:border-info active:border-info focus-within:border-info focus-within:bg-info/[0.03]   dark:hover:border-info";
   const highlightCharContentClassName = "min-h-28 px-3 py-2 text-sm leading-6";
-  const infillAppendInputClassName = "block w-full resize-none overflow-hidden rounded-md border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 text-sm leading-6 text-base-content transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F]";
-  const floatingInputActionBaseClassName = "btn btn-xs btn-ghost border-0 bg-transparent px-2 text-base-content/35 shadow-none transition-colors backdrop-blur-0 hover:bg-black/28 hover:text-white focus-visible:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:text-base-content/40 dark:hover:bg-white/12";
+  const infillAppendInputClassName = "block w-full resize-none overflow-hidden rounded-md border border-base-300 bg-base-200 px-3 py-2 text-sm leading-6 text-base-content transition focus:border-info focus:outline-none focus:ring-2 focus:ring-info/20  ";
+  const floatingInputActionBaseClassName = "btn btn-xs btn-ghost border-0 bg-transparent px-2 text-base-content/50 shadow-none transition-colors backdrop-blur-0 hover:bg-black/28 hover:text-white focus-visible:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:text-base-content/50 dark:hover:bg-white/12";
   const floatingInputActionClassName = `${floatingInputActionBaseClassName} absolute right-3 top-3 z-10`;
-  const baseImageToggleButtonClassName = "inline-flex size-11 items-center justify-center bg-transparent text-base-content/60 transition hover:text-base-content focus:outline-none focus-visible:text-base-content dark:text-white/58 dark:hover:text-white dark:focus-visible:text-white";
-  const baseImageActionButtonClassName = "inline-flex h-11 items-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 text-[14px] font-semibold text-base-content transition hover:border-primary/40 hover:bg-base-200 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
-  const baseImageRangeClassName = "mt-2 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-thumb]:mt-[-4px] [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:shadow-black/30 [&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:shadow-black/30";
-  const simpleBaseImageAttachmentClassName = "mt-[2px] overflow-hidden !rounded-none border-x border-b border-base-300 bg-base-100 shadow-none";
+  const baseImageToggleButtonClassName = "inline-flex size-11 items-center justify-center bg-transparent text-base-content/60 transition hover:text-base-content focus:outline-none focus:ring-2 focus:ring-info/30 focus-visible:text-base-content dark:text-white/58 dark:hover:text-white dark:focus-visible:text-white";
+  const baseImageActionButtonClassName = "inline-flex h-11 items-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 text-sm font-semibold text-base-content transition hover:border-info/40 hover:bg-base-200 hover:text-info focus:outline-none focus:ring-2 focus:ring-info/20";
+  const baseImageRangeClassName = "mt-2 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-thumb]:mt-[-4px] [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:shadow-black/30 [&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:shadow-black/30 focus:ring-2 focus:ring-info/30";
+  const simpleBaseImageAttachmentClassName = "mt-[2px] overflow-hidden border-x border-b border-base-300 bg-base-100 shadow-none";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState<boolean>(false);
   const [isProPromptSettingsOpen, setIsProPromptSettingsOpen] = useState<boolean>(false);
   const [isBaseImageToolsOpen, setIsBaseImageToolsOpen] = useState<boolean>(() => mode === "img2img" || mode === "infill");
@@ -287,19 +287,19 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
         : "生成 tags";
   const canTriggerSimplePrimaryAction = hasReadySimpleTags ? canGenerateFromSimpleTags : canConvertSimpleText;
   const simplePrimaryActionToneClassName = hasReadySimpleTags
-    ? "border-[#7C3AED] bg-[#7C3AED] text-white hover:bg-[#6D28D9]"
+    ? "border-info bg-info text-info-content hover:bg-info/90"
     : hasGeneratedSimpleTags
-      ? "border-[#F59E0B] bg-[#F59E0B] text-white hover:bg-[#D97706]"
-      : "border-primary bg-primary text-primary-content hover:bg-primary/90";
+      ? "border-warning bg-warning text-warning-content hover:bg-warning/90"
+      : "border-info bg-info text-info-content hover:bg-info/90";
   const simplePrimaryActionBadgeClassName = hasReadySimpleTags
     ? "border-white/20 bg-white/10 text-white"
     : hasGeneratedSimpleTags
       ? "border-white/20 bg-white/10 text-white"
       : "border-white/20 bg-white/10 text-white";
-  const clearCurrentImageButtonClassName = `group flex size-11 shrink-0 items-center justify-center rounded-md border transition focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-45 ${
+  const clearCurrentImageButtonClassName = `group flex size-11 shrink-0 items-center justify-center rounded-md border transition focus:outline-none focus:ring-2 focus:ring-info/20 disabled:cursor-not-allowed disabled:opacity-45 ${
     hasCurrentDisplayedImage
-      ? "border-[#D6DCE3] bg-[#F3F5F7] text-base-content/60 hover:border-primary/45 hover:text-primary dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary/45 dark:hover:text-primary"
-      : "border-[#D6DCE3] bg-[#F3F5F7] text-base-content/35 dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-base-content/30"
+      ? "border-base-300 bg-base-200 text-base-content/60 hover:border-info/45 hover:text-info   dark:hover:border-info/45 dark:hover:text-info"
+      : "border-base-300 bg-base-200 text-base-content/50   dark:text-base-content/50"
   }`;
   const tokenSnapshot = useNovelAiV45TokenSnapshot({
     prompt,
@@ -778,7 +778,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                 ">
                   <ImageSquareIcon className="size-5" weight="regular" aria-hidden="true" />
                   <XCircleIcon className="
-                    absolute -right-1 -top-1 size-4 text-primary
+                    absolute -right-1 -top-1 size-4 text-info
                   " weight="fill" aria-hidden="true" />
                 </span>
               </button>
@@ -789,20 +789,18 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                   className={`
                     flex w-full items-center justify-between rounded-md border
                     px-3 py-3 text-left transition
-                    focus:border-primary focus:outline-none focus:ring-2
-                    focus:ring-primary/20
+                    focus:border-info focus:outline-none focus:ring-2
+                    focus:ring-info/20
                     ${
                     isModeSelectorOpen
                       ? `
-                        border-primary bg-primary/5 shadow-sm
-                        dark:bg-primary/10
+                        border-info bg-info/5 shadow-sm
+                        dark:bg-info/10
                       `
                       : `
-                        border-[#D6DCE3] bg-[#F3F5F7]
-                        hover:border-primary/40 hover:bg-[#EAEFF4]
-                        dark:border-[#2A3138] dark:bg-[#161A1F]
-                        dark:hover:bg-[#1B2026]
-                      `
+                        border-base-300 bg-base-200
+                        hover:border-info/40 hover:bg-base-300
+                                                                       `
                   }
                   `}
                   aria-expanded={isModeSelectorOpen}
@@ -812,7 +810,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                   <div className="flex min-w-0 items-baseline gap-2">
                     <span className="font-medium leading-none text-base-content">{activeModeOption.label}</span>
                     <span className="
-                      truncate text-[11px] leading-none text-base-content/45
+                      truncate text-[11px] leading-none text-base-content/50
                     ">{MODE_MODEL_LABEL}</span>
                   </div>
                   <ChevronDown className={`
@@ -830,11 +828,10 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                         className={`
                           ai-image-fade-scrollbar absolute left-0 right-0
                           top-[calc(100%+0.5rem)] z-40 max-h-[calc(100vh-12rem)]
-                          overflow-y-auto rounded-xl border border-[#D6DCE3]
-                          bg-[#F3F5F7] p-3 shadow-2xl ring-1 ring-black/5
+                          overflow-y-auto rounded-xl border border-base-300
+                          bg-base-200 p-3 shadow-2xl ring-1 ring-black/5
                           transform-gpu transition-all duration-200 ease-out
-                          dark:border-[#2A3138] dark:bg-[#161A1F]
-                          dark:ring-white/5
+                                                     dark:ring-white/5
                           ${
                           isModeSelectorOpen
                             ? `
@@ -873,21 +870,19 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                                 w-full rounded-lg border px-3 py-3 text-left
                                 transition
                                 focus:outline-none focus:ring-2
-                                focus:ring-primary/20
+                                focus:ring-info/20
                                 ${
                                 uiMode === option.value
                                   ? `
-                                    border-primary bg-primary/5
+                                    border-info bg-info/5
                                     text-base-content shadow-sm
                                   `
                                   : `
-                                    border-[#D6DCE3] bg-base-100
+                                    border-base-300 bg-base-100
                                     text-base-content/80
-                                    hover:border-primary/40 hover:bg-[#EAEFF4]
-                                    dark:border-[#2A3138] dark:bg-[#161A1F]
-                                    dark:hover:border-primary/40
-                                    dark:hover:bg-[#1B2026]
-                                  `
+                                    hover:border-info/40 hover:bg-base-300
+                                                                         dark:hover:border-info/40
+                                                                      `
                               }
                               `}
                               onClick={() => handleSelectMode(option.value)}
@@ -896,7 +891,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                                 <span className="font-medium leading-none">{option.label}</span>
                                 <span className="
                                   truncate text-[11px] leading-none
-                                  text-base-content/45
+                                  text-base-content/50
                                 ">{MODE_MODEL_LABEL}</span>
                               </div>
                               <div className="mt-1 text-xs text-base-content/60">
@@ -950,16 +945,14 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                           type="button"
                           className={`
                             flex h-11 w-full items-center justify-between
-                            !rounded-none border border-[#D6DCE3] bg-[#F3F5F7]
+                            border border-base-300 bg-base-200
                             px-3 py-2 text-left transition
-                            focus:border-primary focus:outline-none focus:ring-2
-                            focus:ring-primary/20
-                            hover:border-primary/40 hover:bg-[#EAEFF4]
-                            dark:border-[#2A3138] dark:bg-[#161A1F]
-                            dark:hover:bg-[#1B2026]
-                            ${isSimpleResolutionSelectorOpen ? `
-                              border-primary bg-primary/5 shadow-sm
-                              dark:bg-primary/10
+                            focus:border-info focus:outline-none focus:ring-2
+                            focus:ring-info/20
+                            hover:border-info/40 hover:bg-base-300
+                                                                                     ${isSimpleResolutionSelectorOpen ? `
+                              border-info bg-info/5 shadow-sm
+                              dark:bg-info/10
                             ` : ""}
                           `}
                           aria-expanded={isSimpleResolutionSelectorOpen}
@@ -985,10 +978,9 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                           ? (
                               <div className="
                                 absolute left-0 right-0 top-[calc(100%+0.5rem)]
-                                z-20 overflow-hidden !rounded-none border
-                                border-[#D6DCE3] bg-[#F3F5F7] p-2 shadow-2xl
-                                dark:border-[#2A3138] dark:bg-[#161A1F]
-                              ">
+                                z-20 overflow-hidden border
+                                border-base-300 bg-base-200 p-2 shadow-2xl
+                                                               ">
                                 <div className="flex flex-col gap-1">
                                   {RESOLUTION_OPTIONS.map(option => (
                                     <button
@@ -998,15 +990,14 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                                         flex items-center gap-3 rounded-lg px-4
                                         py-3 text-left transition
                                         focus:outline-none focus:ring-2
-                                        focus:ring-primary/20
+                                        focus:ring-info/20
                                         ${
                                         simpleResolutionSelection === option.id
-                                          ? "bg-primary/10 text-base-content"
+                                          ? "bg-info/10 text-base-content"
                                           : `
                                             text-base-content/78
                                             hover:bg-base-100
-                                            dark:hover:bg-[#1B2026]
-                                          `
+                                                                                      `
                                       }
                                       `}
                                       onClick={() => {
@@ -1027,10 +1018,9 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                       <div className="
                         grid h-11 w-[135px]
                         grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)]
-                        items-center gap-1 !rounded-none border border-[#D6DCE3]
-                        bg-[#F3F5F7] px-3 py-2 shadow-sm
-                        dark:border-[#2A3138] dark:bg-[#161A1F]
-                      ">
+                        items-center gap-1 border border-base-300
+                        bg-base-200 px-3 py-2 shadow-sm
+                                               ">
                         <input
                           className={simpleResolutionValueInputClassName}
                           type="number"
@@ -1068,8 +1058,8 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                       <input
                         className={`
                           h-8 w-full appearance-none
-                          focus:border-primary focus:outline-none focus:ring-2
-                          focus:ring-primary/20
+                          focus:border-info focus:outline-none focus:ring-2
+                          focus:ring-info/20
                           [&::-webkit-inner-spin-button]:appearance-none
                           [&::-webkit-outer-spin-button]:appearance-none
                           ${subtleInputClassName}
@@ -1095,16 +1085,14 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                           type="button"
                           className={`
                             flex h-11 w-full items-center justify-between
-                            !rounded-none border border-[#D6DCE3] bg-[#F3F5F7]
+                            border border-base-300 bg-base-200
                             px-3 py-2 text-left transition
-                            focus:border-primary focus:outline-none focus:ring-2
-                            focus:ring-primary/20
-                            hover:border-primary/40 hover:bg-[#EAEFF4]
-                            dark:border-[#2A3138] dark:bg-[#161A1F]
-                            dark:hover:bg-[#1B2026]
-                            ${isProResolutionSelectorOpen ? `
-                              border-primary bg-primary/5 shadow-sm
-                              dark:bg-primary/10
+                            focus:border-info focus:outline-none focus:ring-2
+                            focus:ring-info/20
+                            hover:border-info/40 hover:bg-base-300
+                                                                                     ${isProResolutionSelectorOpen ? `
+                              border-info bg-info/5 shadow-sm
+                              dark:bg-info/10
                             ` : ""}
                           `}
                           aria-expanded={isProResolutionSelectorOpen}
@@ -1130,10 +1118,9 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                           ? (
                               <div className="
                                 absolute left-0 right-0 top-[calc(100%+0.5rem)]
-                                z-20 overflow-hidden !rounded-none border
-                                border-[#D6DCE3] bg-[#F3F5F7] p-2 shadow-2xl
-                                dark:border-[#2A3138] dark:bg-[#161A1F]
-                              ">
+                                z-20 overflow-hidden border
+                                border-base-300 bg-base-200 p-2 shadow-2xl
+                                                               ">
                                 <div className="flex flex-col gap-1">
                                   {RESOLUTION_OPTIONS.map(option => (
                                     <button
@@ -1143,15 +1130,14 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                                         flex items-center gap-3 rounded-lg px-4
                                         py-3 text-left transition
                                         focus:outline-none focus:ring-2
-                                        focus:ring-primary/20
+                                        focus:ring-info/20
                                         ${
                                         activeProResolutionOption.id === option.id
-                                          ? "bg-primary/10 text-base-content"
+                                          ? "bg-info/10 text-base-content"
                                           : `
                                             text-base-content/78
                                             hover:bg-base-100
-                                            dark:hover:bg-[#1B2026]
-                                          `
+                                                                                      `
                                       }
                                       `}
                                       onClick={() => {
@@ -1172,10 +1158,9 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                       <div className="
                         grid h-11 w-[135px]
                         grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)]
-                        items-center gap-1 !rounded-none border border-[#D6DCE3]
-                        bg-[#F3F5F7] px-3 py-2 shadow-sm
-                        dark:border-[#2A3138] dark:bg-[#161A1F]
-                      ">
+                        items-center gap-1 border border-base-300
+                        bg-base-200 px-3 py-2 shadow-sm
+                                               ">
                         <input
                           className={simpleResolutionValueInputClassName}
                           type="number"
@@ -1190,7 +1175,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                           className="
                             flex items-center justify-center text-center text-xs
                             font-medium text-base-content/55
-                            focus:outline-none
+                            focus:outline-none focus:ring-2 focus:ring-info/30
                           "
                           title="交换宽高"
                           aria-label="交换宽高"
@@ -1234,13 +1219,13 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                               type="button"
                               className={`
                                 flex h-11 w-11 items-center justify-center
-                                border-r border-base-300 text-[14px]
+                                border-r border-base-300 text-sm
                                 font-semibold leading-none transition
                                 last:border-r-0
                                 ${
                                 isActive
-                                  ? "bg-primary/10 text-primary"
-                                  : "bg-transparent text-base-content/35"
+                                  ? "bg-info/10 text-info"
+                                  : "bg-transparent text-base-content/50"
                               }
                               `}
                               disabled={isDisabled}
@@ -1271,7 +1256,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                 className={`
                   btn h-12 w-full justify-between border px-4
                   disabled:border-base-300 disabled:bg-base-200
-                  disabled:text-base-content/35
+                  disabled:text-base-content/50
                   ${
                   uiMode === "simple"
                     ? simplePrimaryActionToneClassName
@@ -1307,7 +1292,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                           )
                         : (
                             simpleConverting
-                              ? <CircleNotch className="size-4 animate-spin" weight="bold" />
+                              ? <CircleNotch className="size-4 animate-spin" weight="regular" />
                               : <SparkleIcon className="size-4" weight="fill" />
                           )
                     )

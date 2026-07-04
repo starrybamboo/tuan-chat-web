@@ -46,14 +46,14 @@ function ChatPageDocToolbar({ onBack }: ChatPageDocToolbarProps) {
     <div className="relative z-50">
       <div className="
         relative z-50 flex items-center justify-between overflow-visible
-        border-y border-gray-300
-        dark:border-gray-700
+        border-y border-base-300
+        dark:border-base-300
       ">
         <div
           className="
             flex h-10 w-full items-center justify-between px-2 border
             border-white/40 bg-white/40 backdrop-blur-xl
-            dark:border-white/10 dark:bg-slate-950/25
+            dark:border-white/10 dark:bg-base-300/25
           "
         >
           <button
@@ -66,7 +66,7 @@ function ChatPageDocToolbar({ onBack }: ChatPageDocToolbarProps) {
             aria-label="返回房间"
             title="返回房间"
           >
-            <ArrowLeftIcon className="size-4" weight="bold" />
+            <ArrowLeftIcon className="size-4" weight="regular" />
           </button>
         </div>
       </div>
@@ -81,7 +81,7 @@ function PrivateChatEmptyState() {
       flex size-full items-center justify-center px-6 text-base-content/60
     ">
       <div className="flex max-w-sm flex-col items-center gap-3 text-center">
-        <svg xmlns="http://www.w3.org/2000/svg" className="size-12 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2} aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" className="size-12 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
         </svg>
         <h2 className="text-sm font-semibold text-base-content/80">选择一个对话开始聊天</h2>
@@ -139,8 +139,8 @@ function ChatPageChatContent() {
 
     return (
       <div className="
-        size-full overflow-hidden border-t border-gray-300
-        dark:border-gray-700
+        size-full overflow-hidden border-t border-base-300
+        dark:border-base-300
       ">
         <div
           key={privateChatTab}

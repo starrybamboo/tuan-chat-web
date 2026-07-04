@@ -12,23 +12,9 @@ import sqlWasmUrl from "sql.js/dist/sql-wasm.wasm?url";
 import type { ChatMessageResponse } from "../../../../../api";
 
 const SQLITE_FILE_NAME = "tuanchat-web-local.sqlite";
-const LEGACY_SQLITE_STORAGE_DB_NAME = "tuanchatRoomMessageSqlite";
-const LEGACY_SQLITE_STORAGE_DB_VERSION = 1;
-const LEGACY_SQLITE_STORAGE_STORE_NAME = "entries";
-const LEGACY_SQLITE_FILE_KEY = "room-message.sqlite";
-const WEB_META_TABLE_NAME = "local_db_meta";
 const WEB_COLLECTION_TABLE_NAME = "web_local_collection";
 const WEB_DOC_SNAPSHOT_TABLE_NAME = "doc_snapshots";
 const WEB_KEY_VALUE_TABLE_NAME = "web_local_kv";
-const LEGACY_MIGRATION_KEY = "web.indexeddb.chatHistoryDB.migrated";
-
-const LEGACY_DB_NAME = "chatHistoryDB";
-const LEGACY_STORE_NAME = "messages";
-
-type StoredEntry<T> = {
-  key: string;
-  value: T;
-};
 
 type WebFileSystemWritableFileStream = {
   close: () => Promise<void>;
@@ -127,25 +113,6 @@ type WebDocSnapshotRepository = {
   writeSnapshot: <T>(docId: string, snapshot: T, options?: { now?: number }) => Promise<void>;
 };
 
-function getIndexedDB(): IDBFactory | null {
-  return typeof indexedDB === "undefined" ? null : indexedDB;
-}
-
-function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-function transactionDone(transaction: IDBTransaction): Promise<void> {
-  return new Promise((resolve, reject) => {
-    transaction.oncomplete = () => resolve();
-    transaction.onabort = () => reject(transaction.error);
-    transaction.onerror = () => reject(transaction.error);
-  });
-}
-
 function getOpfsStorage(): NavigatorWithOpfs["storage"] | null {
   if (typeof navigator === "undefined") {
     return null;
@@ -191,117 +158,6 @@ async function writeOpfsSqliteFile(value: Uint8Array): Promise<void> {
   }
   finally {
     await writable.close();
-  }
-}
-
-async function openLegacySqliteStorageDb(): Promise<IDBDatabase | null> {
-  const idb = getIndexedDB();
-  if (!idb) {
-    return null;
-  }
-
-  return new Promise((resolve, reject) => {
-    const request = idb.open(LEGACY_SQLITE_STORAGE_DB_NAME, LEGACY_SQLITE_STORAGE_DB_VERSION);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(LEGACY_SQLITE_STORAGE_STORE_NAME)) {
-        db.createObjectStore(LEGACY_SQLITE_STORAGE_STORE_NAME, { keyPath: "key" });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-async function readLegacyStoredValue<T>(key: string): Promise<T | null> {
-  const db = await openLegacySqliteStorageDb();
-  if (!db) {
-    return null;
-  }
-
-  try {
-    const transaction = db.transaction(LEGACY_SQLITE_STORAGE_STORE_NAME, "readonly");
-    const request = transaction.objectStore(LEGACY_SQLITE_STORAGE_STORE_NAME).get(key);
-    const entry = await requestToPromise<StoredEntry<T> | undefined>(request);
-    await transactionDone(transaction);
-    return entry?.value ?? null;
-  }
-  finally {
-    db.close();
-  }
-}
-
-async function readLegacyIndexedDbSqliteFile(): Promise<Uint8Array | null> {
-  return readLegacyStoredValue<Uint8Array>(LEGACY_SQLITE_FILE_KEY);
-}
-
-function isChatMessageResponse(value: unknown): value is ChatMessageResponse {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-  const message = (value as { message?: unknown }).message;
-  return Boolean(message && typeof message === "object");
-}
-
-async function hasLegacyChatDb(): Promise<boolean> {
-  const idb = getIndexedDB();
-  if (!idb) {
-    return false;
-  }
-
-  const listDatabases = (idb as IDBFactory & {
-    databases?: () => Promise<Array<{ name?: string }>>;
-  }).databases;
-  if (!listDatabases) {
-    return true;
-  }
-
-  try {
-    const databases = await listDatabases.call(idb);
-    return databases.some(db => db.name === LEGACY_DB_NAME);
-  }
-  catch {
-    return true;
-  }
-}
-
-async function openLegacyChatDb(): Promise<IDBDatabase | null> {
-  const idb = getIndexedDB();
-  if (!idb || !(await hasLegacyChatDb())) {
-    return null;
-  }
-
-  return new Promise((resolve) => {
-    const request = idb.open(LEGACY_DB_NAME);
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => resolve(null);
-    request.onblocked = () => resolve(null);
-  });
-}
-
-async function readLegacyIndexedDbMessages(): Promise<ChatMessageResponse[]> {
-  const db = await openLegacyChatDb();
-  if (!db) {
-    return [];
-  }
-
-  try {
-    if (!db.objectStoreNames.contains(LEGACY_STORE_NAME)) {
-      return [];
-    }
-
-    const transaction = db.transaction(LEGACY_STORE_NAME, "readonly");
-    const request = transaction.objectStore(LEGACY_STORE_NAME).getAll();
-    const rows = await requestToPromise<unknown[]>(request);
-    await transactionDone(transaction);
-    return rows.filter(isChatMessageResponse);
-  }
-  catch (error) {
-    console.warn("[ChatHistory] Failed to migrate legacy IndexedDB messages:", error);
-    return [];
-  }
-  finally {
-    db.close();
   }
 }
 
@@ -394,31 +250,6 @@ function createWebSqliteDriver(database: Database): {
     flush: scheduleFlush,
     markDirty,
   };
-}
-
-function ensureWebMetaSchema(database: Database, markDirty: () => void): void {
-  database.run(`CREATE TABLE IF NOT EXISTS ${WEB_META_TABLE_NAME} (
-    key TEXT PRIMARY KEY NOT NULL,
-    value TEXT NOT NULL
-  )`);
-  markDirty();
-}
-
-function getWebMeta(database: Database, key: string): string | null {
-  const result = database.exec(
-    `SELECT value FROM ${WEB_META_TABLE_NAME} WHERE key = ? LIMIT 1`,
-    [key],
-  );
-  const value = result[0]?.values[0]?.[0];
-  return typeof value === "string" ? value : null;
-}
-
-function setWebMeta(database: Database, key: string, value: string, markDirty: () => void): void {
-  database.run(
-    `INSERT OR REPLACE INTO ${WEB_META_TABLE_NAME} (key, value) VALUES (?, ?)`,
-    [key, value],
-  );
-  markDirty();
 }
 
 function normalizeCollectionName(collection: string): string | null {
@@ -790,45 +621,20 @@ function createWebDocSnapshotRepository(driver: RoomMessageSqliteDriver): WebDoc
   };
 }
 
-async function migrateLegacyIndexedDbMessages(
-  database: Database,
-  repository: RoomMessageRepository,
-  markDirty: () => void,
-  flush: () => Promise<void>,
-): Promise<void> {
-  ensureWebMetaSchema(database, markDirty);
-  if (getWebMeta(database, LEGACY_MIGRATION_KEY) === "1") {
-    return;
-  }
-
-  const legacyMessages = await readLegacyIndexedDbMessages();
-  if (legacyMessages.length > 0) {
-    await repository.upsertMessages(legacyMessages);
-  }
-  setWebMeta(database, LEGACY_MIGRATION_KEY, "1", markDirty);
-  await flush();
-}
-
 async function getLocalDbContext(): Promise<LocalDbContext> {
   contextPromise ??= (async () => {
     const SQL = await initSqlJs({
       locateFile: file => (file.endsWith(".wasm") ? sqlWasmUrl : file),
     });
     const opfsSqliteFile = await readOpfsSqliteFile();
-    const legacySqliteFile = opfsSqliteFile ? null : await readLegacyIndexedDbSqliteFile();
-    const database = opfsSqliteFile || legacySqliteFile
-      ? new SQL.Database(opfsSqliteFile ?? legacySqliteFile ?? undefined)
+    const database = opfsSqliteFile
+      ? new SQL.Database(opfsSqliteFile)
       : new SQL.Database();
     const { driver, flush, markDirty } = createWebSqliteDriver(database);
     const roomMessageRepository = createRoomMessageRepository(driver);
     const docSnapshotRepository = createWebDocSnapshotRepository(driver);
     const keyValueRepository = createWebKeyValueRepository(driver);
     const collectionRepository = createWebCollectionRepository(driver);
-    if (!opfsSqliteFile && legacySqliteFile) {
-      markDirty();
-      await flush();
-    }
-    await migrateLegacyIndexedDbMessages(database, roomMessageRepository, markDirty, flush);
     return {
       collectionRepository,
       docSnapshotRepository,

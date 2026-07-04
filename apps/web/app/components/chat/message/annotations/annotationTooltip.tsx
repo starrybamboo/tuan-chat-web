@@ -199,7 +199,7 @@ export function AnnotationTooltipContent({ annotation }: { annotation: Annotatio
           <div className="truncate text-[13px] font-semibold leading-5 text-base-content">
             {annotation.label}
           </div>
-          <div className="mt-0.5 font-mono text-[10px] leading-none text-base-content/40">
+          <div className="mt-0.5 font-mono text-[10px] leading-none text-base-content/50">
             {annotation.id}
           </div>
         </div>
@@ -221,7 +221,7 @@ export function AnnotationTooltipContent({ annotation }: { annotation: Annotatio
         {doc.details?.length
           ? (
               <div>
-                <div className="mb-1 text-[10px] font-semibold leading-none text-base-content/45">底层行为</div>
+                <div className="mb-1 text-[10px] font-semibold leading-none text-base-content/50">底层行为</div>
                 <ul className="space-y-1">
                   {doc.details.map(detail => (
                     <li key={detail} className="pl-2 before:mr-1 before:content-['·']">{detail}</li>
@@ -234,7 +234,7 @@ export function AnnotationTooltipContent({ annotation }: { annotation: Annotatio
         {doc.webgal?.length
           ? (
               <div>
-                <div className="mb-1 text-[10px] font-semibold leading-none text-base-content/45">WebGAL 输出</div>
+                <div className="mb-1 text-[10px] font-semibold leading-none text-base-content/50">WebGAL 输出</div>
                 <div className="space-y-1">
                   {doc.webgal.map(line => (
                     <code
@@ -256,7 +256,7 @@ export function AnnotationTooltipContent({ annotation }: { annotation: Annotatio
         {doc.notes?.length
           ? (
               <div>
-                <div className="mb-1 text-[10px] font-semibold leading-none text-base-content/45">注意</div>
+                <div className="mb-1 text-[10px] font-semibold leading-none text-base-content/50">注意</div>
                 <ul className="space-y-1">
                   {doc.notes.map(note => (
                     <li key={note} className="pl-2 before:mr-1 before:content-['·']">{note}</li>

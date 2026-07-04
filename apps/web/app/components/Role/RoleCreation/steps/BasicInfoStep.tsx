@@ -50,10 +50,12 @@ export default function BasicInfoStep({ characterData, onCharacterDataChange }: 
               </div>
               <input
                 type="text"
+                autoComplete="off"
+                aria-label="角色名"
                 className="
                   input input-bordered bg-base-200 rounded-md w-full transition
-                  focus:outline-none focus:ring-2 focus:ring-primary/20
-                  focus:border-primary
+                  focus:outline-none focus:ring-2 focus:ring-info/20
+                  focus:border-info
                 "
                 placeholder="输入角色名称"
                 value={characterData.name}
@@ -79,9 +81,11 @@ export default function BasicInfoStep({ characterData, onCharacterDataChange }: 
                 className="
                   textarea textarea-bordered bg-base-200 rounded-md
                   min-h-[120px] resize-y w-full transition
-                  focus:outline-none focus:ring-2 focus:ring-primary/20
-                  focus:border-primary
+                  focus:outline-none focus:ring-2 focus:ring-info/20
+                  focus:border-info
                 "
+                autoComplete="off"
+                aria-label="角色简介"
                 placeholder="描述角色的背景故事、性格特点、说话风格等"
                 value={characterData.description}
                 maxLength={ROLE_DESCRIPTION_MAX_LENGTH}

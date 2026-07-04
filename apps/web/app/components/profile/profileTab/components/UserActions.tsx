@@ -65,8 +65,8 @@ export const UserActions: React.FC<UserActionsProps> = ({
       return (
         <button
           className="
-            btn flex w-full mt-4 border border-gray-300
-            hover:text-primary
+            btn flex w-full mt-4 border border-base-300
+            hover:text-info
             transition-colors h-10 cursor-pointer
           "
           type="button"
@@ -108,7 +108,7 @@ export const UserActions: React.FC<UserActionsProps> = ({
         />
         <button
           type="button"
-          className="flex btn btn-sm btn-ghost mt-4 bg-base-100 border-gray-300"
+          className="flex btn btn-sm btn-ghost mt-4 bg-base-100 border-base-300"
           onClick={() => router.history.push(`/chat/private/${userId}`)}
         >
           <svg

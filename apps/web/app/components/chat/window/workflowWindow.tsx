@@ -471,7 +471,7 @@ export default function WorkflowWindow() {
   if (spaceQuery.isLoading) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <span className="loading loading-spinner loading-lg text-primary"></span>
+        <span className="loading loading-spinner loading-lg text-info"></span>
       </div>
     );
   }

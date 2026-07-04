@@ -1,5 +1,6 @@
-import { ChatCircleText } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
+
+import { RoomChatIcon } from "@/icons";
 
 import LoginModal from "./LoginModal";
 
@@ -19,7 +20,7 @@ export default function LoginButton({ autoOpen }: { autoOpen?: boolean }) {
         onClick={() => setIsLoginModalOpen(true)}
         className="btn btn-primary gap-2"
       >
-        <ChatCircleText className="size-4" weight="duotone" />
+        <RoomChatIcon className="size-4" />
         登录 / 注册
       </button>
 

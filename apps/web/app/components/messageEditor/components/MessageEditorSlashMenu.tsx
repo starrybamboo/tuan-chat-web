@@ -49,7 +49,7 @@ export function MessageEditorSlashMenu({
         shadow-xl
       "
     >
-      <div className="px-2 pb-1 pt-0.5 text-[11px] text-base-content/45">
+      <div className="px-2 pb-1 pt-0.5 text-[11px] text-base-content/50">
         输入
         {" "}
         <span className="font-mono">/</span>
@@ -69,7 +69,7 @@ export function MessageEditorSlashMenu({
               className={[
                 "flex w-full items-start justify-between rounded-lg px-2.5 py-2 text-left transition",
                 active
-                  ? "bg-primary/10 text-base-content"
+                  ? "bg-info/10 text-base-content"
                   : "text-base-content/75 hover:bg-base-200/70 hover:text-base-content",
               ].join(" ")}
               onMouseDown={event => event.preventDefault()}
@@ -77,10 +77,10 @@ export function MessageEditorSlashMenu({
             >
               <div className="min-w-0">
                 <div className="text-sm font-medium">{item.label}</div>
-                <div className="text-xs text-base-content/45">{item.description}</div>
+                <div className="text-xs text-base-content/50">{item.description}</div>
               </div>
               <div className="
-                ml-3 shrink-0 font-mono text-[11px] text-base-content/35
+                ml-3 shrink-0 font-mono text-[11px] text-base-content/50
               ">
                 /
                 {item.keyword}

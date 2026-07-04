@@ -52,7 +52,7 @@ export function StandardPreviewWorkspace({
                   className={`
                     overflow-hidden rounded-box border bg-base-100
                     ${!selectedHistoryPreviewKey && selectedResultIndex === index ? `
-                      border-primary
+                      border-info
                     ` : `border-base-300`}
                   `}
                   onClick={() => onSelectCurrentResult(index)}
@@ -80,7 +80,7 @@ export function StandardPreviewWorkspace({
                     disabled
                     onClick={() => void onRunUpscale()}
                   >
-                    <FrameCornersIcon className="size-[18px]" weight="bold" />
+                    <FrameCornersIcon className="size-[18px]" weight="regular" />
                   </button>
                   <button
                     type="button"
@@ -90,7 +90,7 @@ export function StandardPreviewWorkspace({
                     disabled={isBusy}
                     onClick={onUseSelectedResultAsBaseImage}
                   >
-                    <MagicWandIcon className="size-[18px]" weight="bold" />
+                    <MagicWandIcon className="size-[18px]" weight="regular" />
                   </button>
                   <button
                     type="button"
@@ -100,7 +100,7 @@ export function StandardPreviewWorkspace({
                     disabled={isBusy}
                     onClick={onOpenInpaint}
                   >
-                    <SelectionPlusIcon className="size-[18px]" weight="bold" />
+                    <SelectionPlusIcon className="size-[18px]" weight="regular" />
                   </button>
                   <button
                     type="button"
@@ -110,7 +110,7 @@ export function StandardPreviewWorkspace({
                     disabled={isBusy}
                     onClick={onToggleDirectorTools}
                   >
-                    <ArrowRightIcon className="size-[18px]" weight="bold" />
+                    <ArrowRightIcon className="size-[18px]" weight="regular" />
                   </button>
                 </div>
               </div>
@@ -124,7 +124,7 @@ export function StandardPreviewWorkspace({
             ? (
                 <div className="
                   pointer-events-none absolute inset-x-0 top-0 z-10 h-px
-                  animate-pulse bg-primary/65
+                  animate-pulse bg-info/65
                 " />
               )
             : null}

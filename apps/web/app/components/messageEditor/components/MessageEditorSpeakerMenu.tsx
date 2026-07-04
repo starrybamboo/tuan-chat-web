@@ -50,7 +50,7 @@ export function MessageEditorSpeakerMenu({
     >
       {items.length === 0
         ? (
-            <div className="bg-base-100 px-3 py-3 text-sm text-base-content/45">
+            <div className="bg-base-100 px-3 py-3 text-sm text-base-content/50">
               没有可选角色
             </div>
           )
@@ -78,14 +78,14 @@ export function MessageEditorSpeakerMenu({
                     >
                       <span className="
                         flex size-6 shrink-0 items-center justify-center
-                        rounded-full bg-base-200/70 text-base-content/45
+                        rounded-full bg-base-200/70 text-base-content/50
                       ">
-                        <X className="size-3.5" weight="bold" />
+                        <X className="size-3.5" weight="regular" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">{item.label}</span>
                         <span className="
-                          mt-0.5 block truncate text-xs text-base-content/45
+                          mt-0.5 block truncate text-xs text-base-content/50
                         ">
                           {item.description || "取消角色"}
                         </span>
@@ -131,7 +131,7 @@ export function MessageEditorSpeakerMenu({
                       <span className="block truncate text-sm font-medium">{item.label}</span>
                       {item.description && (
                         <span className="
-                          mt-0.5 block truncate text-xs text-base-content/45
+                          mt-0.5 block truncate text-xs text-base-content/50
                         ">
                           {item.description}
                         </span>
