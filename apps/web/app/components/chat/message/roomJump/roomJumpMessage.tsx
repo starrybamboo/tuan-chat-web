@@ -158,7 +158,7 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
         type="button"
         className={`
           group relative isolate flex w-full items-center gap-3 overflow-hidden
-          rounded-2xl border p-3 text-left transition-all duration-200
+          rounded-2xl border p-3 text-left transition-[background-color,border-color,box-shadow,transform] duration-200
           ${
           canDirectJump
             ? `

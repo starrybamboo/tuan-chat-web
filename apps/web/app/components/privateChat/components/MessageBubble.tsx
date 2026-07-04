@@ -146,7 +146,7 @@ export default function MessageBubble({ message, isOwn, groupedWithPrevious = fa
           <div className="
             pointer-events-none absolute bottom-full right-0 z-10 mb-1 px-1
             text-[11px] leading-none text-base-content/50 opacity-0
-            translate-y-0.5 transition-all duration-150
+            translate-y-0.5 transition-[opacity,transform] duration-150
             group-hover/message:opacity-100 group-hover/message:translate-y-0
           ">
             {messageTimeLabel}

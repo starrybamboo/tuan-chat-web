@@ -80,7 +80,7 @@ export default function MessageAnnotationsBar({
             type="button"
             className={`
               inline-flex size-6 items-center justify-center rounded-md border
-              text-[11px] transition-all select-none shadow-none
+              text-[11px] transition-[background-color,border-color,color,opacity] select-none shadow-none
               supports-backdrop-filter:backdrop-blur-md
               border-base-content/12 bg-base-content/4 text-base-content/60
               hover:border-info/38 hover:bg-base-content/7 hover:text-info

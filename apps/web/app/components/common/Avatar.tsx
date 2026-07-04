@@ -29,7 +29,7 @@ export type AvatarSize = keyof typeof AVATAR_SIZE_CLASS;
 
 /** 头像外壳悬浮态（与历史 UserAvatar/RoleAvatar 一致，已含 motion-reduce 降级）。 */
 export const AVATAR_HOVER_SHELL_CLASS
-  = "transition-all duration-200 ease-out motion-reduce:transition-none hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md hover:shadow-base-content/10";
+  = "transition-[transform,box-shadow] duration-200 ease-out motion-reduce:transition-none hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md hover:shadow-base-content/10";
 /** 头像图片组悬浮放大（配合 group/avatar）。 */
 export const AVATAR_HOVER_IMAGE_CLASS
   = "transition-transform duration-200 ease-out motion-reduce:transition-none group-hover/avatar:scale-105";

@@ -1372,7 +1372,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                     onClick={isOutOfCharacterTextMessage ? undefined : handleRoleNameClick}
                                     className={`
                                       block min-w-10 max-w-full truncate pb-0.5
-                                      text-sm transition-all duration-200
+                                      text-sm transition-colors duration-200
                                       sm:pb-1 sm:text-sm
                                       ${
                                       isOutOfCharacterTextMessage
@@ -1589,7 +1589,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                   <div
                                     className={`
                                       min-w-10 max-w-full text-sm/5
-                                      transition-all duration-200
+                                      transition-colors duration-200
                                       sm:text-base/6
                                       ${
                                       isOutOfCharacterTextMessage
@@ -1661,7 +1661,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                   {!shouldHideOriginalContentInFullDiff && (
                     <div
                       className={`
-                        relative transition-all duration-200 rounded-lg px-1.5
+                        relative transition-colors duration-200 rounded-lg px-1.5
                         py-0.5
                         sm:px-2 sm:py-0.5
                         cursor-pointer wrap-break-word text-base/normal

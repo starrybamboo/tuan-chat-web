@@ -76,7 +76,7 @@ export default function AnnotationChip({
         type="button"
         className={`
           inline-flex items-center justify-center h-6 rounded-md border
-          transition-all select-none
+          transition-[background-color,border-color,color,box-shadow,transform] select-none
           ${surfaceClass}
           ${sizeClass}
           ${interactiveClass}
