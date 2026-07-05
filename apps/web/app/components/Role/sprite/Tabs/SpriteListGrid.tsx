@@ -1,15 +1,14 @@
+import type { RoleAvatar, RoleAvatarVariant } from "api";
 import type { ReactNode } from "react";
 
 import { CaretDownIcon, CaretRightIcon, CheckCircleIcon, ImageSquareIcon } from "@phosphor-icons/react";
+import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useRef, useState } from "react";
 
-import type { RoleAvatar, RoleAvatarVariant } from "api";
-
-import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { MediaImage } from "@/components/common/mediaImage";
 import { BaselineDeleteOutline } from "@/icons";
-import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
 
 import type { AvatarUploadFilesContext } from "../../RoleInfoCard/AvatarUploadCropper";
 import type { Role } from "../../types";

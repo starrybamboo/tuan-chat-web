@@ -1,3 +1,4 @@
+import { TrashSimpleIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
 
 import type {
@@ -5,7 +6,6 @@ import type {
 } from "@/components/aiImage/history/types";
 import type { AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
 
-import { TrashSimpleIcon } from "@phosphor-icons/react";
 import { DirectorHistoryPanel } from "@/components/aiImage/history/DirectorHistoryPanel";
 import { StandardHistoryPanel } from "@/components/aiImage/history/StandardHistoryPanel";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";

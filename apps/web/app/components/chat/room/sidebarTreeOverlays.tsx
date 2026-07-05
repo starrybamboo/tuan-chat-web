@@ -1,6 +1,6 @@
+import { TrashSimpleIcon } from "@phosphor-icons/react";
 import React, { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { TrashSimpleIcon } from "@phosphor-icons/react";
 
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 

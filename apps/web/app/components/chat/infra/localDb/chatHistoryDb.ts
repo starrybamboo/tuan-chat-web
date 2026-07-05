@@ -630,7 +630,7 @@ async function getLocalDbContext(): Promise<LocalDbContext> {
     const database = opfsSqliteFile
       ? new SQL.Database(opfsSqliteFile)
       : new SQL.Database();
-    const { driver, flush, markDirty } = createWebSqliteDriver(database);
+    const { driver } = createWebSqliteDriver(database);
     const roomMessageRepository = createRoomMessageRepository(driver);
     const docSnapshotRepository = createWebDocSnapshotRepository(driver);
     const keyValueRepository = createWebKeyValueRepository(driver);

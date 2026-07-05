@@ -57,7 +57,7 @@
     "remark-gfm": "^4.0.1",
     "sql.js": "1.14.1",
     "ts-md5": "^2.0.1",
-    "undici": "^6.21.0",
+    "undici": "^6.27.0",
     "use-immer": "^0.11.0",
     "vaul": "^1.1.2",
     "wavesurfer.js": "^7.9.5",

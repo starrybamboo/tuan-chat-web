@@ -4,8 +4,8 @@ import { useEffect, useRef } from "react";
 
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
 import { unreadBadgeBounceMotionProps } from "@/components/common/motion/chatMessageMotion";
-import UserAvatarComponent from "@/components/common/userAvatar";
 import { resolveUserDisplayName, useResolvedUserInfo } from "@/components/common/userAccess.shared";
+import UserAvatarComponent from "@/components/common/userAvatar";
 import { XMarkICon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 

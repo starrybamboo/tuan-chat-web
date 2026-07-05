@@ -14,3 +14,6 @@ allowBuilds:
 
 overrides:
   "@electron/node-gyp": "10.2.0-electron.1"
+  "minimatch@<3.1.4": "3.1.5"
+  "rollup": "^4.59.0"
+  "shell-quote": "^1.8.4"

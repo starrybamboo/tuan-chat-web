@@ -1,3 +1,5 @@
+import type { RoleAvatar, RoleAvatarVariant, RoleAvatarVariantCompositionConfig } from "api";
+
 import {
   ArrowLeftIcon,
   CaretDownIcon,
@@ -15,20 +17,6 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
-import { Drawer } from "vaul";
-
-import type { RoleAvatar, RoleAvatarVariant, RoleAvatarVariantCompositionConfig } from "api";
-
-import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import { MediaImage } from "@/components/common/mediaImage";
-import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
-import { ensureRoleAvatarDefaultMedia } from "@/components/Role/RoleCreation/hooks/createRoleDefaultAvatar";
-import { isMobileScreen } from "@/utils/getScreenSize";
-import { canvasPreview, canvasToBlob } from "@/utils/imgCropper";
-import { normalizeImageFileOrNull } from "@/utils/media/mediaMime";
-import { imageOriginalUrlFromUrl } from "@/utils/media/mediaUrl";
 import {
   useApplyCropAvatarMutation,
   useApplyCropMutation,
@@ -43,6 +31,18 @@ import {
   useUpdateRoleAvatarVariantMutation,
   useUploadAvatarMutation,
 } from "api/hooks/RoleAndAvatarHooks";
+import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
+import { Drawer } from "vaul";
+
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { MediaImage } from "@/components/common/mediaImage";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { ensureRoleAvatarDefaultMedia } from "@/components/Role/RoleCreation/hooks/createRoleDefaultAvatar";
+import { isMobileScreen } from "@/utils/getScreenSize";
+import { canvasPreview, canvasToBlob } from "@/utils/imgCropper";
+import { normalizeImageFileOrNull } from "@/utils/media/mediaMime";
+import { imageOriginalUrlFromUrl } from "@/utils/media/mediaUrl";
 
 import type { AvatarUploadFilesContext } from "../RoleInfoCard/AvatarUploadCropper";
 import type { Role } from "../types";
@@ -836,11 +836,6 @@ export function SpriteSettingsPopup({
       : selectedAvatarItems;
   const selectedAvatarCount = selectedAvatarItems.length;
   const effectiveSelectedAvatarCount = effectiveSelectedAvatarItems.length;
-  const selectedAvatarIds = useMemo(() => (
-    effectiveSelectedAvatarItems
-      .map(({ avatar }) => avatar.avatarId)
-      .filter((avatarId): avatarId is number => typeof avatarId === "number")
-  ), [effectiveSelectedAvatarItems]);
   const selectedVariantKeys = useMemo(() => {
     const keys = new Set<string>();
     effectiveSelectedAvatarItems.forEach(({ avatar }) => {
@@ -1365,13 +1360,6 @@ export function SpriteSettingsPopup({
       setInternalIndex(firstVariantIndex);
     }
   }, [spritesAvatars]);
-
-  const handleEnterSelectedVariantGroup = useCallback(() => {
-    if (selectedVariantKey == null) {
-      return;
-    }
-    handleVariantFilterChange(selectedVariantKey);
-  }, [handleVariantFilterChange, selectedVariantKey]);
 
   const getVariantCreationIndices = useCallback(() => {
     if (!role?.id) {

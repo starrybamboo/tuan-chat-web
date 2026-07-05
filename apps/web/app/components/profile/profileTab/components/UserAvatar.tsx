@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { UserAvatarByUser } from "@/components/common/userAccess";

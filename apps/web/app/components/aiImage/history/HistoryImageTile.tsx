@@ -36,7 +36,7 @@ export function HistoryImageTile({
     <div className={`
       group relative w-[100px] overflow-hidden rounded-xl border bg-base-100
       shadow-sm transition-colors
-      ${active ? `border-info shadow-sm` : `
+      ${active ? `border-info ` : `
         border-base-300
         hover:border-info/45
       `}

@@ -242,10 +242,10 @@ function runLocalBuild(localBuild) {
   }
 
   if (localBuild === "all" || localBuild === "zip") {
-    run("pnpm", ["-s", "electron:build:win:zip"]);
+    run("pnpm", ["-s", "desktop:build:win:zip"]);
   }
   if (localBuild === "all" || localBuild === "nsis") {
-    run("pnpm", ["-s", "electron:build:win:nsis"]);
+    run("pnpm", ["-s", "desktop:build:win:nsis"]);
   }
 }
 
