@@ -50,7 +50,10 @@ import {
   isMessageEditorSpeakerRoleCandidate,
   splitMessageEditorSpeakerCommandQuery,
 } from "./model/messageEditorSpeaker";
-import { buildMessageEditorSpeakerAvatarClearMenuItems, buildMessageEditorSpeakerAvatarMenuItems } from "./model/messageEditorSpeakerAvatar";
+import {
+  buildMessageEditorSpeakerAvatarClearMenuItems,
+  buildMessageEditorSpeakerAvatarMenuItems,
+} from "./model/messageEditorSpeakerAvatar";
 import {
   createMessageEditorTextDraft,
   ensureMessageEditorMessages,
@@ -183,6 +186,13 @@ const MESSAGE_EDITOR_SPEAKER_HANDLE_CLASS = [
   "absolute z-30 inline-flex cursor-grab transition-opacity duration-150 active:cursor-grabbing",
   "opacity-100",
 ].join(" ");
+const MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS = "px-8 md:px-10";
+const MESSAGE_EDITOR_DEFAULT_FRAME_CLASS = "h-[80vh] min-h-0 rounded-md";
+const MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS = "relative min-h-0 flex-1 overflow-auto";
+const MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS = "mb-2";
+const MESSAGE_EDITOR_COMMAND_MENU_LAYER_CLASS = "absolute left-3 right-0 top-full z-50 mt-2";
+const MESSAGE_EDITOR_POINTER_SCROLL_EDGE_PX = 72;
+const MESSAGE_EDITOR_POINTER_SCROLL_MAX_DELTA_PX = 28;
 
 export function isMessageEditorImportablePasteText(text: string): boolean {
   return parseImportedChatText(text).messages.length > 0;
@@ -430,14 +440,6 @@ export function mergeChangedRoomMessagesIntoEditorMessages(params: {
 
   return merged;
 }
-const MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS = "px-8 md:px-10";
-const MESSAGE_EDITOR_DEFAULT_FRAME_CLASS = "h-[80vh] min-h-0 rounded-md";
-const MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS = "relative min-h-0 flex-1 overflow-auto";
-const MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS = "mb-2";
-const MESSAGE_EDITOR_COMMAND_MENU_LAYER_CLASS = "absolute left-3 right-0 top-full z-50 mt-2";
-const MESSAGE_EDITOR_POINTER_SCROLL_EDGE_PX = 72;
-const MESSAGE_EDITOR_POINTER_SCROLL_MAX_DELTA_PX = 28;
-
 function normalizeEditableText(value: string) {
   return value.replace(/\r\n?/g, "\n").replace(/\u00A0/g, " ");
 }
@@ -477,6 +479,21 @@ export function getMessageEditorTextBlockShellClassName(options: {
     `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} transition`,
     options.hasFollowingTextBlock ? MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS : "",
     options.isDragging ? "bg-base-100/80 ring-1 ring-base-300/80" : "",
+  ].join(" ");
+}
+
+function getMessageEditorAtomicBlockShellClassName(options: {
+  isActive: boolean;
+  isDragging: boolean;
+  isSelected: boolean;
+  readOnly: boolean;
+}) {
+  return [
+    `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} py-1 transition`,
+    options.isDragging ? "bg-base-100/80 ring-1 ring-base-300/80" : "",
+    options.isSelected
+      ? "bg-info/10 ring-1 ring-info/80"
+      : options.isActive && !options.readOnly ? "bg-base-200/20" : "",
   ].join(" ");
 }
 
@@ -566,6 +583,40 @@ function MessageEditorFloatingCommandMenu({ children }: { children: ReactNode })
       {children}
     </div>
   );
+}
+
+function MessageEditorDropIndicator({ position }: { position: "before" | "after" }) {
+  const verticalPositionClass = position === "before" ? "top-0" : "bottom-0";
+
+  return (
+    <div className={`
+      pointer-events-none absolute inset-x-10 ${verticalPositionClass} h-0.5
+      rounded-full bg-info
+    `} />
+  );
+}
+
+function getMessageEditorStatusLabel(options: {
+  readOnly: boolean;
+  ready: boolean;
+  saveState: SaveState;
+}) {
+  if (options.readOnly) {
+    return "只读";
+  }
+  if (!options.ready) {
+    return "载入中";
+  }
+  if (options.saveState === "saving") {
+    return "保存中";
+  }
+  if (options.saveState === "saved") {
+    return "已保存";
+  }
+  if (options.saveState === "error") {
+    return "未保存";
+  }
+  return "编辑中";
 }
 
 /**
@@ -679,6 +730,8 @@ export default function MessageEditor({
   workspaceId,
 }: MessageEditorProps) {
   const roomContext = use(RoomContext);
+
+  // 文档身份、初始种子和持久化模式。
   const frameClassName = getMessageEditorFrameClassName(className);
   const resolvedTitle = title?.trim() || tcHeader?.fallbackTitle?.trim() || "消息";
   const resolvedCoverUrl = coverUrl || tcHeader?.fallbackImageUrl || "";
@@ -700,6 +753,7 @@ export default function MessageEditor({
     () => isRoomDocument ? normalizedInitialMessages : ensureMessageEditorMessages([]),
     [isRoomDocument, normalizedInitialMessages],
   );
+  // DOM、控制器与撤销历史引用。
   const editorRootRef = useRef<HTMLDivElement | null>(null);
   const blockRefsRef = useRef(new Map<string, HTMLDivElement>());
   const blockShellRefsRef = useRef(new Map<string, HTMLDivElement>());
@@ -722,6 +776,7 @@ export default function MessageEditor({
   const pointerSelectionCleanupRef = useRef<(() => void) | null>(null);
   const pointerSelectionRef = useRef<MessageEditorSelection | null>(null);
   const pointerSelectionPositionRef = useRef<{ x: number; y: number } | null>(null);
+  // 交互状态：选区、拖拽、命令菜单与保存状态。
   const [messages, setMessages] = useState<MessageEditorMessage[]>(() => initialEditorMessages);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [crossBlockSelection, setCrossBlockSelection] = useState<{
@@ -740,6 +795,7 @@ export default function MessageEditor({
   const [speakerAvatarSearchQuery, setSpeakerAvatarSearchQuery] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [ready, setReady] = useState(!resolvedDocId || isRoomDocument);
+  // 运行时单例和同步状态。
   const registry = useMemo(() => createMessageEditorRegistry(), []);
   const eventBus = useMemo(() => new MessageEditorEventBus(), []);
   const lastSavedSerializedRef = useRef(isRoomDocument ? getMessageEditorSnapshotFingerprint(initialEditorMessages) : "");
@@ -751,6 +807,7 @@ export default function MessageEditor({
   const loadSeedKeyRef = useRef<string | null>(null);
   const baselineMessagesRef = useRef<MessageEditorMessage[]>(isRoomDocument ? initialEditorMessages : []);
 
+  // 文档加载与房间消息回流。
   useEffect(() => {
     const loadSeedKey = `${resolvedDocId ?? ""}|${isRoomDocument ? "room" : "local"}`;
     if (loadSeedKeyRef.current !== loadSeedKey) {
@@ -850,6 +907,7 @@ export default function MessageEditor({
     };
   }, [isRoomDocument, onRemoteMessagesSaved, readOnly, reconcileRemotePatchMessages, remotePatchSourceSurface, resolvedDocId, resolvedDocRoomId, shouldUseLocalSnapshot]);
 
+  // 基础状态清理与历史栈。
   const isActiveRemoteSaveGeneration = useCallback((generation: number) => {
     return activeRemoteSaveGenerationRef.current === generation
       && saveGenerationRef.current === generation;
@@ -1288,6 +1346,7 @@ export default function MessageEditor({
     };
   }, [isActiveRemoteSaveGeneration, isRoomDocument, resolvedDocId, resolvedDocRoomId]);
 
+  // 文档选区、浮动工具栏与撤销/重做。
   const resolveEditorSelection = useCallback((preferSaved = false) => {
     if (crossBlockSelection?.selection) {
       eventBus.emit("selectionChanged", {
@@ -1526,6 +1585,7 @@ export default function MessageEditor({
     blockShellRefsRef.current.delete(blockId);
   }, []);
 
+  // Slash、发言人和头像命令菜单。
   const speakerRoles = useMemo(() => {
     const roleMap = new Map<number, UserRole>();
     const roomRoles = roomContext.roomAllRoles && roomContext.roomAllRoles.length > 0
@@ -1828,6 +1888,7 @@ export default function MessageEditor({
     }, 0);
   }, [clearActiveBlock]);
 
+  // 鼠标选区和键盘导航。
   const resolveTextSelectionPointFromClientPosition = useCallback((clientX: number, clientY: number, preferredBlockId?: string): MessageEditorSelectionPoint | null => {
     const root = editorRootRef.current;
     if (!root) {
@@ -2602,6 +2663,7 @@ export default function MessageEditor({
     };
   }, [clearActiveBlock, readOnly]);
 
+  // 块拖拽排序和媒体文件处理。
   const resolveDragTarget = useCallback((clientY: number): MessageEditorResolvedDragTarget | null => {
     const currentMessages = ensureMessageEditorMessages(messagesRef.current);
     const entries = currentMessages
@@ -3055,22 +3117,34 @@ export default function MessageEditor({
     });
   }, [messages, registry]);
 
-  let statusLabel = "编辑中";
-  if (readOnly) {
-    statusLabel = "只读";
-  }
-  else if (!ready) {
-    statusLabel = "载入中";
-  }
-  else if (saveState === "saving") {
-    statusLabel = "保存中";
-  }
-  else if (saveState === "saved") {
-    statusLabel = "已保存";
-  }
-  else if (saveState === "error") {
-    statusLabel = "未保存";
-  }
+  const activeTextSelection = crossBlockSelectionPreview ?? crossBlockSelection?.selection ?? null;
+  const resolveTextBlockSelectionSegment = (
+    blockId: string,
+    message: MessageEditorMessage,
+    showSelectedLineBreak: boolean,
+  ) => {
+    const segment = activeTextSelection?.segments.find(item => item.blockId === blockId);
+    if (segment) {
+      return {
+        ...segment,
+        showLineBreakAfter: showSelectedLineBreak,
+      };
+    }
+    if (!showSelectedLineBreak) {
+      return null;
+    }
+    const contentLength = normalizeMessageEditorContent(message.content).length;
+    return {
+      end: contentLength,
+      showLineBreakAfter: true,
+      start: contentLength,
+    };
+  };
+  const statusLabel = getMessageEditorStatusLabel({
+    readOnly,
+    ready,
+    saveState,
+  });
 
   return (
     <div className={`
@@ -3166,7 +3240,6 @@ export default function MessageEditor({
               >
                 {atomicMessages.map(({ blockId, message, driver }, index) => {
                   const nextDriver = atomicMessages[index + 1]?.driver;
-                  const activeTextSelection = crossBlockSelectionPreview ?? crossBlockSelection?.selection ?? null;
                   const selectedSegment = activeTextSelection?.segments.find(item => item.blockId === blockId) ?? null;
                   const atomicSelected = driver.kind !== "text" && Boolean(selectedSegment && selectedSegment.end > selectedSegment.start);
                   const selectedBlockIndex = activeTextSelection?.blockIds.indexOf(blockId) ?? -1;
@@ -3192,18 +3265,8 @@ export default function MessageEditor({
                           isDragging: dragState?.draggedBlockId === blockId,
                         })}
                       >
-                        {showDropBefore && (
-                          <div className="
-                            pointer-events-none absolute inset-x-10 top-0 h-0.5
-                            rounded-full bg-info
-                          " />
-                        )}
-                        {showDropAfter && (
-                          <div className="
-                            pointer-events-none absolute inset-x-10 bottom-0
-                            h-0.5 rounded-full bg-info
-                          " />
-                        )}
+                        {showDropBefore && <MessageEditorDropIndicator position="before" />}
+                        {showDropAfter && <MessageEditorDropIndicator position="after" />}
                         {renderBlockSpeakerHandle(blockId, message, "top-0")}
                         <MessageEditorTextBlock
                           active={activeBlockId === blockId}
@@ -3214,24 +3277,7 @@ export default function MessageEditor({
                           readOnly={readOnly}
                           registerBlockRef={registerBlockRef}
                           textInputRef={textStyleInputRef}
-                          selectionSegment={(() => {
-                            const segment = activeTextSelection?.segments.find(item => item.blockId === blockId);
-                            if (segment) {
-                              return {
-                                ...segment,
-                                showLineBreakAfter: showSelectedLineBreak,
-                              };
-                            }
-                            if (showSelectedLineBreak) {
-                              const contentLength = normalizeMessageEditorContent(message.content).length;
-                              return {
-                                end: contentLength,
-                                showLineBreakAfter: true,
-                                start: contentLength,
-                              };
-                            }
-                            return null;
-                          })()}
+                          selectionSegment={resolveTextBlockSelectionSegment(blockId, message, showSelectedLineBreak)}
                           onFocus={(nextBlockId) => {
                             clearCrossBlockSelection();
                             setDismissedSlashKey(null);
@@ -3285,28 +3331,15 @@ export default function MessageEditor({
                     <div
                       key={blockId}
                       ref={node => registerBlockShellRef(blockId, node)}
-                      className={[
-                        `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} py-1 transition`,
-                        dragState?.draggedBlockId === blockId
-                          ? "bg-base-100/80 ring-1 ring-base-300/80"
-                          : "",
-                        atomicSelected
-                          ? "bg-info/10 ring-1 ring-info/80"
-                          : activeBlockId === blockId && !readOnly ? "bg-base-200/20" : "",
-                      ].join(" ")}
+                      className={getMessageEditorAtomicBlockShellClassName({
+                        isActive: activeBlockId === blockId,
+                        isDragging: dragState?.draggedBlockId === blockId,
+                        isSelected: atomicSelected,
+                        readOnly,
+                      })}
                     >
-                      {showDropBefore && (
-                        <div className="
-                          pointer-events-none absolute inset-x-10 top-0 h-0.5
-                          rounded-full bg-info
-                        " />
-                      )}
-                      {showDropAfter && (
-                        <div className="
-                          pointer-events-none absolute inset-x-10 bottom-0 h-0.5
-                          rounded-full bg-info
-                        " />
-                      )}
+                      {showDropBefore && <MessageEditorDropIndicator position="before" />}
+                      {showDropAfter && <MessageEditorDropIndicator position="after" />}
                       {renderBlockSpeakerHandle(blockId, message, "top-1")}
                       <div
                         data-me-block-id={blockId}
