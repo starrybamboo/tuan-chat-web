@@ -52,8 +52,6 @@ import {
   MESSAGE_EDITOR_COMMAND_MENU_LAYER_CLASS,
   MESSAGE_EDITOR_CONTENT_WIDTH_CLASS,
   MESSAGE_EDITOR_DEFAULT_FRAME_CLASS,
-  MESSAGE_EDITOR_POINTER_SCROLL_EDGE_PX,
-  MESSAGE_EDITOR_POINTER_SCROLL_MAX_DELTA_PX,
   MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS,
   MESSAGE_EDITOR_SPEAKER_HANDLE_CLASS,
   MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS,
@@ -95,6 +93,10 @@ import {
 } from "./runtime/messageEditorFileDrop";
 import { MessageEditorHistoryManager } from "./runtime/messageEditorHistoryManager";
 import { resolveMessageEditorTextPointFromClientPosition } from "./runtime/messageEditorHitTest";
+import {
+  MessageEditorPointerSelectionSession,
+  resolveMessageEditorPointerAutoScrollDelta,
+} from "./runtime/messageEditorPointerSelectionSession";
 import { createMessageEditorRegistry } from "./runtime/messageEditorRegistry";
 import {
   createMessageEditorDocumentSelection,
@@ -521,35 +523,7 @@ function getMessageEditorAtomicBlockShellClassName(options: {
   ].join(" ");
 }
 
-export function resolveMessageEditorPointerAutoScrollDelta(params: {
-  clientY: number;
-  edgeSize?: number;
-  maxDelta?: number;
-  viewportBottom: number;
-  viewportTop: number;
-}) {
-  const viewportHeight = params.viewportBottom - params.viewportTop;
-  if (viewportHeight <= 0) {
-    return 0;
-  }
-
-  const edgeSize = Math.max(1, Math.min(params.edgeSize ?? MESSAGE_EDITOR_POINTER_SCROLL_EDGE_PX, viewportHeight / 2));
-  const maxDelta = Math.max(1, params.maxDelta ?? MESSAGE_EDITOR_POINTER_SCROLL_MAX_DELTA_PX);
-  const topDistance = params.clientY - params.viewportTop;
-  if (topDistance < edgeSize) {
-    const intensity = Math.min(1, Math.max(0, (edgeSize - topDistance) / edgeSize));
-    return -Math.ceil(intensity * maxDelta);
-  }
-
-  const bottomDistance = params.viewportBottom - params.clientY;
-  if (bottomDistance < edgeSize) {
-    const intensity = Math.min(1, Math.max(0, (edgeSize - bottomDistance) / edgeSize));
-    return Math.ceil(intensity * maxDelta);
-  }
-
-  return 0;
-}
-
+export { resolveMessageEditorPointerAutoScrollDelta };
 function isSelectionAtStart(range: Range, blockElement: HTMLElement) {
   const selectionText = normalizeEditableText(range.toString());
   const prefixRange = document.createRange();
@@ -771,9 +745,7 @@ export default function MessageEditor({
   const historyManagerRef = useRef(new MessageEditorHistoryManager());
   const uploadUtils = useMemo(() => new UploadUtils(), []);
   const restoreSelectionRef = useRef<MessageEditorFocusRestore | null>(null);
-  const pointerSelectionCleanupRef = useRef<(() => void) | null>(null);
-  const pointerSelectionRef = useRef<MessageEditorSelection | null>(null);
-  const pointerSelectionPositionRef = useRef<{ x: number; y: number } | null>(null);
+  const pointerSelectionSessionRef = useRef<MessageEditorPointerSelectionSession | null>(null);
   // 交互状态：选区、拖拽、命令菜单与保存状态。
   const [messages, setMessages] = useState<MessageEditorMessage[]>(() => initialEditorMessages);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
@@ -932,8 +904,6 @@ export default function MessageEditor({
   }, [commitActiveBlock, stageFocusRestore]);
 
   const clearCrossBlockSelection = useCallback(() => {
-    pointerSelectionRef.current = null;
-    pointerSelectionPositionRef.current = null;
     setCrossBlockSelectionPreview(null);
     setCrossBlockSelection(null);
   }, []);
@@ -1825,7 +1795,7 @@ export default function MessageEditor({
 
   const handleTextBlur = useCallback(() => {
     window.setTimeout(() => {
-      if (pointerSelectionCleanupRef.current) {
+      if (pointerSelectionSessionRef.current) {
         return;
       }
       const root = editorRootRef.current;
@@ -1874,145 +1844,73 @@ export default function MessageEditor({
     }
 
     event.preventDefault();
-    pointerSelectionCleanupRef.current?.();
+    pointerSelectionSessionRef.current?.dispose();
     clearCrossBlockSelection();
     setIsPointerSelecting(true);
     hideToolbar();
 
-    const documentRef = root.ownerDocument;
-    const ownerWindow = documentRef.defaultView ?? window;
-    const startPosition = {
-      x: event.clientX,
-      y: event.clientY,
-    };
-    let autoScrollFrame: number | null = null;
-    let didDrag = false;
-    let lastPointerPosition = startPosition;
+    const session = new MessageEditorPointerSelectionSession({
+      events: {
+        onCancel() {
+          clearCrossBlockSelection();
+        },
+        onClick: activateCaret,
+        onCommit(state) {
+          activateBlock(null);
+          setCrossBlockSelectionPreview(null);
+          setCrossBlockSelection({
+            position: state.position,
+            selection: state.selection,
+          });
+          window.getSelection()?.removeAllRanges();
+        },
+        onFinish() {
+          if (pointerSelectionSessionRef.current === session) {
+            pointerSelectionSessionRef.current = null;
+          }
+          setIsPointerSelecting(false);
+        },
+        onPreview(state) {
+          setCrossBlockSelectionPreview(state?.selection ?? null);
+          if (state) {
+            window.getSelection()?.removeAllRanges();
+          }
+        },
+      },
+      resolveSelectionState(clientX, clientY) {
+        const resolvedFocus = resolveTextSelectionPointFromClientPosition(clientX, clientY);
+        if (!resolvedFocus) {
+          return undefined;
+        }
 
-    const updatePointerSelection = (clientX: number, clientY: number) => {
-      const resolvedFocus = resolveTextSelectionPointFromClientPosition(clientX, clientY);
-      if (!resolvedFocus) {
-        return;
-      }
+        const selection = createMessageEditorSelection(messagesRef.current, registry, anchor, resolvedFocus);
+        if (!selection || selection.collapsed) {
+          return null;
+        }
 
-      const selection = createMessageEditorSelection(messagesRef.current, registry, anchor, resolvedFocus);
-      if (!selection || selection.collapsed) {
-        pointerSelectionRef.current = null;
-        pointerSelectionPositionRef.current = null;
-        setCrossBlockSelectionPreview(null);
-        return;
-      }
+        const focusBlock = blockRefsRef.current.get(selection.focus.blockId)
+          ?? blockShellRefsRef.current.get(selection.focus.blockId);
+        if (!focusBlock) {
+          return undefined;
+        }
 
-      const focusBlock = blockRefsRef.current.get(selection.focus.blockId)
-        ?? blockShellRefsRef.current.get(selection.focus.blockId);
-      if (!focusBlock) {
-        return;
-      }
-
-      const bounds = focusBlock.getBoundingClientRect();
-      const toolbarX = Math.max(bounds.left, Math.min(clientX, bounds.right));
-      pointerSelectionRef.current = selection;
-      pointerSelectionPositionRef.current = {
-        x: toolbarX,
-        y: bounds.top,
-      };
-      setCrossBlockSelectionPreview(selection);
-      window.getSelection()?.removeAllRanges();
-    };
-
-    const stopAutoScroll = () => {
-      if (autoScrollFrame == null) {
-        return;
-      }
-      ownerWindow.cancelAnimationFrame(autoScrollFrame);
-      autoScrollFrame = null;
-    };
-
-    const tickAutoScroll = () => {
-      autoScrollFrame = null;
-      if (!didDrag) {
-        return;
-      }
-
-      const viewport = root.getBoundingClientRect();
-      const delta = resolveMessageEditorPointerAutoScrollDelta({
-        clientY: lastPointerPosition.y,
-        viewportBottom: viewport.bottom,
-        viewportTop: viewport.top,
-      });
-      if (delta === 0) {
-        return;
-      }
-
-      const previousScrollTop = root.scrollTop;
-      const maxScrollTop = Math.max(0, root.scrollHeight - root.clientHeight);
-      root.scrollTop = Math.max(0, Math.min(previousScrollTop + delta, maxScrollTop));
-      if (root.scrollTop !== previousScrollTop) {
-        updatePointerSelection(lastPointerPosition.x, lastPointerPosition.y);
-      }
-      autoScrollFrame = ownerWindow.requestAnimationFrame(tickAutoScroll);
-    };
-
-    const scheduleAutoScroll = () => {
-      if (autoScrollFrame != null) {
-        return;
-      }
-      autoScrollFrame = ownerWindow.requestAnimationFrame(tickAutoScroll);
-    };
-
-    const handleDocumentMouseMove = (moveEvent: MouseEvent) => {
-      if ((moveEvent.buttons & 1) === 0) {
-        return;
-      }
-
-      lastPointerPosition = {
-        x: moveEvent.clientX,
-        y: moveEvent.clientY,
-      };
-      if (!didDrag) {
-        didDrag = Math.abs(moveEvent.clientX - startPosition.x) > 3
-          || Math.abs(moveEvent.clientY - startPosition.y) > 3;
-      }
-      if (!didDrag) {
-        return;
-      }
-
-      updatePointerSelection(moveEvent.clientX, moveEvent.clientY);
-      scheduleAutoScroll();
-    };
-
-    const cleanup = () => {
-      stopAutoScroll();
-      documentRef.removeEventListener("mousemove", handleDocumentMouseMove);
-      documentRef.removeEventListener("mouseup", handleDocumentMouseUp);
-      pointerSelectionCleanupRef.current = null;
-      setIsPointerSelecting(false);
-    };
-
-    const handleDocumentMouseUp = () => {
-      const nextSelection = pointerSelectionRef.current;
-      const nextPosition = pointerSelectionPositionRef.current;
-      cleanup();
-      if (nextSelection && nextPosition) {
-        activateBlock(null);
-        setCrossBlockSelectionPreview(null);
-        setCrossBlockSelection({
-          position: nextPosition,
-          selection: nextSelection,
-        });
-        window.getSelection()?.removeAllRanges();
-        return;
-      }
-      if (!didDrag) {
-        activateCaret();
-        return;
-      }
-      clearCrossBlockSelection();
-    };
-
-    pointerSelectionCleanupRef.current = cleanup;
-    documentRef.addEventListener("mousemove", handleDocumentMouseMove);
-    documentRef.addEventListener("mouseup", handleDocumentMouseUp, { once: true });
+        const bounds = focusBlock.getBoundingClientRect();
+        return {
+          position: {
+            x: Math.max(bounds.left, Math.min(clientX, bounds.right)),
+            y: bounds.top,
+          },
+          selection,
+        };
+      },
+      root,
+      startPosition: {
+        x: event.clientX,
+        y: event.clientY,
+      },
+    });
+    pointerSelectionSessionRef.current = session;
+    session.start();
   }, [activateBlock, clearCrossBlockSelection, hideToolbar, readOnly, registry, resolveTextSelectionPointFromClientPosition]);
 
   const handleTextMouseDown = useCallback((blockId: string, event: React.MouseEvent<HTMLDivElement>) => {
@@ -2095,7 +1993,8 @@ export default function MessageEditor({
 
   useEffect(() => {
     return () => {
-      pointerSelectionCleanupRef.current?.();
+      pointerSelectionSessionRef.current?.dispose();
+      pointerSelectionSessionRef.current = null;
     };
   }, []);
 
@@ -2111,7 +2010,7 @@ export default function MessageEditor({
       }
       mouseUpTimer = window.setTimeout(() => {
         mouseUpTimer = null;
-        if (pointerSelectionCleanupRef.current || isPointerSelecting || crossBlockSelection) {
+        if (pointerSelectionSessionRef.current || isPointerSelecting || crossBlockSelection) {
           return;
         }
 
