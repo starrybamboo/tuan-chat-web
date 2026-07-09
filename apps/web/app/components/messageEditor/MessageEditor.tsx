@@ -32,6 +32,11 @@ import type {
   MessageEditorSelectionTextResult,
 } from "./model/messageEditorTransforms";
 import type { MessageEditorController } from "./runtime/messageEditorController";
+import type {
+  MessageEditorHistoryEntry,
+  MessageEditorHistoryFocus,
+  MessageEditorHistoryKind,
+} from "./runtime/messageEditorHistoryManager";
 import type { MessageEditorSelection, MessageEditorSelectionPoint } from "./runtime/messageEditorSelection";
 
 import { useGetRoleAvatarsQuery } from "../../../api/hooks/RoleAndAvatarHooks";
@@ -75,6 +80,7 @@ import {
   isMessageEditorFileDrag,
   isMessageEditorUploadableMediaMessage,
 } from "./runtime/messageEditorFileDrop";
+import { MessageEditorHistoryManager } from "./runtime/messageEditorHistoryManager";
 import { resolveMessageEditorTextPointFromClientPosition } from "./runtime/messageEditorHitTest";
 import { createMessageEditorRegistry } from "./runtime/messageEditorRegistry";
 import {
@@ -116,19 +122,6 @@ type MessageEditorProps = {
 type SaveState = "idle" | "saving" | "saved" | "error";
 type MessageEditorRemotePatchSourceSurface = "doc_view" | "message_editor";
 const ROOM_DOC_REMOTE_CHANGE_TOAST_ID = "room-doc-remote-change";
-
-type MessageEditorHistoryFocus = {
-  blockId: string;
-  caret: number;
-}
-
-type MessageEditorHistoryEntry = {
-  focus: MessageEditorHistoryFocus | null;
-  messages: MessageEditorMessage[];
-  serialized: string;
-}
-
-type MessageEditorHistoryKind = "default" | "typing";
 
 type MessageEditorDragState = {
   draggedBlockId: string;
@@ -190,8 +183,6 @@ const MESSAGE_EDITOR_SLASH_ITEMS: MessageEditorSlashMenuItem[] = [
   { kind: "choose", keyword: "choose", label: "选择", description: "插入 WebGAL 选项块" },
 ];
 
-const MESSAGE_EDITOR_HISTORY_LIMIT = 100;
-const MESSAGE_EDITOR_TYPING_HISTORY_INTERVAL_MS = 1000;
 const MESSAGE_EDITOR_LOCAL_SAVE_DELAY_MS = 500;
 const MESSAGE_EDITOR_REMOTE_SYNC_DELAY_MS = 10000;
 const MESSAGE_EDITOR_CONTENT_WIDTH_CLASS = "mx-auto w-full max-w-4xl";
@@ -776,6 +767,7 @@ export default function MessageEditor({
    * 状态拓扑：
    * - messages 是渲染源，messagesRef 是事件回调和控制器读取的同步镜像。
    * - controller 只负责文档结构 mutation，所有 mutation 都经 commitDocumentMutation 写入历史与 dirty 标记。
+   * - historyManagerRef 封装 undo / redo / typing merge 规则，避免历史栈 invariant 散落在 React refs 中。
    * - activeBlockId、crossBlockSelection、restoreSelectionRef 构成焦点层，统一由 orchestrator 提交和清理。
    * - baselineMessagesRef、lastSavedSerializedRef、dirtySinceLoadRef 构成持久化层，远端 patch 统一经 submitMessageEditorRemotePatch 提交。
    */
@@ -809,13 +801,7 @@ export default function MessageEditor({
   const messagesRef = useRef<MessageEditorMessage[]>(initialEditorMessages);
   const controllerRef = useRef<MessageEditorController | null>(null);
   const textStyleInputRef = useRef<ChatInputAreaHandle | null>(null);
-  const undoStackRef = useRef<MessageEditorHistoryEntry[]>([]);
-  const redoStackRef = useRef<MessageEditorHistoryEntry[]>([]);
-  const typingHistoryRef = useRef<{
-    baseSerialized: string;
-    blockId: string;
-    lastAt: number;
-  } | null>(null);
+  const historyManagerRef = useRef(new MessageEditorHistoryManager());
   const uploadUtils = useMemo(() => new UploadUtils(), []);
   const restoreSelectionRef = useRef<MessageEditorFocusRestore | null>(null);
   const pointerSelectionCleanupRef = useRef<(() => void) | null>(null);
@@ -1045,43 +1031,8 @@ export default function MessageEditor({
     };
   }, [resolveHistoryFocus]);
 
-  const pushUndoHistoryEntry = useCallback((entry: MessageEditorHistoryEntry, historyKind: MessageEditorHistoryKind = "default") => {
-    const undoStack = undoStackRef.current;
-    if (undoStack.at(-1)?.serialized === entry.serialized) {
-      return;
-    }
-
-    const now = Date.now();
-    const typingHistory = typingHistoryRef.current;
-    const focusBlockId = entry.focus?.blockId;
-    if (
-      historyKind === "typing"
-      && focusBlockId
-      && typingHistory
-      && typingHistory.blockId === focusBlockId
-      && typingHistory.baseSerialized === undoStack.at(-1)?.serialized
-      && now - typingHistory.lastAt <= MESSAGE_EDITOR_TYPING_HISTORY_INTERVAL_MS
-    ) {
-      typingHistory.lastAt = now;
-      redoStackRef.current = [];
-      return;
-    }
-
-    undoStackRef.current = [...undoStack, entry].slice(-MESSAGE_EDITOR_HISTORY_LIMIT);
-    redoStackRef.current = [];
-    typingHistoryRef.current = historyKind === "typing" && focusBlockId
-      ? {
-          baseSerialized: entry.serialized,
-          blockId: focusBlockId,
-          lastAt: now,
-        }
-      : null;
-  }, []);
-
   const resetHistory = useCallback(() => {
-    undoStackRef.current = [];
-    redoStackRef.current = [];
-    typingHistoryRef.current = null;
+    historyManagerRef.current.reset();
   }, []);
 
   const commitDocumentMutation = useCallback((updater: MessageEditorDocumentMutation, historyKind: MessageEditorHistoryKind = "default") => {
@@ -1089,7 +1040,7 @@ export default function MessageEditor({
       const normalizedPrevious = ensureMessageEditorMessages(previous);
       const next = ensureMessageEditorMessages(updater(normalizedPrevious));
       if (serializeMessageEditorMessages(normalizedPrevious) !== serializeMessageEditorMessages(next)) {
-        pushUndoHistoryEntry(createHistoryEntry(normalizedPrevious), historyKind);
+        historyManagerRef.current.pushUndoEntry(createHistoryEntry(normalizedPrevious), historyKind);
         if (ready) {
           dirtySinceLoadRef.current = true;
         }
@@ -1097,7 +1048,7 @@ export default function MessageEditor({
       messagesRef.current = next;
       return next;
     });
-  }, [createHistoryEntry, pushUndoHistoryEntry, ready]);
+  }, [createHistoryEntry, ready]);
 
   const getCurrentMessages = useCallback(() => {
     return messagesRef.current;
@@ -1542,28 +1493,9 @@ export default function MessageEditor({
   }, [clearActiveBlock, focusTextPoint]);
 
   const performHistoryAction = useCallback((action: "redo" | "undo") => {
-    const sourceStack = action === "undo" ? undoStackRef.current : redoStackRef.current;
-    const targetEntry = sourceStack.at(-1);
+    const targetEntry = historyManagerRef.current.restore(action, createHistoryEntry(messagesRef.current));
     if (!targetEntry) {
       return false;
-    }
-
-    typingHistoryRef.current = null;
-    const currentEntry = createHistoryEntry(messagesRef.current);
-    const appendEntry = (stack: MessageEditorHistoryEntry[], entry: MessageEditorHistoryEntry) => {
-      if (stack.at(-1)?.serialized === entry.serialized) {
-        return stack;
-      }
-      return [...stack, entry].slice(-MESSAGE_EDITOR_HISTORY_LIMIT);
-    };
-
-    if (action === "undo") {
-      undoStackRef.current = sourceStack.slice(0, -1);
-      redoStackRef.current = appendEntry(redoStackRef.current, currentEntry);
-    }
-    else {
-      redoStackRef.current = sourceStack.slice(0, -1);
-      undoStackRef.current = appendEntry(undoStackRef.current, currentEntry);
     }
 
     restoreHistoryEntry(targetEntry);
