@@ -28,6 +28,13 @@ type SetMessages = (
   historyKind?: "default" | "typing",
 ) => void;
 
+type MessageEditorControllerParams = {
+  eventBus?: MessageEditorEventBus;
+  getMessages: () => MessageEditorMessage[];
+  registry: MessageEditorRegistry;
+  setMessages: SetMessages;
+}
+
 /**
  * message editor 命令控制器。
  */
@@ -68,248 +75,231 @@ export type MessageEditorController = {
 };
 
 /**
- * 创建绑定到 React state 的编辑器控制器。
+ * 文档命令运行时。
+ *
+ * 这个类集中维护 controller 级 invariant：所有消息变更都通过 commitMessages 触发
+ * blocksChanged，文本输入使用 typing historyKind，active block 只广播运行时事件。
  */
-export function createMessageEditorController(params: {
-  eventBus?: MessageEditorEventBus;
-  getMessages: () => MessageEditorMessage[];
-  registry: MessageEditorRegistry;
-  setMessages: SetMessages;
-}): MessageEditorController {
-  const emitBlocksChanged = (messages: MessageEditorMessage[]) => {
-    params.eventBus?.emit("blocksChanged", {
-      blockIds: ensureMessageEditorMessages(messages).map(message => getMessageEditorBlockId(message)),
+class MessageEditorDocumentController implements MessageEditorController {
+  constructor(private readonly params: MessageEditorControllerParams) {}
+
+  setActiveBlock(blockId: string | null) {
+    this.params.eventBus?.emit("activeBlockChanged", { blockId });
+  }
+
+  updateBlock(blockId: string, updater: (message: MessageEditorMessage) => MessageEditorMessage) {
+    this.commitMessages((previous) => {
+      return ensureMessageEditorMessages(previous).map((message) => {
+        return getMessageEditorBlockId(message) === blockId ? updater(message) : message;
+      });
     });
-  };
+  }
 
-  return {
-    setActiveBlock(blockId) {
-      params.eventBus?.emit("activeBlockChanged", { blockId });
-    },
-    updateBlock(blockId, updater) {
-      params.setMessages((previous) => {
-        const nextMessages = ensureMessageEditorMessages(previous).map((message) => {
-          return getMessageEditorBlockId(message) === blockId ? updater(message) : message;
-        });
-        emitBlocksChanged(nextMessages);
-        return nextMessages;
+  updateTextContent(blockId: string, nextContent: string) {
+    this.commitMessages((previous) => {
+      return ensureMessageEditorMessages(previous).map((message) => {
+        return getMessageEditorBlockId(message) === blockId
+          ? updateMessageEditorTextContent(message, nextContent)
+          : message;
       });
-    },
-    updateTextContent(blockId, nextContent) {
-      params.setMessages((previous) => {
-        const nextMessages = ensureMessageEditorMessages(previous).map((message) => {
-          return getMessageEditorBlockId(message) === blockId
-            ? updateMessageEditorTextContent(message, nextContent)
-            : message;
-        });
-        emitBlocksChanged(nextMessages);
-        return nextMessages;
-      }, "typing");
-    },
-    splitAtSelection(selection) {
-      if (selection.multiBlock) {
-        return null;
-      }
+    }, "typing");
+  }
 
-      const result = splitMessageEditorMessage(params.getMessages(), {
-        blockId: selection.start.blockId,
-        selectionStart: selection.start.offset,
-        selectionEnd: selection.end.offset,
-      });
-      params.setMessages(() => {
-        emitBlocksChanged(result.messages);
-        return result.messages;
-      });
-      return result.focus;
-    },
-    replaceSelectionText(selection, replacement) {
-      const result = replaceMessageEditorSelectionText(params.getMessages(), selection, replacement);
-      if (!result) {
-        return null;
-      }
-      params.setMessages(() => {
-        emitBlocksChanged(result.messages);
-        return result.messages;
-      });
-      return result;
-    },
-    replaceSelectionTextAsBlocks(selection, replacement) {
-      const result = replaceMessageEditorSelectionTextAsBlocks(params.getMessages(), selection, replacement);
-      if (!result) {
-        return null;
-      }
-      params.setMessages(() => {
-        emitBlocksChanged(result.messages);
-        return result.messages;
-      });
-      return result;
-    },
-    transformSelectionText(selection, transform) {
-      const result = transformMessageEditorSelectionText(params.getMessages(), selection, transform);
-      if (!result) {
-        return null;
-      }
-      params.setMessages(() => {
-        emitBlocksChanged(result.messages);
-        return result.messages;
-      });
-      return result;
-    },
-    insertBlockAtPoint(point, kind) {
-      const result = insertMessageEditorBlockAtPoint(params.getMessages(), {
-        blockId: point.blockId,
-        kind,
-        offset: point.offset,
-      });
-      if (!result) {
-        return null;
-      }
-      params.setMessages(() => {
-        emitBlocksChanged(result.messages);
-        return result.messages;
-      });
-      return result;
-    },
-    insertBlockAtSelection(selection, kind) {
-      const result = insertMessageEditorBlockAtSelection(params.getMessages(), selection, kind);
-      if (!result) {
-        return null;
-      }
-      params.setMessages(() => {
-        emitBlocksChanged(result.messages);
-        return result.messages;
-      });
-      return result;
-    },
-    mergeBackward(blockId) {
-      const result = mergeMessageEditorMessageBackward(params.getMessages(), blockId);
-      if (!result) {
-        return null;
-      }
-      params.setMessages(() => {
-        emitBlocksChanged(result.messages);
-        return result.messages;
-      });
-      return result.focus;
-    },
-    mergeForward(blockId) {
-      const result = mergeMessageEditorMessageForward(params.getMessages(), blockId);
-      if (!result) {
-        return null;
-      }
-      params.setMessages(() => {
-        emitBlocksChanged(result.messages);
-        return result.messages;
-      });
-      return result.focus;
-    },
-    moveBlock(blockId, direction) {
-      params.setMessages((previous) => {
-        const nextMessages = moveMessageEditorMessage(previous, blockId, direction);
-        emitBlocksChanged(nextMessages);
-        return nextMessages;
-      });
-    },
-    moveBlockToIndex(blockId, targetIndex) {
-      params.setMessages((previous) => {
-        const nextMessages = moveMessageEditorMessageToIndex(previous, blockId, targetIndex);
-        emitBlocksChanged(nextMessages);
-        return nextMessages;
-      });
-    },
-    replaceBlockWithKind(blockId, kind) {
-      const currentMessages = ensureMessageEditorMessages(params.getMessages());
-      const index = currentMessages.findIndex(message => getMessageEditorBlockId(message) === blockId);
-      if (index < 0) {
-        return null;
-      }
-
-      const nextBlock = createMessageEditorBlockDraft(kind, currentMessages[index]);
-      params.setMessages(() => {
-        const nextMessages = [...currentMessages];
-        nextMessages.splice(index, 1, nextBlock);
-        emitBlocksChanged(nextMessages);
-        return nextMessages;
-      });
-
-      return params.registry.isTextBlock(nextBlock)
-        ? {
-            blockId: getMessageEditorBlockId(nextBlock),
-            caret: normalizeMessageEditorContent(nextBlock.content).length,
-          }
-        : null;
-    },
-    getAdjacentTextBlock(blockId, direction, preferredOffset) {
-      const currentMessages = ensureMessageEditorMessages(params.getMessages());
-      const index = currentMessages.findIndex(message => getMessageEditorBlockId(message) === blockId);
-      if (index < 0) {
-        return null;
-      }
-
-      for (let nextIndex = index + direction; nextIndex >= 0 && nextIndex < currentMessages.length; nextIndex += direction) {
-        const nextMessage = currentMessages[nextIndex];
-        if (!params.registry.isTextBlock(nextMessage)) {
-          continue;
-        }
-
-        const nextContentLength = String(nextMessage.content ?? "").length;
-        return {
-          blockId: getMessageEditorBlockId(nextMessage),
-          caret: Math.max(
-            0,
-            Math.min(preferredOffset ?? (direction < 0 ? nextContentLength : 0), nextContentLength),
-          ),
-        };
-      }
-
+  splitAtSelection(selection: MessageEditorSelection) {
+    if (selection.multiBlock) {
       return null;
-    },
-    removeBlock(blockId) {
-      const currentMessages = ensureMessageEditorMessages(params.getMessages());
-      const index = currentMessages.findIndex(message => getMessageEditorBlockId(message) === blockId);
-      if (index < 0) {
-        return null;
+    }
+
+    const result = splitMessageEditorMessage(this.params.getMessages(), {
+      blockId: selection.start.blockId,
+      selectionStart: selection.start.offset,
+      selectionEnd: selection.end.offset,
+    });
+    this.commitResolvedMessages(result.messages);
+    return result.focus;
+  }
+
+  replaceSelectionText(selection: MessageEditorSelection, replacement: string) {
+    return this.commitSelectionResult(replaceMessageEditorSelectionText(this.params.getMessages(), selection, replacement));
+  }
+
+  replaceSelectionTextAsBlocks(selection: MessageEditorSelection, replacement: string) {
+    return this.commitSelectionResult(replaceMessageEditorSelectionTextAsBlocks(this.params.getMessages(), selection, replacement));
+  }
+
+  transformSelectionText(selection: MessageEditorSelection, transform: (selectedText: string) => string) {
+    return this.commitSelectionResult(transformMessageEditorSelectionText(this.params.getMessages(), selection, transform));
+  }
+
+  insertBlockAtPoint(point: { blockId: string; offset: number }, kind: Parameters<typeof createMessageEditorBlockDraft>[0]) {
+    const result = insertMessageEditorBlockAtPoint(this.params.getMessages(), {
+      blockId: point.blockId,
+      kind,
+      offset: point.offset,
+    });
+    if (!result) {
+      return null;
+    }
+    this.commitResolvedMessages(result.messages);
+    return result;
+  }
+
+  insertBlockAtSelection(selection: MessageEditorSelection, kind: Parameters<typeof createMessageEditorBlockDraft>[0]) {
+    const result = insertMessageEditorBlockAtSelection(this.params.getMessages(), selection, kind);
+    if (!result) {
+      return null;
+    }
+    this.commitResolvedMessages(result.messages);
+    return result;
+  }
+
+  mergeBackward(blockId: string) {
+    const result = mergeMessageEditorMessageBackward(this.params.getMessages(), blockId);
+    if (!result) {
+      return null;
+    }
+    this.commitResolvedMessages(result.messages);
+    return result.focus;
+  }
+
+  mergeForward(blockId: string) {
+    const result = mergeMessageEditorMessageForward(this.params.getMessages(), blockId);
+    if (!result) {
+      return null;
+    }
+    this.commitResolvedMessages(result.messages);
+    return result.focus;
+  }
+
+  moveBlock(blockId: string, direction: -1 | 1) {
+    this.commitMessages(previous => moveMessageEditorMessage(previous, blockId, direction));
+  }
+
+  moveBlockToIndex(blockId: string, targetIndex: number) {
+    this.commitMessages(previous => moveMessageEditorMessageToIndex(previous, blockId, targetIndex));
+  }
+
+  replaceBlockWithKind(blockId: string, kind: Parameters<typeof createMessageEditorBlockDraft>[0]) {
+    const currentMessages = ensureMessageEditorMessages(this.params.getMessages());
+    const index = currentMessages.findIndex(message => getMessageEditorBlockId(message) === blockId);
+    if (index < 0) {
+      return null;
+    }
+
+    const nextBlock = createMessageEditorBlockDraft(kind, currentMessages[index]);
+    const nextMessages = [...currentMessages];
+    nextMessages.splice(index, 1, nextBlock);
+    this.commitResolvedMessages(nextMessages);
+
+    return this.params.registry.isTextBlock(nextBlock)
+      ? {
+          blockId: getMessageEditorBlockId(nextBlock),
+          caret: normalizeMessageEditorContent(nextBlock.content).length,
+        }
+      : null;
+  }
+
+  getAdjacentTextBlock(blockId: string, direction: -1 | 1, preferredOffset?: number) {
+    const currentMessages = ensureMessageEditorMessages(this.params.getMessages());
+    const index = currentMessages.findIndex(message => getMessageEditorBlockId(message) === blockId);
+    if (index < 0) {
+      return null;
+    }
+
+    for (let nextIndex = index + direction; nextIndex >= 0 && nextIndex < currentMessages.length; nextIndex += direction) {
+      const nextMessage = currentMessages[nextIndex];
+      if (!this.params.registry.isTextBlock(nextMessage)) {
+        continue;
       }
 
-      const nextMessages = ensureMessageEditorMessages(currentMessages.filter(message => getMessageEditorBlockId(message) !== blockId));
-      params.setMessages(() => {
-        emitBlocksChanged(nextMessages);
-        return nextMessages;
-      });
-
-      const focusCandidate = nextMessages[index] ?? nextMessages[index - 1] ?? nextMessages[0];
-      if (!focusCandidate || !params.registry.isTextBlock(focusCandidate)) {
-        return null;
-      }
-
+      const nextContentLength = String(nextMessage.content ?? "").length;
       return {
-        blockId: getMessageEditorBlockId(focusCandidate),
-        caret: String(focusCandidate.content ?? "").length,
+        blockId: getMessageEditorBlockId(nextMessage),
+        caret: Math.max(
+          0,
+          Math.min(preferredOffset ?? (direction < 0 ? nextContentLength : 0), nextContentLength),
+        ),
       };
-    },
-    ensureTrailingTextBlock() {
-      const currentMessages = ensureMessageEditorMessages(params.getMessages());
-      const lastMessage = currentMessages.at(-1);
-      if (lastMessage && params.registry.isTextBlock(lastMessage) && String(lastMessage.content ?? "").length === 0) {
-        return {
-          blockId: getMessageEditorBlockId(lastMessage),
-          caret: 0,
-        };
-      }
+    }
 
-      const nextBlock = createMessageEditorTextDraft({
-        sourceMessage: lastMessage,
-      });
-      params.setMessages((previous) => {
-        const nextMessages = [...ensureMessageEditorMessages(previous), nextBlock];
-        emitBlocksChanged(nextMessages);
-        return nextMessages;
-      });
+    return null;
+  }
 
+  removeBlock(blockId: string) {
+    const currentMessages = ensureMessageEditorMessages(this.params.getMessages());
+    const index = currentMessages.findIndex(message => getMessageEditorBlockId(message) === blockId);
+    if (index < 0) {
+      return null;
+    }
+
+    const nextMessages = ensureMessageEditorMessages(currentMessages.filter(message => getMessageEditorBlockId(message) !== blockId));
+    this.commitResolvedMessages(nextMessages);
+
+    const focusCandidate = nextMessages[index] ?? nextMessages[index - 1] ?? nextMessages[0];
+    if (!focusCandidate || !this.params.registry.isTextBlock(focusCandidate)) {
+      return null;
+    }
+
+    return {
+      blockId: getMessageEditorBlockId(focusCandidate),
+      caret: String(focusCandidate.content ?? "").length,
+    };
+  }
+
+  ensureTrailingTextBlock() {
+    const currentMessages = ensureMessageEditorMessages(this.params.getMessages());
+    const lastMessage = currentMessages.at(-1);
+    if (lastMessage && this.params.registry.isTextBlock(lastMessage) && String(lastMessage.content ?? "").length === 0) {
       return {
-        blockId: getMessageEditorBlockId(nextBlock),
+        blockId: getMessageEditorBlockId(lastMessage),
         caret: 0,
       };
-    },
-  };
+    }
+
+    const nextBlock = createMessageEditorTextDraft({
+      sourceMessage: lastMessage,
+    });
+    this.commitMessages(previous => [...ensureMessageEditorMessages(previous), nextBlock]);
+
+    return {
+      blockId: getMessageEditorBlockId(nextBlock),
+      caret: 0,
+    };
+  }
+
+  private commitMessages(
+    updater: (previous: MessageEditorMessage[]) => MessageEditorMessage[],
+    historyKind?: "default" | "typing",
+  ) {
+    this.params.setMessages((previous) => {
+      const nextMessages = ensureMessageEditorMessages(updater(previous));
+      this.emitBlocksChanged(nextMessages);
+      return nextMessages;
+    }, historyKind);
+  }
+
+  private commitResolvedMessages(messages: MessageEditorMessage[]) {
+    this.commitMessages(() => messages);
+  }
+
+  private commitSelectionResult(result: MessageEditorSelectionTextResult | null) {
+    if (!result) {
+      return null;
+    }
+    this.commitResolvedMessages(result.messages);
+    return result;
+  }
+
+  private emitBlocksChanged(messages: MessageEditorMessage[]) {
+    this.params.eventBus?.emit("blocksChanged", {
+      blockIds: ensureMessageEditorMessages(messages).map(message => getMessageEditorBlockId(message)),
+    });
+  }
+}
+
+/**
+ * 创建绑定到 React state 的编辑器控制器。
+ */
+export function createMessageEditorController(params: MessageEditorControllerParams): MessageEditorController {
+  return new MessageEditorDocumentController(params);
 }

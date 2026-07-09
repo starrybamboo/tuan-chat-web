@@ -953,6 +953,17 @@ export default function MessageEditor({
     controllerRef.current?.setActiveBlock(blockId);
   }, []);
 
+  const applyFocusTarget = useCallback((target: MessageEditorFocusRestore | null) => {
+    const blockId = target?.selection?.focus.blockId ?? target?.blockId ?? null;
+    commitActiveBlock(blockId);
+    stageFocusRestore(target);
+  }, [commitActiveBlock, stageFocusRestore]);
+
+  const activateBlock = useCallback((blockId: string | null) => {
+    commitActiveBlock(blockId);
+    stageFocusRestore(null);
+  }, [commitActiveBlock, stageFocusRestore]);
+
   const clearCrossBlockSelection = useCallback(() => {
     pointerSelectionRef.current = null;
     pointerSelectionPositionRef.current = null;
@@ -967,11 +978,10 @@ export default function MessageEditor({
   }, []);
 
   const clearActiveBlock = useCallback(() => {
-    stageFocusRestore(null);
-    commitActiveBlock(null);
+    applyFocusTarget(null);
     clearCrossBlockSelection();
     clearSpeakerAvatarMenu();
-  }, [clearCrossBlockSelection, clearSpeakerAvatarMenu, commitActiveBlock, stageFocusRestore]);
+  }, [applyFocusTarget, clearCrossBlockSelection, clearSpeakerAvatarMenu]);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -1396,30 +1406,29 @@ export default function MessageEditor({
       : "";
   }, [crossBlockSelection, messages]);
 
-  const focusTextPoint = useCallback((point: MessageEditorSelectionPoint | null) => {
+  const activateTextPoint = useCallback((point: MessageEditorSelectionPoint | null) => {
     if (!point) {
       return;
     }
 
     clearCrossBlockSelection();
     hideToolbar();
-    commitActiveBlock(point.blockId);
-    stageFocusRestore({
+    applyFocusTarget({
       blockId: point.blockId,
       caret: point.offset,
     });
     window.requestAnimationFrame(() => {
       restorePendingSelection();
     });
-  }, [clearCrossBlockSelection, commitActiveBlock, hideToolbar, restorePendingSelection, stageFocusRestore]);
+  }, [applyFocusTarget, clearCrossBlockSelection, hideToolbar, restorePendingSelection]);
 
-  const showDocumentTextSelection = useCallback((selection: MessageEditorSelection | null) => {
+  const activateBlockSelection = useCallback((selection: MessageEditorSelection | null) => {
     if (!selection) {
       return;
     }
 
     if (selection.collapsed) {
-      focusTextPoint(selection.focus);
+      activateTextPoint(selection.focus);
       return;
     }
 
@@ -1428,8 +1437,7 @@ export default function MessageEditor({
       ?? blockRefsRef.current.get(selection.end.blockId)
       ?? blockShellRefsRef.current.get(selection.end.blockId);
     const bounds = focusBlock?.getBoundingClientRect();
-    commitActiveBlock(null);
-    stageFocusRestore(null);
+    applyFocusTarget(null);
     hideToolbar();
     window.getSelection()?.removeAllRanges();
     setCrossBlockSelectionPreview(null);
@@ -1442,7 +1450,7 @@ export default function MessageEditor({
         : { x: 0, y: 0 },
       selection,
     });
-  }, [commitActiveBlock, focusTextPoint, hideToolbar, stageFocusRestore]);
+  }, [activateTextPoint, applyFocusTarget, hideToolbar]);
 
   const applySelectionEditResult = useCallback((
     result: MessageEditorSelectionTextResult | null,
@@ -1461,8 +1469,7 @@ export default function MessageEditor({
       );
       if (nextSelection && !nextSelection.collapsed) {
         clearCrossBlockSelection();
-        commitActiveBlock(nextSelection.focus.blockId);
-        stageFocusRestore({ selection: nextSelection });
+        applyFocusTarget({ selection: nextSelection });
         return true;
       }
     }
@@ -1472,25 +1479,25 @@ export default function MessageEditor({
       return true;
     }
 
-    focusTextPoint({
+    activateTextPoint({
       blockId: result.focus.blockId,
       offset: result.focus.caret,
     });
     return true;
-  }, [clearActiveBlock, clearCrossBlockSelection, commitActiveBlock, focusTextPoint, registry, stageFocusRestore]);
+  }, [activateTextPoint, applyFocusTarget, clearActiveBlock, clearCrossBlockSelection, registry]);
 
   const restoreHistoryEntry = useCallback((entry: MessageEditorHistoryEntry) => {
     messagesRef.current = entry.messages;
     setMessages(entry.messages);
     if (entry.focus) {
-      focusTextPoint({
+      activateTextPoint({
         blockId: entry.focus.blockId,
         offset: entry.focus.caret,
       });
       return;
     }
     clearActiveBlock();
-  }, [clearActiveBlock, focusTextPoint]);
+  }, [clearActiveBlock, activateTextPoint]);
 
   const performHistoryAction = useCallback((action: "redo" | "undo") => {
     const targetEntry = historyManagerRef.current.restore(action, createHistoryEntry(messagesRef.current));
@@ -1752,13 +1759,12 @@ export default function MessageEditor({
     hideToolbar();
 
     if (focus) {
-      commitActiveBlock(focus.blockId);
-      stageFocusRestore(focus);
+      applyFocusTarget(focus);
       return;
     }
 
     clearActiveBlock();
-  }, [clearActiveBlock, commitActiveBlock, hideToolbar, slashMenuState, stageFocusRestore]);
+  }, [applyFocusTarget, clearActiveBlock, hideToolbar, slashMenuState]);
 
   const handleSelectSpeakerItem = useCallback((item: MessageEditorSpeakerMenuItem) => {
     if (!speakerMenuState) {
@@ -1804,12 +1810,11 @@ export default function MessageEditor({
     setDismissedSpeakerKey(null);
     setSpeakerSelectionIndex(0);
     hideToolbar();
-    commitActiveBlock(blockId);
-    stageFocusRestore({
+    applyFocusTarget({
       blockId,
       caret: normalizeMessageEditorContent(nextContent).length,
     });
-  }, [commitActiveBlock, hideToolbar, speakerMenuState, stageFocusRestore]);
+  }, [applyFocusTarget, hideToolbar, speakerMenuState]);
 
   const handleSelectSpeakerAvatarItem = useCallback((item: MessageEditorSpeakerAvatarMenuItem) => {
     if (!speakerAvatarMenuState) {
@@ -1836,12 +1841,11 @@ export default function MessageEditor({
       });
     });
     clearSpeakerAvatarMenu();
-    commitActiveBlock(blockId);
-    stageFocusRestore({
+    applyFocusTarget({
       blockId,
       caret: normalizeMessageEditorContent(currentMessage?.content ?? speakerAvatarMenuState.remainder).length,
     });
-  }, [clearSpeakerAvatarMenu, commitActiveBlock, speakerAvatarMenuState, stageFocusRestore]);
+  }, [applyFocusTarget, clearSpeakerAvatarMenu, speakerAvatarMenuState]);
 
   const handleTextInput = useCallback((blockId: string, nextContent: string) => {
     clearCrossBlockSelection();
@@ -2023,7 +2027,7 @@ export default function MessageEditor({
       const nextPosition = pointerSelectionPositionRef.current;
       cleanup();
       if (nextSelection && nextPosition) {
-        commitActiveBlock(null);
+        activateBlock(null);
         setCrossBlockSelectionPreview(null);
         setCrossBlockSelection({
           position: nextPosition,
@@ -2042,7 +2046,7 @@ export default function MessageEditor({
     pointerSelectionCleanupRef.current = cleanup;
     documentRef.addEventListener("mousemove", handleDocumentMouseMove);
     documentRef.addEventListener("mouseup", handleDocumentMouseUp, { once: true });
-  }, [clearCrossBlockSelection, commitActiveBlock, hideToolbar, readOnly, registry, resolveTextSelectionPointFromClientPosition]);
+  }, [activateBlock, clearCrossBlockSelection, hideToolbar, readOnly, registry, resolveTextSelectionPointFromClientPosition]);
 
   const handleTextMouseDown = useCallback((blockId: string, event: React.MouseEvent<HTMLDivElement>) => {
     const anchor = resolveTextSelectionPointFromClientPosition(event.clientX, event.clientY, blockId);
@@ -2051,9 +2055,9 @@ export default function MessageEditor({
     }
 
     startTextPointerSelection(anchor, event, () => {
-      focusTextPoint(anchor);
+      activateTextPoint(anchor);
     });
-  }, [focusTextPoint, resolveTextSelectionPointFromClientPosition, startTextPointerSelection]);
+  }, [activateTextPoint, resolveTextSelectionPointFromClientPosition, startTextPointerSelection]);
 
   const handleAtomicBlockMouseDown = useCallback((blockId: string, event: React.MouseEvent<HTMLDivElement>) => {
     if (readOnly || event.button !== 0 || !shouldStartMessageEditorAtomicBlockSelection(event.target)) {
@@ -2067,11 +2071,11 @@ export default function MessageEditor({
 
     startTextPointerSelection(anchor, event, () => {
       clearCrossBlockSelection();
-      commitActiveBlock(blockId);
+      activateBlock(blockId);
     });
   }, [
+    activateBlock,
     clearCrossBlockSelection,
-    commitActiveBlock,
     readOnly,
     resolveTextSelectionPointFromClientPosition,
     startTextPointerSelection,
@@ -2105,22 +2109,20 @@ export default function MessageEditor({
     const shouldAppendOnClick = Boolean(target.closest("[data-me-editor-bottom-space]"));
     startTextPointerSelection(anchor, event, () => {
       if (!shouldAppendOnClick) {
-        focusTextPoint(anchor);
+        activateTextPoint(anchor);
         return;
       }
       const focus = controllerRef.current?.ensureTrailingTextBlock() ?? null;
       if (!focus) {
         return;
       }
-      commitActiveBlock(focus.blockId);
-      stageFocusRestore(focus);
+      applyFocusTarget(focus);
     });
   }, [
-    commitActiveBlock,
-    focusTextPoint,
+    activateTextPoint,
+    applyFocusTarget,
     readOnly,
     resolveTextSelectionPointFromClientPosition,
-    stageFocusRestore,
     startTextPointerSelection,
   ]);
 
@@ -2164,7 +2166,7 @@ export default function MessageEditor({
           return;
         }
 
-        commitActiveBlock(null);
+        activateBlock(null);
         setCrossBlockSelectionPreview(null);
         setCrossBlockSelection({
           position: {
@@ -2228,7 +2230,7 @@ export default function MessageEditor({
         const documentSelection = createMessageEditorDocumentSelection(messagesRef.current, registry);
         if (documentSelection && !documentSelection.collapsed) {
           event.preventDefault();
-          showDocumentTextSelection(documentSelection);
+          activateBlockSelection(documentSelection);
         }
         return;
       }
@@ -2262,13 +2264,13 @@ export default function MessageEditor({
         event.preventDefault();
         const direction = event.key === "ArrowLeft" ? -1 : 1;
         if (!event.shiftKey) {
-          focusTextPoint(direction < 0 ? selection.start : selection.end);
+          activateTextPoint(direction < 0 ? selection.start : selection.end);
           return;
         }
 
         const nextFocus = moveMessageEditorDocumentPointByCharacter(messagesRef.current, registry, selection.focus, direction);
         if (nextFocus) {
-          showDocumentTextSelection(createMessageEditorSelection(messagesRef.current, registry, selection.anchor, nextFocus));
+          activateBlockSelection(createMessageEditorSelection(messagesRef.current, registry, selection.anchor, nextFocus));
         }
         return;
       }
@@ -2277,13 +2279,13 @@ export default function MessageEditor({
         event.preventDefault();
         const direction = event.key === "ArrowUp" ? -1 : 1;
         if (!event.shiftKey) {
-          focusTextPoint(direction < 0 ? selection.start : selection.end);
+          activateTextPoint(direction < 0 ? selection.start : selection.end);
           return;
         }
 
         const nextFocus = getAdjacentMessageEditorDocumentBlockPoint(messagesRef.current, registry, selection.focus, direction, selection.focus.offset);
         if (nextFocus) {
-          showDocumentTextSelection(createMessageEditorSelection(messagesRef.current, registry, selection.anchor, nextFocus));
+          activateBlockSelection(createMessageEditorSelection(messagesRef.current, registry, selection.anchor, nextFocus));
         }
         return;
       }
@@ -2302,12 +2304,12 @@ export default function MessageEditor({
     clearCrossBlockSelection,
     copySelectionTextToClipboard,
     crossBlockSelection,
-    focusTextPoint,
+    activateTextPoint,
     handleUndoRedoShortcut,
     readOnly,
     registry,
     replaceDocumentSelectionText,
-    showDocumentTextSelection,
+    activateBlockSelection,
   ]);
 
   useEffect(() => {
@@ -2363,7 +2365,7 @@ export default function MessageEditor({
       const documentSelection = createMessageEditorDocumentSelection(messagesRef.current, registry);
       if (documentSelection && !documentSelection.collapsed) {
         event.preventDefault();
-        showDocumentTextSelection(documentSelection);
+        activateBlockSelection(documentSelection);
       }
       return;
     }
@@ -2487,7 +2489,7 @@ export default function MessageEditor({
           const nextFocus = moveMessageEditorDocumentPointByCharacter(messagesRef.current, registry, editorSelection.focus, direction);
           if (nextFocus) {
             event.preventDefault();
-            showDocumentTextSelection(createMessageEditorSelection(messagesRef.current, registry, editorSelection.anchor, nextFocus));
+            activateBlockSelection(createMessageEditorSelection(messagesRef.current, registry, editorSelection.anchor, nextFocus));
           }
         }
         return;
@@ -2507,7 +2509,7 @@ export default function MessageEditor({
           );
           if (adjacentPoint) {
             event.preventDefault();
-            focusTextPoint(adjacentPoint);
+            activateTextPoint(adjacentPoint);
           }
         }
       }
@@ -2523,7 +2525,7 @@ export default function MessageEditor({
         const nextFocus = getAdjacentMessageEditorDocumentBlockPoint(messagesRef.current, registry, editorSelection.focus, direction, editorSelection.focus.offset);
         if (nextFocus) {
           event.preventDefault();
-          showDocumentTextSelection(createMessageEditorSelection(messagesRef.current, registry, editorSelection.anchor, nextFocus));
+          activateBlockSelection(createMessageEditorSelection(messagesRef.current, registry, editorSelection.anchor, nextFocus));
         }
       }
       return;
@@ -2541,7 +2543,7 @@ export default function MessageEditor({
             }
           : null;
         if (focus) {
-          focusTextPoint({
+          activateTextPoint({
             blockId: focus.blockId,
             offset: focus.caret,
           });
@@ -2562,7 +2564,7 @@ export default function MessageEditor({
             }
           : null;
         if (focus) {
-          focusTextPoint({
+          activateTextPoint({
             blockId: focus.blockId,
             offset: focus.caret,
           });
@@ -2575,8 +2577,7 @@ export default function MessageEditor({
       event.preventDefault();
       const focus = controllerRef.current?.splitAtSelection(editorSelection);
       if (focus) {
-        commitActiveBlock(focus.blockId);
-        stageFocusRestore(focus);
+        applyFocusTarget(focus);
       }
       return;
     }
@@ -2585,8 +2586,7 @@ export default function MessageEditor({
       event.preventDefault();
       const focus = controllerRef.current?.mergeBackward(blockId);
       if (focus) {
-        commitActiveBlock(focus.blockId);
-        stageFocusRestore(focus);
+        applyFocusTarget(focus);
       }
       return;
     }
@@ -2595,27 +2595,25 @@ export default function MessageEditor({
       event.preventDefault();
       const focus = controllerRef.current?.mergeForward(blockId);
       if (focus) {
-        commitActiveBlock(focus.blockId);
-        stageFocusRestore(focus);
+        applyFocusTarget(focus);
       }
     }
   }, [
     activeSlashSelectionIndex,
     activeSpeakerSelectionIndex,
     activeSpeakerAvatarSelectionIndex,
+    activateTextPoint,
+    applyFocusTarget,
     clearSpeakerAvatarMenu,
-    commitActiveBlock,
-    focusTextPoint,
     handleSelectSlashItem,
     handleSelectSpeakerItem,
     handleSelectSpeakerAvatarItem,
     registry,
-    showDocumentTextSelection,
+    activateBlockSelection,
     slashMenuState,
     speakerAvatarMenuItems,
     speakerAvatarMenuState,
     speakerMenuState,
-    stageFocusRestore,
     setSpeakerAvatarSelectionIndex,
     setSpeakerAvatarSearchQuery,
   ]);
@@ -2806,12 +2804,11 @@ export default function MessageEditor({
     const focus = controllerRef.current?.removeBlock(blockId) ?? null;
     hideToolbar();
     if (focus) {
-      commitActiveBlock(focus.blockId);
-      stageFocusRestore(focus);
+      applyFocusTarget(focus);
       return;
     }
     clearActiveBlock();
-  }, [clearActiveBlock, commitActiveBlock, hideToolbar, stageFocusRestore]);
+  }, [applyFocusTarget, clearActiveBlock, hideToolbar]);
 
   const handleUploadAtomicBlock = useCallback(async (blockId: string, file: File) => {
     const controller = controllerRef.current;
@@ -2842,8 +2839,7 @@ export default function MessageEditor({
 
     clearCrossBlockSelection();
     hideToolbar();
-    commitActiveBlock(result.focus.blockId);
-    stageFocusRestore(result.focus);
+    applyFocusTarget(result.focus);
 
     void uploadMediaFileForKind(kind, file)
       .then((payload) => {
@@ -2852,7 +2848,7 @@ export default function MessageEditor({
       .catch((error) => {
         toast.error(error instanceof Error ? error.message : "媒体上传失败");
       });
-  }, [clearCrossBlockSelection, commitActiveBlock, hideToolbar, stageFocusRestore, uploadMediaFileForKind]);
+  }, [applyFocusTarget, clearCrossBlockSelection, hideToolbar, uploadMediaFileForKind]);
 
   const insertMediaFileAtPoint = useCallback((file: File, point: MessageEditorSelectionPoint) => {
     const selection = createMessageEditorSelection(messagesRef.current, registry, point, point);
@@ -3002,8 +2998,7 @@ export default function MessageEditor({
       const preferredOffset = selection && !selection.multiBlock && selection.focus.blockId === dragState.draggedBlockId
         ? selection.focus.offset
         : normalizeMessageEditorContent(draggedMessage.content).length;
-      commitActiveBlock(dragState.draggedBlockId);
-      stageFocusRestore({
+      applyFocusTarget({
         blockId: dragState.draggedBlockId,
         caret: preferredOffset,
       });
@@ -3013,7 +3008,7 @@ export default function MessageEditor({
     }
 
     setDragState(null);
-  }, [clearActiveBlock, commitActiveBlock, dragState, insertMediaFileAtPoint, registry, resolveEditorSelection, stageFocusRestore]);
+  }, [applyFocusTarget, clearActiveBlock, dragState, insertMediaFileAtPoint, registry, resolveEditorSelection]);
 
   const resolveFilePasteTargetBlockId = useCallback(() => {
     const currentMessages = messagesRef.current;
@@ -3061,7 +3056,7 @@ export default function MessageEditor({
       if (targetBlockId) {
         event.preventDefault();
         clearCrossBlockSelection();
-        commitActiveBlock(targetBlockId);
+        activateBlock(targetBlockId);
         void handleUploadAtomicBlock(targetBlockId, files[0]);
         return;
       }
@@ -3263,7 +3258,7 @@ export default function MessageEditor({
                           onFocus={(nextBlockId) => {
                             clearCrossBlockSelection();
                             setDismissedSlashKey(null);
-                            commitActiveBlock(nextBlockId);
+                            activateBlock(nextBlockId);
                           }}
                           onBlur={handleTextBlur}
                           onInput={handleTextInput}
@@ -3340,7 +3335,7 @@ export default function MessageEditor({
                           readOnly={readOnly}
                           onFocus={(nextBlockId) => {
                             clearCrossBlockSelection();
-                            commitActiveBlock(nextBlockId);
+                            activateBlock(nextBlockId);
                           }}
                           onUpdate={(nextBlockId, updater) => {
                             controllerRef.current?.updateBlock(nextBlockId, updater);
