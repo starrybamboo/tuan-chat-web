@@ -24,7 +24,7 @@ import { UploadUtils } from "@/utils/media/UploadUtils";
 
 import type { Message, UserRole } from "../../../api";
 import type { MessageEditorSlashMenuItem } from "./components/MessageEditorSlashMenu";
-import type { MessageEditorMessage } from "./messageEditorTypes";
+import type { MessageEditorMessage, MessageEditorSaveState, MessageEditorTcHeader } from "./messageEditorTypes";
 import type { MessageEditorSpeakerMenuItem } from "./model/messageEditorSpeaker";
 import type { MessageEditorSpeakerAvatarMenuItem } from "./model/messageEditorSpeakerAvatar";
 import type {
@@ -41,11 +41,24 @@ import type { MessageEditorSelection, MessageEditorSelectionPoint } from "./runt
 
 import { useGetRoleAvatarsQuery } from "../../../api/hooks/RoleAndAvatarHooks";
 import { MessageEditorAtomicBlock } from "./components/MessageEditorAtomicBlock";
+import { MessageEditorHeader } from "./components/MessageEditorHeader";
 import { MessageEditorSlashMenu } from "./components/MessageEditorSlashMenu";
 import { MessageEditorSpeakerAvatarMenu } from "./components/MessageEditorSpeakerAvatarMenu";
 import { MessageEditorSpeakerHeader } from "./components/MessageEditorSpeakerHeader";
 import { MessageEditorSpeakerMenu } from "./components/MessageEditorSpeakerMenu";
 import { MessageEditorTextBlock } from "./components/MessageEditorTextBlock";
+import {
+  MESSAGE_EDITOR_BLOCK_GUTTER_CLASS,
+  MESSAGE_EDITOR_COMMAND_MENU_LAYER_CLASS,
+  MESSAGE_EDITOR_CONTENT_WIDTH_CLASS,
+  MESSAGE_EDITOR_DEFAULT_FRAME_CLASS,
+  MESSAGE_EDITOR_POINTER_SCROLL_EDGE_PX,
+  MESSAGE_EDITOR_POINTER_SCROLL_MAX_DELTA_PX,
+  MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS,
+  MESSAGE_EDITOR_SPEAKER_HANDLE_CLASS,
+  MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS,
+  MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS,
+} from "./messageEditorLayout";
 import { createMessageEditorSnapshot, decodeMessageEditorMessages } from "./model/messageEditorCodec";
 import {
   buildMessageEditorSpeakerMenuItems,
@@ -107,19 +120,11 @@ type MessageEditorProps = {
   readOnly?: boolean;
   remotePatchSourceSurface?: MessageEditorRemotePatchSourceSurface;
   spaceId?: number;
-  tcHeader?: {
-    enabled?: boolean;
-    fallbackTitle?: string;
-    fallbackImageUrl?: string;
-    fallbackImageFileId?: number;
-    fallbackOriginalImageFileId?: number;
-    fallbackImageMediaType?: string;
-  };
+  tcHeader?: MessageEditorTcHeader;
   title?: string;
   workspaceId?: string;
 }
 
-type SaveState = "idle" | "saving" | "saved" | "error";
 type MessageEditorRemotePatchSourceSurface = "doc_view" | "message_editor";
 const ROOM_DOC_REMOTE_CHANGE_TOAST_ID = "room-doc-remote-change";
 
@@ -185,19 +190,6 @@ const MESSAGE_EDITOR_SLASH_ITEMS: MessageEditorSlashMenuItem[] = [
 
 const MESSAGE_EDITOR_LOCAL_SAVE_DELAY_MS = 500;
 const MESSAGE_EDITOR_REMOTE_SYNC_DELAY_MS = 10000;
-const MESSAGE_EDITOR_CONTENT_WIDTH_CLASS = "mx-auto w-full max-w-4xl";
-const MESSAGE_EDITOR_BLOCK_GUTTER_CLASS = "pl-6";
-const MESSAGE_EDITOR_SPEAKER_HANDLE_CLASS = [
-  "absolute z-30 inline-flex cursor-grab transition-opacity duration-150 active:cursor-grabbing",
-  "opacity-100",
-].join(" ");
-const MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS = "px-8 md:px-10";
-const MESSAGE_EDITOR_DEFAULT_FRAME_CLASS = "h-[80vh] min-h-0 rounded-md";
-const MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS = "relative min-h-0 flex-1 overflow-auto";
-const MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS = "mb-2";
-const MESSAGE_EDITOR_COMMAND_MENU_LAYER_CLASS = "absolute left-3 right-0 top-full z-50 mt-2";
-const MESSAGE_EDITOR_POINTER_SCROLL_EDGE_PX = 72;
-const MESSAGE_EDITOR_POINTER_SCROLL_MAX_DELTA_PX = 28;
 
 export function isMessageEditorImportablePasteText(text: string): boolean {
   return parseImportedChatText(text).messages.length > 0;
@@ -628,29 +620,6 @@ function MessageEditorDropIndicator({ position }: { position: "before" | "after"
   );
 }
 
-function getMessageEditorStatusLabel(options: {
-  readOnly: boolean;
-  ready: boolean;
-  saveState: SaveState;
-}) {
-  if (options.readOnly) {
-    return "只读";
-  }
-  if (!options.ready) {
-    return "载入中";
-  }
-  if (options.saveState === "saving") {
-    return "保存中";
-  }
-  if (options.saveState === "saved") {
-    return "已保存";
-  }
-  if (options.saveState === "error") {
-    return "未保存";
-  }
-  return "编辑中";
-}
-
 /**
  * 判断文档级点击是否应被视为编辑器外部点击。
  * 工具栏内部的 SVG / Path 等元素同样需要被识别为“内部”，否则会误触发清理逻辑。
@@ -774,8 +743,6 @@ export default function MessageEditor({
 
   // 文档身份、初始种子和持久化模式。
   const frameClassName = getMessageEditorFrameClassName(className);
-  const resolvedTitle = title?.trim() || tcHeader?.fallbackTitle?.trim() || "消息";
-  const resolvedCoverUrl = coverUrl || tcHeader?.fallbackImageUrl || "";
   const resolvedDocId = docId?.trim() || undefined;
   const resolvedSpaceId = typeof spaceId === "number" && Number.isFinite(spaceId) && spaceId > 0 ? spaceId : undefined;
   const resolvedWorkspaceId = workspaceId?.trim() || undefined;
@@ -824,7 +791,7 @@ export default function MessageEditor({
   const [speakerAvatarMenuState, setSpeakerAvatarMenuState] = useState<MessageEditorSpeakerAvatarMenuState | null>(null);
   const [speakerAvatarSelectionIndex, setSpeakerAvatarSelectionIndex] = useState(0);
   const [speakerAvatarSearchQuery, setSpeakerAvatarSearchQuery] = useState("");
-  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [saveState, setSaveState] = useState<MessageEditorSaveState>("idle");
   const [ready, setReady] = useState(!resolvedDocId || isRoomDocument);
   // 运行时单例和同步状态。
   const registry = useMemo(() => createMessageEditorRegistry(), []);
@@ -3117,12 +3084,6 @@ export default function MessageEditor({
       start: contentLength,
     };
   };
-  const statusLabel = getMessageEditorStatusLabel({
-    readOnly,
-    ready,
-    saveState,
-  });
-
   return (
     <div className={`
       ${frameClassName}
@@ -3157,46 +3118,15 @@ export default function MessageEditor({
             clearActiveBlock();
           }}
         >
-          {resolvedCoverUrl
-            ? (
-                <div className="
-                  h-40 w-full shrink-0 overflow-hidden border-b border-base-300
-                  bg-base-200
-                ">
-                  <img className="h-full w-full object-cover" src={resolvedCoverUrl} alt={resolvedTitle} />
-                </div>
-              )
-            : null}
-
-          <div className="border-b border-base-300 py-4">
-            <div className={`
-              ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS}
-              ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS}
-              flex items-center justify-between gap-4
-            `}>
-              <div className="min-w-0">
-                <div className="
-                  truncate text-lg font-semibold text-base-content
-                  md:text-xl
-                ">{resolvedTitle}</div>
-                {resolvedDocId
-                  ? (
-                      <div className="
-                        truncate font-mono text-xs text-base-content/50
-                      ">
-                        {resolvedDocId}
-                      </div>
-                    )
-                  : null}
-              </div>
-              <div className="
-                rounded-md border border-base-300 px-2 py-1 text-xs
-                text-base-content/55
-              ">
-                {statusLabel}
-              </div>
-            </div>
-          </div>
+          <MessageEditorHeader
+            coverUrl={coverUrl}
+            docId={docId}
+            readOnly={readOnly}
+            ready={ready}
+            saveState={saveState}
+            tcHeader={tcHeader}
+            title={title}
+          />
 
           {!ready && (
             <div className="
