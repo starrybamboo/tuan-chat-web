@@ -195,6 +195,9 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
 
                 <div className="relative ml-auto">
                   <button
+                    aria-expanded={showMenu}
+                    aria-haspopup="menu"
+                    aria-label={showMenu ? "关闭动态操作菜单" : "打开动态操作菜单"}
                     className="
                       text-base-content/50
                       hover:text-base-content/80
@@ -212,7 +215,7 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                       absolute right-0 top-full mt-1 bg-base-100 border
                       border-base-300 rounded-lg shadow-lg py-1 z-20
                       min-w-[120px]
-                    ">
+                    " role="menu" aria-label="动态操作菜单">
                       {loginUserId === userId
                         ? (
                             <button
@@ -222,6 +225,7 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                                 hover:bg-error/10
                                 transition-colors
                               "
+                              role="menuitem"
                               type="button"
                             >
                               删除动态
@@ -236,6 +240,7 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                                 hover:bg-base-200
                                 transition-colors
                               "
+                              role="menuitem"
                               type="button"
                             >
                               举报

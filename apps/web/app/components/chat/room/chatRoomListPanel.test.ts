@@ -29,6 +29,17 @@ describe("chatRoomListPanel layout guards", () => {
     ).toBe(true);
   });
 
+  it("有素材包但素材库折叠时不会启用上下分栏", () => {
+    expect(
+      shouldShowRoomSidebarSplitLayout({
+        canViewMaterialSection: true,
+        hasMaterialPackages: true,
+        isRoomDocSectionExpanded: true,
+        isMaterialSectionExpanded: false,
+      }),
+    ).toBe(false);
+  });
+
   it("空素材包展开时不会拉伸素材分区", () => {
     expect(
       shouldStretchRoomSidebarMaterialSection({

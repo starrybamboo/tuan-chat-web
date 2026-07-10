@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { produce } from "immer";
 import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
 
 import type { MediaAnnotationPreferenceType } from "@/components/chat/utils/mediaAnnotationPreference";
 
@@ -11,6 +11,7 @@ import { resolveTempAnnotationsForMedia } from "@/components/chat/utils/mediaAnn
 import { areAnnotationsEqual, normalizeAnnotations } from "@/types/messageAnnotations";
 
 import {
+
   buildQueuedFilesSummary,
   ensureMaterialComposerMediaPreferences,
   MATERIAL_COMPOSER_ROOM_ID,
@@ -238,13 +239,13 @@ export function MaterialComposerProvider({
 
     if (!hasFiles) {
       if (showEmptyToast) {
-        toast.error("未检测到可用文件");
+        appToast.error("未检测到可用文件");
       }
       return false;
     }
 
     if (genericFiles.length > 0) {
-      toast.error(
+      appToast.error(
         hasSupportedFiles
           ? `已忽略${genericFiles.length}个文件，当前仅支持图片、视频、音频`
           : "暂不支持发送文件",
@@ -271,7 +272,7 @@ export function MaterialComposerProvider({
       setAudioFile(audios[0]);
       applyMediaAnnotationPreference("audio");
       if (audios.length > 1) {
-        toast.error("仅支持添加 1 个音频，已取第一个");
+        appToast.error("仅支持添加 1 个音频，已取第一个");
       }
     }
 
@@ -283,7 +284,7 @@ export function MaterialComposerProvider({
 
     if (showSuccessToast) {
       const summaryParts = buildQueuedFilesSummary(queued);
-      toast.success(`已加入输入框：${summaryParts.join("、")}`);
+      appToast.success(`已加入输入框：${summaryParts.join("、")}`);
     }
 
     return true;

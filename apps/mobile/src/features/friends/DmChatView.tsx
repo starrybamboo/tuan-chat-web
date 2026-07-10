@@ -2,11 +2,11 @@ import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/Mess
 import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { buildDirectMessageSendRequestsFromUploadedMedia, DIRECT_MESSAGE_READ_LINE_TYPE, getDirectMessagePreviewText, mergeDirectMessages } from "@tuanchat/domain/direct-message";
+import { buildDirectMessageSendRequestsFromUploadedMedia, DIRECT_MESSAGE_READ_LINE_TYPE, findDirectReplyMessage, getDirectMessagePreviewText, mergeDirectMessages } from "@tuanchat/domain/direct-message";
 import { getFileMessageExtra, getImageMessageExtra, getSoundMessageExtra, getVideoMessageExtra } from "@tuanchat/domain/message-extra";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { getDirectInboxQueryKey } from "@tuanchat/query/direct-message";
-import { CaretLeft, Check, Checks, PaperPlaneTilt, Warning, X, XCircle } from "phosphor-react-native";
+import { CaretLeft, PaperPlaneTilt, Warning, X, XCircle } from "phosphor-react-native";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, FlatList, InteractionManager, Keyboard, StyleSheet, TextInput, View } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
@@ -21,6 +21,7 @@ import { Radius, Spacing } from "@/constants/theme";
 import { resolveBottomThresholdTransition } from "@/features/chat/messageListScrollState";
 import { DmMessageActionMenu } from "@/features/friends/DmMessageActionMenu";
 import { resolveInternalMessageMediaFileId } from "@/features/messages/messageMediaSource";
+import { resolveComposerInputHeight } from "@/features/messages/mobileComposerLayout";
 import { mergePickedMessageAttachments, MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobileMessageAttachments } from "@/features/messages/mobileMessageAttachment";
 import { uploadMobileMessageAttachments } from "@/features/messages/mobileMessageAttachmentUpload";
 import { MobileMessageMediaPreview } from "@/features/messages/MobileMessageMediaPreview";
@@ -35,6 +36,7 @@ import { getErrorMessage } from "../chat/mobileChatUtils";
 import { getVisibleDirectMessageTimeline, selectDirectMessagePage } from "./dmChatViewModel";
 import {
   isMobileFailedDirectMessage,
+  isMobileOptimisticDirectMessage,
   removeMobileLocalDirectMessageData,
 } from "./mobileDirectMessageOptimistic";
 import { useRecallDmMutation, useSendDmMutation, useUpdateDmReadPositionMutation } from "./useSendDmMutation";
@@ -47,6 +49,8 @@ const DM_LIST_MAINTAIN_VISIBLE_POSITION = { minIndexForVisible: 0 };
 const DM_KEYBOARD_LAYOUT_SETTLE_MS = 320;
 const DM_CHAT_VIEW_DEBUG_ENABLED = false;
 const DM_CHAT_VIEW_DEBUG_PREFIX = "[DmChatView]";
+const COMPOSER_INPUT_PADDING_TOP = 10;
+const COMPOSER_INPUT_PADDING_BOTTOM = Spacing.sm;
 const EMPTY_DIRECT_MESSAGES: MessageDirectResponse[] = [];
 
 const styles = StyleSheet.create({
@@ -99,11 +103,30 @@ const styles = StyleSheet.create({
     width: 28,
   },
   bubbleWrapper: { maxWidth: "78%" },
+  bubbleWrapperSending: {
+    opacity: 0.88,
+    transform: [{ translateY: 1 }, { scale: 0.995 }],
+  },
   bubble: {
     borderRadius: Radius.lg,
     minWidth: 84,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
+  },
+  bubbleReplyPreview: {
+    borderLeftWidth: 2,
+    borderRadius: Radius.sm,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  bubbleReplyTitle: {
+    fontSize: 11,
+    fontWeight: "700",
+    marginBottom: 1,
+  },
+  bubbleReplyText: {
+    fontSize: 12,
   },
   bubbleMedia: {
     borderRadius: Radius.lg,
@@ -124,12 +147,17 @@ const styles = StyleSheet.create({
   time: {
     fontSize: 11,
   },
-  statusIcon: {
-    marginLeft: 2,
-  },
-  failedAction: {
-    paddingHorizontal: Spacing.xs,
+  failedStatusPill: {
+    alignItems: "center",
+    borderRadius: Radius.full,
+    flexDirection: "row",
+    gap: 3,
+    paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
+  },
+  failedRemoveButton: {
+    marginLeft: 1,
+    padding: 2,
   },
   replyBar: {
     alignItems: "center",
@@ -184,7 +212,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
   },
   inputRow: {
-    alignItems: "center",
+    alignItems: "flex-end",
     flexDirection: "row",
     gap: Spacing.sm,
   },
@@ -198,8 +226,8 @@ const styles = StyleSheet.create({
     maxHeight: COMPOSER_MAX_HEIGHT,
     minHeight: COMPOSER_MIN_HEIGHT,
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
-    paddingTop: 10,
+    paddingBottom: COMPOSER_INPUT_PADDING_BOTTOM,
+    paddingTop: COMPOSER_INPUT_PADDING_TOP,
   },
   sendBtn: {
     alignItems: "center",
@@ -348,7 +376,7 @@ function getDirectMessageContent(message: MessageDirectResponse): DirectMessageR
   return { kind: "text", text: message.content?.trim() || getDirectMessagePreviewText(message) };
 }
 
-type MessageSendStatus = "sent" | "delivered" | "failed";
+type MessageSendStatus = "sending" | "failed";
 
 function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentUserId, messages, onBack, onOpenContactDrawer, safeAreaBottomInset = 0 }: DmChatViewProps) {
   const theme = useTheme();
@@ -698,7 +726,7 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
   }, [attachments, contactId, draft, replyMessage, sendMutation]);
 
   const handleComposerContentSizeChange = useCallback((event: { nativeEvent: { contentSize: { height: number } } }) => {
-    const nextHeight = Math.min(Math.max(event.nativeEvent.contentSize.height, COMPOSER_MIN_HEIGHT), COMPOSER_MAX_HEIGHT);
+    const nextHeight = resolveComposerInputHeight(event.nativeEvent.contentSize.height);
     setInputHeight(prev => (prev === nextHeight ? prev : nextHeight));
   }, []);
 
@@ -794,7 +822,9 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
     const msgId = message.messageId;
     if (typeof msgId === "number" && failedMessageIds.has(msgId))
       return "failed";
-    return "sent";
+    if (isMobileOptimisticDirectMessage(message))
+      return "sending";
+    return null;
   }, [currentUserId, failedMessageIds]);
 
   const hasSendContent = draft.trim().length > 0 || attachments.length > 0;
@@ -805,6 +835,8 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
     const isMine = item.senderId === currentUserId;
     const content = getDirectMessageContent(item);
     const status = getMessageStatus(item);
+    const replyTarget = findDirectReplyMessage(visibleTimelineMessages, item.replyMessageId);
+    const showReplyPreview = item.status !== 1 && typeof item.replyMessageId === "number" && item.replyMessageId > 0;
 
     const showDateSeparator = index === invertedMessages.length - 1 || !isSameDay(item.createTime, invertedMessages[index + 1]?.createTime);
 
@@ -842,7 +874,7 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
                 </Pressable>
               )
             : null}
-          <View style={styles.bubbleWrapper}>
+          <View style={[styles.bubbleWrapper, status === "sending" && styles.bubbleWrapperSending]}>
             <Pressable
               onLongPress={item.status !== 1
                 ? () => {
@@ -859,6 +891,39 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
                 },
               ]}
             >
+              {showReplyPreview
+                ? (
+                    <View
+                      style={[
+                        styles.bubbleReplyPreview,
+                        {
+                          backgroundColor: isMine ? "rgba(255,255,255,0.16)" : theme.surface,
+                          borderLeftColor: isMine ? "rgba(255,255,255,0.7)" : theme.accent,
+                        },
+                      ]}
+                    >
+                      <ThemedText
+                        numberOfLines={1}
+                        style={[
+                          styles.bubbleReplyTitle,
+                          { color: isMine ? "rgba(255,255,255,0.82)" : theme.textSecondary },
+                        ]}
+                      >
+                        回复
+                        {replyTarget?.senderUsername ? ` ${replyTarget.senderUsername}` : ""}
+                      </ThemedText>
+                      <ThemedText
+                        numberOfLines={1}
+                        style={[
+                          styles.bubbleReplyText,
+                          { color: isMine ? "rgba(255,255,255,0.82)" : theme.textSecondary },
+                        ]}
+                      >
+                        {replyTarget ? getDirectMessagePreviewText(replyTarget) : "[原消息不可见]"}
+                      </ThemedText>
+                    </View>
+                  )
+                : null}
               {content.kind === "media"
                 ? (
                     <MobileMessageMediaPreview
@@ -879,39 +944,29 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
               <ThemedText themeColor="textSecondary" style={styles.time}>
                 {formatMessageTimeLabel(item.createTime)}
               </ThemedText>
-              {isMine && status
+              {isMine && status === "failed"
                 ? (
-                    <View style={styles.statusIcon}>
-                      {status === "failed"
-                        ? (
-                            <>
-                              <Warning size={12} color={theme.danger} weight="fill" />
-                              <Pressable
-                                accessibilityLabel="重试发送私聊消息"
-                                accessibilityRole="button"
-                                onPress={() => void handleRetryFailedMessage(item)}
-                                style={styles.failedAction}
-                              >
-                                <ThemedText style={{ color: theme.danger, fontSize: 11 }}>重试</ThemedText>
-                              </Pressable>
-                              <Pressable
-                                accessibilityLabel="删除失败私聊消息"
-                                accessibilityRole="button"
-                                onPress={() => handleRemoveFailedMessage(item)}
-                                style={styles.failedAction}
-                              >
-                                <ThemedText themeColor="textSecondary" style={{ fontSize: 11 }}>删除</ThemedText>
-                              </Pressable>
-                            </>
-                          )
-                        : status === "delivered"
-                          ? (
-                              <Checks size={12} color={theme.accent} />
-                            )
-                          : (
-                              <Check size={12} color={theme.textSecondary} />
-                            )}
-                    </View>
+                    <>
+                      <Pressable
+                        accessibilityLabel="重试发送私聊消息"
+                        accessibilityRole="button"
+                        hitSlop={6}
+                        onPress={() => void handleRetryFailedMessage(item)}
+                        style={[styles.failedStatusPill, { backgroundColor: theme.dangerMuted ?? "rgba(220, 38, 38, 0.12)" }]}
+                      >
+                        <Warning size={11} color={theme.danger} weight="fill" />
+                        <ThemedText style={{ color: theme.danger, fontSize: 11, fontWeight: "600" }}>发送失败</ThemedText>
+                      </Pressable>
+                      <Pressable
+                        accessibilityLabel="删除失败私聊消息"
+                        accessibilityRole="button"
+                        hitSlop={8}
+                        onPress={() => handleRemoveFailedMessage(item)}
+                        style={styles.failedRemoveButton}
+                      >
+                        <XCircle size={13} color={theme.textSecondary} weight="fill" />
+                      </Pressable>
+                    </>
                   )
                 : null}
             </View>
@@ -919,7 +974,7 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
         </View>
       </View>
     );
-  }, [currentUserId, theme, contactAvatarUrl, contactName, getMessageStatus, handleRemoveFailedMessage, handleRetryFailedMessage, invertedMessages, onOpenContactDrawer]);
+  }, [currentUserId, theme, contactAvatarUrl, contactName, getMessageStatus, handleRemoveFailedMessage, handleRetryFailedMessage, invertedMessages, onOpenContactDrawer, visibleTimelineMessages]);
 
   const handleScrollToBottom = useCallback(() => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -1022,6 +1077,8 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
               {!isAtBottom && paginatedMessages.length > 0
                 ? (
                     <Pressable
+                      accessibilityLabel="跳到最新消息"
+                      accessibilityRole="button"
                       onPress={handleScrollToBottom}
                       style={[styles.newMessagesPill, { backgroundColor: theme.accent }]}
                     >
@@ -1049,7 +1106,12 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
                           {" "}
                           {getDirectMessagePreviewText(replyMessage)}
                         </ThemedText>
-                        <Pressable onPress={() => setReplyMessage(null)} accessibilityLabel="取消回复">
+                        <Pressable
+                          accessibilityLabel="取消回复"
+                          accessibilityRole="button"
+                          hitSlop={8}
+                          onPress={() => setReplyMessage(null)}
+                        >
                           <X size={14} color={theme.textSecondary} />
                         </Pressable>
                       </View>
@@ -1062,12 +1124,23 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
                         {attachments.map(attachment => (
                           <View key={attachment.id} style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}>
                             <ThemedText type="caption" numberOfLines={1}>{attachment.fileName}</ThemedText>
-                            <Pressable onPress={() => setAttachments(current => current.filter(item => item.id !== attachment.id))}>
+                            <Pressable
+                              accessibilityLabel={`移除附件 ${attachment.fileName}`}
+                              accessibilityRole="button"
+                              hitSlop={8}
+                              onPress={() => setAttachments(current => current.filter(item => item.id !== attachment.id))}
+                            >
                               <XCircle size={14} color={theme.textSecondary} weight="fill" />
                             </Pressable>
                           </View>
                         ))}
-                        <Pressable onPress={() => setAttachments([])} style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}>
+                        <Pressable
+                          accessibilityLabel="清空附件"
+                          accessibilityRole="button"
+                          hitSlop={8}
+                          onPress={() => setAttachments([])}
+                          style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}
+                        >
                           <ThemedText type="caption" style={{ color: theme.danger }}>清空</ThemedText>
                         </Pressable>
                       </View>
@@ -1081,7 +1154,12 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
                         <ThemedText style={{ color: theme.danger, fontSize: 12, flex: 1 }}>
                           {errorMessage}
                         </ThemedText>
-                        <Pressable onPress={() => setErrorMessage(null)}>
+                        <Pressable
+                          accessibilityLabel="关闭错误提示"
+                          accessibilityRole="button"
+                          hitSlop={8}
+                          onPress={() => setErrorMessage(null)}
+                        >
                           <X size={12} color={theme.danger} />
                         </Pressable>
                       </View>
@@ -1125,6 +1203,7 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
                       style={styles.sendBtn}
                       accessibilityLabel="发送消息"
                       accessibilityRole="button"
+                      accessibilityState={{ disabled: !canSend }}
                     >
                       <PaperPlaneTilt size={24} color={hasSendContent ? theme.accent : theme.textSecondary} weight="fill" />
                     </Pressable>

@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     minWidth: 0,
   },
-  listButton: {
+  listIcon: {
     alignItems: "center",
     height: 36,
     justifyContent: "center",
@@ -57,6 +57,15 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
+  },
+  sheetContent: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+  },
+  ruleList: {
+    flex: 1,
+    minHeight: 180,
   },
   pickerItem: {
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -103,6 +112,9 @@ export function RuleSection({ selectedRuleId, onRuleChange }: RuleSectionProps) 
     const isSelected = item.ruleId === normalizedRuleId;
     return (
       <Pressable
+        accessibilityLabel={`选择规则 ${item.ruleName ?? "未命名规则"}${isSelected ? "，当前已选中" : ""}`}
+        accessibilityRole="button"
+        accessibilityState={{ selected: isSelected }}
         onPress={() => handleSelectFromPicker(item)}
         style={[styles.pickerItem, { borderBottomColor: theme.border }]}
       >
@@ -123,42 +135,44 @@ export function RuleSection({ selectedRuleId, onRuleChange }: RuleSectionProps) 
 
   return (
     <View style={styles.section}>
-      <View style={styles.summaryRow}>
+      <Pressable
+        accessibilityLabel="浏览规则"
+        accessibilityRole="button"
+        hitSlop={8}
+        onPress={() => setSheetVisible(true)}
+        style={styles.summaryRow}
+      >
         <View style={styles.summaryTextRow}>
           <View style={styles.summaryTitleRow}>
             <GearSix size={19} color={theme.text} weight="bold" />
             <ThemedText type="heading">规则系统：</ThemedText>
           </View>
-          <Pressable
-            accessibilityLabel="浏览规则"
-            accessibilityRole="button"
-            hitSlop={8}
-            onPress={() => setSheetVisible(true)}
-            style={styles.ruleNameButton}
-          >
+          <View style={styles.ruleNameButton}>
             <ThemedText type="heading" themeColor="textSecondary" numberOfLines={1}>
               {selectedRuleName}
             </ThemedText>
-          </Pressable>
+          </View>
         </View>
-        <Pressable
-          accessibilityLabel="浏览全部规则"
-          accessibilityRole="button"
-          hitSlop={8}
-          onPress={() => setSheetVisible(true)}
-          style={styles.listButton}
-        >
+        <View style={styles.listIcon}>
           <List size={24} color={theme.accent} weight="bold" />
-        </Pressable>
-      </View>
+        </View>
+      </Pressable>
 
       <View style={[styles.sectionDivider, { backgroundColor: theme.border }]} />
 
-      <BottomSheetModal visible={sheetVisible} onClose={() => setSheetVisible(false)} maxHeight="70%" backgroundColor={theme.backgroundElement} handleColor={theme.border}>
-        <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, flex: 1 }}>
+      <BottomSheetModal
+        visible={sheetVisible}
+        onClose={() => setSheetVisible(false)}
+        maxHeight="70%"
+        backgroundColor={theme.backgroundElement}
+        handleColor={theme.border}
+        sheetStyle={{ height: "70%" }}
+      >
+        <View style={styles.sheetContent}>
           <ThemedText type="heading" style={{ marginBottom: Spacing.md }}>浏览规则</ThemedText>
 
           <TextInput
+            accessibilityLabel="搜索规则"
             style={[styles.searchInput, { backgroundColor: theme.background, color: theme.text }]}
             placeholder="搜索规则..."
             placeholderTextColor={theme.textSecondary}
@@ -174,13 +188,24 @@ export function RuleSection({ selectedRuleId, onRuleChange }: RuleSectionProps) 
                 <FlatList
                   data={rulePageQuery.data}
                   keyExtractor={item => String(item.ruleId)}
+                  ListEmptyComponent={(
+                    <ThemedText type="small" themeColor="textSecondary" style={{ paddingVertical: Spacing.xl }}>
+                      没有找到规则
+                    </ThemedText>
+                  )}
                   renderItem={renderPickerItem}
-                  style={{ flex: 1 }}
+                  style={styles.ruleList}
                 />
               )}
 
           <View style={styles.paginationRow}>
-            <Pressable onPress={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>
+            <Pressable
+              accessibilityLabel="上一页规则"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: page <= 1 }}
+              onPress={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page <= 1}
+            >
               <ThemedText themeColor={page <= 1 ? "textSecondary" : "accent"} type="small">上一页</ThemedText>
             </Pressable>
             <ThemedText themeColor="textSecondary" type="caption">
@@ -189,7 +214,13 @@ export function RuleSection({ selectedRuleId, onRuleChange }: RuleSectionProps) 
               {" "}
               页
             </ThemedText>
-            <Pressable onPress={() => setPage(p => p + 1)} disabled={rulePageQuery.meta?.isLast === true}>
+            <Pressable
+              accessibilityLabel="下一页规则"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: rulePageQuery.meta?.isLast === true }}
+              onPress={() => setPage(p => p + 1)}
+              disabled={rulePageQuery.meta?.isLast === true}
+            >
               <ThemedText themeColor={rulePageQuery.meta?.isLast ? "textSecondary" : "accent"} type="small">下一页</ThemedText>
             </Pressable>
           </View>

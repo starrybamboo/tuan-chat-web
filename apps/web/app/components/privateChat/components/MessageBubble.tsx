@@ -1,3 +1,5 @@
+import { getDirectMessagePreviewText } from "@tuanchat/domain/direct-message";
+
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import BetterImg from "@/components/common/betterImg";
 import { UserAvatarByUser } from "@/components/common/userAccess";
@@ -7,6 +9,7 @@ import type { MessageDirectResponse } from "../../../../api";
 
 type MessageBubbleProps = {
   message: MessageDirectResponse; // 消息内容
+  replyMessage?: MessageDirectResponse | null;
   isOwn: boolean; // 是否是自己的消息
   groupedWithPrevious?: boolean;
 }
@@ -51,11 +54,24 @@ function MessageAvatar({ name, fileId }: { name?: string; fileId?: number }) {
   );
 }
 
-export default function MessageBubble({ message, isOwn, groupedWithPrevious = false }: MessageBubbleProps) {
+export default function MessageBubble({ message, replyMessage = null, isOwn, groupedWithPrevious = false }: MessageBubbleProps) {
   const messageTimeLabel = formatMessageTimeLabel(message.createTime || null);
+  const isRecalled = message.status === 1;
+  const showReplyPreview = !isRecalled && typeof message.replyMessageId === "number" && message.replyMessageId > 0;
 
   // 渲染消息内容（文本/图片/视频）
   const renderMessageContent = () => {
+    if (isRecalled) {
+      return (
+        <div
+          className="text-base-content/55 italic"
+          data-message-id={message.messageId}
+        >
+          此消息已被撤回
+        </div>
+      );
+    }
+
     if (message.messageType === 2) {
       const imgData = getImageMessageExtra(message.extra);
       return (
@@ -98,7 +114,8 @@ export default function MessageBubble({ message, isOwn, groupedWithPrevious = fa
     );
   };
 
-  const isMediaMessage = message.messageType === 2 || message.messageType === 14;
+  const isMediaMessage = !isRecalled && (message.messageType === 2 || message.messageType === 14);
+  const shouldUseOwnReplyPreviewTone = isOwn && !isMediaMessage;
 
   const getMessageBubbleClass = () => {
     const baseClass = "max-w-full rounded-2xl text-sm leading-6";
@@ -140,6 +157,23 @@ export default function MessageBubble({ message, isOwn, groupedWithPrevious = fa
           data-message-id={message.messageId}
           data-private-message-menu-anchor="true"
         >
+          {showReplyPreview && (
+            <div className={[
+              "mb-1.5 rounded-md border-l-2 px-2 py-1 text-xs leading-5",
+              shouldUseOwnReplyPreviewTone
+                ? "border-white/60 bg-white/15 text-white/80"
+                : "border-base-content/25 bg-base-100/60 text-base-content/65",
+            ].join(" ")}
+            >
+              <div className="truncate font-medium">
+                回复
+                {replyMessage?.senderUsername ? ` ${replyMessage.senderUsername}` : ""}
+              </div>
+              <div className="truncate">
+                {replyMessage ? getDirectMessagePreviewText(replyMessage) : "[原消息不可见]"}
+              </div>
+            </div>
+          )}
           {renderMessageContent()}
         </div>
         {messageTimeLabel && (

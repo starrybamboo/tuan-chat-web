@@ -21,4 +21,3 @@ export type ApiResultMessage = {
     errMsg?: string;
     data?: Message;
 };
-

@@ -54,6 +54,8 @@ export default function NotificationList({
             hover:border-info/35 hover:bg-base-200
             disabled:cursor-wait disabled:opacity-70
           "
+          aria-busy={busyNotificationId === item.notificationId}
+          aria-label={`${item.isRead ? "已读通知" : "未读通知"}：${item.title}，${item.content}`}
           disabled={busyNotificationId === item.notificationId}
           onClick={() => void onItemClick(item)}
           {...listItemMotionProps(index, { direction: "left", distance: 20, duration: 0.25, staggerDelay: 0.04 })}

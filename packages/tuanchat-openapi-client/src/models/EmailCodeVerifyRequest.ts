@@ -19,4 +19,3 @@ export type EmailCodeVerifyRequest = {
      */
     purpose: string;
 };
-

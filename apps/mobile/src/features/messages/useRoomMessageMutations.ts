@@ -3,7 +3,6 @@ import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
-import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
 import {
   restoreRoomMessageInList,
   restoreRoomMessagesInList,
@@ -20,6 +19,7 @@ import {
 } from "./mobileRoomMessageCache";
 import { resolveRoomMessageSnapshots } from "./roomMessageMutationSnapshots";
 import { extractRoomMessagesFromQueryData, updateRoomMessagesQueryData } from "./roomMessagesQueryData";
+import { getRoomMessagesQueryKey } from "./roomMessagesQueryKey";
 
 function createMessageSnapshot(message: Message): ChatMessageResponse {
   return { message };
@@ -53,7 +53,7 @@ export function useEditRoomMessageMutation(roomId: number | null) {
       throw new Error("消息 ID 无效。");
     }
 
-    const queryKey = getAllRoomMessagesQueryKey(resolvedRoomId);
+    const queryKey = getRoomMessagesQueryKey(resolvedRoomId);
     const currentMessages = extractRoomMessagesFromQueryData(
       queryClient.getQueryData<RoomMessagesQueryData>(queryKey),
     );
@@ -103,7 +103,7 @@ export function useDeleteRoomMessageMutation(roomId: number | null) {
       throw new Error("请先选择一个房间。");
     }
 
-    const queryKey = getAllRoomMessagesQueryKey(resolvedRoomId);
+    const queryKey = getRoomMessagesQueryKey(resolvedRoomId);
     const currentMessages = extractRoomMessagesFromQueryData(
       queryClient.getQueryData<RoomMessagesQueryData>(queryKey),
     );
@@ -158,7 +158,7 @@ export function useDeleteRoomMessageMutation(roomId: number | null) {
     if (messageIds.length === 0)
       return;
 
-    const queryKey = getAllRoomMessagesQueryKey(resolvedRoomId);
+    const queryKey = getRoomMessagesQueryKey(resolvedRoomId);
     const currentMessages = extractRoomMessagesFromQueryData(queryClient.getQueryData(queryKey));
     let snapshots = resolveRoomMessageSnapshots({
       messageIds,

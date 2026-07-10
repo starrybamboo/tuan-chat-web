@@ -21,6 +21,7 @@ import {
   resolveActiveRoleAvatarVariantId,
   ROLE_AVATAR_UNGROUPED_VARIANT_ID,
 } from "./roleAvatarVariantGroups";
+import { isRoleSwitchNarratorSelected } from "./roleSwitchSelectionState";
 import { useRoleAvatarsQuery } from "./useRoleAvatarsQuery";
 
 const AVATAR_SIZE = 36;
@@ -254,7 +255,7 @@ export function RoleSwitchSheet({
   const avatarGridImageSize = Math.max(0, avatarGridItemSize - 6);
 
   const myRoles = roles.filter(r => r.state !== 1);
-  const isNarrator = currentRoleId === undefined || currentRoleId === -1;
+  const isNarrator = isRoleSwitchNarratorSelected(currentRoleId);
 
   const activeExpandedRoleId = expandedRoleId ?? (currentRoleId && currentRoleId > 0 ? currentRoleId : null);
   const roleAvatarsQuery = useRoleAvatarsQuery(activeExpandedRoleId);
@@ -340,10 +341,9 @@ export function RoleSwitchSheet({
     }
     else {
       onSelectRole(roleId);
-      onSelectAvatar(undefined, undefined);
       setExpandedRoleId(roleId);
     }
-  }, [currentRoleId, onSelectAvatar, onSelectRole]);
+  }, [currentRoleId, onSelectRole]);
 
   const handleClose = useCallback(() => {
     setSheetMode("select");
@@ -358,9 +358,8 @@ export function RoleSwitchSheet({
 
   const handleSelectNarrator = useCallback(() => {
     onSelectRole(undefined);
-    onSelectAvatar(undefined, undefined);
     handleClose();
-  }, [handleClose, onSelectAvatar, onSelectRole]);
+  }, [handleClose, onSelectRole]);
 
   const handleOpenAddMode = useCallback(() => {
     setExpandedRoleId(null);
@@ -496,7 +495,13 @@ export function RoleSwitchSheet({
                   <CaretLeft size={15} color={theme.textSecondary} weight="bold" />
                   <ThemedText type="caption" themeColor="textSecondary">立绘组</ThemedText>
                 </Pressable>
-                <ThemedText type="caption" numberOfLines={1} style={styles.avatarVariantTitle}>
+                <ThemedText
+                  type="caption"
+                  numberOfLines={1}
+                  style={styles.avatarVariantTitle}
+                  accessibilityLabel={activeAvatarVariantGroup?.label ?? "未命名立绘组"}
+                  accessibilityState={{ selected: true }}
+                >
                   {activeAvatarVariantGroup?.label ?? "未命名立绘组"}
                 </ThemedText>
               </View>
@@ -708,6 +713,7 @@ export function RoleSwitchSheet({
       {sheetMode === "select" && onChangeCustomRoleName != null
         ? (
             <TextInput
+              accessibilityLabel="自定义发言角色名"
               onChangeText={onChangeCustomRoleName}
               placeholder="自定义角色名（可选）"
               placeholderTextColor={theme.textSecondary}

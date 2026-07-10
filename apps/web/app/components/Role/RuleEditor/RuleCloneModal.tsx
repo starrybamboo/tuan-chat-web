@@ -1,10 +1,10 @@
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
 
 import { useDebounce } from "ahooks";
-import { useEffect, useMemo, useState } from "react";
-
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
+import { useEffect, useMemo, useRef, useState } from "react";
 
+import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
 import RulesSection from "../rules/RulesSection";
 
 export default function RuleCloneModal({
@@ -17,6 +17,7 @@ export default function RuleCloneModal({
   onConfirm: (rule: Rule) => void;
 }) {
   const [selectedRuleId, setSelectedRuleId] = useState(0);
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -34,6 +35,12 @@ export default function RuleCloneModal({
   const hasValidRule = ruleQuery.isSuccess && !!ruleQuery.data;
 
   const confirmDisabled = debouncedRuleId <= 0 || !hasValidRule || isRequestingName;
+
+  useEscapeToClose({
+    enabled: isOpen,
+    onClose,
+    containerRef: dialogRef,
+  });
 
   const statusNode = useMemo(() => {
     if (debouncedRuleId <= 0) {
@@ -65,16 +72,24 @@ export default function RuleCloneModal({
     return null;
 
   return (
-    <dialog className={`
+    <dialog
+      ref={dialogRef}
+      data-modal-layer="true"
+      role="dialog"
+      aria-modal="true"
+      aria-label="导入规则"
+      className={`
       modal
       ${isOpen ? "modal-open" : ""}
-    `}>
+    `}
+    >
       <div className="modal-box max-w-lg">
         <form method="dialog">
           <button
             type="button"
             className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
             onClick={onClose}
+            aria-label="关闭克隆规则弹窗"
           >
             ✕
           </button>
@@ -95,7 +110,7 @@ export default function RuleCloneModal({
         </div>
 
         <div className="modal-action justify-between w-full items-center">
-          <div className="min-h-6 text-sm flex items-center">{statusNode}</div>
+          <div className="min-h-6 text-sm flex items-center" role="status">{statusNode}</div>
           <div className="flex items-center gap-2">
             <button type="button" className="btn btn-ghost" onClick={onClose}>
               取消
@@ -104,6 +119,7 @@ export default function RuleCloneModal({
               type="button"
               className="btn btn-primary"
               disabled={confirmDisabled}
+              title={confirmDisabled ? "请选择要导入的规则" : "导入所选规则并覆盖当前编辑内容"}
               onClick={() => {
                 if (!ruleQuery.data)
                   return;

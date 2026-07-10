@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { toast } from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { ANNOTATION_IDS, getSceneEffectAnnotationId } from "@/types/messageAnnotations";
 
@@ -74,7 +74,7 @@ export default function useRoomEffectsController({
     if (!createdMessage) {
       return;
     }
-    toast.success("已清除背景");
+    appToast.success("已清除背景");
   }, [roomId, sendMessageWithInsert]);
 
   const handleClearFigure = useCallback(async () => {
@@ -93,7 +93,7 @@ export default function useRoomEffectsController({
     if (isRealtimeRenderActive) {
       clearRealtimeFigure();
     }
-    toast.success("已清除立绘");
+    appToast.success("已清除立绘");
   }, [clearRealtimeFigure, isRealtimeRenderActive, roomId, sendMessageWithInsert]);
 
   const handleStopBgmForAll = useCallback(async () => {
@@ -108,7 +108,7 @@ export default function useRoomEffectsController({
     if (!createdMessage) {
       return;
     }
-    toast.success("已发送停止全员BGM");
+    appToast.success("已发送停止全员BGM");
   }, [roomId, sendMessageWithInsert]);
 
   return {

@@ -27,10 +27,6 @@ function resolvePatchMutationMeta(mutationMeta?: RoomMessageMutationMeta): RoomM
   return mutationMeta ?? DEFAULT_PATCH_MUTATION_META;
 }
 
-export function getAllRoomMessagesQueryKey(roomId: number) {
-  return ["getHistoryMessages", roomId, 0] as const;
-}
-
 export function useSendMessageMutation(client: ChatClient, roomId: number) {
   return useMutation({
     mutationFn: (req: ChatMessageRequest) => client.chatController.sendMessage1(req),

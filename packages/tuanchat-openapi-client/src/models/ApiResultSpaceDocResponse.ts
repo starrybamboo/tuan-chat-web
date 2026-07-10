@@ -21,4 +21,3 @@ export type ApiResultSpaceDocResponse = {
     errMsg?: string;
     data?: SpaceDocResponse;
 };
-

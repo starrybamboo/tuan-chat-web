@@ -121,7 +121,7 @@ export default function ChatItem({
     <div className="relative group w-full">
       <button
         className={[
-          "flex flex-row flex-nowrap items-center w-full h-14 px-2 gap-3 rounded-lg transition-colors duration-150 cursor-pointer",
+          "flex flex-row flex-nowrap items-center w-full h-14 px-2 gap-3 rounded-lg transition-colors duration-150 motion-reduce:transition-none cursor-pointer",
           currentContactUserId === id
             ? "bg-base-200 dark:bg-base-300/40"
             : "hover:bg-base-200/60 dark:hover:bg-base-300/20",
@@ -131,6 +131,7 @@ export default function ChatItem({
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
         onClick={handleClick}
+        aria-label={`打开与 ${displayName} 的私聊${lastMessage ? `，最后消息：${getMessagePreview(lastMessage)}` : ""}${showedUnreadMessageNumber > 0 ? `，${showedUnreadMessageNumber > 99 ? "99 条以上" : showedUnreadMessageNumber} 条未读` : ""}${currentContactUserId === id ? "，当前已选中" : ""}`}
       >
         <div className="
           w-9 h-9 flex-shrink-0 text-xs font-semibold text-base-content/60

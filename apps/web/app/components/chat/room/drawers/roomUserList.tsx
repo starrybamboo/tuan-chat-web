@@ -1,6 +1,6 @@
 import { AddressBookIcon, UsersIcon } from "@phosphor-icons/react";
 import { lazy, Suspense, use, useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -52,7 +52,7 @@ export default function RoomUserList({ type}: { type: string }) {
     }, {
       onSettled: () => {
         setIsMemberHandleOpen(false);
-        toast("添加成员成功");
+        appToast.info("添加成员成功");
       },
     });
   }
@@ -78,7 +78,7 @@ export default function RoomUserList({ type}: { type: string }) {
       { roomId, roleIdList: [roleId] },
       {
         onSettled: () => {
-          toast("添加角色成功");
+          appToast.info("添加角色成功");
         },
       },
     );
@@ -89,7 +89,7 @@ export default function RoomUserList({ type}: { type: string }) {
       { roomId, roleIdList: [roleId] },
       {
         onSettled: () => {
-          toast("添加NPC成功");
+          appToast.info("添加NPC成功");
         },
       },
     );

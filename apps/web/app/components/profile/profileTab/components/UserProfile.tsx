@@ -76,6 +76,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                           value={editingUsername}
                           onChange={e => setEditingUsername(e.target.value)}
                           onKeyDown={(e) => {
+                            if (e.nativeEvent.isComposing)
+                              return;
                             if (e.key === "Enter")
                               saveProfile();
                             if (e.key === "Escape")
@@ -94,7 +96,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                       </div>
                     )
                   : (
-                      <h2 className="font-bold truncate text-2xl">
+                      <h2 className="font-bold truncate text-2xl" title={user?.username ?? "未知用户"}>
                         {user?.username
                           ? (
                               <>
@@ -127,6 +129,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                         value={editingUsername}
                         onChange={e => setEditingUsername(e.target.value)}
                         onKeyDown={(e) => {
+                          if (e.nativeEvent.isComposing)
+                            return;
                           if (e.key === "Enter")
                             saveProfile();
                           if (e.key === "Escape")
@@ -149,10 +153,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     </div>
                   )
                 : (
-                    <h2 className={`
+                    <h2
+                      className={`
                       font-bold truncate
                       ${isMobile ? "text-lg" : `text-2xl`}
-                    `}>
+                    `}
+                      title={user?.username ?? "未知用户"}
+                    >
                       {user?.username
                         ? (
                             <>
@@ -187,6 +194,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                   value={editingDescription}
                   onChange={e => setEditingDescription(e.target.value)}
                   onKeyDown={(e) => {
+                    if (e.nativeEvent.isComposing)
+                      return;
                     if (e.key === "Escape")
                       cancelEditingProfile();
                     if (e.key === "Enter" && e.ctrlKey)
@@ -220,6 +229,18 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                         type="button"
                         onClick={saveProfile}
                         className="btn btn-sm btn-success"
+                        aria-busy={isSaving}
+                        title={
+                          isSaving
+                            ? "正在保存个人资料"
+                            : !editingUsername.trim()
+                              ? "请输入用户名"
+                              : editingUsername.length > 30
+                                ? "用户名最多 30 个字符"
+                                : editingDescription.length > 253
+                                  ? "个人描述最多 253 个字符"
+                                  : "保存个人资料"
+                        }
                         disabled={
                           !editingUsername.trim()
                           || editingUsername.length > 30
@@ -246,6 +267,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 <div
                   className={`
                     wrap-break-word transition-all duration-300 ease-in-out
+                    motion-reduce:transition-none
                     ${
                     isMobile
                       ? `
@@ -292,6 +314,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                       <svg
                         className={`
                           w-3 h-3 transition-transform duration-300
+                          motion-reduce:transition-none
                           ${
                           isExpanded ? "rotate-180" : ""
                         }

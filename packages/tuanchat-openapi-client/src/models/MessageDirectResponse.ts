@@ -73,4 +73,3 @@ export type MessageDirectResponse = {
      */
     createTime?: string;
 };
-

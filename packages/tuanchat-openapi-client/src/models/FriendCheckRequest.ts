@@ -11,4 +11,3 @@ export type FriendCheckRequest = {
      */
     targetUserId: number;
 };
-

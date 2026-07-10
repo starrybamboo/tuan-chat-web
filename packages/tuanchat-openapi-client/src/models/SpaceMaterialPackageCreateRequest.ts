@@ -25,4 +25,3 @@ export type SpaceMaterialPackageCreateRequest = {
     coverFileId?: number;
     content: MaterialPackageContent;
 };
-

@@ -46,7 +46,7 @@ export function LoginForm({
   `;
 
   return (
-    <form onSubmit={handleSubmit} autoComplete="on" className="space-y-4">
+    <form onSubmit={handleSubmit} autoComplete="on" className="space-y-4" aria-busy={isLoading}>
       <motion.div
         className="space-y-2"
         initial={{ opacity: 0, y: 8 }}
@@ -119,6 +119,7 @@ export function LoginForm({
         {turnstile}
         <button
           type="submit"
+          aria-busy={isLoading}
           className="btn btn-primary w-full gap-2 shadow-sm hover:brightness-110"
           disabled={isLoading}
         >

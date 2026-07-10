@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { use, useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { CharacterData } from "@/components/Role/RoleCreation/types";
 import type { Role } from "@/components/Role/types";
@@ -56,13 +56,13 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
 
   const handleCreateNpcComplete = (_createdRole: Role) => {
     void queryClient.invalidateQueries({ queryKey: ["spaceRepositoryRole", spaceId] });
-    toast.success("NPC创建成功");
+    appToast.success("NPC创建成功");
     onClose();
   };
 
   const handleImportNpcToRoom = async (roleId: number) => {
     if (spaceId <= 0 || roomId <= 0) {
-      toast.error("空间/房间信息异常，无法添加NPC");
+      appToast.error("空间/房间信息异常，无法添加NPC");
       return;
     }
     try {
@@ -70,20 +70,22 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
         roomId,
         roleIdList: [roleId],
       });
-      toast.success("添加NPC成功");
+      appToast.success("添加NPC成功");
       onClose();
     }
     catch (e: any) {
       console.error("添加NPC失败", e);
-      toast.error(e?.message ? `添加NPC失败：${e.message}` : "添加NPC失败");
+      appToast.error(e?.message ? `添加NPC失败：${e.message}` : "添加NPC失败");
     }
   };
 
   return (
     <div className="justify-center w-full">
-      <div className="tabs tabs-boxed w-full mb-3">
+      <div role="tablist" aria-label="NPC 创建方式" className="tabs tabs-boxed w-full mb-3">
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === "create"}
           className={`
             tab flex-1
             ${activeTab === "create" ? "tab-active" : ""}
@@ -94,6 +96,8 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === "import"}
           className={`
             tab flex-1
             ${activeTab === "import" ? "tab-active" : ""}
@@ -124,7 +128,10 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
       {activeTab === "import" && (
         <div className="bg-base-100 rounded-box p-6 space-y-4">
           {importableSpaceNpcRoles.length === 0 && (
-            <div className="text-center font-bold py-2">无可导入NPC</div>
+            <div className="text-center py-2">
+              <div className="font-bold">无可导入NPC</div>
+              <div className="mt-1 text-sm text-base-content/60">先创建 NPC，或检查当前空间角色权限。</div>
+            </div>
           )}
 
           <div className="flex flex-wrap gap-3 justify-center">
@@ -137,6 +144,7 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
                 <div className="flex flex-col items-center p-3">
                   <button
                     type="button"
+                    aria-label={`导入 NPC ${role.roleName}`}
                     onClick={() => handleImportNpcToRoom(role.roleId)}
                   >
                     <RoleAvatarByRole
@@ -146,8 +154,8 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
                       withTitle={false}
                       stopToastWindow={true}
                     />
+                    <p className="text-center block" title={role.roleName}>{role.roleName}</p>
                   </button>
-                  <p className="text-center block">{role.roleName}</p>
                 </div>
               </div>
             ))}

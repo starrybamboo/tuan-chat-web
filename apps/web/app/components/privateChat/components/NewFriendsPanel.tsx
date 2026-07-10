@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 
+import { ImeAwareSearchInput } from "@/components/common/imeAwareSearchInput";
 import { privateChatListItemMotionProps, privateChatPanelMotionProps } from "@/components/common/motion/privateChatMotion";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { Search, XMarkICon } from "@/icons";
@@ -108,7 +109,7 @@ export default function NewFriendsPanel() {
             focus-within:border-info/60 focus-within:ring-2
             focus-within:ring-info/20
           ">
-            <input
+            <ImeAwareSearchInput
               id="new-friend-search"
               type="text"
               name="newFriendSearch"
@@ -119,15 +120,12 @@ export default function NewFriendsPanel() {
               "
               placeholder="输入用户ID或用户名"
               value={inputKeyword}
-              onChange={(e) => {
-                setInputKeyword(e.target.value);
-                if (!e.target.value.trim())
+              onValueChange={(value) => {
+                setInputKeyword(value);
+                if (!value.trim())
                   clearSearch();
               }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter")
-                  searchInputKeyword();
-              }}
+              onSubmit={searchInputKeyword}
             />
             {inputKeyword && (
               <button type="button" className="btn btn-ghost btn-xs btn-square" onClick={clearSearch} aria-label="清空">

@@ -20,4 +20,3 @@ export type SpaceAddRequest = {
      */
     ruleId: number;
 };
-

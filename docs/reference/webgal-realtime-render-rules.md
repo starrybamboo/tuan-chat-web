@@ -189,8 +189,9 @@ publishable 能力必须走共享编译层：
 ## 7. WebSocket 与文件写入边界
 
 1. 渲染核心是“写场景文件”，可以在 websocket 未连接时执行。  
-2. 当前 `autoJumpEnabled` 恒为 `false`，所以 `sendSyncMessage` 不会实际发出同步消息。  
-3. `jumpToMessage` 依赖 websocket 在线；离线时返回 `false`。  
+2. WebSocket 只负责预览推进：团剧共创侧使用 WebGAL 4.6.2 的 `webgal-editor-preview-sync.v1` 子协议发送 `preview.command.sync-scene`，不再发送旧版 `DebugCommand.JUMP` 消息。
+3. `autoAdvanceEnabled` 只控制尾部新消息是否自动推进预览；手动点击历史消息始终通过 V1 `sync-scene` 跳转到该消息的行号。
+4. V1 客户端会保留最后一次同步请求；预览 iframe 重新 ready 后会再次发送，避免重建预览时丢失目标行。
 
 ## 8. 行号映射与可回跳规则
 

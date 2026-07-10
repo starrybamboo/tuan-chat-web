@@ -8,7 +8,6 @@ import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContex
 import useChatFrameMessages from "@/components/chat/hooks/useChatFrameMessages";
 import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
 import RoomWindowLoadingState from "@/components/chat/room/roomWindowLoadingState";
-import { useGlobalWebSocket } from "@/components/globalContextProvider";
 import MessageEditor from "@/components/messageEditor/MessageEditor";
 import FriendsListPanel from "@/components/privateChat/components/FriendsListPanel";
 import NewFriendsPanel from "@/components/privateChat/components/NewFriendsPanel";
@@ -255,7 +254,6 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
     isKPInSpace,
     activeDocTitleForTcHeader,
   } = useChatPageLayoutContext();
-  const websocketUtils = useGlobalWebSocket();
   const resolvedSpaceId = props.spaceId ?? activeSpaceId;
   const resolvedDocId = props.docId ?? activeDocId;
   const canViewDocs = props.canViewDocs ?? isKPInSpace;
@@ -279,19 +277,9 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
 
     return cachedMessages.length > 0 ? cachedMessages : initialMessages;
   }, [initialMessages, isRoomDocument, roomHistory?.messages]);
-  const roomReceivedMessages = React.useMemo(() => {
-    if (!isRoomDocument || !resolvedDocRoomId) {
-      return [];
-    }
-    return websocketUtils.receivedMessages[resolvedDocRoomId] ?? [];
-  }, [isRoomDocument, resolvedDocRoomId, websocketUtils.receivedMessages]);
-
   useChatFrameMessages({
     chatHistory: roomHistory ?? undefined,
     currentUserId: null,
-    enableWsSync: isRoomDocument,
-    receivedMessages: roomReceivedMessages,
-    roomId: resolvedDocRoomId ?? -1,
   });
 
   const handleRemoteMessagesSaved = React.useCallback(async (messages: Message[]) => {

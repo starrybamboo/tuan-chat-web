@@ -2,7 +2,7 @@ import { ExportIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { fetchUserInfoWithCache } from "@tuanchat/query/users";
 import { use, useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { ExportOptions } from "@/utils/exportChatMessages";
 
@@ -71,7 +71,7 @@ export default function ExportChatDrawer({ messages, onClose }: ExportChatDrawer
       setIsExporting(true);
 
       if (historyMessages.length === 0) {
-        toast.error("没有消息可导出");
+        appToast.error("没有消息可导出");
         return;
       }
 
@@ -135,12 +135,12 @@ export default function ExportChatDrawer({ messages, onClose }: ExportChatDrawer
       }
 
       exportChatMessages(historyMessages, allRoleMap, userMap, fileName, exportOptions);
-      toast.success("导出成功!");
+      appToast.success("导出成功!");
       onClose?.();
     }
     catch (error) {
       console.error("导出失败:", error);
-      toast.error("导出失败,请重试");
+      appToast.error("导出失败,请重试");
     }
     finally {
       setIsExporting(false);

@@ -134,8 +134,17 @@ export function BackgroundPushOnboardingBridge() {
 
   return (
     <Modal animationType="fade" onRequestClose={dismissCurrentReminder} transparent visible={visible}>
-      <Pressable style={styles.backdrop} onPress={dismissCurrentReminder}>
-        <Pressable style={styles.dialog} onPress={event => event.stopPropagation()}>
+      <Pressable
+        accessibilityLabel="关闭后台推送提醒"
+        accessibilityRole="button"
+        style={styles.backdrop}
+        onPress={dismissCurrentReminder}
+      >
+        <Pressable
+          accessibilityLabel="后台推送提醒"
+          style={styles.dialog}
+          onPress={event => event.stopPropagation()}
+        >
           <ThemedText type="heading">后台推送提醒</ThemedText>
           <ThemedText themeColor="textSecondary" style={styles.body}>
             {guidance.detail}
@@ -149,24 +158,36 @@ export function BackgroundPushOnboardingBridge() {
           </View>
           <View style={styles.actionRow}>
             <Pressable
+              accessibilityHint="打开系统后台权限设置，用于允许后台接收消息"
+              accessibilityLabel="去开启后台权限"
+              accessibilityRole="button"
               onPress={() => void openSetting("manufacturerBackground")}
               style={[styles.action, { backgroundColor: theme.accent }]}
             >
               <ThemedText style={{ color: "#fff", fontWeight: "700" }}>去开启后台权限</ThemedText>
             </Pressable>
             <Pressable
+              accessibilityHint="打开电池优化设置，避免系统限制后台消息"
+              accessibilityLabel="关闭电池优化"
+              accessibilityRole="button"
               onPress={() => void openSetting("batteryOptimization")}
               style={[styles.action, { backgroundColor: theme.backgroundSelected }]}
             >
               <ThemedText>关闭电池优化</ThemedText>
             </Pressable>
             <Pressable
+              accessibilityHint="打开系统通知设置，确认通知已开启"
+              accessibilityLabel="检查通知权限"
+              accessibilityRole="button"
               onPress={() => void openSetting("notificationSettings")}
               style={[styles.action, { backgroundColor: theme.backgroundSelected }]}
             >
               <ThemedText>检查通知权限</ThemedText>
             </Pressable>
             <Pressable
+              accessibilityHint="关闭后续后台推送提醒"
+              accessibilityLabel="不再提醒"
+              accessibilityRole="button"
               onPress={() => void disableReminder()}
               style={[styles.action, { backgroundColor: theme.dangerMuted }]}
             >

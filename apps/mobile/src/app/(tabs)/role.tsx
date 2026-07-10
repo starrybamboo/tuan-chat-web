@@ -407,7 +407,12 @@ export default function RoleScreen() {
           <ThemedText type="title">角色</ThemedText>
           <ThemedText themeColor="textSecondary">我创建的所有角色</ThemedText>
         </View>
-        <Pressable onPress={handleOpenCreate} style={[styles.createButton, { borderColor: theme.accent }]}>
+        <Pressable
+          accessibilityLabel="创建角色"
+          accessibilityRole="button"
+          onPress={handleOpenCreate}
+          style={[styles.createButton, { borderColor: theme.accent }]}
+        >
           <ThemedText themeColor="accent" type="small">+ 创建</ThemedText>
         </Pressable>
       </View>
@@ -416,6 +421,7 @@ export default function RoleScreen() {
         <View style={[styles.searchBox, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
           <MagnifyingGlass color={theme.textSecondary} size={18} weight="bold" />
           <TextInput
+            accessibilityLabel="搜索角色和骰娘"
             onChangeText={setSearchText}
             placeholder="搜索角色、骰娘"
             placeholderTextColor={theme.textSecondary}

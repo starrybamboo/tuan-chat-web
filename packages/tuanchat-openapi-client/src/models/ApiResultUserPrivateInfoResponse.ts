@@ -21,4 +21,3 @@ export type ApiResultUserPrivateInfoResponse = {
     errMsg?: string;
     data?: UserPrivateInfoResponse;
 };
-

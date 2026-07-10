@@ -79,6 +79,7 @@ export function DirectorWorkspace({
         relative
         ${directorShellClassName}
       `}
+      aria-busy={isBusy}
       onDragEnter={onDirectorImageDragEnter}
       onDragLeave={onDirectorImageDragLeave}
       onDragOver={onDirectorImageDragOver}
@@ -322,7 +323,11 @@ export function DirectorWorkspace({
                 : null}
               {!directorDisplayedOutput && pendingPreviewAction === activeDirectorTool
                 ? (
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+                    <div
+                      className="absolute bottom-3 left-1/2 -translate-x-1/2"
+                      role="status"
+                      aria-live="polite"
+                    >
                       <span className={directorCornerPillClassName}>Transforming...</span>
                     </div>
                   )
@@ -334,10 +339,14 @@ export function DirectorWorkspace({
 
       {isDirectorImageDragOver
         ? (
-            <div className="
-              pointer-events-none absolute inset-0 z-20 flex items-center
-              justify-center bg-base-100/52 backdrop-blur-[2px]
-            ">
+            <div
+              className="
+                pointer-events-none absolute inset-0 z-20 flex items-center
+                justify-center bg-base-100/52 backdrop-blur-[2px]
+              "
+              role="status"
+              aria-label="拖拽图片到此处导入"
+            >
               <div className="
                 flex size-[88px] items-center justify-center rounded-[24px]
                 bg-base-300/78 shadow-lg
@@ -477,6 +486,7 @@ export function DirectorWorkspace({
                 }
                 `}
                 title={isDisabled ? "Remove BG disabled" : tool.description}
+                aria-pressed={isActive}
                 disabled={isBusy || isDisabled}
                 onClick={() => onActiveDirectorToolChange(tool.id)}
               >

@@ -1,9 +1,11 @@
 // 外部库
-import React, { useMemo } from "react";
+import { AnimatePresence } from "motion/react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 
 import TypingIndicator from "@/components/chat/message/typingIndicator";
 import WaitingIndicator from "@/components/chat/message/waitingIndicator";
 import UserIdToName from "@/components/chat/shared/components/userIdToName";
+import { FloatingMotionList, FloatingMotionListItem } from "@/components/common/motion/FloatingMotionPanel";
 
 // 类型导入 (parent-type)
 import type { ChatStatusType } from "../../../api/wsModels";
@@ -21,6 +23,37 @@ type ChatStatusBarProps = {
   isSpectator?: boolean;
   compact?: boolean;
 }
+
+const CHAT_STATUS_SELECTOR_OPTIONS = [
+  {
+    value: "idle",
+    label: "空闲",
+    desc: "清除正在输入",
+    textClass: "text-base-content/70",
+    activeClass: "active bg-base-200",
+  },
+  {
+    value: "input",
+    label: "输入中",
+    desc: "标记正在输入",
+    textClass: "text-info",
+    activeClass: "active bg-info/15",
+  },
+  {
+    value: "wait",
+    label: "等待扮演",
+    desc: "等待他人行动",
+    textClass: "text-warning",
+    activeClass: "active bg-warning/15",
+  },
+  {
+    value: "leave",
+    label: "暂离",
+    desc: "临时离开",
+    textClass: "text-error",
+    activeClass: "active bg-error/15",
+  },
+] as const;
 
 /**
  * ChatStatusBar
@@ -42,6 +75,8 @@ export default function ChatStatusBar({
   isSpectator = false,
   compact = false,
 }: ChatStatusBarProps) {
+  const selectorRef = useRef<HTMLDivElement | null>(null);
+  const [selectorOpen, setSelectorOpen] = useState(false);
   const grouped = useMemo(() => {
     if (!showGrouped) {
       return [];
@@ -56,6 +91,14 @@ export default function ChatStatusBar({
       }))
       .filter(g => g.users.length > 0);
   }, [excludeSelf, roomId, showGrouped, userId, webSocketUtils.chatStatus]);
+
+  const handleSelectorBlur = useCallback((event: React.FocusEvent<HTMLDivElement>) => {
+    const nextTarget = event.relatedTarget;
+    if (nextTarget && event.currentTarget.contains(nextTarget as Node)) {
+      return;
+    }
+    setSelectorOpen(false);
+  }, []);
 
   const showSelector = !isSpectator && currentChatStatus && onChangeChatStatus;
   if (grouped.length === 0 && !showSelector)
@@ -107,15 +150,24 @@ export default function ChatStatusBar({
       ${className ?? ""}
     `}>
       {showSelector && (
-        <div className="dropdown dropdown-top pointer-events-auto">
+        <div
+          ref={selectorRef}
+          className={`dropdown dropdown-top pointer-events-auto ${selectorOpen ? "dropdown-open" : ""}`}
+          onBlur={handleSelectorBlur}
+        >
           <button
             type="button"
             aria-label="切换聊天状态"
+            aria-expanded={selectorOpen}
             className="
               min-w-0 cursor-pointer list-none flex items-center text-xs
               select-none gap-1
               hover:text-info
             "
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectorOpen(open => !open);
+            }}
             title="切换聊天状态"
           >
             {currentChatStatus === "input"
@@ -134,44 +186,49 @@ export default function ChatStatusBar({
                       {currentChatStatus === "leave" && "暂离"}
                     </span>
                   )}
-            <svg xmlns="http://www.w3.org/2000/svg" className="
-              size-3 opacity-60
-            " viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.173l3.71-3.942a.75.75 0 111.08 1.04l-4.25 4.516a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className={`
+              size-3 opacity-60 transition-transform duration-150
+              ${selectorOpen ? "rotate-180" : ""}
+            `}
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.173l3.71-3.942a.75.75 0 111.08 1.04l-4.25 4.516a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+            </svg>
           </button>
-          <ul
-            className="
-              dropdown-content menu bg-base-100 rounded-box w-36 p-2 shadow-md
-              border border-base-200 gap-1 text-sm z-9999 absolute
-            "
-          >
-            {[
-              { value: "idle", label: "空闲", desc: "清除正在输入" },
-              { value: "input", label: "输入中", desc: "标记正在输入" },
-              { value: "wait", label: "等待扮演", desc: "等待他人行动" },
-              { value: "leave", label: "暂离", desc: "临时离开" },
-            ].map(item => (
-              <li key={item.value}>
-                <button
-                  type="button"
-                  className={`
-                    flex flex-col gap-0.5 py-1
-                    ${currentChatStatus === item.value ? `active bg-base-200` : ""}
-                  `}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onChangeChatStatus(item.value as any);
-                    const elem = document.activeElement as HTMLElement;
-                    if (elem) {
-                      elem.blur();
-                    }
-                  }}
-                >
-                  <span className="leading-none">{item.label}</span>
-                  <span className="text-[10px] opacity-60 leading-none">{item.desc}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <AnimatePresence initial={false}>
+            {selectorOpen && (
+              <FloatingMotionList
+                className="
+                  dropdown-content menu bg-base-100 rounded-box w-32 p-2 shadow-md
+                  border border-base-200 gap-1 text-sm z-9999 absolute
+                  left-1/2 -translate-x-1/2 origin-bottom transform-gpu
+                "
+              >
+                {CHAT_STATUS_SELECTOR_OPTIONS.map((item, index) => (
+                  <FloatingMotionListItem key={item.value} index={index}>
+                    <button
+                      type="button"
+                      title={item.desc}
+                      className={`
+                        flex items-center justify-center py-1.5 text-center
+                        ${currentChatStatus === item.value ? item.activeClass : ""}
+                      `}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onChangeChatStatus(item.value);
+                        setSelectorOpen(false);
+                      }}
+                    >
+                      <span className={`w-full text-center leading-none ${item.textClass}`}>{item.label}</span>
+                    </button>
+                  </FloatingMotionListItem>
+                ))}
+              </FloatingMotionList>
+            )}
+          </AnimatePresence>
         </div>
       )}
       {showSelector && grouped.length > 0 && (

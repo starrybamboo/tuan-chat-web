@@ -1,6 +1,6 @@
 import { Plus } from "@phosphor-icons/react";
 import { useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { Role } from "../types";
 
@@ -29,7 +29,7 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
     }
 
     if (trimmedDescription.length > ROLE_DESCRIPTION_MAX_LENGTH) {
-      toast.error(ROLE_DESCRIPTION_TOO_LONG_MESSAGE, { position: "top-center" });
+      appToast.error(ROLE_DESCRIPTION_TOO_LONG_MESSAGE, { position: "top-center" });
       return;
     }
 

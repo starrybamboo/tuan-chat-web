@@ -60,12 +60,16 @@ export function UserFollower({ activeTab, userId }: { activeTab: "following" | "
             ${pageState.current <= 1 ? "btn-disabled" : ""}
           `}
           onClick={handlePrevPage}
+          disabled={pageState.current <= 1}
+          aria-label="上一页"
+          title={pageState.current <= 1 ? "已经是第一页" : "上一页"}
         >
           «
         </button>
         <button
           type="button"
           className="join-item btn"
+          aria-current="page"
         >
           第
           {" "}
@@ -80,6 +84,9 @@ export function UserFollower({ activeTab, userId }: { activeTab: "following" | "
             ${currentQuery.data?.data?.isLast ? `btn-disabled` : ""}
           `}
           onClick={handleNextPage}
+          disabled={Boolean(currentQuery.data?.data?.isLast)}
+          aria-label="下一页"
+          title={currentQuery.data?.data?.isLast ? "已经是最后一页" : "下一页"}
         >
           »
         </button>

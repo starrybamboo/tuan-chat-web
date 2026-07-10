@@ -73,4 +73,3 @@ export type RoleAvatar = {
      */
     versionState?: number;
 };
-

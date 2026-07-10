@@ -25,4 +25,3 @@ export type MessageDirectSendRequest = {
     replyMessageId?: number;
     extra: MessageExtra;
 };
-

@@ -1,8 +1,6 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
-import { getMaxRoomMessageSyncId } from "@tuanchat/query/room-message";
 import { mergeRoomMessagesForLocalState } from "@tuanchat/query/room-message-lifecycle";
 import { useEffect, useMemo } from "react";
 
@@ -13,11 +11,11 @@ import {
   writeCachedRoomMessages,
 } from "@/features/messages/mobileRoomMessageCache";
 import {
-  mergeRoomMessagesForQueryCache,
   shouldHydrateRoomMessagesFromDisk,
-  shouldResetCachedRoomMessages,
 } from "@/features/messages/roomMessageCacheState";
 import { extractRoomMessagesFromQueryData } from "@/features/messages/roomMessagesQueryData";
+import { getRoomMessagesQueryKey } from "@/features/messages/roomMessagesQueryKey";
+import { loadRoomMessagesQueryData } from "@/features/messages/roomMessagesQueryLoader";
 import { fetchRoomMessagesWithLocalSync } from "@/features/messages/roomMessageSync";
 import { mobileApiClient } from "@/lib/api";
 
@@ -28,40 +26,25 @@ export function useRoomMessagesQuery(
   const { isAuthenticated } = useAuthSession();
   const queryClient = useQueryClient();
   const hasValidRoomId = typeof roomId === "number" && roomId > 0;
-  const queryKey = useMemo(() => getAllRoomMessagesQueryKey(roomId ?? -1), [roomId]);
+  const queryKey = useMemo(() => getRoomMessagesQueryKey(roomId ?? -1), [roomId]);
 
+  // Query 保存当前房间渲染热态；SQLite 只作为 message-stream 的恢复/补洞 read model。
   const query = useQuery({
     enabled: isAuthenticated && hasValidRoomId,
-    queryFn: async () => {
-      const currentMessages = extractRoomMessagesFromQueryData(
+    queryFn: async () => loadRoomMessagesQueryData(roomId!, {
+      clearCachedRoomMessages,
+      fetchRoomMessages: async (resolvedRoomId, maxKnownSyncId) => {
+        return fetchRoomMessagesWithLocalSync(resolvedRoomId, {
+          client: mobileApiClient,
+          getMaxCachedSyncId: async () => maxKnownSyncId,
+        });
+      },
+      getCurrentMessages: () => extractRoomMessagesFromQueryData(
         queryClient.getQueryData(queryKey),
-      );
-      const cachedMessages = await readCachedRoomMessages(roomId!);
-      const maxKnownSyncId = Math.max(
-        getMaxRoomMessageSyncId(currentMessages),
-        getMaxRoomMessageSyncId(cachedMessages),
-      );
-      const syncResult = await fetchRoomMessagesWithLocalSync(roomId!, {
-        client: mobileApiClient,
-        getMaxCachedSyncId: async () => maxKnownSyncId,
-      });
-
-      if (shouldResetCachedRoomMessages(syncResult, true)) {
-        void clearCachedRoomMessages(roomId!);
-        return [];
-      }
-
-      if (syncResult.messages.length > 0) {
-        void writeCachedRoomMessages(roomId!, syncResult.messages);
-      }
-
-      return mergeRoomMessagesForQueryCache({
-        cachedMessages,
-        currentMessages,
-        fetchedMessages: syncResult.messages,
-        roomId: roomId!,
-      });
-    },
+      ),
+      readCachedRoomMessages,
+      writeCachedRoomMessages,
+    }),
     queryKey,
     staleTime: options.staleTime,
   });

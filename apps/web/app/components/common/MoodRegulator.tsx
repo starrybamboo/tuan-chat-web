@@ -182,6 +182,7 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
                   step={step}
                   value={v}
                   disabled={disabled}
+                  aria-label={`${k} ${v}`}
                   onChange={e => handleChange(k, Number(e.target.value))}
                 />
 

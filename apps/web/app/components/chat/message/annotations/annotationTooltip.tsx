@@ -196,7 +196,7 @@ export function AnnotationTooltipContent({ annotation }: { annotation: Annotatio
     <div className="max-w-[380px]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="truncate text-[13px] font-semibold leading-5 text-base-content">
+          <div className="truncate text-[13px] font-semibold leading-5 text-base-content" title={annotation.label}>
             {annotation.label}
           </div>
           <div className="mt-0.5 font-mono text-[10px] leading-none text-base-content/50">

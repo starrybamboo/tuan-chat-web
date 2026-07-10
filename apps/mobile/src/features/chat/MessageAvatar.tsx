@@ -56,20 +56,25 @@ export const MessageAvatar = memo(({
   size = 40,
   userId,
 }: MessageAvatarProps) => {
-  const resolvedAvatarFileId = resolveMessageAvatarFileId(
-    {
-      avatarFileId: avatarFileId ?? undefined,
-      roleId: roleId ?? undefined,
-    },
-    roomRolesById,
-  );
-  const resolvedAvatarId = resolveMessageAvatarId(
-    {
-      avatarId: avatarId ?? undefined,
-      roleId: roleId ?? undefined,
-    },
-    roomRolesById,
-  );
+  const shouldUseUserIdentity = Boolean(preferUserAvatar);
+  const resolvedAvatarFileId = shouldUseUserIdentity
+    ? null
+    : resolveMessageAvatarFileId(
+        {
+          avatarFileId: avatarFileId ?? undefined,
+          roleId: roleId ?? undefined,
+        },
+        roomRolesById,
+      );
+  const resolvedAvatarId = shouldUseUserIdentity
+    ? null
+    : resolveMessageAvatarId(
+        {
+          avatarId: avatarId ?? undefined,
+          roleId: roleId ?? undefined,
+        },
+        roomRolesById,
+      );
   const hasProvidedAvatarUrl = avatarUrl !== undefined;
   const shouldFetchAvatar = !hasProvidedAvatarUrl && resolvedAvatarFileId == null && resolvedAvatarId != null;
   const roleAvatarQuery = useQuery({
@@ -83,7 +88,7 @@ export const MessageAvatar = memo(({
     queryKey: ["getRoleAvatar", resolvedAvatarId] as const,
     staleTime: 24 * 60 * 60_000,
   });
-  const shouldFetchUserAvatar = Boolean(preferUserAvatar)
+  const shouldFetchUserAvatar = shouldUseUserIdentity
     && !hasProvidedAvatarUrl
     && resolvedAvatarFileId == null
     && !roleAvatarQuery.data?.avatarFileId

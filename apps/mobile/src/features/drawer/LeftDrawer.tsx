@@ -534,6 +534,7 @@ function LeftDrawerInner({
             onSelectRoom(room.roomId);
         }}
         style={[styles.roomRow, active ? { backgroundColor: theme.backgroundSelected } : null]}
+        accessibilityLabel={`${room.name ?? "未命名"}${unread > 0 ? `，${unread > 99 ? "99+" : unread} 条未读` : ""}`}
       >
         <View style={styles.roomAvatarWrap}>
           {roomAvatarUrl
@@ -734,7 +735,7 @@ function LeftDrawerInner({
 
       {layoutState.showRoomsSidebar ? (
         <View style={styles.sidebar}>
-          <View style={[styles.sidebarHeader, { borderBottomColor: theme.border }]}>
+          <View style={[styles.sidebarHeader, { borderBottomColor: theme.border }]} accessibilityLabel={currentSpace?.name ?? "选择空间"}>
             <ThemedText numberOfLines={1} type="heading" style={{ flex: 1 }}>
               {currentSpace?.name ?? "选择空间"}
             </ThemedText>

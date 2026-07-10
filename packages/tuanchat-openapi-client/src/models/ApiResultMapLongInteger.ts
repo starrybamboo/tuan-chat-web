@@ -23,4 +23,3 @@ export type ApiResultMapLongInteger = {
      */
     data?: Record<string, number>;
 };
-

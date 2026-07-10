@@ -201,6 +201,8 @@ export default function MessageContentRenderer({
               className="
                 group/file flex min-w-0 w-full items-center no-underline
               "
+              title={fileName}
+              aria-label={`打开文件 ${fileName}`}
               onClick={event => event.stopPropagation()}
             >
               {contentNode}

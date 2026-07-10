@@ -29,7 +29,6 @@ export default function useChatUnreadIndicators({
   enablePrivateEntryBadge = true,
 }: UseChatUnreadIndicatorsParams): UseChatUnreadIndicatorsResult {
   const privateMessageList = usePrivateMessageList({
-    webSocketUtils,
     userId,
     includeFriendList: false,
     enabled: enablePrivateEntryBadge,

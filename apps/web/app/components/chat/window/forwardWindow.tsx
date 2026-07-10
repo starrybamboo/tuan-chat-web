@@ -3,7 +3,6 @@ import { useCallback, useMemo, useState } from "react";
 
 import type { ForwardMode } from "@/components/chat/hooks/useChatFrameMessageActions";
 
-import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { MediaImage } from "@/components/common/mediaImage";
 import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/media/mediaUrl";
 
@@ -29,7 +28,6 @@ function ForwardWindow({
   currentSpaceId: number;
   currentSpaceName?: string;
 }) {
-  const headers = useEntityHeaderOverrideStore(state => state.headers);
   const [forwardMode, setForwardMode] = useState<ForwardMode>("merged");
   const [roomKeyword, setRoomKeyword] = useState("");
   const [selectedRoomIds, setSelectedRoomIds] = useState<Set<number>>(() => new Set());
@@ -45,11 +43,10 @@ function ForwardWindow({
     if (!keyword)
       return currentRooms;
     return currentRooms.filter((room) => {
-      const roomId = room.roomId ?? -1;
-      const roomName = (headers[`room:${roomId}`]?.title || room.name || "").toLowerCase();
+      const roomName = (room.name || "").toLowerCase();
       return roomName.includes(keyword);
     });
-  }, [currentRooms, headers, roomKeyword]);
+  }, [currentRooms, roomKeyword]);
 
   const selectedSpaceName = currentSpaceName || "当前空间";
 
@@ -64,15 +61,13 @@ function ForwardWindow({
   }, [selectedRooms]);
 
   const resolveRoomDisplayName = useCallback((roomId: number, fallbackName?: string) => {
-    return headers[`room:${roomId}`]?.title || fallbackName || "未命名房间";
-  }, [headers]);
+    return fallbackName || (roomId > 0 ? `房间 ${roomId}` : "未命名房间");
+  }, []);
 
-  const resolveRoomAvatar = useCallback((roomId: number, avatarFileId?: number, fallbackImageUrl?: string) => {
-    const header = headers[`room:${roomId}`];
-    return imageLowUrl(header?.imageFileId)
-      || imageLowUrlFromUrl(header?.imageUrl || fallbackImageUrl || imageLowUrl(avatarFileId))
+  const resolveRoomAvatar = useCallback((_roomId: number, avatarFileId?: number, fallbackImageUrl?: string) => {
+    return imageLowUrlFromUrl(fallbackImageUrl || imageLowUrl(avatarFileId))
       || "/favicon.ico";
-  }, [headers]);
+  }, []);
 
   const toggleRoomSelection = useCallback((roomId: number) => {
     if (roomId <= 0 || isForwarding) {
@@ -160,12 +155,17 @@ function ForwardWindow({
           flex flex-col gap-3
           md:flex-row md:items-center md:justify-between
         ">
-          <div className="
+          <div
+            className="
             inline-flex w-fit rounded-lg border border-base-300 bg-base-200/50
             p-1
-          ">
+          "
+            role="radiogroup"
+            aria-label="转发模式"
+          >
             <button
               type="button"
+              role="radio"
               className={`
                 rounded-md px-3 py-1.5 text-sm font-medium transition
                 ${
@@ -178,12 +178,13 @@ function ForwardWindow({
               }
               `}
               onClick={() => setForwardMode("merged")}
-              aria-pressed={forwardMode === "merged"}
+              aria-checked={forwardMode === "merged"}
             >
               合并转发
             </button>
             <button
               type="button"
+              role="radio"
               className={`
                 rounded-md px-3 py-1.5 text-sm font-medium transition
                 ${
@@ -196,7 +197,7 @@ function ForwardWindow({
               }
               `}
               onClick={() => setForwardMode("separate")}
-              aria-pressed={forwardMode === "separate"}
+              aria-checked={forwardMode === "separate"}
             >
               逐条转发
             </button>
@@ -258,6 +259,7 @@ function ForwardWindow({
                   type="search"
                   autoComplete="off"
                   aria-label="搜索房间"
+                  aria-controls="forward-room-list"
                   value={roomKeyword}
                   onChange={event => setRoomKeyword(event.target.value)}
                   placeholder="搜索房间"
@@ -266,7 +268,7 @@ function ForwardWindow({
               </label>
             </div>
 
-            <div className="max-h-80 min-h-60 overflow-auto p-2">
+            <div id="forward-room-list" className="max-h-80 min-h-60 overflow-auto p-2">
               {effectiveSpaceId <= 0 && (
                 <div className="
                   rounded-lg border border-dashed border-base-300 px-4 py-8
@@ -309,6 +311,8 @@ function ForwardWindow({
                       onClick={() => toggleRoomSelection(roomId)}
                       disabled={roomId <= 0 || isForwarding}
                       aria-pressed={isSelected}
+                      aria-label={`选择转发目标房间 ${displayName}${isSelected ? "，已选择" : ""}`}
+                      title={displayName}
                     >
                       <div className="flex min-w-0 items-center gap-3">
                         <span
@@ -460,6 +464,7 @@ function ForwardWindow({
             <button
               type="button"
               className="btn btn-ghost btn-sm"
+              aria-label="清空已选择的转发目标房间"
               onClick={clearSelectedRooms}
               disabled={selectedTargetCount === 0 || isForwarding}
             >
@@ -468,6 +473,7 @@ function ForwardWindow({
             <button
               type="button"
               className="btn btn-info btn-sm min-w-32"
+              aria-busy={isForwarding}
               onClick={handleForwardSelectedRooms}
               disabled={!canForward}
             >

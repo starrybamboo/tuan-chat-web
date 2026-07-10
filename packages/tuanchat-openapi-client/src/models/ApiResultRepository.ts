@@ -21,4 +21,3 @@ export type ApiResultRepository = {
     errMsg?: string;
     data?: Repository;
 };
-

@@ -10,4 +10,3 @@ export type WebgalPublishClientPackage = {
     entrypoint?: string;
     files?: Array<WebgalPublishClientFile>;
 };
-

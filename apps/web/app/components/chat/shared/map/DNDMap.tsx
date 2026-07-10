@@ -1,7 +1,7 @@
 import { WarningCircleIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { StateRuntimeContextValue } from "@/components/chat/state/stateRuntimeContext";
 import type { StateEventAtom } from "@/types/stateEvent";
@@ -40,6 +40,7 @@ import {
   shouldCommitGridCellMove,
 } from "./roomDndMapGeometry";
 import {
+
   buildMapConfigMessageUpdateOperation,
   buildUpdatedMapConfigMessageResponse,
   findLatestUpdatableMapConfigMessage,
@@ -544,20 +545,20 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
   const sendMapStateEvents = useCallback(async (events: StateEventAtom[], content: string) => {
     const request = buildMapStateMessageRequest(events, content);
     if (!request || !roomContext.sendMessageWithInsert) {
-      toast.error("当前房间暂不能写入地图事件");
+      appToast.error("当前房间暂不能写入地图事件");
       return false;
     }
     try {
       const createdMessage = await roomContext.sendMessageWithInsert(request);
       if (!createdMessage) {
-        toast.error("写入地图事件失败");
+        appToast.error("写入地图事件失败");
         return false;
       }
       return true;
     }
     catch (error) {
       console.error("写入地图事件失败", error);
-      toast.error("写入地图事件失败");
+      appToast.error("写入地图事件失败");
       return false;
     }
   }, [buildMapStateMessageRequest, roomContext]);
@@ -576,7 +577,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
     return await enqueueMapConfigUpdate(async () => {
       const request = buildMapStateMessageRequest([event], content);
       if (!request) {
-        toast.error("当前房间暂不能写入地图事件");
+        appToast.error("当前房间暂不能写入地图事件");
         return false;
       }
 
@@ -623,7 +624,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
       catch (error) {
         console.error("更新地图配置失败", error);
         await roomContext.chatHistory?.addOrUpdateMessage(target);
-        toast.error("更新地图配置失败");
+        appToast.error("更新地图配置失败");
         return false;
       }
     });
@@ -644,7 +645,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
   }): StateEventAtom | null => {
     const mapFileId = patch.mapFileId ?? editableMapConfig?.mapFileId ?? effectiveMapConfig?.mapFileId;
     if (!mapFileId) {
-      toast.error("请先上传地图");
+      appToast.error("请先上传地图");
       return null;
     }
     return {
@@ -664,7 +665,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
     try {
       const uploadedImage = await uploadUtils.uploadMediaFile(file, { scene: CHATROOM_UPLOAD_SCENE });
       if (!uploadedImage.fileId) {
-        toast.error("上传失败，请重试");
+        appToast.error("上传失败，请重试");
         return;
       }
       const event = buildMapConfigUpsertEvent({
@@ -686,7 +687,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
     }
     catch (err) {
       console.error(err);
-      toast.error("上传失败，请重试");
+      appToast.error("上传失败，请重试");
     }
   };
 
@@ -703,7 +704,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
   const commitMapConfigDraft = useCallback((config?: EffectiveMapConfig | null) => {
     const nextConfig = config ?? draftMapConfig;
     if (!nextConfig?.mapFileId) {
-      toast.error("请先上传地图");
+      appToast.error("请先上传地图");
       return;
     }
     if (hasSameMapConfig(effectiveMapConfig, nextConfig)) {
@@ -1025,6 +1026,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
         {rect.width > 0 && rect.height > 0 && (
           <div
             ref={overlayRef}
+            aria-label="点击地图格子放置选中的角色"
             className={`
               absolute transition-colors
               ${selectedRoleId ? `rounded-sm ring-2 ring-info/30 ring-inset` : ""}
@@ -1132,6 +1134,8 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
                 }}
                 onBlur={() => commitMapConfigDraft()}
                 onKeyDown={(event) => {
+                  if (event.nativeEvent.isComposing)
+                    return;
                   if (event.key === "Enter") {
                     event.currentTarget.blur();
                   }
@@ -1158,6 +1162,8 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
                 }}
                 onBlur={() => commitMapConfigDraft()}
                 onKeyDown={(event) => {
+                  if (event.nativeEvent.isComposing)
+                    return;
                   if (event.key === "Enter") {
                     event.currentTarget.blur();
                   }
@@ -1178,7 +1184,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
                   <button
                     key={option.value}
                     type="button"
-                    aria-label={option.label}
+                    aria-label={`选择网格颜色 ${option.label}`}
                     aria-pressed={isSelected}
                     className={`
                       size-3 rounded-full border
@@ -1196,7 +1202,12 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
               })}
             </div>
           </div>
-          <button className="btn btn-error btn-xs ml-auto shrink-0" type="button" onClick={handleReset}>
+          <button
+            className="btn btn-error btn-xs ml-auto shrink-0"
+            type="button"
+            aria-label="清空地图"
+            onClick={handleReset}
+          >
             清空
           </button>
         </div>

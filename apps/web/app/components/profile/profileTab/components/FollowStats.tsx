@@ -21,32 +21,40 @@ export const FollowStats: React.FC<FollowStatsProps> = ({
 
   return (
     <div className={containerClass}>
-      <div
+      <button
+        type="button"
         className={`
           flex flex-row gap-2 items-center
           hover:text-info
-          transition-colors cursor-pointer
+          transition-colors motion-reduce:transition-none cursor-pointer
+          rounded-md bg-transparent p-0
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/35
           ${
           variant === "mobile" ? "btn-active" : ""
         }
         `}
         onClick={onFollowingClick}
+        aria-label={`查看关注列表，共 ${followingCount} 个关注`}
       >
         <div className="stat-value text-sm">{followingCount}</div>
         <div className="stat-title text-sm">关注</div>
-      </div>
+      </button>
       <span className="border-l"></span>
-      <div
+      <button
+        type="button"
         className="
           flex flex-row gap-2 items-center
           hover:text-info
-          transition-colors cursor-pointer
+          transition-colors motion-reduce:transition-none cursor-pointer
+          rounded-md bg-transparent p-0
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/35
         "
         onClick={onFollowersClick}
+        aria-label={`查看粉丝列表，共 ${followersCount} 个粉丝`}
       >
         <div className="stat-value text-sm">{followersCount}</div>
         <div className="stat-title text-sm">粉丝</div>
-      </div>
+      </button>
     </div>
   );
 };

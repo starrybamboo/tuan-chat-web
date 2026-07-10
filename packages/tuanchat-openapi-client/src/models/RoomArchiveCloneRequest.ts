@@ -15,4 +15,3 @@ export type RoomArchiveCloneRequest = {
      */
     targetSpaceId?: number;
 };
-

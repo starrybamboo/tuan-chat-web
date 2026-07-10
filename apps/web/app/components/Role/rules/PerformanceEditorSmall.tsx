@@ -1,7 +1,7 @@
 import type { FocusEvent, KeyboardEvent } from "react";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { useEffect, useRef, useState } from "react";
-import toast from "react-hot-toast";
 
 import { getGridSpan } from "@/utils/gridSpan";
 import {
@@ -52,7 +52,7 @@ export default function PerformanceEditorSmall({
     pendingChangesRef.current = {};
     setLocalFields(fields);
     onChange(fields);
-    toast.error(`背景描述更新失败：${getErrorMessage(error)}`);
+    appToast.error(`背景描述更新失败：${getErrorMessage(error)}`);
   };
 
   const handleDeleteField = (key: string) => {

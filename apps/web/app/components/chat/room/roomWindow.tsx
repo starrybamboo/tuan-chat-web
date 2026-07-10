@@ -1,10 +1,10 @@
 import type { VirtuosoHandle } from "react-virtuoso";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { patchInsertMessages } from "@tuanchat/query/chat";
 import { fetchUserInfoWithCache } from "@tuanchat/query/users";
 import React, { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 
@@ -14,6 +14,7 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
 import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
+import { resolveCommandInlineCompletion } from "@/components/chat/input/commandInlineCompletion";
 import { resolveMessageDiffBaseCommitId } from "@/components/chat/message/diff/messageVersionDiff";
 import {
   buildMessageHistoryPatchRequest,
@@ -40,7 +41,7 @@ import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
 import { compareChatMessageResponsesByOrder, compareMessagesByOrder } from "@/components/chat/shared/messageOrder";
 import { StateRuntimeProvider } from "@/components/chat/state/stateRuntimeContext";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
-import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
+import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { createRoomUiStore, RoomUiStoreProvider } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { applyUploadedReplayAssetManifest } from "@/components/chat/utils/importRglAssetManifestApply";
@@ -76,7 +77,6 @@ import {
   useGetSpaceInfoQuery,
   usePatchMessagesMutation,
   useSendMessageMutation,
-  useUpdateSpaceMuteStatusMutation,
 } from "../../../../api/hooks/chatQueryHooks";
 import { useRepositoryDetailByIdQuery } from "../../../../api/hooks/repositoryQueryHooks";
 import { fetchRoleAvatarWithCache, fetchRoleAvatarsWithCache, fetchRoleWithCache } from "../../../../api/hooks/RoleAndAvatarHooks";
@@ -161,6 +161,7 @@ function RoomWindow({
   const roomQuery = useGetRoomInfoQuery(roomId);
   const space = spaceQuery.data?.data;
   const room = roomQuery.data?.data;
+  const commandInputText = useChatInputUiStore(state => state.plainText);
   const repositoryId = typeof space?.repositoryId === "number" && Number.isFinite(space.repositoryId)
     ? space.repositoryId
     : 0;
@@ -169,7 +170,6 @@ function RoomWindow({
     parentCommitId: space?.parentCommitId,
     repositoryCommitId: repositoryQuery.data?.data?.commitId,
   });
-  const roomHeaderOverride = useEntityHeaderOverrideStore(state => state.headers[`room:${roomId}`]);
   const [isFullMessageDiffOpen, setIsFullMessageDiffOpen] = useState(false);
   const [roomContentMode, setRoomContentMode] = useState<"room" | "doc">("room");
 
@@ -185,7 +185,6 @@ function RoomWindow({
 
   const sendMessageMutation = useSendMessageMutation(roomId);
   const patchMessagesMutation = usePatchMessagesMutation(roomId);
-  const updateSpaceMuteStatusMutation = useUpdateSpaceMuteStatusMutation();
   const insertMessagesWithPatch = useCallback((messages: ChatMessageRequest[], options?: Parameters<typeof patchInsertMessages>[2]) => {
     return patchInsertMessages(tuanchat, messages, options);
   }, []);
@@ -197,6 +196,21 @@ function RoomWindow({
     handleSelectCommand,
     setInputText,
   } = useRoomInputController({ roomId });
+  const ruleId = space?.ruleId ?? -1;
+  const commandInlineCompletion = React.useMemo(() => {
+    return resolveCommandInlineCompletion({ text: commandInputText, ruleId });
+  }, [commandInputText, ruleId]);
+  const acceptCommandInlineCompletion = useCallback(() => {
+    if (!commandInlineCompletion) {
+      return false;
+    }
+    const textAroundCursor = chatInputRef.current?.getTextAroundCursor();
+    if (!textAroundCursor || textAroundCursor.after.length > 0) {
+      return false;
+    }
+    setInputText(commandInlineCompletion.completedText);
+    return true;
+  }, [chatInputRef, commandInlineCompletion, setInputText]);
 
   useLayoutEffect(() => {
     roomUiStore.getState().reset();
@@ -372,24 +386,7 @@ function RoomWindow({
   const [isApplyingMessageHistory, setIsApplyingMessageHistory] = useState(false);
   const [isReloadingAllMessages, setIsReloadingAllMessages] = useState(false);
   const noRole = curRoleId <= 0;
-  const isSpaceMuted = space?.muteStatus === 1;
-  const handleToggleSpaceMute = useCallback(async () => {
-    if (!spaceId || updateSpaceMuteStatusMutation.isPending) {
-      return;
-    }
-
-    const nextMuteStatus = isSpaceMuted ? 0 : 1;
-    const result = await updateSpaceMuteStatusMutation.mutateAsync({
-      spaceId,
-      muteStatus: nextMuteStatus,
-    });
-
-    if (result?.success) {
-      toast.success(nextMuteStatus === 1 ? "已开启除 KP 外全员禁言" : "已解除全员禁言");
-      return;
-    }
-    toast.error(result?.errMsg?.trim() || "切换禁言失败");
-  }, [isSpaceMuted, spaceId, updateSpaceMuteStatusMutation]);
+  const isSpaceArchived = Boolean(space?.archived || space?.status === 2);
 
   const {
     containsCommandRequestAllToken,
@@ -447,7 +444,7 @@ function RoomWindow({
     roomId,
     spaceId,
     isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
-    isSpaceMuted,
+    isSpaceArchived,
     curRoleId,
     ruleId: space?.ruleId ?? -1,
     notMember,
@@ -648,7 +645,7 @@ function RoomWindow({
 
   const handleSetImportChatTextOpen = useCallback((isOpen: boolean) => {
     if (isOpen && !canImportChatText) {
-      toast.error("只有 KP 可以导入对话");
+      appToast.error("只有 KP 可以导入对话");
       return;
     }
     setIsImportChatTextOpen(isOpen);
@@ -695,6 +692,7 @@ function RoomWindow({
     onCompositionEnd,
     requestMessageSubmit,
   } = useChatInputHandlers({
+    acceptCommandCompletion: acceptCommandInlineCompletion,
     atMentionRef,
     handleMessageSubmit,
     roomId,
@@ -723,7 +721,7 @@ function RoomWindow({
 
     const action = roomUiStore.getState().popMessageUndo();
     if (!action) {
-      toast("没有可撤销的消息操作", { icon: "ℹ️" });
+      appToast.info("没有可撤销的消息操作", { icon: "ℹ️" });
       return;
     }
 
@@ -736,7 +734,7 @@ function RoomWindow({
         const message = await applyMessageHistoryPatch(action, "undo");
         syncMessageAfterHistoryApply(message);
         roomUiStore.getState().restoreMessageRedo(action);
-        toast.success("已撤销发送");
+        appToast.success("已撤销发送");
         return;
       }
 
@@ -744,19 +742,19 @@ function RoomWindow({
         const message = await applyMessageHistoryPatch(action, "undo");
         syncMessageAfterHistoryApply(message);
         roomUiStore.getState().restoreMessageRedo(action);
-        toast.success("已撤销删除");
+        appToast.success("已撤销删除");
         return;
       }
 
       const message = await applyMessageHistoryPatch(action, "undo");
       syncMessageAfterHistoryApply(message);
       roomUiStore.getState().restoreMessageRedo(action);
-      toast.success("已撤销修改");
+      appToast.success("已撤销修改");
     }
     catch (error) {
       console.error("撤销消息操作失败", error);
       roomUiStore.getState().restoreMessageUndo(action);
-      toast.error("撤销失败，请稍后重试");
+      appToast.error("撤销失败，请稍后重试");
     }
     finally {
       roomUiStore.getState().setApplyingMessageUndo(false);
@@ -772,7 +770,7 @@ function RoomWindow({
 
     const action = roomUiStore.getState().popMessageRedo();
     if (!action) {
-      toast("没有可重做的消息操作", { icon: "ℹ️" });
+      appToast.info("没有可重做的消息操作", { icon: "ℹ️" });
       return;
     }
 
@@ -785,7 +783,7 @@ function RoomWindow({
         const message = await applyMessageHistoryPatch(action, "redo");
         syncMessageAfterHistoryApply(message);
         roomUiStore.getState().restoreMessageUndo(action);
-        toast.success("已重做发送");
+        appToast.success("已重做发送");
         return;
       }
 
@@ -793,19 +791,19 @@ function RoomWindow({
         const message = await applyMessageHistoryPatch(action, "redo");
         syncMessageAfterHistoryApply(message);
         roomUiStore.getState().restoreMessageUndo(action);
-        toast.success("已重做删除");
+        appToast.success("已重做删除");
         return;
       }
 
       const message = await applyMessageHistoryPatch(action, "redo");
       syncMessageAfterHistoryApply(message);
       roomUiStore.getState().restoreMessageUndo(action);
-      toast.success("已重做修改");
+      appToast.success("已重做修改");
     }
     catch (error) {
       console.error("重做消息操作失败", error);
       roomUiStore.getState().restoreMessageRedo(action);
-      toast.error("重做失败，请稍后重试");
+      appToast.error("重做失败，请稍后重试");
     }
     finally {
       roomUiStore.getState().setApplyingMessageUndo(false);
@@ -838,7 +836,7 @@ function RoomWindow({
     }
 
     setIsReloadingAllMessages(true);
-    const toastId = toast.loading("正在清空本地消息并重新拉取...");
+    const toastId = appToast.loading("正在清空本地消息并重新拉取...");
     try {
       await chatHistory.clearHistory();
       const response = await tuanchat.chatController.getHistoryMessages({
@@ -856,11 +854,11 @@ function RoomWindow({
       const successText = fullMessages.length > 0
         ? `已重新拉取 ${fullMessages.length} 条消息`
         : "已完成重拉，当前房间暂无历史消息";
-      toast.success(successText, { id: toastId });
+      appToast.success(successText, { id: toastId });
     }
     catch (error) {
       console.error("清空并重拉房间消息失败", error);
-      toast.error("清空并重拉失败，请稍后重试", { id: toastId });
+      appToast.error("清空并重拉失败，请稍后重试", { id: toastId });
     }
     finally {
       setIsReloadingAllMessages(false);
@@ -870,7 +868,7 @@ function RoomWindow({
   const handleExportPremiere = useCallback(async (selectedMessages: ChatMessageResponse[]) => {
     const exportMessages = [...selectedMessages].sort(compareChatMessageResponsesByOrder);
     if (exportMessages.length === 0) {
-      toast.error("请选择要生成 PR 文件的消息");
+      appToast.error("请选择要生成 PR 文件的消息");
       return;
     }
 
@@ -888,7 +886,7 @@ function RoomWindow({
         ttsApiUrl = key;
     }
 
-    const loadToastId = toast.loading("正在处理导出...");
+    const loadToastId = appToast.loading("正在处理导出...");
 
     try {
       const [{ PremiereExporter }, { strToU8, zip }] = await Promise.all([
@@ -1102,7 +1100,7 @@ function RoomWindow({
         zip(zipData, (err, data) => {
           if (err) {
             console.error(err);
-            toast.error("压缩失败");
+            appToast.error("压缩失败");
             return;
           }
           const blob = new Blob([copyBytesToBlobPart(data)], { type: "application/zip" });
@@ -1114,7 +1112,7 @@ function RoomWindow({
           a.click();
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
-          toast.success("导出成功！", { id: loadToastId });
+          appToast.success("导出成功！", { id: loadToastId });
         });
       }
       else {
@@ -1143,16 +1141,16 @@ function RoomWindow({
         const nameSrtContent = exporter.generateNameSRT();
         downloadBlob(nameSrtContent, `TuanChat_Names_${roomId}.srt`, "text/plain;charset=utf-8");
 
-        toast.success("导出成功！请查看下载的文件。", { id: loadToastId });
+        appToast.success("导出成功！请查看下载的文件。", { id: loadToastId });
       }
     }
     catch (e) {
       console.error(e);
-      toast.error("导出失败，请检查控制台", { id: loadToastId });
+      appToast.error("导出失败，请检查控制台", { id: loadToastId });
     }
   }, [roomId, queryClient, backgroundUrl]);
 
-  const roomName = roomHeaderOverride?.title ?? room?.name;
+  const roomName = room?.name;
   const spaceName = space?.name;
 
   const chatFrameProps = React.useMemo(() => ({
@@ -1190,7 +1188,8 @@ function RoomWindow({
     userId: Number(userId),
     webSocketUtils,
     handleSelectCommand,
-    ruleId: space?.ruleId ?? -1,
+    commandInlineCompletion,
+    ruleId,
     handleMessageSubmit: requestMessageSubmit,
     currentChatStatus: myStatue as any,
     onChangeChatStatus: handleManualStatusChange,
@@ -1202,7 +1201,7 @@ function RoomWindow({
     onOpenFullMessageDiff: () => setIsFullMessageDiffOpen(value => !value),
     isFullMessageDiffOpen,
     isKP: spaceContext.isSpaceOwner,
-    isSpaceMuted,
+    isSpaceArchived,
     onStopBgmForAll: handleStopBgmForAll,
     noRole,
     notMember,
@@ -1279,10 +1278,6 @@ function RoomWindow({
               hideSecondaryPanels={hideSecondaryPanels}
               onClearAndReloadAllMessages={handleClearAndReloadAllMessages}
               isReloadingAllMessages={isReloadingAllMessages}
-              canManageMute={Boolean(spaceContext.isSpaceOwner)}
-              isSpaceMuted={isSpaceMuted}
-              onToggleMute={handleToggleSpaceMute}
-              isTogglingMute={updateSpaceMuteStatusMutation.isPending}
             />
           </RoomDocRefDropLayer>
           {!viewMode && (
@@ -1317,11 +1312,11 @@ function RoomWindow({
             onConfirm={handleImportDocPasteText}
           />
           {isApplyingMessageHistory && (
-            <div className="modal modal-open" role="dialog" aria-modal="true" aria-label="正在处理消息操作">
+            <div className="modal modal-open" role="dialog" aria-modal="true" aria-busy="true" aria-label="正在处理消息操作">
               <div className="modal-box max-w-sm text-center">
                 <div className="flex items-center justify-center gap-3">
                   <span className="loading loading-spinner loading-md"></span>
-                  <span className="font-medium">正在处理，请稍候…</span>
+                  <span className="font-medium" role="status" aria-live="polite">正在处理，请稍候…</span>
                 </div>
               </div>
             </div>

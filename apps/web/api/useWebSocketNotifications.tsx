@@ -3,10 +3,13 @@ import type { ApiResultRoom } from "@tuanchat/openapi-client/models/ApiResultRoo
 import type { ApiResultRoomListResponse } from "@tuanchat/openapi-client/models/ApiResultRoomListResponse";
 import type { ApiResultUserInfoResponse } from "@tuanchat/openapi-client/models/ApiResultUserInfoResponse";
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
-import type { UserNotificationItem } from "@/components/notification/notificationTypes";
-import type { DirectMessageEvent, NewFriendRequestPush } from "./wsModels";
 
 import { fetchUserInfoWithCache } from "@tuanchat/query/users";
+import { useCallback } from "react";
+
+import type { UserNotificationItem } from "@/components/notification/notificationTypes";
+
+import { appToast } from "@/components/common/appToast/appToast";
 import {
   readFeedbackDesktopEnabledFromLocalStorage,
   readFeedbackInAppEnabledFromLocalStorage,
@@ -15,12 +18,13 @@ import {
 import { showDesktopNotification } from "@/utils/desktopNotification";
 import { imageLowUrl } from "@/utils/media/mediaUrl";
 import { isRunningInsideNativeAppWebView, postNativeAppNotification } from "@/utils/nativeAppBridge";
-import { useCallback } from "react";
-import toast from "react-hot-toast";
+
+import type { DirectMessageEvent, NewFriendRequestPush } from "./wsModels";
+
 import { fetchRoomInfoWithCache } from "./hooks/chatQueryHooks";
 import { tuanchat } from "./instance";
-import { isGroupRoomMessageReminderEnabled } from "./webSocketNotificationPolicy";
 import {
+
   DirectMessageToastContent,
   FriendRequestToastContent,
   getActiveGroupRoomId,
@@ -32,6 +36,7 @@ import {
   normalizeAppTargetPath,
   NotificationToastContent,
 } from "./webSocketNotificationContent";
+import { isGroupRoomMessageReminderEnabled } from "./webSocketNotificationPolicy";
 
 type UseWebSocketNotificationsOptions = {
   queryClient: QueryClient;
@@ -77,7 +82,7 @@ export function useWebSocketNotifications({
         }
       }
 
-      toast.custom(
+      appToast.custom(
         t => (
           <div className={t.visible ? "animate-enter" : "animate-leave"}>
             <FriendRequestToastContent
@@ -108,7 +113,7 @@ export function useWebSocketNotifications({
         }
       }
 
-      toast("收到新的好友申请", {
+      appToast.info("收到新的好友申请", {
         id: toastId,
         position: "top-center",
         duration: 6000,
@@ -167,7 +172,7 @@ export function useWebSocketNotifications({
     }
 
     if (shouldShowInAppToast) {
-      toast.custom(
+      appToast.custom(
         t => (
           <div className={t.visible ? "animate-enter" : "animate-leave"}>
             <DirectMessageToastContent
@@ -306,7 +311,7 @@ export function useWebSocketNotifications({
     }
 
     if (shouldShowInAppToast) {
-      toast.custom(
+      appToast.custom(
         t => (
           <div className={t.visible ? "animate-enter" : "animate-leave"}>
             <GroupMessageToastContent
@@ -370,7 +375,7 @@ export function useWebSocketNotifications({
     }
 
     if (canShowInAppToast) {
-      toast.custom(
+      appToast.custom(
         t => (
           <div className={t.visible ? "animate-enter" : "animate-leave"}>
             <NotificationToastContent

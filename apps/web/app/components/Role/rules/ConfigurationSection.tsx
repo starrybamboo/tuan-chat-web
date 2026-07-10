@@ -136,17 +136,18 @@ export function ConfigurationSection({
       type="button"
       onClick={onToggle}
       aria-expanded={isOpen}
+      aria-label={`${isOpen ? "收起" : "展开"}${labelPrefix}配置，${count} 项`}
       className={`
         ${sectionHeaderClassName}
         group w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left
-        transition-colors hover:bg-base-content/5
+        transition-colors motion-reduce:transition-none hover:bg-base-content/5
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/25
       `}
-      title={isOpen ? "收起" : "展开"}
+      title={`${isOpen ? "收起" : "展开"}${labelPrefix}配置，${count} 项`}
     >
       <ChevronRightIcon
         className={`
-          size-4 shrink-0 text-base-content/45 transition-transform
+          size-4 shrink-0 text-base-content/45 transition-transform motion-reduce:transition-none
           group-hover:text-info
           ${isOpen ? "rotate-90" : ""}
         `}

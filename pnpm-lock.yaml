@@ -244,6 +244,9 @@ importers:
       '@phosphor-icons/react':
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@sqlite.org/sqlite-wasm':
+        specifier: 3.53.0-build1
+        version: 3.53.0-build1
       '@tanstack/react-query':
         specifier: ^5.69.0
         version: 5.90.16(react@19.2.0)
@@ -334,9 +337,6 @@ importers:
       remark-gfm:
         specifier: ^4.0.1
         version: 4.0.1
-      sql.js:
-        specifier: 1.14.1
-        version: 1.14.1
       ts-md5:
         specifier: ^2.0.1
         version: 2.0.1
@@ -474,13 +474,13 @@ importers:
       '@tuanchat/query':
         specifier: workspace:*
         version: link:../tuanchat-query
-      sql.js:
-        specifier: 1.14.1
-        version: 1.14.1
     devDependencies:
       '@tuanchat/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
+      sql.js:
+        specifier: 1.14.1
+        version: 1.14.1
 
   packages/tuanchat-openapi-client:
     devDependencies:
@@ -2986,6 +2986,10 @@ packages:
 
   '@sinonjs/fake-timers@10.3.0':
     resolution: {integrity: sha512-V4BG07kuYSUkTCSBHG8G8TNhM+F19jXFWnQtzj+we8DrkpSBCee9Z3Ms8yiGer/dlmhe35/Xdgyo3/0rQKg7YA==}
+
+  '@sqlite.org/sqlite-wasm@3.53.0-build1':
+    resolution: {integrity: sha512-PfWPWN2n+/37doa8oh2/oUXk4OOsRYZsxc1W1sDXIGb/Pu5Yrb+f2eyYpgQMGITVX7HVgxhs9P18Rc6I97ym/g==}
+    engines: {node: '>=22'}
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
@@ -11313,6 +11317,8 @@ snapshots:
   '@sinonjs/fake-timers@10.3.0':
     dependencies:
       '@sinonjs/commons': 3.0.1
+
+  '@sqlite.org/sqlite-wasm@3.53.0-build1': {}
 
   '@standard-schema/spec@1.1.0': {}
 

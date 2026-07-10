@@ -1,5 +1,9 @@
 import type { AiImageStylePreset } from "@/utils/aiImageStylePresets";
 
+import { useRef } from "react";
+
+import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
+
 type StylePickerDialogProps = {
   isOpen: boolean;
   viewMode: "select" | "compare";
@@ -27,12 +31,24 @@ export function StylePickerDialog({
   onClearStyles,
   onClose,
 }: StylePickerDialogProps) {
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
   const selectedStyleIdSet = new Set(selectedStyleIds);
   const currentCountLabel = selectedStyleIds.length ? `已选 ${selectedStyleIds.length} 个` : "";
 
+  useEscapeToClose({
+    enabled: isOpen,
+    onClose,
+    containerRef: dialogRef,
+  });
+
   return (
     <dialog
+      ref={dialogRef}
       open={isOpen}
+      data-modal-layer={isOpen ? "true" : undefined}
+      role="dialog"
+      aria-modal="true"
+      aria-label="选择画风"
       className={`
         modal
         ${isOpen ? "modal-open" : ""}

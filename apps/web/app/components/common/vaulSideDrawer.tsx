@@ -2,6 +2,8 @@ import React from "react";
 
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 
+const DRAWER_RESIZE_KEYBOARD_STEP = 24;
+
 type VaulSideDrawerProps = {
   isOpen: boolean;
   children: React.ReactNode;
@@ -106,6 +108,40 @@ export function VaulSideDrawer({
     document.addEventListener("pointerup", handlePointerUp);
   }, [canResize, clamp, handlePosition, onWidthChange, renderedWidthNumber, widthNumber]);
 
+  const handleResizeHandleKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!canResize || renderedWidthNumber == null) {
+      return;
+    }
+
+    const visualDelta = event.key === "ArrowLeft"
+      ? -DRAWER_RESIZE_KEYBOARD_STEP
+      : event.key === "ArrowRight"
+        ? DRAWER_RESIZE_KEYBOARD_STEP
+        : 0;
+    const nextWidth = event.key === "Home"
+      ? resolvedMin
+      : event.key === "End"
+        ? resolvedMax
+        : visualDelta === 0
+          ? null
+          : clamp(renderedWidthNumber + (handlePosition === "left" ? -visualDelta : visualDelta));
+
+    if (nextWidth == null) {
+      return;
+    }
+
+    event.preventDefault();
+    onWidthChange?.(nextWidth);
+  }, [canResize, clamp, handlePosition, onWidthChange, renderedWidthNumber, resolvedMax, resolvedMin]);
+
+  const resizeHandleA11yProps = renderedWidthNumber == null
+    ? {}
+    : {
+        "aria-valuemax": Math.round(resolvedMax),
+        "aria-valuemin": Math.round(resolvedMin),
+        "aria-valuenow": Math.round(renderedWidthNumber),
+      };
+
   if (!isOpen) {
     return null;
   }
@@ -137,17 +173,25 @@ export function VaulSideDrawer({
             {canResize && (
               <div
                 className={`
-                  absolute top-0 h-full w-3 cursor-col-resize z-50
+                  group/vaul-resize-handle absolute top-0 h-full w-6 cursor-col-resize z-50
                   ${handlePosition === "left" ? `left-0` : `right-0`}
-                  hover:bg-info/15
-                  transition-colors
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30
                 `}
                 onPointerDown={handlePointerDown}
+                onKeyDown={handleResizeHandleKeyDown}
                 style={{ touchAction: "none" }}
                 title="拖拽调整宽度"
+                role="separator"
+                tabIndex={0}
+                aria-label="调整抽屉宽度"
+                aria-orientation="vertical"
+                {...resizeHandleA11yProps}
               >
                 <div className={`
-                  absolute top-0 h-full w-px bg-base-300
+                  absolute top-0 h-full w-px bg-base-300 transition-colors
+                  group-hover/vaul-resize-handle:bg-info/70
+                  group-active/vaul-resize-handle:bg-info
+                  group-focus-visible/vaul-resize-handle:bg-info
                   ${handlePosition === "left" ? `left-0` : `right-0`}
                 `} />
               </div>
@@ -186,17 +230,25 @@ export function VaulSideDrawer({
         {canResize && (
           <div
             className={`
-              absolute top-0 h-full w-3 cursor-col-resize z-50
+              group/vaul-resize-handle absolute top-0 h-full w-6 cursor-col-resize z-50
               ${handlePosition === "left" ? `left-0` : `right-0`}
-              hover:bg-info/15
-              transition-colors
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30
             `}
             onPointerDown={handlePointerDown}
+            onKeyDown={handleResizeHandleKeyDown}
             style={{ touchAction: "none" }}
             title="拖拽调整宽度"
+            role="separator"
+            tabIndex={0}
+            aria-label="调整抽屉宽度"
+            aria-orientation="vertical"
+            {...resizeHandleA11yProps}
           >
             <div className={`
-              absolute top-0 h-full w-px bg-base-300
+              absolute top-0 h-full w-px bg-base-300 transition-colors
+              group-hover/vaul-resize-handle:bg-info/70
+              group-active/vaul-resize-handle:bg-info
+              group-focus-visible/vaul-resize-handle:bg-info
               ${handlePosition === "left" ? `left-0` : `right-0`}
             `} />
           </div>

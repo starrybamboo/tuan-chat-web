@@ -1,4 +1,3 @@
-import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { MessageDirectSendRequest } from "@tuanchat/openapi-client/models/MessageDirectSendRequest";
 import { formatLocalDateTime } from "@/utils/dateUtil";
 import { useQueryClient } from "@tanstack/react-query";
@@ -19,6 +18,11 @@ import type { ChatStatus, OptimisticDirectMessagePending, WsMessage } from "./we
 import { AUTH_SESSION_CHANGED_EVENT } from "@/utils/auth/sessionEvents";
 import { useWebSocketMessageHandlers } from "./useWebSocketMessageHandlers";
 import { useWebSocketNotifications } from "./useWebSocketNotifications";
+import {
+  removeDirectInboxMessageFromCache,
+  upsertDirectInboxQueryData,
+} from "@tuanchat/query/direct-message";
+import { normalizeWebSocketRequestForSend } from "./webSocketProtocol";
 
 /**
  * 成员的输入状态（不包含roomId）
@@ -29,8 +33,6 @@ import { useWebSocketNotifications } from "./useWebSocketNotifications";
  * @property connect 连接WebSocket
  * @property send 发送消息 发送聊天消息到指定房间(type: 3) 聊天状态控制 (type: 4)
  * @property isConnected 检查连接状态
- * @property receivedMessages 已接收的群聊消息，使用方法：receivedMessages[roomId]
- * @property receivedDirectMessages 已接收的私聊消息，使用方法：receivedDirectMessages[userId]
  * @property unreadMessagesNumber 未读消息数量（群聊部分）
  * @property updateLastReadSyncId 更新未读消息 （群聊部分） 如果lastReadSyncIdΪundefined，则使用latestSyncId
  * @property chatStatus 成员的输入状态 (0:空闲, 1:正在输入, 2:等待扮演, 3:暂离), 默认为1 (空闲）
@@ -41,8 +43,6 @@ export interface WebsocketUtils {
   send: (request: WsMessage<any>) => void;
   sendWithResult: (request: WsMessage<any>) => Promise<boolean>;
   isConnected: () => boolean;
-  receivedMessages: Record<number, ChatMessageResponse[]>;
-  receivedDirectMessages: Record<number, DirectMessageEvent[]>;
   unreadMessagesNumber: Record<number, number>; // 存储未读消息数
   updateLastReadSyncId: (roomId: number, lastReadSyncId?: number) => void;
   chatStatus: Record<number, ChatStatus[]>;
@@ -56,6 +56,7 @@ const EMPTY_SESSIONS: MessageSessionResponse[] = [];
 const WS_URL = resolveRuntimeWebSocketBaseUrl(import.meta.env.VITE_API_WS_URL);
 const WS_RECONNECTED_EVENT = "tc:ws-reconnected";
 const OPTIMISTIC_DIRECT_MESSAGE_ID_BASE = Date.now() * 1000;
+const OPTIMISTIC_DIRECT_MESSAGE_TIMEOUT_MS = 30_000;
 const WS_DEBUG_LOG_ENABLED = import.meta.env.DEV;
 type WsDebugState = {
   implementedTypes: number[];
@@ -80,10 +81,7 @@ export function useWebSocket() {
   const connectTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const heartbeatTimer = useRef<NodeJS.Timeout>(setTimeout(() => {}));
-  // 接受消息的存储
-  const [receivedMessages, updateReceivedMessages] = useImmer<Record<number, ChatMessageResponse[]>>({});
-  const receivedMessagesRef = useRef<Record<number, ChatMessageResponse[]>>({});
-  const [receivedDirectMessages, updateReceivedDirectMessages] = useImmer<Record<number, DirectMessageEvent[]>>({});
+  // 私聊乐观态统一进入 dmInbox query；pending map 只保存确认匹配与超时清理元数据。
   const optimisticDirectMessageIdRef = useRef<number>(OPTIMISTIC_DIRECT_MESSAGE_ID_BASE);
   const optimisticDirectMessageRequestMapRef = useRef<Map<number, OptimisticDirectMessagePending>>(new Map());
 
@@ -201,7 +199,7 @@ export function useWebSocket() {
 
   // 这里代表“前端已显式实现处理逻辑”的 WS type（对应 onMessage 的 switch cases）。
   // 未在该列表中的 type，会在运行时第一次收到时通过 default 分支提示。
-  const implementedWsTypes = useRef<Set<number>>(new Set([1, 4, 11, 12, 14, 15, 16, 17, 21, 22, 25, 100]));
+  const implementedWsTypes = useRef<Set<number>>(new Set([1, 2, 4, 11, 12, 14, 15, 17, 19, 21, 22, 23, 24, 25, 100]));
   const unhandledWsTypes = useRef<Set<number>>(new Set());
   const countByTypeRef = useRef<Record<number, number>>({});
 
@@ -310,8 +308,12 @@ export function useWebSocket() {
         return;
       }
       const wsUrl = currentToken ? appendUrlQueryParam(WS_URL, "token", currentToken) : WS_URL;
-      wsRef.current = new WebSocket(wsUrl);
-      wsRef.current.onopen = () => {
+      const socket = new WebSocket(wsUrl);
+      wsRef.current = socket;
+      socket.onopen = () => {
+        if (closingRef.current || wsRef.current !== socket) {
+          return;
+        }
         if (WS_DEBUG_LOG_ENABLED) {
           console.info("WebSocket connected");
         }
@@ -329,8 +331,8 @@ export function useWebSocket() {
         startHeartbeat();
       };
 
-      wsRef.current.onclose = (event) => {
-        if (closingRef.current) {
+      socket.onclose = (event) => {
+        if (closingRef.current || wsRef.current !== socket) {
           return;
         }
         if (WS_DEBUG_LOG_ENABLED) {
@@ -366,7 +368,10 @@ export function useWebSocket() {
           connect();
         }, delay);
       };
-      wsRef.current.onmessage = (event) => {
+      socket.onmessage = (event) => {
+        if (closingRef.current || wsRef.current !== socket) {
+          return;
+        }
         try {
           const message: WsMessage<any> = JSON.parse(event.data);
           trackWsMessage(message);
@@ -376,12 +381,14 @@ export function useWebSocket() {
           console.error("Message parsing failed:", error);
         }
       };
-      wsRef.current.onerror = (error) => {
-        if (closingRef.current) {
+      socket.onerror = (error) => {
+        if (closingRef.current || wsRef.current !== socket) {
           return;
         }
-        console.error("WebSocket error:", error);
-        wsRef.current?.close();
+        if (WS_DEBUG_LOG_ENABLED) {
+          console.warn("WebSocket error, closing current socket before reconnect:", error);
+        }
+        socket.close();
       };
     }
     catch (error) {
@@ -397,6 +404,16 @@ export function useWebSocket() {
     }
     return (typeof fallbackUserId === "number" && fallbackUserId > 0) ? fallbackUserId : 0;
   }, []);
+
+  const removeOptimisticDirectMessage = useCallback((optimisticMessageId: number) => {
+    const pendingMessage = optimisticDirectMessageRequestMapRef.current.get(optimisticMessageId);
+    if (!pendingMessage) {
+      return;
+    }
+    clearTimeout(pendingMessage.cleanupTimer);
+    optimisticDirectMessageRequestMapRef.current.delete(optimisticMessageId);
+    removeDirectInboxMessageFromCache(queryClient, resolveSelfUserId(), optimisticMessageId);
+  }, [queryClient, resolveSelfUserId]);
 
   const pushOptimisticDirectMessage = useCallback((request: MessageDirectSendRequest) => {
     const receiverId = Number(request?.receiverId);
@@ -423,46 +440,21 @@ export function useWebSocket() {
       updateTime: nowIso,
     };
 
+    const cleanupTimer = setTimeout(() => {
+      removeOptimisticDirectMessage(optimisticMessageId);
+    }, OPTIMISTIC_DIRECT_MESSAGE_TIMEOUT_MS);
+
     optimisticDirectMessageRequestMapRef.current.set(optimisticMessageId, {
       channelId: receiverId,
+      cleanupTimer,
       request,
       createdAt: now,
     });
 
-    updateReceivedDirectMessages((draft) => {
-      if (draft[receiverId]) {
-        draft[receiverId].push(optimisticMessage);
-      }
-      else {
-        draft[receiverId] = [optimisticMessage];
-      }
-    });
+    upsertDirectInboxQueryData(queryClient, selfUserId, [optimisticMessage]);
 
     return optimisticMessageId;
-  }, [resolveSelfUserId, updateReceivedDirectMessages]);
-
-  const removeOptimisticDirectMessage = useCallback((optimisticMessageId: number) => {
-    const pendingMessage = optimisticDirectMessageRequestMapRef.current.get(optimisticMessageId);
-    if (!pendingMessage) {
-      return;
-    }
-    optimisticDirectMessageRequestMapRef.current.delete(optimisticMessageId);
-
-    const channelId = pendingMessage.channelId;
-    updateReceivedDirectMessages((draft) => {
-      const messages = draft[channelId];
-      if (!messages) {
-        return;
-      }
-      const index = messages.findIndex(item => item.messageId === optimisticMessageId);
-      if (index >= 0) {
-        messages.splice(index, 1);
-      }
-      if (messages.length === 0) {
-        delete draft[channelId];
-      }
-    });
-  }, [updateReceivedDirectMessages]);
+  }, [queryClient, removeOptimisticDirectMessage, resolveSelfUserId]);
 
   const {
     notifyNewDirectMessage,
@@ -481,7 +473,6 @@ export function useWebSocket() {
     wsRef,
     closingRef,
     reconnectAttempts,
-    receivedMessagesRef,
     optimisticDirectMessageRequestMapRef,
     unhandledWsTypes,
     connect,
@@ -494,8 +485,6 @@ export function useWebSocket() {
     syncWsDebugToWindow,
     updateChatStatus,
     updateLatestSyncId,
-    updateReceivedDirectMessages,
-    updateReceivedMessages,
   });
   /**
    * 心跳逻辑
@@ -571,7 +560,7 @@ export function useWebSocket() {
     if (wsRef.current?.readyState !== WebSocket.OPEN) {
       return false;
     }
-    wsRef.current.send(JSON.stringify(request));
+    wsRef.current.send(JSON.stringify(normalizeWebSocketRequestForSend(request)));
     return true;
   }, [connect, isConnected, readCurrentToken]);
 
@@ -579,13 +568,20 @@ export function useWebSocket() {
     void sendWithResult(request);
   }, [sendWithResult]);
 
+  useEffect(() => {
+    return () => {
+      for (const pendingMessage of optimisticDirectMessageRequestMapRef.current.values()) {
+        clearTimeout(pendingMessage.cleanupTimer);
+      }
+      optimisticDirectMessageRequestMapRef.current.clear();
+    };
+  }, []);
+
   const webSocketUtils: WebsocketUtils = useMemo(() => ({
     connect,
     send,
     sendWithResult,
     isConnected,
-    receivedMessages,
-    receivedDirectMessages,
     unreadMessagesNumber,
     updateLastReadSyncId,
     chatStatus,
@@ -597,8 +593,6 @@ export function useWebSocket() {
     send,
     sendWithResult,
     isConnected,
-    receivedMessages,
-    receivedDirectMessages,
     unreadMessagesNumber,
     updateLastReadSyncId,
     chatStatus,

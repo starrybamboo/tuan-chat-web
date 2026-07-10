@@ -11,20 +11,20 @@
     <title>团剧共创</title>
       <script>
       // 防 FOUC：在 React 加载前根据 localStorage 主题决定 data-theme。
-      // 支持三态：light / dark / system（默认跟随系统）。
+      // 支持三态：light / dark / system（默认暗色）。
       (function () {
         try {
           var raw = localStorage.getItem("theme");
           var theme;
           if (raw === null || raw === "" || raw === "undefined" || raw === "null") {
-            theme = "system";
+            theme = "dark";
           }
           else {
             try { theme = JSON.parse(raw); }
             catch (e) { theme = raw; }
           }
           if (theme !== "light" && theme !== "dark" && theme !== "system") {
-            theme = "system";
+            theme = "dark";
           }
           var isDark = theme === "dark"
             || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);

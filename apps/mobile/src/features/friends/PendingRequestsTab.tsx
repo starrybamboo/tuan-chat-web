@@ -125,19 +125,23 @@ export function PendingRequestsTab({
         </View>
         <View style={styles.actions}>
           <Pressable
+            accessibilityState={{ busy: isAccepting, disabled: isAccepting }}
             onPress={() => onAccept(requestId)}
             disabled={isAccepting}
             style={[styles.actionBtn, { backgroundColor: theme.accentMuted }]}
             accessibilityLabel={`接受 ${username} 的好友请求`}
+            accessibilityHint={req.verifyMsg || undefined}
             accessibilityRole="button"
           >
             <ThemedText style={{ color: theme.accent, fontSize: 12 }}>接受</ThemedText>
           </Pressable>
           <Pressable
+            accessibilityState={{ busy: isRejecting, disabled: isRejecting }}
             onPress={() => onReject(requestId)}
             disabled={isRejecting}
             style={[styles.actionBtn, { backgroundColor: theme.dangerMuted }]}
             accessibilityLabel={`拒绝 ${username} 的好友请求`}
+            accessibilityHint={req.verifyMsg || undefined}
             accessibilityRole="button"
           >
             <ThemedText style={{ color: theme.danger, fontSize: 12 }}>拒绝</ThemedText>

@@ -1,6 +1,6 @@
-import React, { use, useMemo, useState } from "react";
-
 import type { CommentVO } from "api";
+
+import React, { use, useMemo, useState } from "react";
 
 import { CommentContext } from "@/components/common/comment/commentContext";
 import CommentInputBox from "@/components/common/comment/commentInputBox";
@@ -74,6 +74,7 @@ function CommentActionButton({
         btn btn-ghost btn-xs h-8 min-h-8 rounded-full px-3 transition-colors
         ${toneClass}
       `}
+      aria-pressed={active || undefined}
       onClick={(event) => {
         event.stopPropagation();
         onClick();
@@ -301,6 +302,15 @@ export default function CommentComponent({
               "
               onClick={() => setIsFolded(true)}
               title="收起回复"
+              role="button"
+              tabIndex={0}
+              aria-label="收起回复线程"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setIsFolded(true);
+                }
+              }}
             >
               <div className="
                 h-full w-[2px] bg-base-content/15
@@ -330,6 +340,15 @@ export default function CommentComponent({
                 onClick={() => {
                   if (isFolded)
                     setIsFolded(false);
+                }}
+                role={isFolded ? "button" : undefined}
+                tabIndex={isFolded ? 0 : undefined}
+                aria-label={isFolded ? "展开评论" : undefined}
+                onKeyDown={(e) => {
+                  if (isFolded && (e.key === "Enter" || e.key === " ")) {
+                    e.preventDefault();
+                    setIsFolded(false);
+                  }
                 }}
               >
                 <CommentPreview commentVO={commentVO} />
@@ -361,6 +380,8 @@ export default function CommentComponent({
                     `}
                   `}
                   type="button"
+                  aria-expanded={!isFolded}
+                  aria-label={isFolded ? "展开回复" : "收起回复"}
                   onClick={() => setIsFolded(!isFolded)}
                   title={isFolded ? "展开" : "收起"}
                 >

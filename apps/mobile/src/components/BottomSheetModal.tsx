@@ -153,12 +153,22 @@ export function BottomSheetModal({
   return (
     <Modal animationType="none" transparent visible={modalVisible} onRequestClose={onClose}>
       <View style={styles.container}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose}>
+        <Pressable
+          accessibilityLabel="关闭弹窗"
+          accessibilityRole="button"
+          style={StyleSheet.absoluteFill}
+          onPress={onClose}
+        >
           <Animated.View pointerEvents="none" style={[styles.backdrop, { opacity: backdropOpacity }]} />
         </Pressable>
         <Animated.View style={{ position: "absolute", bottom: 0, left: 0, right: 0, transform: [{ translateY: sheetTranslateY }] }}>
           <View style={[styles.sheet, { backgroundColor, maxHeight: resolvedMaxHeight, paddingBottom: insets.bottom || Spacing.xl }, sheetStyle]}>
-            <View {...panResponder.panHandlers} style={styles.handleArea}>
+            <View
+              {...panResponder.panHandlers}
+              accessibilityLabel="拖拽把手"
+              accessibilityHint="可向下拖拽关闭"
+              style={styles.handleArea}
+            >
               <View style={[styles.handle, { backgroundColor: handleColor }]} />
             </View>
             {children}

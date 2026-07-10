@@ -9,13 +9,14 @@ import {
   useNotificationsInfiniteQuery as useSharedNotificationsInfiniteQuery,
   useNotificationUnreadCountQuery as useSharedNotificationUnreadCountQuery,
 } from "@tuanchat/query/notifications";
-import { toWebNotificationPageData } from "api/notificationQueryCache";
 
 import type {
   NotificationListFilters,
   NotificationReadAllPayload,
   NotificationReadPayload,
 } from "@/components/notification/notificationTypes";
+
+import { toWebNotificationPageData } from "api/notificationQueryCache";
 
 import { tuanchat } from "../../../api/instance";
 

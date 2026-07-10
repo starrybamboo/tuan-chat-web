@@ -39,7 +39,7 @@ export default function RepliedMessage({ replyMessage, className }: {
   const isDeleted = replyMessage.status === 1;
   const namePrefix = !isDeleted && displayRoleName ? `${displayRoleName}: ` : "";
   return (
-    <div className={className} onClick={() => scrollToGivenMessage && scrollToGivenMessage(replyMessage.messageId)}>
+    <div className={className}>
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -55,16 +55,27 @@ export default function RepliedMessage({ replyMessage, className }: {
       >
         <XMarkICon className="size-4"></XMarkICon>
       </button>
-      <span className="opacity-60 inline shrink-0">回复</span>
-      <span className={`
-        text-xs
-        sm:text-sm
-        line-clamp-3 opacity-60 wrap-break-word min-w-0
-        ${isOutOfCharacterText ? `italic` : ""}
-      `}>
-        {namePrefix}
-        <MessagePreviewContent message={replyMessage} withMediaPreview />
-      </span>
+      <button
+        type="button"
+        className="
+          inline-flex min-w-0 flex-1 items-start gap-1 text-left
+          focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
+          focus-visible:outline-info
+        "
+        onClick={() => scrollToGivenMessage?.(replyMessage.messageId)}
+        aria-label={`跳转到回复消息：${namePrefix}${replyMessage.content ?? ""}`}
+      >
+        <span className="opacity-60 inline shrink-0">回复</span>
+        <span className={`
+          text-xs
+          sm:text-sm
+          line-clamp-3 opacity-60 wrap-break-word min-w-0
+          ${isOutOfCharacterText ? `italic` : ""}
+        `}>
+          {namePrefix}
+          <MessagePreviewContent message={replyMessage} withMediaPreview />
+        </span>
+      </button>
     </div>
   );
 }

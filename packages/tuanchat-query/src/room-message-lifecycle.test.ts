@@ -85,6 +85,32 @@ describe("createOptimisticRoomMessage", () => {
     });
     expect(result.message.position).toBe(99);
   });
+
+  it("同秒内相同 optimisticId 也会生成不同本地渲染 key", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 6, 9, 1, 0, 19));
+
+    const request: ChatMessageRequest = {
+      roomId: 10,
+      messageType: 1,
+      content: "image",
+      extra: {},
+    };
+    const first = createOptimisticRoomMessage(request, {
+      optimisticId: -1,
+      currentUserId: 5,
+      position: 1,
+    });
+    const second = createOptimisticRoomMessage(request, {
+      optimisticId: -1,
+      currentUserId: 5,
+      position: 2,
+    });
+
+    expect(first.message.createTime).toBe("2026-07-09 01:00:19");
+    expect(second.message.createTime).toBe("2026-07-09 01:00:19");
+    expect(getRoomMessageLocalRenderKey(first.message)).not.toBe(getRoomMessageLocalRenderKey(second.message));
+  });
 });
 
 describe("buildOptimisticRoomMessagesFromPatch", () => {

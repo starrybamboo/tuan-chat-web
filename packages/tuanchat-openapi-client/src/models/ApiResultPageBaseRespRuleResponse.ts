@@ -21,4 +21,3 @@ export type ApiResultPageBaseRespRuleResponse = {
     errMsg?: string;
     data?: PageBaseRespRuleResponse;
 };
-

@@ -18,4 +18,3 @@ export type Sticker = {
     createTime?: string;
     updateTime?: string;
 };
-

@@ -297,7 +297,7 @@ export default function RulePerformanceEditor({
                           <div className="
                             text-base-content mt-0.5 flex justify-center p-2
                           ">
-                            <div className="text-left break-all">
+                            <div className="text-left break-all" title={localData[key]}>
                               {localData[key] || <span className="
                                 text-base-content/50
                               ">未设置</span>}

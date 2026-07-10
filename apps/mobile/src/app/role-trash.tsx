@@ -175,7 +175,7 @@ function RoleTrashItem({
               </ThemedText>
             </View>
           )}
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1 }} accessibilityLabel={`${role.roleName ?? `角色 #${role.roleId}`} · ${getRoleTypeLabel(role.type)}`}>
         <ThemedText type="smallBold" numberOfLines={1}>
           {role.roleName ?? `角色 #${role.roleId}`}
         </ThemedText>
@@ -281,6 +281,7 @@ export default function RoleTrashScreen() {
         <View style={[styles.searchBox, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
           <MagnifyingGlass color={theme.textSecondary} size={18} weight="bold" />
           <TextInput
+            accessibilityLabel="搜索角色回收站"
             onChangeText={setSearchText}
             placeholder="搜索回收站"
             placeholderTextColor={theme.textSecondary}

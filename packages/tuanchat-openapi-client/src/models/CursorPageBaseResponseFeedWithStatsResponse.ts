@@ -20,4 +20,3 @@ export type CursorPageBaseResponseFeedWithStatsResponse = {
      */
     list?: Array<FeedWithStatsResponse>;
 };
-

@@ -24,9 +24,10 @@ export function getVisibleMessageItems(messages: readonly ChatMessageListItem[])
   return messages.filter(item => isVisibleRoomMessage(item.message));
 }
 
-export function buildChatMessageListModel(messages: readonly ChatMessageListItem[]): ChatMessageListModel {
+export function buildChatMessageListModel(
+  messages: readonly ChatMessageListItem[],
+): ChatMessageListModel {
   const visibleMessages: ChatMessageListItem[] = [];
-  const visibleChatMessages: Message[] = [];
   const messageMap = new Map<number, Message>();
 
   for (const item of messages) {
@@ -36,11 +37,12 @@ export function buildChatMessageListModel(messages: readonly ChatMessageListItem
     }
 
     visibleMessages.push(item);
-    visibleChatMessages.push(message);
     if (typeof message.messageId === "number") {
       messageMap.set(message.messageId, message);
     }
   }
+
+  const visibleChatMessages = visibleMessages.map(item => item.message);
 
   return {
     invertedData: [...visibleMessages].reverse(),

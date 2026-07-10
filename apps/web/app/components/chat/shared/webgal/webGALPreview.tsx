@@ -178,6 +178,7 @@ export default function WebGALPreview({
             <button
               type="button"
               className="btn btn-ghost btn-xs"
+              aria-label="空间级 WebGAL 渲染设置"
               title={canOpenSpaceWebgalSettings ? "打开空间级 WebGAL 渲染设置" : "当前空间不可用"}
               disabled={!canOpenSpaceWebgalSettings}
               onClick={handleOpenSpaceWebgalSettings}

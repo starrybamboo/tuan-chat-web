@@ -46,8 +46,8 @@ export type RealtimeGameConfig = {
   description: string;
   /** 游戏包名（Package_name） */
   packageName: string;
-  /** 底层模板（tuanchat=团剧共创，black=WebGAL Black，none=历史默认别名） */
-  baseTemplate: "none" | "black" | "tuanchat";
+  /** 底层模板（tuanchat=团剧共创，black=WebGAL Black） */
+  baseTemplate: "black" | "tuanchat";
   /** 是否开启紧急回避（Show_panic） */
   showPanicEnabled: boolean;
   /** 是否允许玩家打开完整设置（Allow_Full_Settings） */

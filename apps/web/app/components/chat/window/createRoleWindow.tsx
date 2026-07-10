@@ -1,5 +1,5 @@
 import { use, useMemo } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { CharacterData } from "@/components/Role/RoleCreation/types";
 import type { Role } from "@/components/Role/types";
@@ -35,7 +35,7 @@ export default function CreateRoleWindow({ onClose }: { onClose: () => void }) {
   const handleCreateRoleComplete = (createdRole: Role) => {
     void (async () => {
       if (roomId <= 0) {
-        toast.error("房间信息异常，无法创建角色");
+        appToast.error("房间信息异常，无法创建角色");
         return;
       }
       try {
@@ -43,12 +43,12 @@ export default function CreateRoleWindow({ onClose }: { onClose: () => void }) {
           roomId,
           roleIdList: [createdRole.id],
         });
-        toast.success("角色创建成功");
+        appToast.success("角色创建成功");
         onClose();
       }
       catch (e: any) {
         console.error("添加角色到房间失败", e);
-        toast.error(e?.message ? `添加角色到房间失败：${e.message}` : "添加角色到房间失败");
+        appToast.error(e?.message ? `添加角色到房间失败：${e.message}` : "添加角色到房间失败");
       }
     })();
   };

@@ -135,6 +135,7 @@ export function AiImageHistoryPane({
         }}
         onConfirm={handleConfirmDownloadHistory}
         title="下载全部图片？"
+        description={`将下载当前历史记录中的 ${history.length} 张图片。`}
         confirmLabel="开始下载"
         cancelLabel="暂不下载"
         icon={<SharpDownload className="size-6" />}
@@ -161,6 +162,9 @@ export function AiImageHistoryPane({
         }}
         onConfirm={() => void handleConfirmDeleteHistoryRow()}
         title="删除这张图片？"
+        description={pendingDeleteHistoryRow
+          ? `生成时间：${new Date(pendingDeleteHistoryRow.createdAt).toLocaleString()}${pendingDeleteHistoryRow.prompt ? `；内容：${pendingDeleteHistoryRow.prompt.slice(0, 30)}` : ""}`
+          : undefined}
         confirmLabel="确认删除"
         cancelLabel="先保留"
         icon={<TrashSimpleIcon className="size-6" weight="regular" />}

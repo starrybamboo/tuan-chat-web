@@ -59,6 +59,9 @@ export function CommandRequestCard({
 
   return (
     <Pressable
+      accessibilityLabel={isConsumed ? `检定 ${command} 已执行` : disableReason ? `检定 ${command} 不可执行，${disableReason}` : `执行检定 ${command}`}
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={() => onExecute({ command, messageId })}
       style={({ pressed }) => [
@@ -86,7 +89,7 @@ export function CommandRequestCard({
         {command}
       </ThemedText>
       <ThemedText style={[styles.hint, { color: theme.textSecondary }]}>
-        {isConsumed ? "已执行" : disableReason ?? "点击此进行检定"}
+        {isConsumed ? "此检定已执行" : disableReason ?? "点按执行此检定"}
       </ThemedText>
     </Pressable>
   );

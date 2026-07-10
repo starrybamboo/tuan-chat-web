@@ -22,4 +22,3 @@ export type RoleAvatarVariantCompositionConfig = {
     output?: Output;
     complete?: boolean;
 };
-

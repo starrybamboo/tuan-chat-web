@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 import {
   getDirectInboxQueryKey,
   markDirectMessageRecalledData,
+  removeDirectInboxMessageData,
+  replaceDirectOptimisticInboxMessageData,
   upsertDirectInboxMessagesData,
 } from "./direct-message";
 
@@ -49,6 +51,28 @@ describe("direct message query helpers", () => {
     ], 2)).toEqual([
       createDirectMessage(1, 1),
       { ...createDirectMessage(2, 2), status: 1 },
+    ]);
+  });
+
+  it("移除 inbox 消息时只删除指定 messageId", () => {
+    expect(removeDirectInboxMessageData([
+      createDirectMessage(1, 1),
+      createDirectMessage(2, 2),
+    ], 1)).toEqual([
+      createDirectMessage(2, 2),
+    ]);
+  });
+
+  it("服务端私聊消息提交时会替换对应乐观消息", () => {
+    const optimistic = createDirectMessage(-1, -1);
+    const committed = { ...createDirectMessage(10, 3), content: "committed" };
+
+    expect(replaceDirectOptimisticInboxMessageData([
+      createDirectMessage(1, 1),
+      optimistic,
+    ], -1, committed)).toEqual([
+      createDirectMessage(1, 1),
+      committed,
     ]);
   });
 });

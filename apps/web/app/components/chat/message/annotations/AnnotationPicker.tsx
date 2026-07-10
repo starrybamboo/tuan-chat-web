@@ -222,6 +222,7 @@ export default function AnnotationPicker({ initialSelected = DEFAULT_SELECTED, m
           type="button"
           className="btn btn-neutral min-w-[80px] rounded-xl px-6"
           onClick={onClose}
+          aria-label="完成标注选择并关闭面板"
         >
           完成
         </button>

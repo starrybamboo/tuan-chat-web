@@ -55,7 +55,7 @@ export function getMobileMessageAuthorLabel(
   }
 
   if (isOutOfCharacterMessage(message) && typeof message.userId === "number" && message.userId > 0) {
-    return `用户 #${message.userId}`;
+    return options.unknownRoleLabel ?? `角色 #${message.roleId ?? message.userId}`;
   }
 
   return options.unknownRoleLabel ?? "未知角色";

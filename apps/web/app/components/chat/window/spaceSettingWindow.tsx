@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { imageLowUrl } from "@/utils/media/mediaUrl";
 import {
+
   useGetSpaceInfoQuery,
   useGetUserSpacesQuery,
   useUpdateSpaceMutation,
@@ -141,7 +142,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
       // 失败提示（节流，避免疯狂刷 toast）
       const now = Date.now();
       if (now - lastFailureToastAtRef.current > 3000) {
-        toast.error("空间设置自动保存失败，将自动重试");
+        appToast.error("空间设置自动保存失败，将自动重试");
         lastFailureToastAtRef.current = now;
       }
 
@@ -269,8 +270,9 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                                   setActiveSpaceId(cloneSourceSpace.spaceId!);
                                   onClose();
                                 }}
+                                aria-label={`前往来源空间 ${cloneSourceSpace?.name ?? `ID ${cloneSourceId}`}`}
                               >
-                                前往
+                                前往来源空间
                               </button>
                             )
                           : null}

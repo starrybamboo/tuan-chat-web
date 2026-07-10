@@ -35,4 +35,3 @@ export type FeedbackIssuePageRequest = {
      */
     keyword?: string;
 };
-

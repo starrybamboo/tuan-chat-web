@@ -21,4 +21,3 @@ export type ApiResultMaterialPackageResponse = {
     errMsg?: string;
     data?: MaterialPackageResponse;
 };
-

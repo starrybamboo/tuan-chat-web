@@ -84,9 +84,10 @@ export default function MessageTextDiffPreview({
 
       {(footerAction || onCancel || onAccept) && (
         <div className="mt-3 flex justify-end gap-2">
+          <span className="mr-auto text-xs text-base-content/60">接受后会替换当前消息文本</span>
           {footerAction}
           {onCancel && (
-            <button type="button" className="btn btn-ghost btn-xs" onClick={onCancel}>
+            <button type="button" className="btn btn-ghost btn-xs" onClick={onCancel} title="拒绝，保留当前消息文本">
               拒绝
             </button>
           )}
@@ -96,6 +97,7 @@ export default function MessageTextDiffPreview({
               className="btn btn-success btn-xs text-success-content"
               onClick={onAccept}
               disabled={!activeDiff.afterText || isStreaming}
+              title="接受后会替换当前消息文本"
             >
               接受
             </button>

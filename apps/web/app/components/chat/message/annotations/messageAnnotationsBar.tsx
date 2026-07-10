@@ -15,6 +15,7 @@ type MessageAnnotationsBarProps = {
   showNormalModeAnnotationsOnly?: boolean;
   className?: string;
   compact?: boolean;
+  compactScroll?: boolean;
 }
 
 const DEFAULT_ANNOTATIONS: string[] = [];
@@ -30,6 +31,7 @@ export default function MessageAnnotationsBar({
   showNormalModeAnnotationsOnly = false,
   className,
   compact = false,
+  compactScroll = true,
 }: MessageAnnotationsBarProps) {
   const items = Array.from(new Set(normalizeAnnotations(annotations)));
   const annotationMap = buildAnnotationMap();
@@ -52,7 +54,10 @@ export default function MessageAnnotationsBar({
   return (
     <div className={`
       flex items-center
-      ${compact ? `flex-nowrap gap-0.5 overflow-x-auto pb-0.5` : `
+      ${compact ? `
+        flex-nowrap gap-0.5
+        ${compactScroll ? `overflow-x-auto pb-0.5` : `overflow-visible pb-0`}
+      ` : `
         flex-wrap gap-0.5
       `}
       ${className ?? `mt-2`}
@@ -79,11 +84,11 @@ export default function MessageAnnotationsBar({
           <button
             type="button"
             className={`
-              inline-flex size-6 items-center justify-center rounded-md border
-              text-[11px] transition-[background-color,border-color,color,opacity] select-none shadow-none
-              supports-backdrop-filter:backdrop-blur-md
-              border-base-content/12 bg-base-content/4 text-base-content/60
-              hover:border-info/38 hover:bg-base-content/7 hover:text-info
+              group/annotation-add relative -m-1.5 inline-flex items-center
+              justify-center rounded-lg p-1.5 transition-opacity select-none
+              motion-reduce:transition-none
+              focus-visible:outline-none focus-visible:ring-2
+              focus-visible:ring-info/35
               ${alwaysShowAddButton ? `opacity-100` : `
                 opacity-0
                 group-hover:opacity-100
@@ -91,8 +96,21 @@ export default function MessageAnnotationsBar({
             `}
             onClick={onOpenPicker}
             title="添加标注"
+            aria-label="添加消息标注"
           >
-            +
+            <span className="
+              pointer-events-none inline-flex size-6 items-center justify-center
+              rounded-md border border-base-content/12 bg-base-content/4
+              text-[11px] text-base-content/60 shadow-none
+              transition-[background-color,border-color,color]
+              motion-reduce:transition-none
+              supports-backdrop-filter:backdrop-blur-md
+              group-hover/annotation-add:border-info/38
+              group-hover/annotation-add:bg-base-content/7
+              group-hover/annotation-add:text-info
+            ">
+              +
+            </span>
           </button>
         </span>
       )}

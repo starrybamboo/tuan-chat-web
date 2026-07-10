@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { deleteSpaceDoc } from "@/components/chat/infra/doc/space/deleteSpaceDoc";
 
@@ -80,7 +80,7 @@ export default function useRoomSidebarDeleteHandlers({
 
   const confirmDeleteDoc = useCallback(async (payload: DeleteConfirmDocState) => {
     if (!activeSpaceId) {
-      toast.error("未选择空间，无法删除文档");
+      appToast.error("未选择空间，无法删除文档");
       return;
     }
 
@@ -89,7 +89,7 @@ export default function useRoomSidebarDeleteHandlers({
     }
     catch (err) {
       console.error("[SidebarTree] deleteSpaceDoc failed", err);
-      toast.error(err instanceof Error && err.message ? err.message : "删除文档失败，请重试");
+      appToast.error(err instanceof Error && err.message ? err.message : "删除文档失败，请重试");
       return;
     }
 

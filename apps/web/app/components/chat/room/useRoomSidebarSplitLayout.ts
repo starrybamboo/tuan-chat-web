@@ -3,7 +3,7 @@ import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent a
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 const DEFAULT_ROOM_SIDEBAR_SPLIT_RATIO = 0.62;
-export const ROOM_SIDEBAR_SPLIT_HANDLE_HEIGHT = 12;
+export const ROOM_SIDEBAR_SPLIT_HANDLE_HEIGHT = 20;
 
 const MIN_SECTION_HEIGHT = 120;
 const STORAGE_KEY_PREFIX = "roomSidebarVerticalSplit";
@@ -158,20 +158,12 @@ export default function useRoomSidebarSplitLayout({
     };
   }, [containerNode, enabled]);
 
-  useEffect(() => {
-    queueMicrotask(() => setLoadedStorageKey(null));
-    queueMicrotask(() => setSplitRatio(DEFAULT_ROOM_SIDEBAR_SPLIT_RATIO));
-
-    if (!enabled) {
-      queueMicrotask(() => setLoadedStorageKey(storageKey));
-      return;
-    }
-
-    queueMicrotask(() => setSplitRatio(readStoredRatio(storageKey)));
-    queueMicrotask(() => setLoadedStorageKey(storageKey));
+  useLayoutEffect(() => {
+    setLoadedStorageKey(storageKey);
+    setSplitRatio(enabled ? readStoredRatio(storageKey) : DEFAULT_ROOM_SIDEBAR_SPLIT_RATIO);
   }, [enabled, storageKey]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!enabled || metrics.usableHeight <= 0) {
       return;
     }
@@ -179,7 +171,7 @@ export default function useRoomSidebarSplitLayout({
       return;
     }
 
-    queueMicrotask(() => setSplitRatio(metrics.ratio));
+    setSplitRatio(metrics.ratio);
   }, [enabled, metrics.ratio, metrics.usableHeight, splitRatio]);
 
   useEffect(() => {
@@ -304,14 +296,22 @@ export default function useRoomSidebarSplitLayout({
     setSplitRatio(DEFAULT_ROOM_SIDEBAR_SPLIT_RATIO);
   }, []);
 
+  const fallbackSplitRatio = Number.isFinite(splitRatio)
+    ? clamp(splitRatio, 0.05, 0.95)
+    : DEFAULT_ROOM_SIDEBAR_SPLIT_RATIO;
+
   return {
     containerRef: setContainerNode,
     isDragging,
-    topPaneStyle: enabled && metrics.topHeight > 0
-      ? { height: `${metrics.topHeight}px` }
+    topPaneStyle: enabled
+      ? (metrics.topHeight > 0
+          ? { height: `${metrics.topHeight}px` }
+          : { flex: `${fallbackSplitRatio} 1 0`, minHeight: 0 })
       : undefined,
-    bottomPaneStyle: enabled && metrics.bottomHeight > 0
-      ? { height: `${metrics.bottomHeight}px` }
+    bottomPaneStyle: enabled
+      ? (metrics.bottomHeight > 0
+          ? { height: `${metrics.bottomHeight}px` }
+          : { flex: `${1 - fallbackSplitRatio} 1 0`, minHeight: 0 })
       : undefined,
     handlePointerDown,
     handleKeyDown,

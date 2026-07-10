@@ -92,6 +92,8 @@ export function renderProBottomSettingsDrawerContent({
                 dark:text-white
               "
               aria-expanded={isProBottomSettingsOpen}
+              aria-controls="ai-image-pro-bottom-settings"
+              aria-label={`展开 AI 设置，Steps ${steps}，Guidance ${formatSliderValue(scale)}，Seed ${seedIsRandom ? "随机" : seed}，Sampler ${SAMPLER_LABELS[sampler] || sampler}`}
               onClick={onOpenDrawer}
             >
               <div className="flex min-w-0 flex-col gap-0.5">
@@ -142,6 +144,7 @@ export function renderProBottomSettingsDrawerContent({
         : null}
 
       <div
+        id="ai-image-pro-bottom-settings"
         className={`
           absolute inset-x-4 bottom-0 z-20 origin-bottom overflow-hidden
           rounded-t-2xl border border-base-300 bg-base-200 text-base-content
@@ -160,7 +163,7 @@ export function renderProBottomSettingsDrawerContent({
             <div className="
               text-sm font-semibold text-base-content/92
               dark:text-white/92
-            ">AI Settings</div>
+            ">AI 设置</div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -279,7 +282,7 @@ export function renderProBottomSettingsDrawerContent({
                   `}
                   type="number"
                   value={seedIsRandom ? "" : seed}
-                  placeholder="Enter a seed"
+                  placeholder="输入 seed"
                   onChange={(e) => {
                     const value = e.target.value.trim();
                     setSeed(value ? Number(value) : -1);

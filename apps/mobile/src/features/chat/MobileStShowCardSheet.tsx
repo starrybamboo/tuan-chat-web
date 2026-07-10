@@ -218,6 +218,7 @@ export function MobileStShowCardSheet({ model, onClose }: MobileStShowCardSheetP
                           key={section.title}
                           accessibilityLabel={`切换到${section.title}`}
                           accessibilityRole="button"
+                          accessibilityState={{ selected: active }}
                           onPress={() => handleDotPress(index)}
                           style={[
                             styles.dot,

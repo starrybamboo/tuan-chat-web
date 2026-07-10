@@ -11,6 +11,7 @@ import { getMobileQuerySnapshotRepository } from "./mobile-local-db";
 
 const WEB_KEY_PREFIX = "tuanchat.mobile.querySnapshot";
 
+// 移动端 query snapshot 是恢复快照，不是业务事实源；query 成功后由网络数据重新写入。
 function isWebStorageAvailable() {
   return Platform.OS === "web" && typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }

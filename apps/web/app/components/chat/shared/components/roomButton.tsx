@@ -1,6 +1,5 @@
 import React from "react";
 
-import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { MediaImage } from "@/components/common/mediaImage";
 import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/media/mediaUrl";
 
@@ -27,11 +26,10 @@ export default function RoomButton({
   onDragStart?: React.DragEventHandler<HTMLDivElement>;
   onDragEnd?: React.DragEventHandler<HTMLDivElement>;
 }) {
-  const headerOverride = useEntityHeaderOverrideStore(state => state.headers[`room:${room.roomId}`]);
-  const displayName = headerOverride?.title || room.name;
+  const displayName = room.name;
   const fallbackAvatar = "/favicon.ico";
-  const displayAvatar = imageLowUrl(headerOverride?.imageFileId)
-    || imageLowUrlFromUrl(resolveEntityImageUrl(headerOverride?.imageUrl || imageLowUrl(room.avatarFileId), fallbackAvatar));
+  const displayAvatar = imageLowUrlFromUrl(resolveEntityImageUrl(imageLowUrl(room.avatarFileId), fallbackAvatar));
+  const unreadCount = unreadMessageNumber ?? 0;
 
   return (
     <div
@@ -57,15 +55,17 @@ export default function RoomButton({
         }
         `}
         aria-pressed={isActive}
+        aria-label={`${isActive ? "当前房间" : "切换到房间"} ${displayName}${unreadCount > 0 ? `，${unreadCount > 99 ? "99 条以上" : unreadCount} 条未读` : ""}`}
+        title={displayName}
         onClick={onclick}
       >
         <div className="indicator">
-          {(!isActive && unreadMessageNumber && unreadMessageNumber > 0)
+          {(!isActive && unreadCount > 0)
             ? (
                 <span
                   className="indicator-item badge badge-xs bg-error"
                 >
-                  {unreadMessageNumber}
+                  {unreadCount}
                 </span>
               )
             : null}

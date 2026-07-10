@@ -11,4 +11,3 @@ export type RoomArchiveRequest = {
      */
     roomId: number;
 };
-

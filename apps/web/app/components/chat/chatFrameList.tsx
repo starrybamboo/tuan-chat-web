@@ -14,7 +14,7 @@ import {
   scrollToBottomButtonMotionProps,
   unreadBadgeBounceMotionProps,
 } from "@/components/common/motion/chatMessageMotion";
-import { floatingListItemMotionProps, floatingPanelMotionProps } from "@/components/common/motion/floatingPanelMotion";
+import { FloatingMotionButton, FloatingMotionItem, FloatingMotionPanel } from "@/components/common/motion/FloatingMotionPanel";
 import { motionEase } from "@/components/common/motion/motionTokens";
 
 import type { ChatMessageResponse } from "../../../api";
@@ -107,38 +107,37 @@ const SelectionToolbar = memo(({
           pointer-events-none absolute inset-x-0 bottom-4 z-50 flex flex-col
           items-center gap-2 px-4
         ">
-          <motion.div
+          <FloatingMotionItem
+            index={0}
             className="
               max-w-[calc(100%-2rem)] rounded-md border border-info/20
               bg-base-100/92 px-3 py-1.5 text-sm text-base-content shadow-2xl
               shadow-info/10 backdrop-blur-xl
             "
-            {...floatingListItemMotionProps(0)}
           >
             按住 Ctrl 开启多选：Shift 连选，Ctrl + Shift 连选并保留已有选择。
-          </motion.div>
-          <motion.div
+          </FloatingMotionItem>
+          <FloatingMotionPanel
             className="
               pointer-events-auto flex max-w-[calc(100%-2rem)] items-center
               gap-2 overflow-hidden rounded-md border border-info/20
               bg-base-100/92 p-2 text-sm text-base-content shadow-2xl
               shadow-info/10 backdrop-blur-xl
             "
-            {...floatingPanelMotionProps}
           >
-            <motion.div
+            <FloatingMotionItem
+              index={0}
               className="
                 flex shrink-0 items-center gap-2 border-r border-base-content/10
                 px-2 pr-3
               "
-              {...floatingListItemMotionProps(0)}
             >
               <span className="
                 size-2 rounded-full bg-info
                 shadow-[0_0_18px_hsl(var(--in)/0.75)]
               " />
               <span className="whitespace-nowrap font-medium">{`已选择 ${selectedCount} 条`}</span>
-            </motion.div>
+            </FloatingMotionItem>
             <div className="
               flex min-w-0 items-center gap-1 overflow-x-auto px-1
               [scrollbar-width:none]
@@ -147,8 +146,9 @@ const SelectionToolbar = memo(({
               {actions.map((action, index) => {
                 const Icon = action.icon;
                 return (
-                  <motion.button
+                  <FloatingMotionButton
                     key={action.key}
+                    index={index + 1}
                     type="button"
                     className={`
                       btn btn-sm h-8 min-h-0 shrink-0 gap-1.5 rounded-md px-2.5
@@ -158,15 +158,15 @@ const SelectionToolbar = memo(({
                     disabled={action.disabled}
                     title={action.label}
                     aria-label={action.label}
-                    {...floatingListItemMotionProps(index + 1)}
                   >
                     <Icon className="size-4" />
                     <span>{action.label}</span>
-                  </motion.button>
+                  </FloatingMotionButton>
                 );
               })}
             </div>
-            <motion.button
+            <FloatingMotionButton
+              index={actions.length + 1}
               type="button"
               className="
                 btn btn-ghost btn-sm btn-circle size-8 min-h-0 shrink-0
@@ -175,11 +175,10 @@ const SelectionToolbar = memo(({
               onClick={onCancel}
               title="取消"
               aria-label="取消多选"
-              {...floatingListItemMotionProps(actions.length + 1)}
             >
               <X className="size-4" />
-            </motion.button>
-          </motion.div>
+            </FloatingMotionButton>
+          </FloatingMotionPanel>
         </div>
       )}
     </AnimatePresence>
@@ -230,7 +229,7 @@ const MessageFilterControl = memo(({
           min-h-0 rounded-md border shadow-lg backdrop-blur-xl
           ${
           isActive
-            ? "border-info/30 bg-info/10 text-info"
+            ? "border-base-content/10 bg-base-100/78 text-info"
             : "border-base-content/10 bg-base-100/78 text-base-content/70"
         }
         `}
@@ -244,20 +243,6 @@ const MessageFilterControl = memo(({
         aria-label={title}
         aria-pressed={isActive}
       >
-        <AnimatePresence>
-          {isActive && (
-            <motion.span
-              className="
-                pointer-events-none absolute inset-0 rounded-md border
-                border-info/35
-              "
-              initial={{ opacity: 0, scale: 0.72 }}
-              animate={{ opacity: [0.45, 0], scale: [0.9, 1.42] }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.62, ease: "easeOut" }}
-            />
-          )}
-        </AnimatePresence>
         <AnimatePresence mode="wait">
           {isActive && (
             <motion.span

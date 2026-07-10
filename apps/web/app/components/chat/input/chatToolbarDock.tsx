@@ -53,21 +53,19 @@ export default function ChatToolbarDock({
     <div
       className={`
         flex
-        ${isInline ? "mr-2 items-start gap-2 flex-nowrap" : `
+        ${isInline ? "mr-2 h-6 items-center gap-2 flex-nowrap" : `
           mt-1 items-center gap-2 flex-wrap justify-end grow
         `}
       `}
     >
       {/* WebGAL 导演控制台 */}
       {showWebgalControls && webgalLinkMode && onSendEffect && (
-        <div className="
-          dropdown dropdown-top dropdown-center
-          md:dropdown-end
-          mt-0.5
-          md:mt-1
-        ">
+        <div className={`
+          dropdown dropdown-top dropdown-center md:dropdown-end
+          ${isInline ? "inline-flex h-6 items-center" : "mt-0.5 md:mt-1"}
+        `}>
           <button type="button" className="
-            tooltip tooltip-top
+            tooltip tooltip-top inline-flex h-6 items-center
             hover:text-info
           " data-tip="导演控制台" aria-label="导演控制台" title="导演控制台">
             <FilmSlateIcon className="size-6" />
@@ -92,8 +90,8 @@ export default function ChatToolbarDock({
         <button
           type="button"
           className={`
-            tooltip tooltip-top mt-0.5
-            md:mt-1
+            tooltip tooltip-top inline-flex h-6 items-center
+            ${isInline ? "" : "mt-0.5 md:mt-1"}
             ${isFullMessageDiffOpen ? `text-info` : `hover:text-info`}
           `}
           data-tip={isFullMessageDiffOpen ? "关闭消息差异" : "消息差异"}
@@ -110,8 +108,8 @@ export default function ChatToolbarDock({
         <button
           type="button"
           className={`
-            tooltip tooltip-top mt-0.5
-            md:mt-1
+            tooltip tooltip-top inline-flex h-6 items-center
+            ${isInline ? "" : "mt-0.5 md:mt-1"}
             ${webgalOpen ? `text-info` : isRealtimeRenderActive ? `
               text-success
             ` : `hover:text-info`}
@@ -122,8 +120,8 @@ export default function ChatToolbarDock({
           onClick={handleToggleWebgalDrawer}
         >
           <WebgalIcon className={`
-            size-5 cursor-pointer mb-2
-            md:mb-0
+            size-5 cursor-pointer
+            ${isInline ? "" : "mb-2 md:mb-0"}
             ${isRealtimeRenderActive ? `animate-pulse` : ""}
           `} />
         </button>

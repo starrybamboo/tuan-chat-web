@@ -7,4 +7,3 @@ export type Usage = {
     completion_tokens?: number;
     total_tokens?: number;
 };
-

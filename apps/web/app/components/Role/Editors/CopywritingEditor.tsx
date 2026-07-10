@@ -82,6 +82,9 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
 
   const deleteGroup = useCallback(
     (name: string) => {
+      const entryCount = value[name]?.length ?? 0;
+      if (!window.confirm(`确定删除文案分组“${name}”？组内 ${entryCount} 条文案会一起移除。`))
+        return;
       const { [name]: _removed, ...rest } = value;
       onChange(rest);
       delete entryKeysRef.current[name];
@@ -114,6 +117,8 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
   const deleteEntry = useCallback(
     (group: string, index: number) => {
       const list = value[group] || [];
+      if (!window.confirm(`确定删除“${group}”里的第 ${index + 1} 条文案？`))
+        return;
       const nextList = list.filter((_, i) => i !== index);
       const next = { ...value, [group]: nextList };
       onChange(next);
@@ -143,13 +148,25 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
               placeholder="输入文案组名称，如：成功、失败、问候"
               value={groupNameInput}
               onChange={e => setGroupNameInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && addGroup()}
+              onKeyDown={(e) => {
+                if (e.nativeEvent.isComposing)
+                  return;
+                if (e.key === "Enter")
+                  addGroup();
+              }}
             />
             <button
               type="button"
               className="btn btn-primary join-item"
               onClick={addGroup}
               disabled={!groupNameInput.trim() || !!value[groupNameInput.trim()]}
+              title={
+                !groupNameInput.trim()
+                  ? "请输入文案组名称"
+                  : value[groupNameInput.trim()]
+                    ? "文案组名称已存在"
+                    : "添加文案分组"
+              }
             >
               <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -194,6 +211,7 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                     hover:bg-error/10
                   "
                   onClick={() => deleteGroup(name)}
+                  aria-label={`删除文案分组 ${name}`}
                 >
                   <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -248,6 +266,7 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                             mt-2
                           "
                           onClick={() => deleteEntry(name, idx)}
+                          aria-label={`删除${name}的第 ${idx + 1} 条文案`}
                         >
                           <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -290,6 +309,8 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                         mt-2
                       "
                       disabled={!newEntryInputs[name]?.trim()}
+                      title={newEntryInputs[name]?.trim() ? "添加文案" : "请输入文案内容"}
+                      aria-label={`添加${name}的新文案`}
                       onClick={() => {
                         const text = newEntryInputs[name]?.trim();
                         if (text) {

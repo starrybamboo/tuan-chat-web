@@ -167,6 +167,8 @@ export default function StartupNoticeCenter({
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.isComposing)
+        return;
       if (event.key === "Escape") {
         handleCloseAll();
       }

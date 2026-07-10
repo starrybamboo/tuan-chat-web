@@ -7,18 +7,6 @@ import type { ChatMessageResponse } from "../../../../api";
 import { createRoomUiStore } from "../stores/roomUiStore";
 import useRoomImportActions from "./useRoomImportActions";
 
-const {
-  mockedGetCachedDocSnapshot,
-  mockedGetPersistedDocSnapshot,
-  mockedSetCachedDocSnapshot,
-} = vi.hoisted(() => {
-  return {
-    mockedGetCachedDocSnapshot: vi.fn<(...args: any[]) => any>(() => null),
-    mockedGetPersistedDocSnapshot: vi.fn(async () => null),
-    mockedSetCachedDocSnapshot: vi.fn(),
-  };
-});
-
 vi.mock("react", async () => {
   const actual = await vi.importActual<typeof import("react")>("react");
   return {
@@ -41,15 +29,6 @@ vi.mock("@/components/common/dicer/utils/utils", () => ({
   },
 }));
 
-vi.mock("@/components/chat/infra/doc/document/docSnapshotCache", () => ({
-  getCachedDocSnapshot: mockedGetCachedDocSnapshot,
-  setCachedDocSnapshot: mockedSetCachedDocSnapshot,
-}));
-
-vi.mock("@/components/chat/infra/doc/document/docSnapshotPersistence", () => ({
-  getPersistedDocSnapshot: mockedGetPersistedDocSnapshot,
-}));
-
 function createMessage(messageId: number): ChatMessageResponse["message"] {
   return {
     messageId,
@@ -69,11 +48,6 @@ function createMessage(messageId: number): ChatMessageResponse["message"] {
 describe("useRoomImportActions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockedGetCachedDocSnapshot.mockReset();
-    mockedGetCachedDocSnapshot.mockReturnValue(null);
-    mockedGetPersistedDocSnapshot.mockReset();
-    mockedGetPersistedDocSnapshot.mockResolvedValue(null);
-    mockedSetCachedDocSnapshot.mockReset();
   });
 
   it("导入链路一次性批量发送并恢复回复/插入状态", async () => {
@@ -328,15 +302,9 @@ describe("useRoomImportActions", () => {
     }));
   });
 
-  it("跨空间发送文档卡片时只从本地 message-stream 快照回填摘要", async () => {
+  it("跨空间发送文档卡片时不会从本地快照回填摘要", async () => {
     const roomUiStoreApi = createRoomUiStore();
     const sendMessageWithInsert = vi.fn<(...args: any[]) => any>().mockResolvedValue(createMessage(12));
-    mockedGetCachedDocSnapshot.mockReturnValue({
-      v: 4,
-      format: "message-stream",
-      updateB64: "W3sibWVzc2FnZVR5cGUiOjEsImNvbnRlbnQiOiLmnIDmlrDmkZjopoHvvIzkuI3oh6rliqjlkIzmraUifV0=",
-      updatedAt: 1000,
-    } as any);
 
     const { handleSendDocCard } = useRoomImportActions({
       roomId: 1,
@@ -366,11 +334,11 @@ describe("useRoomImportActions", () => {
           docId: "123",
           roomId: 123,
           spaceId: 99,
-          excerpt: "最新摘要，不自动同步",
           title: "跨空间文档",
         }),
       },
     }));
+    expect(sendMessageWithInsert.mock.calls[0]?.[0]?.extra?.docCard).not.toHaveProperty("excerpt");
   });
 
   it("发送我的文档卡片时使用文档房间 id", async () => {
@@ -406,54 +374,6 @@ describe("useRoomImportActions", () => {
           roomId: 123,
           spaceId: 99,
           title: "我的文档",
-        }),
-      },
-    }));
-  });
-
-  it("本地内存没有文档快照时会从持久化快照回填摘要", async () => {
-    const roomUiStoreApi = createRoomUiStore();
-    const sendMessageWithInsert = vi.fn().mockResolvedValue(createMessage(13));
-    const persistedSnapshot = {
-      v: 4,
-      format: "message-stream",
-      updateB64: "W3sibWVzc2FnZVR5cGUiOjEsImNvbnRlbnQiOiLmnIDmlrDmkZjopoHvvIzkuI3oh6rliqjlkIzmraUifV0=",
-      updatedAt: 1000,
-    } as any;
-    mockedGetPersistedDocSnapshot.mockResolvedValue(persistedSnapshot);
-
-    const { handleSendDocCard } = useRoomImportActions({
-      roomId: 1,
-      spaceId: 2,
-      isSpaceOwner: false,
-      curRoleId: 3,
-      notMember: false,
-      isSubmitting: false,
-      setIsSubmitting: vi.fn(),
-      roomContext: {} as any,
-      sendMessageWithInsert,
-      sendMessageBatch: vi.fn(async () => []),
-      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
-      roomUiStoreApi,
-    });
-
-    await handleSendDocCard({
-      docId: "123",
-      roomId: 123,
-      spaceId: 99,
-      title: "跨空间文档",
-    });
-
-    expect(mockedGetPersistedDocSnapshot).toHaveBeenCalledWith("123");
-    expect(mockedSetCachedDocSnapshot).toHaveBeenCalledWith("123", persistedSnapshot);
-    expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
-      extra: {
-        docCard: expect.objectContaining({
-          docId: "123",
-          roomId: 123,
-          spaceId: 99,
-          excerpt: "最新摘要，不自动同步",
-          title: "跨空间文档",
         }),
       },
     }));

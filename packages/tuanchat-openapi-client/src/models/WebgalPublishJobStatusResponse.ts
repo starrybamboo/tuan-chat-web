@@ -12,4 +12,3 @@ export type WebgalPublishJobStatusResponse = {
     branchUrl?: string;
     errorMessage?: string;
 };
-

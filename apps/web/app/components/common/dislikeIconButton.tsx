@@ -22,6 +22,7 @@ export default function DislikeIconButton({
         ${className}
       `}
       type="button"
+      aria-label="不感兴趣"
       onClick={onDislike}
     >
       <DislikeLine

@@ -1,8 +1,7 @@
-import { motion } from "motion/react";
 import React from "react";
 
 import { getCommandList } from "@/components/common/dicer/cmdPre";
-import { floatingListItemMotionProps, floatingPanelMotionProps } from "@/components/common/motion/floatingPanelMotion";
+import { FloatingMotionItem, FloatingMotionPanel } from "@/components/common/motion/FloatingMotionPanel";
 
 /**
  * 定义命令面板支持的命令模式类型
@@ -33,6 +32,8 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
   // ESC 键关闭面板
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing)
+        return;
       if (e.key === "Escape" && onDismiss) {
         onDismiss();
       }
@@ -64,7 +65,7 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
       .slice(0, 1)
       .map(([cmd]) => cmd);
     return (
-      <motion.div className={className} {...floatingPanelMotionProps}>
+      <FloatingMotionPanel className={className}>
         {onDismiss && (
           <div className="
             flex justify-between items-center px-3 py-2 border-b border-base-300
@@ -86,8 +87,9 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
           </div>
         )}
         {suggestions.map((cmd, index) => (
-          <motion.div
+          <FloatingMotionItem
             key={cmd}
+            index={index}
             className="
               p-2 w-full
               last:border-0
@@ -96,7 +98,6 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
               bg-base-100
               dark:bg-base-900
             "
-            {...floatingListItemMotionProps(index)}
           >
             <div className="transform origin-left">
               <span className="
@@ -157,9 +158,9 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
                 ))}
               </div>
             </div>
-          </motion.div>
+          </FloatingMotionItem>
         ))}
-      </motion.div>
+      </FloatingMotionPanel>
     );
   }
   const hasSpace = prefix.includes(" ");
@@ -233,7 +234,7 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
     .slice(0, suggestionNumber)
     .map(item => item.name);
   return (
-    <motion.div className={className} {...floatingPanelMotionProps}>
+    <FloatingMotionPanel className={className}>
       {onDismiss && (
         <div className="
           flex justify-between items-center px-3 py-2 border-b border-base-300
@@ -267,9 +268,20 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
           )
         : null}
       {suggestions.map((cmd, index) => (
-        <motion.div
+        <FloatingMotionItem
           key={cmd}
+          index={index}
+          role="option"
+          tabIndex={0}
+          aria-selected="false"
+          aria-label={`选择指令：${cmd}`}
           onClick={() => handleSelectCommand(cmd)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleSelectCommand(cmd);
+            }
+          }}
           className="
             p-2 w-full
             last:border-0
@@ -278,7 +290,6 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
             cursor-pointer bg-base-100
             dark:bg-base-900
           "
-          {...floatingListItemMotionProps(index)}
         >
           <div className="transform origin-left">
             <span className="
@@ -303,8 +314,8 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
               dark:text-base-content/50
             ">{commands.get(cmd)?.description}</span>
           </div>
-        </motion.div>
+        </FloatingMotionItem>
       ))}
-    </motion.div>
+    </FloatingMotionPanel>
   );
 }

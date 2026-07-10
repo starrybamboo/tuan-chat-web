@@ -25,4 +25,3 @@ export type SpaceRole = {
     createTime?: string;
     updateTime?: string;
 };
-

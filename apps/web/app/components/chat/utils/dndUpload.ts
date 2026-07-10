@@ -1,8 +1,8 @@
-import toast from "react-hot-toast";
 
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
 import { applyRoomMediaAnnotationPreferenceToComposer } from "@/components/chat/utils/mediaAnnotationPreference";
+import { appToast } from "@/components/common/appToast/appToast";
 
 export function isFileDrag(dataTransfer: DataTransfer | null | undefined) {
   if (!dataTransfer)
@@ -147,12 +147,12 @@ export function addDroppedFilesToComposer(dataTransfer: DataTransfer | null | un
 
   const { images, videos, audios, files } = splitDroppedFiles(dataTransfer?.files);
   if (images.length === 0 && videos.length === 0 && audios.length === 0 && files.length === 0) {
-    toast.error("未检测到可用文件");
+    appToast.error("未检测到可用文件");
     return true;
   }
   const hasSupportedFiles = images.length > 0 || videos.length > 0 || audios.length > 0;
   if (files.length > 0) {
-    toast.error(
+    appToast.error(
       hasSupportedFiles
         ? `已忽略${files.length}个文件，当前仅支持图片、视频、音频`
         : "暂不支持发送文件",
@@ -181,7 +181,7 @@ export function addDroppedFilesToComposer(dataTransfer: DataTransfer | null | un
   }
 
   if (audios.length > 1) {
-    toast.error("仅支持拖拽 1 个音频，已取第一个");
+    appToast.error("仅支持拖拽 1 个音频，已取第一个");
   }
 
   preheatChatMediaPreprocess({
@@ -200,7 +200,7 @@ export function addDroppedFilesToComposer(dataTransfer: DataTransfer | null | un
   if (videos.length > 0) {
     summaryParts.push(`${videos.length}个视频`);
   }
-  toast.success(`已添加${summaryParts.join("、")}`);
+  appToast.success(`已添加${summaryParts.join("、")}`);
 
   return true;
 }

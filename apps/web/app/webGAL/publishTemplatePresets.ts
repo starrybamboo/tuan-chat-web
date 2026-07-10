@@ -13,7 +13,7 @@ export type PublishTemplatePreset = {
   titleScss: string;
 };
 
-export type PublishBaseTemplate = "none" | "black" | "tuanchat";
+export type PublishBaseTemplate = "black" | "tuanchat";
 
 const TUANCHAT_TEMPLATE_PRESET: PublishTemplatePreset = {
   templateJson: tuanchatTemplateJson,

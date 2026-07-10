@@ -104,7 +104,10 @@ export default function MessageFilterWindow({
           </span>
           <div className="min-w-0">
             <div className="text-sm/5 font-semibold">消息筛选</div>
-            <div className="truncate text-xs text-base-content/55">
+            <div
+              className="truncate text-xs text-base-content/55"
+              title={`显示 ${visibleCount} / ${sourceMessages.length} 条${hiddenCount > 0 ? `，隐藏 ${hiddenCount} 条` : ""}`}
+            >
               显示
               {" "}
               {visibleCount}
@@ -127,6 +130,7 @@ export default function MessageFilterWindow({
               `}
             `}
             onClick={() => setFilterAction("remove")}
+            aria-pressed={filterAction === "remove"}
           >
             筛选
           </button>
@@ -139,6 +143,7 @@ export default function MessageFilterWindow({
               `}
             `}
             onClick={() => setFilterAction("keep")}
+            aria-pressed={filterAction === "keep"}
           >
             反选
           </button>

@@ -7,7 +7,7 @@ import type { RoomSettingTab } from "@/components/chat/chatPage.types";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { canManageMemberPermissions } from "@/components/chat/utils/memberPermissions";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import { useDissolveRoomMutation } from "api/hooks/chatQueryHooks";
+import { useDissolveRoomMutation, useGetRoomInfoQuery } from "api/hooks/chatQueryHooks";
 
 import { useSubscribeRoomMutation, useUnsubscribeRoomMutation } from "../../../../../api/hooks/messageSessionQueryHooks";
 import { clampFloatingMenuPosition } from "../floatingMenuPosition";
@@ -39,6 +39,14 @@ export default function ChatPageContextMenu({
 
   const [isDissolveConfirmOpen, setIsDissolveConfirmOpen] = useState(false);
   const [dissolveTargetRoomId, setDissolveTargetRoomId] = useState<number | null>(null);
+
+  // 取目标房间名称，用于解散菜单项与确认弹窗的文案（菜单打开时用 contextMenu，确认弹窗打开时用暂存的目标 ID）
+  const displayRoomId = contextMenu?.roomId ?? dissolveTargetRoomId ?? -1;
+  const displayRoomInfoQuery = useGetRoomInfoQuery(displayRoomId);
+  const displayRoomName = displayRoomInfoQuery.data?.data?.name;
+  const displayRoomLabel = displayRoomName
+    ? `「${displayRoomName}」（房间 ID ${displayRoomId}）`
+    : `房间 ID ${displayRoomId}`;
 
   useEffect(() => {
     if (!contextMenu || !menuRef.current) {
@@ -170,6 +178,7 @@ export default function ChatPageContextMenu({
                     ${menuButtonClassName}
                     text-error
                   `}
+                  aria-label={`解散房间 ${displayRoomLabel}，将移除房间内所有成员与内容访问`}
                   onClick={() => {
                     setDissolveTargetRoomId(contextMenu.roomId);
                     setIsDissolveConfirmOpen(true);
@@ -192,7 +201,7 @@ export default function ChatPageContextMenu({
           setDissolveTargetRoomId(null);
         }}
         title="确认解散房间"
-        description="是否确定要解散该房间？此操作不可逆。"
+        description={`是否确定要解散${displayRoomLabel}？此操作不可逆，房间内的所有成员将无法再访问该房间的聊天记录与内容。`}
         onConfirm={() => {
           if (activeDissolveRoomId == null) {
             return;

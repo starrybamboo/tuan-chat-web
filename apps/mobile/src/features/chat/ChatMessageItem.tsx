@@ -3,6 +3,7 @@ import type { Message } from "@tuanchat/openapi-client/models/Message";
 import { getDiceResultExtra, getDiceTurnExtra, getImageMessageExtra, getSoundMessageExtra } from "@tuanchat/domain/message-extra";
 import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { isOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
 import { memo } from "react";
 import { Pressable, StyleSheet, Vibration, View } from "react-native";
 
@@ -58,6 +59,10 @@ const styles = StyleSheet.create({
   rowHighlight: {
     borderRadius: Radius.sm,
   },
+  rowSending: {
+    opacity: 0.88,
+    transform: [{ translateY: 1 }, { scale: 0.995 }],
+  },
   rowOOC: {
     alignItems: "flex-start",
     borderColor: "rgba(150, 150, 150, 0.2)",
@@ -70,19 +75,6 @@ const styles = StyleSheet.create({
     marginVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-  },
-  narratorAvatar: {
-    alignItems: "center",
-    backgroundColor: "#6366f1",
-    borderRadius: Radius.full,
-    height: AVATAR_SIZE,
-    justifyContent: "center",
-    width: AVATAR_SIZE,
-  },
-  narratorAvatarText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "700",
   },
   body: {
     flex: 1,
@@ -128,7 +120,9 @@ const styles = StyleSheet.create({
 });
 
 function getDisplayRoleName(message: Message, roomRolesById: RoomRolesById): string {
-  return getMobileMessageAuthorLabel(message, roomRolesById, { unknownRoleLabel: "未选择角色" });
+  return getMobileMessageAuthorLabel(message, roomRolesById, {
+    unknownRoleLabel: "未选择角色",
+  });
 }
 
 function getDiceDisplayText(message: Message, canViewHiddenReply = false): string {
@@ -204,6 +198,7 @@ export const ChatMessageItem = memo(({
   const narrator = isNarratorMessage(message);
   const isStateEvent = message.messageType === MESSAGE_TYPE.STATE_EVENT;
   const usesSystemRow = narrator || isStateEvent;
+  const isSending = isOptimisticRoomMessage(message);
   const displayName = getDisplayRoleName(message, roomRolesById);
   const shouldRenderTextPreview = shouldRenderMobileMessageTextPreview(message.messageType);
   const canViewHiddenDiceReply = isSpaceOwner || (currentRoleId > 0 && currentRoleId === message.roleId);
@@ -264,21 +259,14 @@ export const ChatMessageItem = memo(({
       </View>
     );
   };
-  const shouldRenderAvatar = !isGrouped && !isStateEvent;
-  const messageRowStyle = isStateEvent
+  const shouldRenderAvatar = !isGrouped && !usesSystemRow;
+  const messageRowStyle = usesSystemRow
     ? styles.rowNarrator
     : isOOC
       ? styles.rowOOC
       : isGrouped ? styles.rowGrouped : styles.row;
 
   const renderAvatar = () => {
-    if (narrator) {
-      return (
-        <View style={styles.narratorAvatar}>
-          <ThemedText style={styles.narratorAvatarText}>旁</ThemedText>
-        </View>
-      );
-    }
     return (
       <MessageAvatar
         avatarFileId={message.avatarFileId}
@@ -298,6 +286,9 @@ export const ChatMessageItem = memo(({
     return (
       <Pressable
         onPress={() => onToggleMultiSelect?.(message)}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: isMultiSelected }}
+        accessibilityLabel={`${displayName}：${getMessagePreview(message)}`}
         style={[
           {
             alignItems: "center",
@@ -331,6 +322,7 @@ export const ChatMessageItem = memo(({
             style={[
               messageRowStyle,
               shouldRenderAvatar && styles.rowFull,
+              isSending && styles.rowSending,
               isOOC && { backgroundColor: "rgba(150, 150, 150, 0.05)" },
             ]}
           >
@@ -374,11 +366,14 @@ export const ChatMessageItem = memo(({
         Vibration.vibrate(10);
         onLongPress(message);
       }}
+      accessibilityLabel={`${displayName}：${getMessagePreview(message)}${replyPreviewText ? `，回复${replyAuthorName ? ` ${replyAuthorName}` : ""}：${replyPreviewText}` : ""}`}
+      accessibilityHint="长按打开消息操作"
     >
       <View
         style={[
           messageRowStyle,
           shouldRenderAvatar && styles.rowFull,
+          isSending && styles.rowSending,
           isSelectedAnchor && styles.rowHighlight,
           isSelectedAnchor && { backgroundColor: theme.accentMuted },
           isOOC && { backgroundColor: "rgba(150, 150, 150, 0.05)" },
@@ -386,20 +381,13 @@ export const ChatMessageItem = memo(({
       >
         {shouldRenderAvatar ? renderAvatar() : null}
         <View style={styles.body}>
-          {!isGrouped && !isStateEvent
+          {!isGrouped && !usesSystemRow
             ? (
                 <View style={styles.authorRow}>
                   {displayName
                     ? (
                         <ThemedText type="smallBold" style={{ fontSize: 16 }}>
                           {displayName}
-                        </ThemedText>
-                      )
-                    : null}
-                  {isOOC
-                    ? (
-                        <ThemedText style={{ fontSize: 10, color: theme.textSecondary, fontWeight: "500" }}>
-                          场外
                         </ThemedText>
                       )
                     : null}

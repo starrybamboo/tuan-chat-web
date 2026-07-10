@@ -106,6 +106,9 @@ export function NotificationPreferencesCard({ onRefreshPermissionStatus, prefs, 
                 {canOpenSettings
                   ? (
                       <Pressable
+                        accessibilityHint="打开系统通知设置，用于允许消息通知提醒"
+                        accessibilityLabel="打开系统通知设置"
+                        accessibilityRole="button"
                         onPress={() => void Linking.openSettings()}
                         style={[styles.statusAction, { backgroundColor: theme.accentMuted }]}
                       >
@@ -116,6 +119,9 @@ export function NotificationPreferencesCard({ onRefreshPermissionStatus, prefs, 
                 {canRefreshPermission
                   ? (
                       <Pressable
+                        accessibilityHint="重新读取系统通知权限状态"
+                        accessibilityLabel="刷新权限状态"
+                        accessibilityRole="button"
                         onPress={() => void onRefreshPermissionStatus()}
                         style={[styles.statusAction, { backgroundColor: theme.backgroundElement }]}
                       >

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toast } from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { CopyIcon, EditIcon } from "@/icons";
 
@@ -46,7 +46,7 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
         // 添加总数信息
         formattedResult += `共${propCount}项属性`;
 
-        toast.success(formattedResult, {
+        appToast.success(formattedResult, {
           duration: 4000,
           position: "top-center",
         });
@@ -54,7 +54,7 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
         onImportSuccess?.();
       }
       catch (error) {
-        toast.error(`导入失败: ${error instanceof Error ? error.message : "指令格式有误"}`, {
+        appToast.error(`导入失败: ${error instanceof Error ? error.message : "指令格式有误"}`, {
           duration: 4000,
           position: "top-center",
         });
@@ -67,7 +67,7 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
     const curAbility = abilityList.find(a => a.ruleId === ruleId);
 
     if (!curAbility?.skill) {
-      toast.error("暂无属性可导出", { duration: 2000 });
+      appToast.error("暂无属性可导出", { duration: 2000 });
       return;
     }
 
@@ -95,7 +95,7 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
 
     const stCmd = `.st ${parts.join(" ")}`;
     navigator.clipboard.writeText(stCmd);
-    toast.success("ST指令已复制到剪贴板", { duration: 2000 });
+    appToast.success("ST指令已复制到剪贴板", { duration: 2000 });
   };
 
   return (

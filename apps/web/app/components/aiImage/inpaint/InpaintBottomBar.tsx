@@ -126,6 +126,7 @@ export function InpaintBottomBar({
                 ${bottomToolButtonClassName}
                 ${tool === "paint" ? `bg-base-300 text-base-content` : ""}
               `}
+              aria-pressed={tool === "paint"}
               aria-label="绘制蒙版"
               title="绘制蒙版"
               onClick={() => onSetTool("paint")}
@@ -138,6 +139,7 @@ export function InpaintBottomBar({
                 ${bottomToolButtonClassName}
                 ${tool === "erase" ? `bg-base-300 text-base-content` : ""}
               `}
+              aria-pressed={tool === "erase"}
               aria-label="擦除蒙版"
               title="擦除蒙版"
               onClick={() => onSetTool("erase")}
@@ -150,6 +152,8 @@ export function InpaintBottomBar({
               <button
                 type="button"
                 className={boardButtonClassName}
+                aria-controls="inpaint-mask-color-panel"
+                aria-expanded={isBoardPanelOpen}
                 aria-label="打开调色板"
                 title="调色板"
                 onClick={onToggleBoardPanel}
@@ -158,10 +162,10 @@ export function InpaintBottomBar({
               </button>
               {isBoardPanelOpen
                 ? (
-                    <div className={boardPanelClassName}>
+                    <div id="inpaint-mask-color-panel" className={boardPanelClassName}>
                       <div className="
                         mb-3 text-[11px] font-medium text-base-content/55
-                      ">Mask Color</div>
+                      ">蒙版颜色</div>
                       <div className="flex flex-wrap gap-2">
                         {MASK_COLOR_OPTIONS.map(color => (
                           <button
@@ -179,6 +183,7 @@ export function InpaintBottomBar({
                             }
                             `}
                             aria-label={`选择蒙版颜色 ${color}`}
+                            aria-pressed={maskColor === color}
                             onClick={() => onSetMaskColor(color)}
                           >
                             <span className="size-4 rounded-full" style={{ backgroundColor: color }} />
@@ -250,9 +255,13 @@ export function InpaintBottomBar({
               type="button"
               className={bottomToolButtonClassName}
               aria-label="清空蒙版"
-              title="清空蒙版"
+              title={hasMask ? "清空蒙版" : "当前没有蒙版可清空"}
               disabled={!hasMask}
-              onClick={onClearMask}
+              onClick={() => {
+                if (window.confirm("清空当前蒙版？此操作会移除已绘制区域。")) {
+                  onClearMask();
+                }
+              }}
             >
               <TrashIcon className="size-[18px]" weight="regular" />
             </button>

@@ -1,8 +1,8 @@
 import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/MaterialPackageContent";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { useRouter } from "@tanstack/react-router";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
 
 import {
   MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
@@ -156,7 +156,7 @@ export default function MaterialLibraryPage({
       content: draft.content,
     });
     const createdId = result.data?.packageId ?? null;
-    toast.success("素材包已创建");
+    appToast.success("素材包已创建");
     setIsCreating(false);
     if (!mode) {
       setInternalActiveTab("mine");
@@ -191,7 +191,7 @@ export default function MaterialLibraryPage({
       return;
     }
     await deleteMutation.mutateAsync(selectedPackage.packageId);
-    toast.success("素材包已删除");
+    appToast.success("素材包已删除");
     setSelectedPackageId(null);
     setIsCreating(false);
   };
@@ -210,7 +210,7 @@ export default function MaterialLibraryPage({
     });
 
     const createdId = result.data?.packageId ?? null;
-    toast.success("已添加到我的素材包");
+    appToast.success("已添加到我的素材包");
 
     if (mode === "public" && embedded) {
       setIsCreating(false);
@@ -296,7 +296,7 @@ export default function MaterialLibraryPage({
 
   const workspaceNode = (
     <MaterialPackageLibraryWorkspace
-      upperLabel={activeTab === "mine" ? "Personal Library" : "Public Square"}
+      upperLabel={activeTab === "mine" ? "个人素材库" : "公共素材广场"}
       title={activeTab === "mine" ? "我的素材包" : "素材广场"}
       description={activeTab === "mine"
         ? "管理并组织你的数字化创意资产。通过统一的浏览与编辑视图，快速找到每一个灵感瞬间。"
@@ -378,7 +378,9 @@ export default function MaterialLibraryPage({
             <LazyMaterialPackageEditor
               valueKey={buildGlobalMaterialPackageEditorValueKey(activeTab, selectedPackage)}
               dragPackageId={selectedPackage.packageId}
-              title={activeTab === "public" ? "公开素材包详况" : "修改素材包"}
+              title={activeTab === "public"
+                ? `公开素材包：${selectedPackage.name ?? "未命名素材包"}`
+                : "修改素材包"}
               subtitle={activeTab === "public"
                 ? `作者：${selectedPackage.username ?? "未知"} · 已被导入 ${selectedPackage.importCount ?? 0} 次`
                 : `已被导入 ${selectedPackage.importCount ?? 0} 次`}

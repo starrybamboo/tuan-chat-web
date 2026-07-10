@@ -90,10 +90,11 @@ export default function BasicInfoStep({ characterData, onCharacterDataChange }: 
                 value={characterData.description}
                 maxLength={ROLE_DESCRIPTION_MAX_LENGTH}
                 aria-invalid={isDescriptionTooLong}
+                aria-describedby={isDescriptionTooLong ? "basic-info-description-error" : undefined}
                 onChange={e => onCharacterDataChange({ description: e.target.value })}
               />
               {isDescriptionTooLong && (
-                <span className="label-text-alt text-error mt-2">
+                <span id="basic-info-description-error" role="alert" className="label-text-alt text-error mt-2">
                   角色简介最多
                   {" "}
                   {ROLE_DESCRIPTION_MAX_LENGTH}

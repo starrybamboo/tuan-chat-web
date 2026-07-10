@@ -17,7 +17,7 @@ export default function ActivityNotice() {
         hover:bg-warning/90
         transition-colors
       " type="button">
-        pnpm dev 立即参与
+        立即参与
       </button>
     </div>
   );

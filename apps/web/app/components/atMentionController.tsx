@@ -13,8 +13,12 @@ import React, {
 
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 
+import { handleAtMentionInputMouseDown } from "@/components/atMentionMouseDown";
+import { resolveNextAtMentionSelectionIndex } from "@/components/atMentionSelection";
+import { FloatingMotionList, FloatingMotionListItem } from "@/components/common/motion/FloatingMotionPanel";
 import { Mounter } from "@/components/common/mounter";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
+import { HexagonDice } from "@/icons";
 import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 
 import type { UserRole } from "../../api";
@@ -163,13 +167,21 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
       case "Up":
         e.preventDefault();
         e.stopPropagation();
-        setSelectedIndex(prev => Math.max(prev - 1, 0));
+        setSelectedIndex(prev => resolveNextAtMentionSelectionIndex({
+          currentIndex: prev,
+          direction: -1,
+          itemCount: filteredRoles.length,
+        }));
         return true;
       case "ArrowDown":
       case "Down":
         e.preventDefault();
         e.stopPropagation();
-        setSelectedIndex(prev => Math.min(prev + 1, filteredRoles.length - 1));
+        setSelectedIndex(prev => resolveNextAtMentionSelectionIndex({
+          currentIndex: prev,
+          direction: 1,
+          itemCount: filteredRoles.length,
+        }));
         return true;
       default:
         return false;
@@ -240,14 +252,8 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
       checkDialogTrigger();
     },
 
-    /** 处理鼠标按下。如果对话框打开，则返回 true 以阻止默认行为（例如输入框失焦）。 */
-    onMouseDown: (e: React.MouseEvent): boolean => {
-      if (showDialog) {
-        e.preventDefault();
-        return true;
-      }
-      return false;
-    },
+    /** 处理输入区鼠标按下。允许浏览器按点击位置更新 contentEditable 光标。 */
+    onMouseDown: (): boolean => handleAtMentionInputMouseDown({ closeDialog, showDialog }),
 
     /** 关闭对话框 */
     closeDialog,
@@ -265,107 +271,121 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
 
   return (
     <Mounter targetId="modal-root">
-      <div
+      <FloatingMotionList
+        ref={listRef}
         className="
-          absolute z-50 max-h-[40vh] overflow-y-auto overflow-x-hidden
-          min-w-[220px]
+          absolute z-50 flex max-h-[40vh] min-w-[220px] flex-col gap-1 overflow-x-hidden overflow-y-auto
+          rounded-box border border-base-200 bg-base-100 p-1 shadow-xl
+          [scrollbar-width:none] [&::-webkit-scrollbar]:hidden
         "
         style={{
           top: dialogPosition.y - 8,
           left: dialogPosition.x,
-          transform: "translateY(-100%)",
+          translate: "0 -100%",
         }}
         onMouseDown={e => e.preventDefault()}
       >
-        <ul ref={listRef} className="
-          menu bg-base-100 shadow-xl rounded-box border border-base-200 p-1
-          menu-sm
-          sm:menu-md
-        ">
-          {filteredRoles.map((role, index) => {
-            const roleNote = role.extra?.mentionNote;
-            const isAtAll = role.roleId === -9999;
-            const isSelected = index === selectedIndex;
+        {filteredRoles.map((role, index) => {
+          const roleNote = role.extra?.mentionNote;
+          const isAtAll = role.roleId === -9999;
+          const isSelected = index === selectedIndex;
 
-            if (isAtAll) {
-              return (
-                <li key={role.roleId} className="mb-1">
-                  <button
-                    type="button"
-                    data-at-mention-index={index}
-                    aria-selected={isSelected}
-                    className={`
-                      flex-col items-center justify-center py-2 bg-base-200/50
-                      border border-base-300/50
-                      ${isSelected ? `
-                        bg-info border-info text-info-content
-                      ` : ""}
-                    `}
-                    onClick={() => handleSelectRole(role)}
-                  >
-                    <span className="font-bold">{role.roleName}</span>
-                    {roleNote && (
-                      <span
-                        className={`
-                          text-xs
-                          ${
-                          isSelected ? "text-info-content/80" : `
-                            text-base-content/60
-                          `
-                        }
-                        `}
-                      >
-                        {roleNote}
-                      </span>
-                    )}
-                  </button>
-                </li>
-              );
-            }
-
+          if (isAtAll) {
             return (
-              <li key={role.roleId}>
+              <FloatingMotionListItem
+                key={role.roleId}
+                index={index}
+                className="mb-1 border-b border-base-300/40 pb-1"
+              >
                 <button
                   type="button"
                   data-at-mention-index={index}
                   aria-selected={isSelected}
+                  aria-label={roleNote ? `${role.roleName}（${roleNote}）` : role.roleName}
                   className={`
-                    gap-3 py-2
-                    ${isSelected ? `bg-info text-info-content` : ""}
+                    flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left
+                    text-base-content/80 transition-colors
+                    ${isSelected ? `
+                      bg-base-200 text-base-content ring-1 ring-info/20
+                    ` : "hover:bg-base-200/70"}
                   `}
                   onClick={() => handleSelectRole(role)}
                 >
-                  <RoleAvatarByRole
-                    role={role}
-                    width={8}
-                    isRounded={true}
-                    stopToastWindow={true}
-                  />
-                  <div className="
-                    flex flex-col gap-0.5 items-start flex-1 min-w-0
-                  ">
-                    <span className="font-medium truncate w-full">{role.roleName}</span>
+                  <span
+                    className={`
+                      flex size-8 shrink-0 items-center justify-center rounded-lg
+                      ${isSelected ? "text-info" : "text-base-content/55"}
+                    `}
+                    aria-hidden="true"
+                  >
+                    <HexagonDice className="size-5" />
+                  </span>
+                  <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
+                    <span className="w-full truncate text-sm font-medium" title={role.roleName}>{role.roleName}</span>
                     {roleNote && (
                       <span
                         className={`
-                          text-xs truncate w-full
-                          ${
-                          isSelected ? "text-info-content/90" : `
-                            text-base-content
-                          `
-                        }
+                          w-full truncate text-xs
+                          ${isSelected ? "text-base-content/70" : "text-base-content/50"}
                         `}
+                        title={roleNote}
                       >
                         {roleNote}
                       </span>
                     )}
                   </div>
                 </button>
-              </li>
+              </FloatingMotionListItem>
             );
-          })}
-        </ul>
-      </div>
+          }
+
+          return (
+            <FloatingMotionListItem
+              key={role.roleId}
+              index={index}
+            >
+              <button
+                type="button"
+                data-at-mention-index={index}
+                aria-selected={isSelected}
+                aria-label={roleNote ? `${role.roleName}（${roleNote}）` : role.roleName}
+                className={`
+                  flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left
+                  ${isSelected ? `bg-info text-info-content` : "hover:bg-base-200"}
+                `}
+                onClick={() => handleSelectRole(role)}
+              >
+                <RoleAvatarByRole
+                  role={role}
+                  width={8}
+                  isRounded={true}
+                  stopToastWindow={true}
+                />
+                <div className="
+                  flex flex-col gap-0.5 items-start flex-1 min-w-0
+                ">
+                  <span className="font-medium truncate w-full" title={role.roleName}>{role.roleName}</span>
+                  {roleNote && (
+                    <span
+                      className={`
+                        text-xs truncate w-full
+                        ${
+                        isSelected ? "text-info-content/90" : `
+                          text-base-content
+                        `
+                      }
+                      `}
+                      title={roleNote}
+                    >
+                      {roleNote}
+                    </span>
+                  )}
+                </div>
+              </button>
+            </FloatingMotionListItem>
+          );
+        })}
+      </FloatingMotionList>
     </Mounter>
   );
 }

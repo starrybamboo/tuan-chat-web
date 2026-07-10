@@ -26,6 +26,7 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({ role }) => {
           transition-all duration-200 w-full h-full
         "
         onClick={() => setIsRoleParamsPopOpen(true)}
+        title="查看角色详情"
       >
         {/* 头像区 */}
         <figure className="aspect-square overflow-hidden bg-base-200">
@@ -41,14 +42,20 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({ role }) => {
 
         {/* 描述区 */}
         <div className="card-body p-4 space-y-2 flex-grow">
-          <h3 className="
+          <h3
+            className="
             text-base-content font-bold text-sm truncate leading-tight
-          ">
+          "
+            title={role.roleName || `角色 ${role.roleId}`}
+          >
             {role.roleName || `角色 ${role.roleId}`}
           </h3>
-          <p className="
+          <p
+            className="
             text-base-content/70 text-xs line-clamp-2 leading-relaxed
-          ">
+          "
+            title={role.description || "暂无描述"}
+          >
             {role.description || "暂无描述"}
           </p>
         </div>

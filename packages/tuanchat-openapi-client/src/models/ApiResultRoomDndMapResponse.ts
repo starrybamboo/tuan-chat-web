@@ -21,4 +21,3 @@ export type ApiResultRoomDndMapResponse = {
     errMsg?: string;
     data?: RoomDndMapResponse;
 };
-

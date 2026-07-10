@@ -9,4 +9,3 @@ import type { Message } from './Message';
 export type ChatMessageResponse = {
     message: Message;
 };
-

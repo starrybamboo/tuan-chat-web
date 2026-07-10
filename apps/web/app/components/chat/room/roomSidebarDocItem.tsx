@@ -27,12 +27,6 @@ type RoomSidebarDocItemProps = {
   setDropTarget: (next: DropTarget | null) => void;
   handleDrop: () => void;
   setContextMenu: (next: SidebarTreeContextMenuState) => void;
-  docHeaderOverrides: Record<string, {
-    title?: string;
-    imageFileId?: number;
-    originalImageFileId?: number;
-    imageMediaType?: string;
-  }>;
   docMetaMap: Map<string, MinimalDocMeta>;
   activeSpaceId: number | null;
   activeDocId?: string | null;
@@ -52,7 +46,6 @@ export default function RoomSidebarDocItem({
   setDropTarget,
   handleDrop,
   setContextMenu,
-  docHeaderOverrides,
   docMetaMap,
   activeSpaceId,
   activeDocId,
@@ -63,11 +56,6 @@ export default function RoomSidebarDocItem({
     return null;
 
   const docId = String(node.targetId);
-  const docOverride = docHeaderOverrides[docId];
-  const docOverrideTitle = typeof docOverride?.title === "string" ? docOverride.title.trim() : "";
-  const docOverrideImageFileId = typeof docOverride?.imageFileId === "number" && docOverride.imageFileId > 0 ? docOverride.imageFileId : undefined;
-  const docOverrideOriginalImageFileId = typeof docOverride?.originalImageFileId === "number" && docOverride.originalImageFileId > 0 ? docOverride.originalImageFileId : undefined;
-  const docOverrideImageMediaType = typeof docOverride?.imageMediaType === "string" ? docOverride.imageMediaType.trim() : "";
   const docFallbackImageFileId = typeof (node as any)?.fallbackImageFileId === "number" && (node as any).fallbackImageFileId > 0
     ? (node as any).fallbackImageFileId
     : undefined;
@@ -77,10 +65,10 @@ export default function RoomSidebarDocItem({
   const docFallbackImageMediaType = typeof (node as any)?.fallbackImageMediaType === "string" ? String((node as any).fallbackImageMediaType).trim() : "";
   const docMeta = docMetaMap.get(docId);
 
-  const title = docOverrideTitle || (docMeta?.title ?? (node as any)?.fallbackTitle ?? docId);
-  const coverFileId = docOverrideImageFileId ?? docMeta?.imageFileId ?? docFallbackImageFileId;
-  const originalCoverFileId = docOverrideOriginalImageFileId ?? docMeta?.originalImageFileId ?? docFallbackOriginalImageFileId;
-  const imageMediaType = docOverrideImageMediaType || docMeta?.imageMediaType || docFallbackImageMediaType;
+  const title = docMeta?.title ?? (node as any)?.fallbackTitle ?? docId;
+  const coverFileId = docMeta?.imageFileId ?? docFallbackImageFileId;
+  const originalCoverFileId = docMeta?.originalImageFileId ?? docFallbackOriginalImageFileId;
+  const imageMediaType = docMeta?.imageMediaType || docFallbackImageMediaType;
   const coverReference = buildDocCardReferencePayload({
     docId,
     ...(typeof activeSpaceId === "number" && activeSpaceId > 0 ? { spaceId: activeSpaceId } : {}),
@@ -114,6 +102,8 @@ export default function RoomSidebarDocItem({
         onCloseLeftDrawer();
       }}
       onKeyDown={(e) => {
+        if (e.nativeEvent.isComposing)
+          return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           onSelectDoc?.(docId);
@@ -203,7 +193,7 @@ export default function RoomSidebarDocItem({
               <FileTextIcon className="size-4 opacity-70" />
             )}
       </div>
-      <span className="flex-1 min-w-0 truncate text-left">{title}</span>
+      <span className="flex-1 min-w-0 truncate text-left" title={title}>{title}</span>
     </div>
   );
 }

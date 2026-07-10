@@ -21,4 +21,3 @@ export type ApiResultFriendCheckResponse = {
     errMsg?: string;
     data?: FriendCheckResponse;
 };
-

@@ -514,6 +514,7 @@ export default function RoleEditScreen() {
           {/* Basic Info */}
           <View style={[styles.basicInfoSection, !isCreating && styles.basicInfoAfterAvatar]}>
             <TextInput
+              accessibilityLabel="角色名称"
               style={[styles.input, styles.roleNameInput, { backgroundColor: "rgba(255,255,255,0.008)", borderBottomColor: theme.border, color: theme.text }]}
               placeholder="角色名称"
               placeholderTextColor={theme.textSecondary}
@@ -523,6 +524,7 @@ export default function RoleEditScreen() {
             />
             <View style={styles.roleDescriptionArea}>
               <TextInput
+                accessibilityLabel="角色描述"
                 style={[styles.input, styles.roleDescriptionInput, { backgroundColor: "rgba(255,255,255,0.008)", borderBottomColor: theme.border, color: theme.text, height: descriptionInputHeight }]}
                 placeholder="角色描述"
                 placeholderTextColor={theme.textSecondary}

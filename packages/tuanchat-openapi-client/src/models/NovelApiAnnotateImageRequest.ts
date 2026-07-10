@@ -15,4 +15,3 @@ export type NovelApiAnnotateImageRequest = {
      */
     parameters: Record<string, Record<string, any>>;
 };
-

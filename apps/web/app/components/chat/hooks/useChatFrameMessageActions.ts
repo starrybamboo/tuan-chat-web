@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { ANNOTATION_IDS, hasAnnotation, isImageMessageBackground, setAnnotation } from "@/types/messageAnnotations";
@@ -102,13 +102,13 @@ export default function useChatFrameMessageActions({
     options?: ForwardFinalizeOptions,
   ): Promise<boolean> => {
     if (forwardRoomId <= 0) {
-      toast.error("请选择有效的转发房间");
+      appToast.error("请选择有效的转发房间");
       return false;
     }
 
     const selectedMessages = getSelectedMessages();
     if (selectedMessages.length === 0) {
-      toast.error("请选择要转发的消息");
+      appToast.error("请选择要转发的消息");
       return false;
     }
 
@@ -122,7 +122,7 @@ export default function useChatFrameMessageActions({
       }
       catch (error) {
         console.error("逐条转发失败:", error);
-        toast.error("逐条转发失败");
+        appToast.error("逐条转发失败");
         return false;
       }
       if (options?.closeWindow ?? true) {
@@ -132,7 +132,7 @@ export default function useChatFrameMessageActions({
         clearSelection();
       }
       if (options?.toastSuccess ?? true) {
-        toast(FORWARD_SEPARATE_TOAST);
+        appToast.info(FORWARD_SEPARATE_TOAST);
       }
       return true;
     }
@@ -147,7 +147,7 @@ export default function useChatFrameMessageActions({
       }
       catch (error) {
         console.error("合并转发失败:", error);
-        toast.error("合并转发失败");
+        appToast.error("合并转发失败");
         return false;
       }
     }
@@ -161,7 +161,7 @@ export default function useChatFrameMessageActions({
       clearSelection();
     }
     if (options?.toastSuccess ?? true) {
-      toast(FORWARD_TOAST);
+      appToast.info(FORWARD_TOAST);
     }
     return true;
   }, [
@@ -182,7 +182,7 @@ export default function useChatFrameMessageActions({
   const handleForwardToRooms = useCallback(async (forwardRoomIds: number[], mode: ForwardMode): Promise<boolean> => {
     const nextRoomIds = Array.from(new Set(forwardRoomIds)).filter(roomId => roomId > 0);
     if (nextRoomIds.length === 0) {
-      toast.error("请选择有效的转发房间");
+      appToast.error("请选择有效的转发房间");
       return false;
     }
 
@@ -199,7 +199,7 @@ export default function useChatFrameMessageActions({
 
     setIsForwardWindowOpen(false);
     clearSelection();
-    toast.success(`已转发到 ${nextRoomIds.length} 个房间`);
+    appToast.success(`已转发到 ${nextRoomIds.length} 个房间`);
     return true;
   }, [clearSelection, forwardSelectedMessagesToRoom, setIsForwardWindowOpen]);
 

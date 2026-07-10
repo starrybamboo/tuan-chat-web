@@ -1,5 +1,7 @@
 import type { Sticker as StickerType } from "@tuanchat/openapi-client/models/Sticker";
 
+import { getDirectMessagePreviewText } from "@tuanchat/domain/direct-message";
+
 import StickerWindow from "@/components/chat/window/StickerWindow";
 import BetterImg from "@/components/common/betterImg";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
@@ -9,7 +11,21 @@ import { mediaFileUrl } from "@/utils/media/mediaUrl";
 
 import { usePrivateMessageSender } from "../hooks/usePrivateMessageSender";
 
-export default function MessageInput({ userId, currentContactUserId }: { userId: number; currentContactUserId: number | null }) {
+import type { MessageDirectResponse } from "../../../../api";
+
+type MessageInputProps = {
+  userId: number;
+  currentContactUserId: number | null;
+  replyMessage?: MessageDirectResponse | null;
+  onCancelReply?: () => void;
+  onMessageSent?: () => void;
+};
+
+function getPrivateReplyPreview(message: MessageDirectResponse) {
+  return getDirectMessagePreviewText(message);
+}
+
+export default function MessageInput({ userId, currentContactUserId, replyMessage = null, onCancelReply, onMessageSent }: MessageInputProps) {
   const webSocketUtils = useGlobalWebSocket();
 
   // 消息发送hook
@@ -23,13 +39,17 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
     setEmojiMetaByUrl,
     removeEmojiMetaByUrl,
     handleSendMessage,
-  } = usePrivateMessageSender({ webSocketUtils, userId, currentContactUserId });
+  } = usePrivateMessageSender({ webSocketUtils, userId, currentContactUserId, replyMessage, onMessageSent });
 
   /**
    * 文本消息发送
    */
   // Enter 键发送消息
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.nativeEvent.isComposing) {
+      return;
+    }
+
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -46,6 +66,8 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
         md:hidden
         w-full border-t border-base-300 flex flex-col px-4 py-2 max-h-32
       ">
+        <ReplyPreview replyMessage={replyMessage} onCancelReply={onCancelReply} />
+
         {/* 预览要发送的图片和表情 */}
         {(imgFiles.length > 0 || emojiUrls.length > 0) && (
           <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
@@ -81,7 +103,7 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
                 focus:outline-none focus:border-info
                 text-sm
               "
-              placeholder=""
+              placeholder="输入消息"
               onChange={(e) => {
                 setMessageInput(e.target.value);
               }}
@@ -125,6 +147,8 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
         md:flex
         w-full flex-col border-t border-base-300 px-6 py-3
       ">
+        <ReplyPreview replyMessage={replyMessage} onCancelReply={onCancelReply} />
+
         {/* 预览要发送的图片 */}
         {(imgFiles.length > 0 || emojiUrls.length > 0) && (
           <div className="mb-2 flex flex-row gap-x-3 overflow-x-auto">
@@ -200,6 +224,41 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
         </div>
       </div>
     </>
+  );
+}
+
+function ReplyPreview({
+  replyMessage,
+  onCancelReply,
+}: {
+  replyMessage?: MessageDirectResponse | null;
+  onCancelReply?: () => void;
+}) {
+  if (!replyMessage) {
+    return null;
+  }
+
+  return (
+    <div className="
+      mb-2 flex items-center gap-2 rounded-md border-l-4 border-info
+      bg-base-200/70 px-3 py-2 text-sm
+    ">
+      <div className="min-w-0 flex-1">
+        <div className="text-xs text-base-content/55">回复 {replyMessage.senderUsername || "私聊消息"}</div>
+        <div className="truncate text-base-content/80">{getPrivateReplyPreview(replyMessage)}</div>
+      </div>
+      {onCancelReply && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs shrink-0"
+          onClick={onCancelReply}
+          aria-label="取消回复"
+          title="取消回复"
+        >
+          取消
+        </button>
+      )}
+    </div>
   );
 }
 

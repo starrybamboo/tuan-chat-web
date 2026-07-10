@@ -21,4 +21,3 @@ export type RoleAvatarVariantUpdateRequest = {
     baseAvatarId?: number;
     compositionConfig?: RoleAvatarVariantCompositionConfig;
 };
-

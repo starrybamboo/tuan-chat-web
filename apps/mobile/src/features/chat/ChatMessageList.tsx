@@ -34,7 +34,7 @@ import {
   getVisibleMessageListSignature,
   getReplyPreviewText,
 } from "./messageListModel";
-import { resolveBottomThresholdTransition, resolveVisibleMessageAppendAction } from "./messageListScrollState";
+import { resolveBottomThresholdTransition, resolveVisibleMessageAppendAction, shouldAutoScrollOnContentSizeChange } from "./messageListScrollState";
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -51,8 +51,9 @@ const styles = StyleSheet.create({
 
 const MESSAGE_LIST_MAINTAIN_VISIBLE_POSITION = { minIndexForVisible: 0 };
 const MESSAGE_INITIAL_RENDER_COUNT = 10;
-const MESSAGE_RENDER_BATCH_SIZE = 10;
-const MESSAGE_WINDOW_SIZE = 9;
+const MESSAGE_RENDER_BATCH_SIZE = 8;
+const MESSAGE_SCROLL_TO_BOTTOM_ANIMATION_DISTANCE = 600;
+const MESSAGE_WINDOW_SIZE = 7;
 const ROLE_AVATAR_STALE_TIME_MS = 24 * 60 * 60_000;
 
 function getReplyAuthorName(msg: Message, roomRolesById: ReadonlyMap<number, UserRole>): string {
@@ -85,6 +86,9 @@ function readPositiveAvatarFileId(value: unknown): number | null {
 function collectUnresolvedRoleAvatarIds(messages: readonly Message[], roomRolesById: ReadonlyMap<number, UserRole>): number[] {
   const avatarIds = new Set<number>();
   for (const message of messages) {
+    if (isOutOfCharacterMessage(message)) {
+      continue;
+    }
     if (resolveMessageAvatarFileId(message, roomRolesById) != null) {
       continue;
     }
@@ -99,7 +103,7 @@ function collectUnresolvedRoleAvatarIds(messages: readonly Message[], roomRolesB
 function collectUnresolvedOocUserIds(messages: readonly Message[], roomRolesById: ReadonlyMap<number, UserRole>): number[] {
   const userIds = new Set<number>();
   for (const message of messages) {
-    if (!isOutOfCharacterMessage(message) || resolveMessageAvatarFileId(message, roomRolesById) != null) {
+    if (!isOutOfCharacterMessage(message)) {
       continue;
     }
     if (typeof message.userId === "number" && message.userId > 0) {
@@ -115,6 +119,11 @@ function resolveChatMessageAvatarUrl(
   roleAvatarFileIdByAvatarId: ReadonlyMap<number, number>,
   userAvatarFileIdByUserId: ReadonlyMap<number, number>,
 ): string | null {
+  if (isOutOfCharacterMessage(message) && typeof message.userId === "number" && message.userId > 0) {
+    const userAvatarFileId = userAvatarFileIdByUserId.get(message.userId);
+    return userAvatarFileId != null ? avatarThumbUrl(userAvatarFileId) : null;
+  }
+
   const directAvatarFileId = resolveMessageAvatarFileId(message, roomRolesById);
   if (directAvatarFileId != null) {
     return avatarThumbUrl(directAvatarFileId);
@@ -125,13 +134,6 @@ function resolveChatMessageAvatarUrl(
     const resolvedRoleAvatarFileId = roleAvatarFileIdByAvatarId.get(avatarId);
     if (resolvedRoleAvatarFileId != null) {
       return avatarThumbUrl(resolvedRoleAvatarFileId);
-    }
-  }
-
-  if (isOutOfCharacterMessage(message) && typeof message.userId === "number" && message.userId > 0) {
-    const userAvatarFileId = userAvatarFileIdByUserId.get(message.userId);
-    if (userAvatarFileId != null) {
-      return avatarThumbUrl(userAvatarFileId);
     }
   }
 
@@ -206,7 +208,11 @@ function ChatMessageListInner({
   const flatListRef = useRef<FlatList<ChatMessageListItem>>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const isAtBottomRef = useRef(true);
+  const currentScrollOffsetYRef = useRef(0);
   const [newMessageCount, setNewMessageCount] = useState(0);
+  const pendingScrollToBottomRef = useRef(false);
+  const didAnchorInitialMessagesRef = useRef(false);
+  const didInitializeMessageTrackingRef = useRef(false);
   const scrollToBottomTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollToBottomTaskRef = useRef<ReturnType<typeof InteractionManager.runAfterInteractions> | null>(null);
   const roomRolesById = useMemo(() => buildRoomRolesById(roomRoles), [roomRoles]);
@@ -288,24 +294,6 @@ function ChatMessageListInner({
     [avatarThumbUrls, messageImageThumbUrls],
   );
 
-  const commitBottomState = useCallback((nextIsAtBottom: boolean) => {
-    if (isAtBottomRef.current === nextIsAtBottom) {
-      return;
-    }
-
-    isAtBottomRef.current = nextIsAtBottom;
-    setIsAtBottom(nextIsAtBottom);
-    if (nextIsAtBottom)
-      setNewMessageCount(0);
-  }, []);
-
-  const handleScroll = useCallback((e: { nativeEvent: { contentOffset: { y: number } } }) => {
-    const transition = resolveBottomThresholdTransition(isAtBottomRef.current, e.nativeEvent.contentOffset.y);
-    if (transition.changed) {
-      commitBottomState(transition.isAtBottom);
-    }
-  }, [commitBottomState]);
-
   const cancelScheduledScrollToBottom = useCallback(() => {
     if (scrollToBottomTimerRef.current) {
       clearTimeout(scrollToBottomTimerRef.current);
@@ -317,16 +305,59 @@ function ChatMessageListInner({
     }
   }, []);
 
+  const commitBottomState = useCallback((nextIsAtBottom: boolean) => {
+    if (isAtBottomRef.current === nextIsAtBottom) {
+      return;
+    }
+
+    isAtBottomRef.current = nextIsAtBottom;
+    setIsAtBottom(nextIsAtBottom);
+    if (nextIsAtBottom) {
+      pendingScrollToBottomRef.current = false;
+      setNewMessageCount(0);
+    }
+  }, []);
+
+  const handleScroll = useCallback((e: { nativeEvent: { contentOffset: { y: number } } }) => {
+    const offsetY = e.nativeEvent.contentOffset.y;
+    currentScrollOffsetYRef.current = offsetY;
+    const transition = resolveBottomThresholdTransition(isAtBottomRef.current, offsetY);
+    if (transition.changed) {
+      commitBottomState(transition.isAtBottom);
+    }
+  }, [commitBottomState]);
+
+  const handleScrollBeginDrag = useCallback(() => {
+    pendingScrollToBottomRef.current = false;
+    cancelScheduledScrollToBottom();
+  }, [cancelScheduledScrollToBottom]);
+
   const scheduleScrollToBottom = useCallback((animated: boolean) => {
+    pendingScrollToBottomRef.current = true;
     cancelScheduledScrollToBottom();
     scrollToBottomTaskRef.current = InteractionManager.runAfterInteractions(() => {
       scrollToBottomTaskRef.current = null;
       scrollToBottomTimerRef.current = setTimeout(() => {
         scrollToBottomTimerRef.current = null;
         flatListRef.current?.scrollToOffset({ offset: 0, animated });
+        pendingScrollToBottomRef.current = false;
+        isAtBottomRef.current = true;
+        setIsAtBottom(true);
+        setNewMessageCount(0);
       }, 30);
     });
   }, [cancelScheduledScrollToBottom]);
+
+  const handleContentSizeChange = useCallback(() => {
+    if (!shouldAutoScrollOnContentSizeChange({
+      hasPendingScrollToBottom: pendingScrollToBottomRef.current,
+      isAtBottom: isAtBottomRef.current,
+    })) {
+      return;
+    }
+
+    scheduleScrollToBottom(false);
+  }, [scheduleScrollToBottom]);
 
   useEffect(() => {
     return () => {
@@ -335,13 +366,37 @@ function ChatMessageListInner({
   }, [cancelScheduledScrollToBottom]);
 
   useEffect(() => {
+    if (didAnchorInitialMessagesRef.current || isPending || messageListModel.visibleMessages.length === 0) {
+      return;
+    }
+
+    didAnchorInitialMessagesRef.current = true;
+    isAtBottomRef.current = true;
+    setIsAtBottom(true);
+    setNewMessageCount(0);
+    scheduleScrollToBottom(false);
+  }, [isPending, messageListModel.visibleMessages.length, scheduleScrollToBottom]);
+
+  useEffect(() => {
+    const visibleMessages = messageListModel.visibleMessages;
+    const optimisticMessageRenderKeys = getOptimisticMessageRenderKeys(visibleMessages);
+    if (!didInitializeMessageTrackingRef.current) {
+      if (isPending) {
+        return;
+      }
+
+      didInitializeMessageTrackingRef.current = true;
+      prevLengthRef.current = visibleMessages.length;
+      prevOptimisticMessageRenderKeysRef.current = optimisticMessageRenderKeys;
+      return;
+    }
+
     const previousLength = prevLengthRef.current;
-    const optimisticMessageRenderKeys = getOptimisticMessageRenderKeys(messageListModel.visibleMessages);
     const hasNewOptimisticMessage = [...optimisticMessageRenderKeys]
       .some(key => !prevOptimisticMessageRenderKeysRef.current.has(key));
     const appendAction = resolveVisibleMessageAppendAction({
       isAtBottom: isAtBottomRef.current,
-      nextLength: messageListModel.visibleMessages.length,
+      nextLength: visibleMessages.length,
       previousLength,
       shouldForceScrollToBottom: hasNewOptimisticMessage,
     });
@@ -349,11 +404,11 @@ function ChatMessageListInner({
       setNewMessageCount(count => count + appendAction.addedCount);
     }
     if (appendAction.shouldScrollToBottom) {
-      scheduleScrollToBottom(true);
+      scheduleScrollToBottom(!isAtBottomRef.current && hasNewOptimisticMessage);
     }
-    prevLengthRef.current = messageListModel.visibleMessages.length;
+    prevLengthRef.current = visibleMessages.length;
     prevOptimisticMessageRenderKeysRef.current = optimisticMessageRenderKeys;
-  }, [messageListModel.visibleMessages.length, scheduleScrollToBottom, visibleMessageSignature]);
+  }, [isPending, messageListModel.visibleMessages, scheduleScrollToBottom, visibleMessageSignature]);
 
   useEffect(() => {
     if (prefetchUrls.length === 0)
@@ -362,8 +417,10 @@ function ChatMessageListInner({
   }, [prefetchUrls]);
 
   const scrollToBottom = useCallback(() => {
+    pendingScrollToBottomRef.current = true;
     cancelScheduledScrollToBottom();
-    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    const shouldAnimate = currentScrollOffsetYRef.current <= MESSAGE_SCROLL_TO_BOTTOM_ANIMATION_DISTANCE;
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: shouldAnimate });
     isAtBottomRef.current = true;
     setIsAtBottom(true);
     setNewMessageCount(0);
@@ -423,7 +480,13 @@ function ChatMessageListInner({
         </ThemedText>
         {onRetry
           ? (
-              <Pressable onPress={onRetry}>
+              <Pressable
+                accessibilityHint="重新加载当前消息"
+                accessibilityLabel="重试"
+                accessibilityRole="button"
+                hitSlop={8}
+                onPress={onRetry}
+              >
                 <ThemedText themeColor="accent" type="small">重试</ThemedText>
               </Pressable>
             )
@@ -435,7 +498,7 @@ function ChatMessageListInner({
   if (messageListModel.visibleMessages.length === 0) {
     return (
       <View style={[styles.container, styles.stateBlock]}>
-        <ThemedText themeColor="textSecondary">暂无消息</ThemedText>
+        <ThemedText themeColor="textSecondary">发第一条消息开始对话</ThemedText>
       </View>
     );
   }
@@ -451,14 +514,16 @@ function ChatMessageListInner({
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
         extraData={visibleMessageSignature}
+        onContentSizeChange={handleContentSizeChange}
         onScroll={handleScroll}
+        onScrollBeginDrag={handleScrollBeginDrag}
         scrollEventThrottle={16}
         initialNumToRender={MESSAGE_INITIAL_RENDER_COUNT}
         maxToRenderPerBatch={MESSAGE_RENDER_BATCH_SIZE}
         maintainVisibleContentPosition={MESSAGE_LIST_MAINTAIN_VISIBLE_POSITION}
-        // 倒置消息流依赖 anchored rows 保持阅读位置，Android 裁剪回收会放大跳动风险。
+        // 倒置长聊天流里快速滚动时优先稳定，避免 Android 裁剪回收触发原生崩溃。
         removeClippedSubviews={false}
-        updateCellsBatchingPeriod={50}
+        updateCellsBatchingPeriod={80}
         windowSize={MESSAGE_WINDOW_SIZE}
       />
       <ChatNewMessagesPill

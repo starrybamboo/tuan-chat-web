@@ -144,14 +144,20 @@ function ActivitiesPage() {
               mb-4
               sm:mb-6
             ">
-              <div className="
+              <div
+                aria-label="动态筛选"
+                className="
                 flex space-x-4
                 sm:space-x-6
                 text-sm bg-base-100 rounded-t-lg px-3
                 sm:px-4
                 pt-3
-              ">
+              "
+                role="tablist"
+              >
                 <button
+                  aria-controls="activities-feed-panel"
+                  aria-selected={activeTab === "all"}
                   className={`
                     font-medium border-b-2 pb-2 transition-colors
                     ${
@@ -165,11 +171,14 @@ function ActivitiesPage() {
                   }
                   `}
                   onClick={() => setActiveTab("all")}
+                  role="tab"
                   type="button"
                 >
                   全部
                 </button>
                 <button
+                  aria-controls="activities-feed-panel"
+                  aria-selected={activeTab === "repository"}
                   className={`
                     font-medium border-b-2 pb-2 transition-colors
                     ${
@@ -183,6 +192,7 @@ function ActivitiesPage() {
                   }
                   `}
                   onClick={() => setActiveTab("repository")}
+                  role="tab"
                   type="button"
                 >
                   仓库动态
@@ -191,10 +201,14 @@ function ActivitiesPage() {
             </div>
 
             {/* 动态列表 */}
-            <div className="
+            <div
+              id="activities-feed-panel"
+              className="
               space-y-3
               sm:space-y-4
-            ">
+            "
+              role="tabpanel"
+            >
               {isLoading && (
                 <div className="flex justify-center py-8">
                   <div className="

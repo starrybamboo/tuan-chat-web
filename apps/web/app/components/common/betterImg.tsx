@@ -118,6 +118,7 @@ function BetterImg({ src, className, onClose, size, transparent = true, zoomQual
         type="button"
         className="block max-w-full"
         onClick={openToastWindow}
+        aria-label="查看图片"
       >
         <MediaImage
           src={imgSrc}
@@ -127,6 +128,7 @@ function BetterImg({ src, className, onClose, size, transparent = true, zoomQual
           className={`
             block w-auto max-w-full cursor-zoom-in object-contain
             hover:scale-101
+            motion-reduce:transform-none motion-reduce:transition-none
             ${className ?? ""}
           `}
           alt="img"
@@ -142,6 +144,7 @@ function BetterImg({ src, className, onClose, size, transparent = true, zoomQual
             duration-200 origin-top-right
           "
           onClick={onClose}
+          aria-label="移除图片"
         >
           <span className="text-xs">✕</span>
         </button>

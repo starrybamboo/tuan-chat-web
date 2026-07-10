@@ -6,6 +6,7 @@ import {
   Controls,
   ReactFlow,
 } from "@xyflow/react";
+import { useGetSpaceInfoQuery, useGetUserRoomsQuery, useUpdateRoomMutation, useUpdateSpaceMutation } from "api/hooks/chatQueryHooks";
 import { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { RoomMap } from "@/components/chat/window/workflowGraphUtils";
@@ -32,12 +33,11 @@ import {
 import { computeInitialRoomNodePositions, computePositionForNewWorkflowNode } from "@/components/chat/window/workflowLayoutUtils";
 import WorkflowSceneDescriptionEditor from "@/components/chat/window/workflowSceneDescriptionEditor";
 import WorkflowStartNode from "@/components/chat/window/workflowStartNode";
+import { appToast } from "@/components/common/appToast/appToast";
 import SceneNode from "@/components/repository/detail/ContentTab/scene/react flow/NewSceneNode";
 import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/media/mediaUrl";
-import { useGetSpaceInfoQuery, useGetUserRoomsQuery, useUpdateRoomMutation, useUpdateSpaceMutation } from "api/hooks/chatQueryHooks";
 
 import { SpaceContext } from "../core/spaceContext";
-import { useEntityHeaderOverrideStore } from "../stores/entityHeaderOverrideStore";
 import "@xyflow/react/dist/style.css";
 
 const nodeTypes = {
@@ -56,7 +56,6 @@ export default function WorkflowWindow() {
 
   const userRoomsQuery = useGetUserRoomsQuery(spaceId);
   const userRooms = useMemo<Room[]>(() => userRoomsQuery.data?.data?.rooms ?? [], [userRoomsQuery.data?.data?.rooms]);
-  const headerOverrides = useEntityHeaderOverrideStore(state => state.headers);
   const userRoomNameMap = useMemo(() => {
     const map = new Map<number, string>();
     userRooms.forEach((room) => {
@@ -87,6 +86,7 @@ export default function WorkflowWindow() {
   const lastFitKeyRef = useRef<string>("");
   const persistedPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const [positionsLoaded, setPositionsLoaded] = useState(false);
+  const [isAddingEndNode, setIsAddingEndNode] = useState(false);
   const { isFullscreen, toggleFullscreen } = useWorkflowFullscreen(reactFlowInstanceRef);
 
   useEffect(() => {
@@ -140,26 +140,23 @@ export default function WorkflowWindow() {
     const labels = new Map<number, string>();
     allRoomIds.forEach((roomId) => {
       const info = roomInfoMap.get(roomId);
-      const override = headerOverrides[`room:${roomId}`];
       const fallback = userRoomNameMap.get(roomId) ?? `房间 ${roomId}`;
-      const label = override?.title?.trim() || info?.name?.trim() || fallback;
+      const label = info?.name?.trim() || fallback;
       labels.set(roomId, label);
     });
     return labels;
-  }, [allRoomIds, headerOverrides, roomInfoMap, userRoomNameMap]);
+  }, [allRoomIds, roomInfoMap, userRoomNameMap]);
 
   const roomAvatarMap = useMemo(() => {
     const avatars = new Map<number, string>();
     allRoomIds.forEach((roomId) => {
       const info = roomInfoMap.get(roomId);
-      const override = headerOverrides[`room:${roomId}`];
-      const avatar = imageLowUrl(override?.imageFileId)
-        || imageLowUrlFromUrl(override?.imageUrl?.trim() || imageLowUrl(info?.avatarFileId))
+      const avatar = imageLowUrlFromUrl(imageLowUrl(info?.avatarFileId))
         || "/favicon.ico";
       avatars.set(roomId, avatar);
     });
     return avatars;
-  }, [allRoomIds, headerOverrides, roomInfoMap]);
+  }, [allRoomIds, roomInfoMap]);
 
   const saveSceneDefaultDescription = useCallback(async (roomId: number, nextDescription: string) => {
     if (!Number.isFinite(roomId) || roomId <= 0)
@@ -200,6 +197,25 @@ export default function WorkflowWindow() {
     updateSpaceMutation,
     updateSpaceMutationAsync,
   });
+
+  const handleAddEndNode = useCallback(async () => {
+    if (isAddingEndNode) {
+      return;
+    }
+
+    setIsAddingEndNode(true);
+    try {
+      await addEndNode();
+      appToast.success("结束节点已新增");
+    }
+    catch (error) {
+      console.error("新增结束节点失败", error);
+      appToast.error("新增结束节点失败，请重试");
+    }
+    finally {
+      setIsAddingEndNode(false);
+    }
+  }, [addEndNode, isAddingEndNode]);
 
   // 初始化边
   useEffect(() => {
@@ -490,6 +506,9 @@ export default function WorkflowWindow() {
       className={isFullscreen
         ? "fixed inset-0 z-120 h-screen w-screen bg-base-100 p-3"
         : "relative h-[75vh] w-full min-w-[50vw]"}
+      {...(isFullscreen
+        ? { role: "dialog" as const, "aria-modal": true as const, "aria-label": "工作流编辑器" }
+        : {})}
     >
       <button
         type="button"
@@ -500,10 +519,12 @@ export default function WorkflowWindow() {
           hover:bg-base-100
         "
         onClick={() => {
-          void addEndNode();
+          void handleAddEndNode();
         }}
+        disabled={isAddingEndNode}
+        aria-busy={isAddingEndNode}
       >
-        <span>新增结束节点</span>
+        <span>{isAddingEndNode ? "新增中…" : "新增结束节点"}</span>
       </button>
       <button
         type="button"

@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDir, "..");
 const workspaceRoot = resolve(projectRoot, "..", "..", "..");
-const defaultReleaseDir = resolve(workspaceRoot, "WebGAL_Terre", "release");
+const defaultReleaseDir = resolve(workspaceRoot, "WebGAL_Terre", "release", "tuanchat-runtime");
 const releaseDirRaw = String(process.env.WEBGAL_TERRE_RELEASE_DIR || defaultReleaseDir).trim();
 const releaseDir = isAbsolute(releaseDirRaw) ? releaseDirRaw : resolve(projectRoot, releaseDirRaw);
 const webgalExeCandidates = ["WebGAL_Terre.exe", "WebGAL_Teree.exe"];

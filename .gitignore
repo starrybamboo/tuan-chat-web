@@ -376,6 +376,7 @@ $RECYCLE.BIN/
 /release/
 /release_local_latest/
 /release_unified_*/
+/release/release_smoke_*/
 /apps/mobile/build-output/
 # Ignore everything in the extraResource directory
 /extraResources/

@@ -1,5 +1,5 @@
 import { useRouter } from "@tanstack/react-router";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useId, useRef, useState } from "react";
 
 import ImagePreview from "@/components/activities/ImagePreview";
 import MomentDetailView from "@/components/activities/MomentDetailView";
@@ -137,6 +137,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
 
   // 渲染
   const postRef = useRef<HTMLDivElement>(null);
+  const menuId = useId();
 
   const renderSpecialContent = () => {
     if (hasRepositoryData) {
@@ -260,12 +261,18 @@ const PostsCard: React.FC<PostsCardProps> = ({
                 "
                 onClick={() => setShowMenu(!showMenu)}
                 type="button"
+                aria-label="更多动态操作"
+                aria-haspopup="menu"
+                aria-expanded={showMenu}
+                aria-controls={menuId}
               >
                 ⋯
               </button>
 
               {showMenu && (
-                <div className="
+                <div
+                  id={menuId}
+                  className="
                   absolute right-0 top-full mt-1 bg-base-100 border
                   border-base-300 rounded-lg shadow-lg py-1 z-20 min-w-[120px]
                 ">
@@ -321,8 +328,8 @@ const PostsCard: React.FC<PostsCardProps> = ({
               type="button"
               className="block w-full cursor-pointer group space-y-2 text-left"
               onClick={handleContentClick}
+              title="查看动态全文或详情"
             >
-
               {/* 内容或描述 */}
               {!isFeed
                 ? (
@@ -363,19 +370,21 @@ const PostsCard: React.FC<PostsCardProps> = ({
           sm:space-x-6
           pt-3 border-t border-base-300
         ">
-          <div
+          <button
+            type="button"
             onClick={handleComment}
+            aria-label={(stats?.commentCount || 0) > 0 ? `查看 ${stats?.commentCount || 0} 条评论` : "查看评论"}
             className="
               flex items-center space-x-1 text-sm
               hover:text-info
               cursor-pointer
               hover:bg-info/10
-              transition-colors px-2 py-1 rounded-full
+              transition-colors px-2 py-1 rounded-full text-left
             "
           >
             <CommentOutline className="h-6 w-5" data-html-image-exclude="true" />
             <span className="font-medium">{stats?.commentCount || 0}</span>
-          </div>
+          </button>
 
           <div className="
             flex items-center space-x-1 text-sm cursor-pointer

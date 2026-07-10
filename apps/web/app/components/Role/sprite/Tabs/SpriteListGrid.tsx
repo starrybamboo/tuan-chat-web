@@ -1,21 +1,23 @@
-import type { RoleAvatar, RoleAvatarVariant } from "api";
 import type { ReactNode } from "react";
 
 import { CaretDownIcon, CaretRightIcon, CheckCircleIcon, ImageSquareIcon } from "@phosphor-icons/react";
-import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useRef, useState } from "react";
+
+import type { RoleAvatar, RoleAvatarVariant } from "api";
 
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { MediaImage } from "@/components/common/mediaImage";
 import { BaselineDeleteOutline } from "@/icons";
+import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
 
 import type { AvatarUploadFilesContext } from "../../RoleInfoCard/AvatarUploadCropper";
 import type { Role } from "../../types";
 
 import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
 import { useAvatarDeletion } from "../hooks/useAvatarDeletion";
-import { getEffectiveAvatarUrl } from "../utils";
+import { preloadPreviewSpriteImage } from "../previewSpriteImageCache";
+import { getEffectiveAvatarUrl, getEffectiveSpriteUrl } from "../utils";
 
 type SpriteListGridProps = {
   /** 头像/立绘列表 */
@@ -287,6 +289,7 @@ export function SpriteListGrid({
     const avatarName = getAvatarName(avatar, index);
     const isSelected = isMultiSelectMode ? selectedIndices.has(index) : index === selectedIndex;
     const displayAvatarUrl = getEffectiveAvatarUrl(avatar);
+    const spritePreviewUrl = getEffectiveSpriteUrl(avatar);
     const isAppliedAvatar = Boolean(
       role?.avatarId
         ? avatar.avatarId === role.avatarId
@@ -300,6 +303,7 @@ export function SpriteListGrid({
     const canSetDefaultAvatar = Boolean(onSetDefaultAvatar && avatar.avatarId && !isCurrentAvatar);
     const canReplaceAvatarSource = Boolean(onReplaceAvatarSource && avatar.avatarId);
     const showTileTools = canShowTileTools;
+    const isAvatarDraggable = Boolean(onAvatarDragStart);
 
     return (
       <div key={avatar.avatarId} className="min-w-0 flex flex-col">
@@ -316,7 +320,10 @@ export function SpriteListGrid({
               onAvatarDragStart(index);
             }}
             onDragEnd={onAvatarDragEnd}
+            onPointerEnter={() => preloadPreviewSpriteImage(spritePreviewUrl)}
+            onFocus={() => preloadPreviewSpriteImage(spritePreviewUrl)}
             onClick={() => {
+              preloadPreviewSpriteImage(spritePreviewUrl);
               if (isMultiSelectMode) {
                 handleToggleSelection(index);
               }
@@ -337,7 +344,8 @@ export function SpriteListGrid({
                 `
             }
             `}
-            title={avatar.avatarId ? `头像 ID：${avatar.avatarId}` : avatarName}
+            aria-label={avatarName}
+            title={isAvatarDraggable ? `${avatarName}（可拖拽排序、移入分组、设为默认）` : avatarName}
           >
             {displayAvatarUrl
               ? (

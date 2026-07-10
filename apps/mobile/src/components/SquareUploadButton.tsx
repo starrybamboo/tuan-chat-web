@@ -39,6 +39,7 @@ export function SquareUploadButton({
     <Pressable
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [{ opacity: disabled ? 0.5 : pressed ? 0.85 : 1 }]}

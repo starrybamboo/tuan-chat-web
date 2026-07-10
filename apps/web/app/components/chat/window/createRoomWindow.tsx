@@ -1,6 +1,9 @@
 import { PlusIcon, Trash } from "@phosphor-icons/react";
+import { useCreateRoomMutation, useGetSpaceInfoQuery } from "api/hooks/chatQueryHooks";
+import { useGetUserInfoQuery } from "api/hooks/UserHooks";
+import { useGetUserRolesQuery } from "api/queryHooks";
 import { useEffect, useId, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import checkBack from "@/components/common/autoContrastText";
 import { MediaImage } from "@/components/common/mediaImage";
@@ -9,9 +12,6 @@ import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderW
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { RoomChatIcon } from "@/icons";
 import { imageLowUrl } from "@/utils/media/mediaUrl";
-import { useCreateRoomMutation, useGetSpaceInfoQuery } from "api/hooks/chatQueryHooks";
-import { useGetUserInfoQuery } from "api/hooks/UserHooks";
-import { useGetUserRolesQuery } from "api/queryHooks";
 
 import type { ResolvedImportChatMessage } from "./importChatMessagesWindow";
 import type { InitialImportChatMessage } from "./initialChatImport";
@@ -99,15 +99,15 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
         initialImportMessages,
         importInitialMessages: (roomId, messages, onProgress) =>
           sendInitialImportChatMessages(roomId, messages, availableRoles, onProgress),
-        onImportError: error => toast.error(error instanceof Error ? error.message : "房间已创建，但初始对话导入失败"),
-        onImportSuccess: () => toast.success("初始对话已导入"),
+        onImportError: error => appToast.error(error instanceof Error ? error.message : "房间已创建，但初始对话导入失败"),
+        onImportSuccess: () => appToast.success("初始对话已导入"),
         onSuccess,
         setImportProgress,
         setSubmitPhase,
       });
     }
     catch {
-      toast.error("创建房间失败");
+      appToast.error("创建房间失败");
     }
     finally {
       setSubmitPhase(null);
@@ -217,6 +217,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
                           type="button"
                           className="btn btn-ghost btn-sm btn-square"
                           title="清空初始对话"
+                          aria-label="清空初始对话"
                           onClick={() => setInitialImportMessages([])}
                           disabled={isSubmitting}
                         >
@@ -252,6 +253,8 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
             type="button"
             className="btn btn-primary min-w-36"
             disabled={!canSubmit}
+            aria-busy={isSubmitting}
+            title={!canSubmit ? (isSubmitting ? "正在创建房间" : "请输入房间名称") : undefined}
             onClick={() => {
               void createRoom();
             }}

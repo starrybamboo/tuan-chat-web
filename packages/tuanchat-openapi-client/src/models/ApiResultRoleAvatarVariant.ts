@@ -21,4 +21,3 @@ export type ApiResultRoleAvatarVariant = {
     errMsg?: string;
     data?: RoleAvatarVariant;
 };
-

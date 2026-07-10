@@ -1,7 +1,10 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
 import { markRoomMessagesDeleted, mergeRoomMessages } from "@tuanchat/query/room-message";
-import { collectPersistedOptimisticDuplicateIds } from "@tuanchat/query/room-message-lifecycle";
+import {
+  collectPersistedOptimisticDuplicateIds,
+  mergeRoomMessagesForLocalState,
+} from "@tuanchat/query/room-message-lifecycle";
 
 export * from "./direct-messages";
 
@@ -56,16 +59,6 @@ export const MOBILE_KV_SCHEMA_SQL = [
     ON ${MOBILE_KV_TABLE_NAME} (user_id, scope)`,
 ] as const;
 
-export const DOC_SNAPSHOTS_TABLE_NAME = "doc_snapshots";
-
-export const DOC_SNAPSHOT_SCHEMA_SQL = [
-  `CREATE TABLE IF NOT EXISTS ${DOC_SNAPSHOTS_TABLE_NAME} (
-    doc_id TEXT PRIMARY KEY NOT NULL,
-    snapshot_json TEXT NOT NULL,
-    updated_at INTEGER NOT NULL
-  )`,
-] as const;
-
 export type RoomMessageRecord = {
   message_id: number;
   room_id: number;
@@ -80,6 +73,7 @@ export type RoomMessageRepository = {
   clearRoomMessages: (roomId: number) => Promise<void>;
   deleteMessagesByIds: (messageIds: number[]) => Promise<void>;
   getMaxSyncId: (roomId: number) => Promise<number>;
+  getMessageById: (messageId: number) => Promise<ChatMessageResponse | null>;
   getMessagesByRoomId: (roomId: number) => Promise<ChatMessageResponse[]>;
   getMessagesSinceSyncId: (roomId: number, syncId: number) => Promise<ChatMessageResponse[]>;
   markMessagesDeleted: (messageIds: number[]) => Promise<void>;
@@ -163,24 +157,6 @@ export type MobileKeyValueRepository = {
   removeValue: (key: string, options?: MobileCacheScopeOptions) => Promise<void>;
   removeValuesByPrefix: (prefix: string, options?: MobileCacheScopeOptions) => Promise<void>;
   writeValue: <T>(key: string, value: T, options?: MobileCacheScopeOptions & { now?: number }) => Promise<void>;
-};
-
-export type DocSnapshotRecord = {
-  doc_id: string;
-  snapshot_json: string;
-  updated_at: number;
-};
-
-export type DocSnapshotEntry<T> = {
-  docId: string;
-  snapshot: T;
-  updatedAt: number;
-};
-
-export type DocSnapshotRepository = {
-  readSnapshot: <T>(docId: string) => Promise<DocSnapshotEntry<T> | null>;
-  removeSnapshot: (docId: string) => Promise<void>;
-  writeSnapshot: <T>(docId: string, snapshot: T, options?: { now?: number }) => Promise<void>;
 };
 
 function toFiniteNumber(value: unknown): number | null {
@@ -316,7 +292,24 @@ export function createRoomMessageRepository(driver: LocalDbSqliteDriver): RoomMe
 
     await ensureSchema();
     await inTransaction(async () => {
-      for (const message of messages) {
+      const messageIds = normalizeMessageIds(messages
+        .map(message => requireMessageId(message))
+        .filter((messageId): messageId is number => messageId !== null));
+      const existingRows = messageIds.length > 0
+        ? await driver.all<Pick<RoomMessageRecord, "payload_json">>(
+            `SELECT payload_json
+              FROM ${ROOM_MESSAGES_TABLE_NAME}
+              WHERE message_id IN (${createPlaceholders(messageIds.length)})`,
+            messageIds,
+          )
+        : [];
+      // Merge before writing so stale WS/history snapshots cannot revive local tombstones.
+      const mergedMessages = normalizeRoomMessagesForStorage(mergeRoomMessagesForLocalState(
+        fromRoomMessageRecords(existingRows),
+        messages,
+      ));
+
+      for (const message of mergedMessages) {
         const record = toRoomMessageRecord(message);
         if (!record) {
           continue;
@@ -378,6 +371,23 @@ export function createRoomMessageRepository(driver: LocalDbSqliteDriver): RoomMe
       );
       const maxSyncId = rows[0]?.max_sync_id;
       return typeof maxSyncId === "number" && Number.isFinite(maxSyncId) ? maxSyncId : -1;
+    },
+
+    async getMessageById(messageId) {
+      const ids = normalizeMessageIds([messageId]);
+      if (ids.length === 0) {
+        return null;
+      }
+
+      await ensureSchema();
+      const rows = await driver.all<Pick<RoomMessageRecord, "payload_json">>(
+        `SELECT payload_json
+          FROM ${ROOM_MESSAGES_TABLE_NAME}
+          WHERE message_id = ?
+          LIMIT 1`,
+        [ids[0]],
+      );
+      return fromRoomMessageRecords(rows)[0] ?? null;
     },
 
     async getMessagesByRoomId(roomId) {
@@ -695,82 +705,6 @@ export function createMobileKeyValueRepository(driver: LocalDbSqliteDriver): Mob
           normalizeCacheUserId(options.userId),
           normalizeCacheScope(options.scope),
           toJsonString(value),
-          options.now ?? Date.now(),
-        ],
-      );
-    },
-  };
-}
-
-export function createDocSnapshotRepository(driver: LocalDbSqliteDriver): DocSnapshotRepository {
-  let schemaReadyPromise: Promise<void> | null = null;
-
-  async function ensureSchema(): Promise<void> {
-    schemaReadyPromise ??= (async () => {
-      for (const statement of DOC_SNAPSHOT_SCHEMA_SQL) {
-        await driver.exec(statement);
-      }
-    })();
-    await schemaReadyPromise;
-  }
-
-  return {
-    async readSnapshot<T>(docId: string): Promise<DocSnapshotEntry<T> | null> {
-      const normalizedDocId = normalizeCacheKey(docId);
-      if (!normalizedDocId) {
-        return null;
-      }
-
-      await ensureSchema();
-      const rows = await driver.all<DocSnapshotRecord>(
-        `SELECT doc_id, snapshot_json, updated_at
-          FROM ${DOC_SNAPSHOTS_TABLE_NAME}
-          WHERE doc_id = ?
-          LIMIT 1`,
-        [normalizedDocId],
-      );
-      const record = rows[0];
-      if (!record) {
-        return null;
-      }
-
-      try {
-        return {
-          docId: record.doc_id,
-          snapshot: JSON.parse(record.snapshot_json) as T,
-          updatedAt: record.updated_at,
-        };
-      }
-      catch {
-        await driver.run(`DELETE FROM ${DOC_SNAPSHOTS_TABLE_NAME} WHERE doc_id = ?`, [normalizedDocId]);
-        return null;
-      }
-    },
-
-    async removeSnapshot(docId) {
-      const normalizedDocId = normalizeCacheKey(docId);
-      if (!normalizedDocId) {
-        return;
-      }
-
-      await ensureSchema();
-      await driver.run(`DELETE FROM ${DOC_SNAPSHOTS_TABLE_NAME} WHERE doc_id = ?`, [normalizedDocId]);
-    },
-
-    async writeSnapshot<T>(docId: string, snapshot: T, options: { now?: number } = {}): Promise<void> {
-      const normalizedDocId = normalizeCacheKey(docId);
-      if (!normalizedDocId) {
-        return;
-      }
-
-      await ensureSchema();
-      await driver.run(
-        `INSERT OR REPLACE INTO ${DOC_SNAPSHOTS_TABLE_NAME}
-          (doc_id, snapshot_json, updated_at)
-          VALUES (?, ?, ?)`,
-        [
-          normalizedDocId,
-          toJsonString(snapshot),
           options.now ?? Date.now(),
         ],
       );

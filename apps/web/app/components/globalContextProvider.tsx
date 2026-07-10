@@ -31,8 +31,6 @@ const DEFAULT_WEBSOCKET_UTILS: WebsocketUtils = {
   updateLastReadSyncId(roomId: number, newSyncId?: number): void {
     console.error(`Function not implemented.${roomId}${newSyncId}`);
   },
-  receivedMessages: {},
-  receivedDirectMessages: {},
   chatStatus: {},
   updateChatStatus(chatStatusEvent: ChatStatusEvent): void {
     console.error(`Function not implemented.${chatStatusEvent}`);

@@ -1,11 +1,11 @@
 import { Plus } from "@phosphor-icons/react";
 import { useRouter } from "@tanstack/react-router";
+import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import CreatePageHeader from "@/components/Role/RoleCreation/CreatePageHeader";
 import RulesSection from "@/components/Role/rules/RulesSection";
-import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 
 type RuleEditorEntryPageProps = {
   onBack?: () => void;
@@ -104,7 +104,8 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
           <div className="flex items-center gap-3">
             {onBack && (
               <button type="button" className="btn btn-sm btn-ghost" onClick={onBack}>
-                ← 返回
+                <span aria-hidden="true">←</span>
+                返回上一步
               </button>
             )}
             <h1 className="font-semibold text-xl">创建规则</h1>
@@ -118,6 +119,7 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
             "
             onClick={handleCreate}
             disabled={!canCreate}
+            title={canCreate ? "创建新规则" : "请先填写规则名称和规则描述"}
           >
             <span className="flex items-center gap-1">
               <Plus className="size-4" weight="regular" />
@@ -142,7 +144,7 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
             <div className="space-y-4">
               <div className="form-control">
                 <div className="flex gap-2 mb-2 items-center font-semibold">
-                  <span>规则名称</span>
+                  <label htmlFor="rule-editor-entry-name">规则名称</label>
                   <span className="label-text-alt text-base-content/60">
                     {ruleName.length}
                     /
@@ -150,6 +152,7 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
                   </span>
                 </div>
                 <input
+                  id="rule-editor-entry-name"
                   type="text"
                   autoComplete="off"
                   aria-label="规则名称"
@@ -168,7 +171,7 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
 
               <div className="form-control">
                 <div className="flex gap-2 mb-2 items-center font-semibold">
-                  <span>规则描述</span>
+                  <label htmlFor="rule-editor-entry-description">规则描述</label>
                   <span className="label-text-alt text-base-content/60">
                     {ruleDescription.length}
                     /
@@ -176,6 +179,7 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
                   </span>
                 </div>
                 <textarea
+                  id="rule-editor-entry-description"
                   className="
                     textarea textarea-bordered bg-base-200 rounded-md
                     min-h-[120px] resize-y w-full transition
@@ -212,6 +216,7 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
                   ${scope === "all" ? `btn-info` : `btn-ghost`}
                 `}
                 onClick={() => setScope("all")}
+                aria-pressed={scope === "all"}
               >
                 全部规则模板
               </button>
@@ -222,6 +227,7 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
                   ${scope === "mine" ? `btn-info` : `btn-ghost`}
                 `}
                 onClick={() => setScope("mine")}
+                aria-pressed={scope === "mine"}
               >
                 我的规则模板
               </button>

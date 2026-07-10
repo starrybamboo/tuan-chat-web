@@ -1,6 +1,7 @@
 import React from "react";
 
 import ChatStatusBar from "@/components/chat/chatStatusBar";
+import { normalizeInlineRoleName, useInlineTextEditor } from "@/components/chat/hooks/useInlineTextEditor";
 import AvatarDropdownContent from "@/components/chat/input/avatarDropdownContent";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
@@ -14,7 +15,6 @@ type RoomComposerHeaderProps = {
   curRoleId: number;
   curAvatarId: number;
   displayRoleName: string;
-  currentRoleName?: string;
   setCurRoleId: (roleId: number) => void;
   setCurAvatarId: (avatarId: number) => void;
   setDraftCustomRoleNameForRole: (roleId: number, name: string) => void;
@@ -61,7 +61,6 @@ export default function RoomComposerHeader({
   curRoleId,
   curAvatarId,
   displayRoleName,
-  currentRoleName,
   setCurRoleId,
   setCurAvatarId,
   setDraftCustomRoleNameForRole,
@@ -70,8 +69,6 @@ export default function RoomComposerHeader({
   leftToolbar,
   headerToolbar,
 }: RoomComposerHeaderProps) {
-  const [isEditingName, setIsEditingName] = React.useState(false);
-  const [editingName, setEditingName] = React.useState("");
   const [isAvatarPopoverOpen, setIsAvatarPopoverOpen] = React.useState(false);
   const [isAvatarPopoverPrewarmed, setIsAvatarPopoverPrewarmed] = React.useState(false);
   const [isAvatarChooserFullscreen, setIsAvatarChooserFullscreen] = React.useState(false);
@@ -90,10 +87,16 @@ export default function RoomComposerHeader({
     return others.some(s => s.status === "input" || s.status === "wait" || s.status === "leave");
   }, [roomId, userId, webSocketUtils?.chatStatus]);
 
+  const nameEditor = useInlineTextEditor<HTMLSpanElement>({
+    enabled: !isSpectator && curRoleId > 0,
+    initialValue: displayRoleName,
+    normalize: normalizeInlineRoleName,
+    onCommit: nextName => setDraftCustomRoleNameForRole(curRoleId, nextName),
+  });
+
   React.useEffect(() => {
-    setIsEditingName(false);
-    setEditingName("");
-  }, [curRoleId, isSpectator]);
+    nameEditor.reset();
+  }, [curRoleId, isSpectator, nameEditor]);
 
   React.useEffect(() => {
     if (isSpectator) {
@@ -309,7 +312,7 @@ export default function RoomComposerHeader({
           </div>
           <div className="min-w-0 flex items-center gap-2">
             <div className="min-w-0 flex-1">
-              {!isEditingName && (
+              {!nameEditor.isEditing && (
                 <div
                   className={`
                     text-sm font-medium truncate
@@ -317,56 +320,39 @@ export default function RoomComposerHeader({
                       text-base-content/50 select-none
                     ` : `cursor-text`}
                   `}
-                  title={isSpectator || curRoleId <= 0 ? undefined : "点击编辑显示名称"}
+                  title={isSpectator || curRoleId <= 0 ? undefined : "双击编辑显示名称"}
+                  onMouseDown={nameEditor.preventMultiClickSelection}
                   onClick={(event) => {
                     if (isSpectator || curRoleId <= 0) {
                       return;
                     }
                     event.preventDefault();
                     event.stopPropagation();
-                    setEditingName(displayRoleName);
-                    setIsEditingName(true);
                   }}
+                  onDoubleClick={nameEditor.startEditing}
                 >
                   {displayRoleName || "\u00A0"}
                 </div>
               )}
-              {isEditingName && (
-                <input
-                  autoComplete="off"
+              {nameEditor.isEditing && (
+                <span
+                  ref={nameEditor.editorRef}
                   aria-label="名称"
                   className="
-                    input input-xs input-bordered bg-base-200 border-base-300
-                    px-2 shadow-sm
-                    focus:outline-none focus:border-info
-                    w-full max-w-48
+                    block min-w-10 max-w-48 truncate rounded
+                    bg-base-content/6 text-sm font-medium
+                    text-base-content cursor-text
+                    focus:outline-none focus:ring-0
                   "
-                  value={editingName}
-
+                  contentEditable
+                  suppressContentEditableWarning
                   onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
                   }}
-                  onChange={event => setEditingName(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Escape") {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      setIsEditingName(false);
-                      setEditingName("");
-                    }
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      setDraftCustomRoleNameForRole(curRoleId, editingName);
-                      setIsEditingName(false);
-                    }
-                  }}
-                  onBlur={() => {
-                    setDraftCustomRoleNameForRole(curRoleId, editingName);
-                    setIsEditingName(false);
-                  }}
-                  placeholder={currentRoleName || ""}
+                  onInput={nameEditor.syncDraft}
+                  onKeyDown={nameEditor.handleKeyDown}
+                  onBlur={nameEditor.commit}
                 />
               )}
             </div>
@@ -402,8 +388,8 @@ export default function RoomComposerHeader({
           </div>
           {leftToolbar && (
             <div className={`
-              flex items-center gap-1 min-w-0
-              ${isMobile ? `overflow-x-auto pb-0.5` : ""}
+              flex h-8 items-center gap-1 min-w-0
+              ${isMobile ? `overflow-x-auto` : ""}
             `}>
               {leftToolbar}
             </div>
@@ -411,7 +397,7 @@ export default function RoomComposerHeader({
         </div>
         {headerToolbar && (
           <div className={`
-            flex items-start gap-2 shrink-0 min-w-0
+            flex h-8 items-center gap-2 shrink-0 min-w-0
             ${isMobile ? `max-w-[50vw]` : ""}
           `}>
             {headerToolbar}

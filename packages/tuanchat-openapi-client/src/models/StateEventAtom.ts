@@ -69,4 +69,3 @@ export type StateEventAtom = {
      */
     clearTokens?: boolean;
 };
-

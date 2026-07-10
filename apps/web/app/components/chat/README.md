@@ -13,7 +13,7 @@ Chat 模块是 TuanChat 的核心功能模块，提供了完整的 TRPG（桌面
 - **消息回复**：支持基于 replyMessageId 的普通回复锚点
 - **骰子系统**：内置 TRPG 骰子命令系统，支持多种游戏规则
 - **实时状态同步**：通过 WebSocket 实时同步成员状态（输入中、等待扮演、暂离等）
-- **历史消息管理**：基于本地 SQLite 的缓存，支持离线查看和快速加载
+- **历史消息管理**：基于官方 sqlite-wasm OPFS SAH pool 的本地消息缓存，支持已缓存消息快速加载；不可用时禁用本地缓存并提示
 
 ---
 
@@ -71,7 +71,7 @@ Chat 模块是 TuanChat 的核心功能模块，提供了完整的 TRPG（桌面
                                            ↓
                                     后端处理并广播
                                            ↓
-前端接收 ← WebSocket ← ChatFrame/RoomWindow ← SQLite 缓存
+前端接收 ← WebSocket ← ChatFrame/RoomWindow ← 本地消息缓存
     ↓
 ChatBubble 渲染
     ↓
@@ -238,7 +238,7 @@ const spaceContextValue: SpaceContextType = {
 
 1. **初始化**：
    - 连接 WebSocket，订阅房间消息
-   - 从本地 SQLite 加载历史消息
+   - 从本地消息缓存加载已缓存历史消息
    - 初始化 RealtimeRenderer（WebGAL 联动）
 
 2. **消息发送**：
@@ -842,7 +842,7 @@ interface RoomContextType {
   jumpToMessageInWebGAL?: (messageId: number) => boolean;  // 在 WebGAL 中跳转
   
   // 历史消息
-  chatHistory?: UseChatHistoryReturn;  // SQLite 历史消息管理
+  chatHistory?: UseChatHistoryReturn;  // 本地历史消息管理
   
   // 消息渲染更新
   updateAndRerenderMessageInWebGAL?: (message: ChatMessageResponse, regenerateTTS?: boolean) => Promise<boolean>;
@@ -1020,11 +1020,11 @@ class RealtimeRenderer {
 
 ## 数据管理
 
-### SQLite 历史消息缓存
+### sqlite-wasm OPFS 历史消息缓存
 
 **文件**：`localDb/useChatHistory.ts`
 
-**作用**：使用本地 SQLite 缓存历史消息，实现离线查看和快速加载。
+**作用**：Web 端使用官方 sqlite-wasm OPFS SAH pool 缓存历史消息，实现已缓存消息的快速加载；当前浏览器无法启用时禁用本地缓存并给出提示。
 
 **数据结构**：
 
@@ -1155,12 +1155,12 @@ webSocket.on("chat.status", (data) => {
 
 ### 2. 消息缓存
 
-使用 SQLite 缓存历史消息：
+使用本地消息缓存保存历史消息：
 
 ```typescript
 // 首次加载从服务器获取
 const messages = await fetchMessagesFromServer(roomId);
-// 缓存到 SQLite
+// 缓存到本地消息缓存
 await chatHistory.saveMessages(messages);
 
 // 后续加载从缓存读取
@@ -1168,8 +1168,8 @@ const cachedMessages = await chatHistory.loadHistory(roomId);
 ```
 
 **优势**：
-- 离线查看历史消息
-- 快速加载（无需网络请求）
+- 快速加载已缓存历史消息
+- 基于 syncId 增量补齐服务器缺失消息
 - 减轻服务器压力
 
 ### 2.5. GZIP 压缩传输
@@ -1420,11 +1420,11 @@ await sendMessage(message);
 
 ### 4. 历史消息加载慢
 
-**原因**：未使用 SQLite 缓存
+**原因**：本地消息缓存未命中、已被禁用或需要从服务器补齐
 
 **解决方案**：
 ```typescript
-// 启用历史消息缓存
+// 读取本地缓存，并按 syncId 补齐服务器缺失消息
 const chatHistory = useChatHistory();
 await chatHistory.loadHistory(roomId, 100);
 ```
@@ -1482,7 +1482,7 @@ await chatHistory.loadHistory(roomId, 100);
 - **TanStack Query**：数据获取和缓存
 - **Zustand**：轻量级状态管理
 - **react-virtuoso**：虚拟滚动
-- **SQLite**：本地数据库
+- **sqlite-wasm OPFS**：Web 本地消息缓存
 - **WebSocket**：实时通信
 - **DaisyUI**：UI 组件库
 - **Tailwind CSS**：样式框架

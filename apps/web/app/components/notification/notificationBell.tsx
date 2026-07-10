@@ -2,7 +2,7 @@ import { BellIcon } from "@phosphor-icons/react";
 import { Link, useRouter } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { UserNotificationItem } from "@/components/notification/notificationTypes";
 
@@ -33,6 +33,9 @@ export default function NotificationBell() {
   const markAllReadMutation = useMarkAllNotificationsReadMutation();
 
   const unreadCount = unreadCountQuery.data?.unreadCount ?? 0;
+  const notificationButtonLabel = unreadCount > 0
+    ? `通知中心，${unreadCount > 99 ? "99 条以上" : `${unreadCount} 条`}未读`
+    : "通知中心，暂无未读";
   const notifications = useMemo(() => {
     return notificationQuery.data?.pages.flatMap(page => page.list) ?? [];
   }, [notificationQuery.data?.pages]);
@@ -62,6 +65,8 @@ export default function NotificationBell() {
     };
 
     const handleEsc = (event: KeyboardEvent) => {
+      if (event.isComposing)
+        return;
       if (event.key === "Escape") {
         setIsOpen(false);
       }
@@ -81,7 +86,7 @@ export default function NotificationBell() {
   const openNotification = async (item: UserNotificationItem) => {
     const targetPath = normalizeNotificationTargetPath(item.targetPath);
     if (!targetPath) {
-      toast.error("通知目标链接无效，已返回通知中心");
+      appToast.error("通知目标链接无效，已返回通知中心");
       router.history.push(NOTIFICATION_TARGET_FALLBACK_PATH);
       setIsOpen(false);
       return;
@@ -115,7 +120,8 @@ export default function NotificationBell() {
           btn btn-ghost btn-circle btn-sm
           hover:bg-base-200
         "
-        aria-label="通知中心"
+        aria-label={notificationButtonLabel}
+        aria-expanded={isOpen}
         onClick={() => setIsOpen(current => !current)}
         {...interactiveButtonMotionProps}
       >

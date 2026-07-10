@@ -1,5 +1,5 @@
 import { useDebounce } from "ahooks";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence } from "motion/react";
 import { memo, use, useEffect, useMemo, useRef, useState } from "react";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -7,7 +7,8 @@ import MobileSearchPage from "@/components/chat/input/mobileSearchPage";
 import SearchedMessage from "@/components/chat/message/preview/searchedMessage";
 import useGetRoleSmartly from "@/components/chat/shared/components/useGetRoleName";
 import { filterVisibleChatMessages } from "@/components/chat/utils/hiddenDiceVisibility";
-import { floatingListItemMotionProps, floatingPanelMotionProps } from "@/components/common/motion/floatingPanelMotion";
+import { ImeAwareSearchInput } from "@/components/common/imeAwareSearchInput";
+import { FloatingMotionItem, FloatingMotionPanel } from "@/components/common/motion/FloatingMotionPanel";
 import { SearchFilled, XMarkICon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 
@@ -29,6 +30,7 @@ function SearchBar({ className = "" }: SearchBarProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const debouncedSearchText = useDebounce<string>(searchText, { wait: 300 });
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [roles, setRoles] = useState<UserRole[]>([]);
   const getRoleSmartly = useGetRoleSmartly();
@@ -132,15 +134,6 @@ function SearchBar({ className = "" }: SearchBarProps) {
     setIsSearching(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleSearch();
-    }
-    if (e.key === "Escape") {
-      handleClear();
-    }
-  };
-
   // 移动端的简化渲染
   if (isMobile) {
     return (
@@ -153,6 +146,7 @@ function SearchBar({ className = "" }: SearchBarProps) {
             rounded-lg transition-colors
           "
           type="button"
+          aria-label="搜索聊天记录"
         >
           <SearchFilled className="size-6" />
         </button>
@@ -176,8 +170,9 @@ function SearchBar({ className = "" }: SearchBarProps) {
         border border-base-300
       ">
         <div className="flex h-full items-center flex-1 px-3">
-          <input
-            type="search"
+          <ImeAwareSearchInput
+            ref={searchInputRef}
+            type="text"
             autoComplete="off"
             aria-label="搜索聊天记录"
             placeholder="搜索聊天记录..."
@@ -186,8 +181,9 @@ function SearchBar({ className = "" }: SearchBarProps) {
               placeholder:text-base-content/60
             "
             value={searchText}
-            onChange={e => setSearchText(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onEscape={handleClear}
+            onSubmit={handleSearch}
+            onValueChange={setSearchText}
           />
           {searchText && (
             <button
@@ -198,6 +194,7 @@ function SearchBar({ className = "" }: SearchBarProps) {
                 transition-colors ml-2
               "
               type="button"
+              aria-label="清空聊天搜索"
             >
               <XMarkICon className="size-4" />
             </button>
@@ -212,6 +209,8 @@ function SearchBar({ className = "" }: SearchBarProps) {
           "
           disabled={!searchText.trim()}
           type="button"
+          aria-label="搜索聊天记录"
+          title={searchText.trim() ? "搜索聊天记录" : "请输入关键词"}
         >
           <SearchFilled className="size-4" />
         </button>
@@ -220,30 +219,36 @@ function SearchBar({ className = "" }: SearchBarProps) {
       {/* 搜索结果下拉 */}
       <AnimatePresence initial={false}>
         {isSearching && debouncedSearchText && (
-          <motion.div
+          <FloatingMotionPanel
             className="
               absolute top-full inset-x-0 mt-1 bg-base-100 border
               border-base-300 rounded-lg shadow-lg z-50 max-h-80 overflow-hidden
             "
-            {...floatingPanelMotionProps}
           >
             {/* 结果统计 */}
-            <div className="
+            <div
+              aria-live="polite"
+              className="
               px-4 py-2 text-xs text-base-content/70 bg-base-200 border-b
               border-base-300
-            ">
+            "
+            >
               找到
               {" "}
               {searchResult.length}
               {" "}
               条相关记录
               <button
-                onClick={() => setIsSearching(false)}
                 className="
                   float-right text-base-content/60
                   hover:text-base-content
                 "
                 type="button"
+                aria-label="关闭搜索结果"
+                onClick={() => {
+                  setIsSearching(false);
+                  searchInputRef.current?.focus();
+                }}
               >
                 <XMarkICon className="size-3" />
               </button>
@@ -253,43 +258,66 @@ function SearchBar({ className = "" }: SearchBarProps) {
             <div className="overflow-y-auto max-h-64">
               {searchResult.length > 0
                 ? (
-                    searchResult.map((message, index) => (
-                      <motion.div
-                        key={message.message.messageId}
-                        {...floatingListItemMotionProps(index)}
-                      >
-                        <SearchedMessage
-                          message={message}
-                          keyword={debouncedSearchText}
-                          onClick={() => {
-                            if (roomContext.scrollToGivenMessage)
-                              roomContext.scrollToGivenMessage(message.message.messageId);
-                            setIsSearching(false);
+                    searchResult.map((message, index) => {
+                      const senderRole = roles.find(r => r.roleId === message.message.roleId);
+                      const senderName = senderRole?.roleName
+                        || message.message.customRoleName
+                        || `角色${message.message.roleId}`;
+                      const timeLabel = message.message.createTime
+                        ? new Date(message.message.createTime).toLocaleString()
+                        : "";
+                      const contentText = message.message.content || "";
+                      const summary = contentText.length > 80 ? `${contentText.slice(0, 80)}…` : contentText;
+                      const prefix = `跳转到消息：${senderName}${timeLabel ? ` 于 ${timeLabel}` : ""}`;
+                      const handleJump = () => {
+                        if (roomContext.scrollToGivenMessage)
+                          roomContext.scrollToGivenMessage(message.message.messageId);
+                        setIsSearching(false);
+                      };
+                      return (
+                        <FloatingMotionItem
+                          key={message.message.messageId}
+                          index={index}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={summary ? `${prefix}：${summary}` : prefix}
+                          title={`${prefix}：${contentText}`}
+                          onClick={handleJump}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              handleJump();
+                            }
                           }}
-                          className="
-                            px-4 py-3 border-b border-base-300/50
-                            hover:bg-base-100
-                            cursor-pointer transition-colors
-                            last:border-b-0
-                          "
-                        />
-                      </motion.div>
-                    ))
+                        >
+                          <SearchedMessage
+                            message={message}
+                            keyword={debouncedSearchText}
+                            className="
+                              px-4 py-3 border-b border-base-300/50
+                              hover:bg-base-100
+                              cursor-pointer transition-colors
+                              last:border-b-0
+                            "
+                          />
+                        </FloatingMotionItem>
+                      );
+                    })
                   )
                 : (
-                    <motion.div
+                    <FloatingMotionItem
+                      index={0}
                       className="
                         flex flex-col items-center justify-center py-8
                         text-base-content/50
                       "
-                      {...floatingListItemMotionProps(0)}
                     >
                       <SearchFilled className="size-8 mb-2" />
                       <p className="text-sm">没有找到匹配的聊天记录</p>
-                    </motion.div>
+                    </FloatingMotionItem>
                   )}
             </div>
-          </motion.div>
+          </FloatingMotionPanel>
         )}
       </AnimatePresence>
     </div>

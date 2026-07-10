@@ -15,7 +15,7 @@ type CreateEntryCardProps = {
   onClick: () => void;
 } & EntryCardConfig
 
-const cardClassName = "bg-base-100 rounded-xl p-6 shadow-sm border border-base-200 transition-all duration-200 hover:scale-105 hover:shadow-lg h-auto md:h-100 cursor-pointer flex flex-col items-stretch justify-start text-center";
+const cardClassName = "bg-base-100 rounded-xl p-6 shadow-sm border border-base-200 transition-all duration-200 hover:scale-105 hover:shadow-lg h-auto md:h-100 cursor-pointer flex flex-col items-stretch justify-start text-center motion-reduce:transition-none motion-reduce:hover:scale-100";
 
 const accentClassNames: Record<EntryCardAccent, string> = {
   primary: "border-info/40 bg-info/5 text-info/60",
@@ -26,14 +26,14 @@ const accentClassNames: Record<EntryCardAccent, string> = {
 const entryCards: EntryCardConfig[] = [
   {
     title: "创建普通角色",
-    description: "创建普通游戏角色，用于日常对话和互动",
+    description: "进入资料表单，配置头像、规则与表演字段",
     to: "/role?type=normal",
     icon: UserIcon,
     accent: "primary",
   },
   {
     title: "创建骰娘",
-    description: "创建跑团骰娘，用于TRPG游戏",
+    description: "进入资料表单，配置头像、规则与骰娘指令",
     to: "/role?type=dice",
     icon: DiceFiveIcon,
     accent: "success",
@@ -90,7 +90,7 @@ export default function CreateEntry({
       key={animationTrigger || 0} // 使用key来强制重新渲染，触发CSS动画
       className="
         animate-scale-in flex flex-col items-center justify-center h-full
-        min-h-[calc(100vh-6rem)] p-6
+        min-h-[calc(100vh-6rem)] p-6 motion-reduce:animate-none
       "
     >
       <div>

@@ -3,9 +3,6 @@ import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/Mess
 
 import { useEffect, useMemo, useRef } from "react";
 
-import type { WebsocketUtils } from "api/useWebSocket";
-import type { DirectMessageEvent } from "api/wsModels";
-
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useGetFriendListQuery } from "api/hooks/friendQueryHooks";
 import { useGetInboxMessagePageQuery } from "api/hooks/MessageDirectQueryHooks";
@@ -13,14 +10,12 @@ import { useGetInboxMessagePageQuery } from "api/hooks/MessageDirectQueryHooks";
 import type { MessageDirectType } from "../types/messageDirect";
 
 type UsePrivateMessageListParams = {
-  webSocketUtils: WebsocketUtils;
   userId: number;
   includeFriendList?: boolean;
   enabled?: boolean;
 };
 
 export function usePrivateMessageList({
-  webSocketUtils,
   userId,
   includeFriendList = true,
   enabled = true,
@@ -64,22 +59,18 @@ export function usePrivateMessageList({
     }
   }
 
-  // 加入从 WebSocket 接收到的实时消息
-  const wsMessages = webSocketUtils.receivedDirectMessages;
-
-  const prevWsMessagesRef = useRef<Record<number, DirectMessageEvent[]>>({});
+  const prevInboxMessagesRef = useRef<Record<number, MessageDirectResponse[]>>({});
 
   useEffect(() => {
-    Object.keys(wsMessages).forEach((key) => {
+    Object.keys(sortedInboxMessages).forEach((key) => {
       const contactId = Number(key);
-      const currentMessages = wsMessages[Number(key)];
-      const prevMessages = prevWsMessagesRef.current[contactId] || [];
+      const currentMessages = sortedInboxMessages[contactId] ?? [];
+      const prevMessages = prevInboxMessagesRef.current[contactId] || [];
 
-      // 只有当消息数量增加时，才从删除列表中恢复
+      // 正式私聊消息只从 dmInbox query 派生；新消息到达时恢复被隐藏的联系人。
       if (deletedContactIds.includes(contactId) && currentMessages.length > prevMessages.length) {
-        // 检查新增的消息是否为非已读标记消息
         const newMessages = currentMessages.slice(prevMessages.length);
-        const hasNewValidMessages = newMessages.some((msg: { messageType: number }) => msg.messageType !== 10000);
+        const hasNewValidMessages = newMessages.some(msg => msg.messageType !== 10000);
 
         if (hasNewValidMessages) {
           setDeletedContactIds(prev => prev.filter(id => id !== contactId));
@@ -87,23 +78,10 @@ export function usePrivateMessageList({
       }
     });
 
-    // 更新引用
-    prevWsMessagesRef.current = { ...wsMessages };
-  }, [wsMessages, deletedContactIds, setDeletedContactIds]);
+    prevInboxMessagesRef.current = { ...sortedInboxMessages };
+  }, [sortedInboxMessages, deletedContactIds, setDeletedContactIds]);
 
-  const sortedWsMessages = useMemo(() => {
-    const sorted: Record<number, DirectMessageEvent[]> = {};
-    // 遍历每个联系人的消息
-    Object.entries(wsMessages).forEach(([contactId, messages]) => {
-      const msgArray = Array.isArray(messages) ? messages : [];
-      sorted[Number(contactId)] = [...msgArray].sort((a, b) => {
-        return b.syncId - a.syncId;
-      });
-    });
-    return sorted;
-  }, [wsMessages]);
-
-  const realTimeMessages = useMemo(() => mergeMessages(sortedInboxMessages, sortedWsMessages, userId), [sortedInboxMessages, sortedWsMessages, userId]);
+  const realTimeMessages = useMemo(() => mergeMessages(sortedInboxMessages, userId), [sortedInboxMessages, userId]);
   // 按最新消息时间排列，数组
   const sortedRealTimeMessages = useMemo(() => {
     let realTimeMsg = Object.entries(realTimeMessages);
@@ -143,31 +121,19 @@ export function usePrivateMessageList({
 
 function mergeMessages(
   sortedMessages: Record<number, MessageDirectResponse[]>,
-  wsMessages: Record<number, DirectMessageEvent[]>,
   userId: number,
 ): Record<string, MessageDirectType[]> {
   const mergedMessages = new Map<number, MessageDirectType[]>();
 
-  // 获取所有联系人ID
-  const contactIds = new Set<number>([
-    ...Object.keys(wsMessages).map(Number),
-    ...Object.keys(sortedMessages).map(Number),
-  ]);
+  const contactIds = new Set<number>(Object.keys(sortedMessages).map(Number));
 
   contactIds.delete(userId);
 
   for (const contactId of contactIds) {
-    const wsContactMessages = wsMessages[contactId] || [];
     const historyMessages = sortedMessages[contactId] || [];
 
     // 使用 Map 进行去重，key 为 messageId
     const messageMap = new Map<number, MessageDirectType>();
-
-    wsContactMessages.forEach((msg) => {
-      if (msg.messageId) {
-        messageMap.set(msg.messageId, msg);
-      }
-    });
 
     historyMessages.forEach((msg) => {
       if (msg.messageId && !messageMap.has(msg.messageId)) {

@@ -1,10 +1,9 @@
-import { useEffect, useReducer, useRef, useState } from "react";
-import toast from "react-hot-toast";
-
 import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
+import { useEffect, useReducer, useRef, useState } from "react";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import AddFieldForm from "../Editors/AddFieldForm";
 import EditableField from "../Editors/EditableField";
@@ -103,7 +102,7 @@ export default function NumericalEditorSmall({
     pendingChangesRef.current = {};
     dispatch({ type: "SYNC_PROPS", payload: data });
     onChange(data);
-    toast.error(`能力更新失败：${getErrorMessage(error)}`);
+    appToast.error(`能力更新失败：${getErrorMessage(error)}`);
   };
 
   const handleFieldUpdate = (fieldKey: string, newValue: string) => {
@@ -257,7 +256,9 @@ export default function NumericalEditorSmall({
                       editingKey === key ? "badge-info" : "badge-outline"
                     }
                     `}
-                    title="点击编辑字段"
+                    title={`编辑字段 ${key}，当前值 ${String(value)}`}
+                    aria-label={`编辑字段 ${key}，当前值 ${String(value)}`}
+                    aria-pressed={editingKey === key}
                   >
                     {key}
                     {" "}

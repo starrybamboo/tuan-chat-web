@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import SidebarActiveCursor from "@/components/chat/shared/components/sidebarActiveCursor";
 import SpaceButton from "@/components/chat/shared/components/spaceButton";
+import { getChatSidebarActiveButtonClass } from "@/components/chat/shared/components/chatSidebarActiveTone";
 import { type ChatSidebarActiveCursorTarget, getChatSidebarActiveCursorTarget, isChatSidebarSpaceCursorTarget, shouldSelectSpaceFromSidebar } from "@/components/chat/space/chatSpaceSidebarNavigation";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import PortalTooltip from "@/components/common/portalTooltip";
@@ -30,8 +31,7 @@ type ChatSpaceSidebarProps = {
 }
 
 const MotionLink = motion.create(Link);
-const sidebarIconButtonBaseClass = "w-10 btn btn-square border border-transparent";
-const sidebarIconButtonActiveClass = "border-info/40 text-info";
+const sidebarIconButtonBaseClass = "w-10 btn btn-square border border-transparent transition-colors";
 const collapsedButtonAnimation = {
   scale: [1, 0.9, 1.12, 0.98, 1],
   rotate: [0, -4, 4, -2, 0],
@@ -83,6 +83,7 @@ export default function ChatSpaceSidebar({
   const isLeftDrawerCollapsed = Boolean(onToggleLeftDrawer && isLeftDrawerOpen === false);
   const shouldShowCollapsedFeedback = Boolean(isLeftDrawerCollapsePreview);
   const shouldUseCollapsedCursorTone = isLeftDrawerCollapsed || shouldShowCollapsedFeedback;
+  const activeTone = shouldUseCollapsedCursorTone ? "collapsed" : "default";
   const routeCursorTarget = getChatSidebarActiveCursorTarget({
     activeSpaceId,
     isDiscoverMode,
@@ -234,11 +235,13 @@ export default function ChatSpaceSidebar({
             <motion.button
               className={`
                 ${sidebarIconButtonBaseClass}
-                ${isPrivateChatMode ? sidebarIconButtonActiveClass : ""}
+                ${isPrivateChatMode ? getChatSidebarActiveButtonClass(activeTone) : ""}
               `}
               ref={privateButtonScope}
               type="button"
-              aria-label="私信"
+              aria-label={isPrivateChatMode && onToggleLeftDrawer
+                ? (isLeftDrawerCollapsed ? "展开左栏" : "收起左栏")
+                : "私信"}
               aria-pressed={isPrivateChatMode}
               onClick={() => {
                 if (isPrivateChatMode && onToggleLeftDrawer) {
@@ -281,10 +284,12 @@ export default function ChatSpaceSidebar({
               to="/chat/discover/material"
               className={`
                 ${sidebarIconButtonBaseClass}
-                ${isDiscoverMode ? sidebarIconButtonActiveClass : ""}
+                ${isDiscoverMode ? getChatSidebarActiveButtonClass(activeTone) : ""}
               `}
               ref={discoverButtonScope}
-              aria-label="发现"
+              aria-label={isDiscoverMode && onToggleLeftDrawer
+                ? (isLeftDrawerCollapsed ? "展开左栏" : "收起左栏")
+                : "发现"}
               aria-current={isDiscoverMode ? "page" : undefined}
               onClick={(event) => {
                 if (isDiscoverMode && onToggleLeftDrawer) {
@@ -416,7 +421,7 @@ export default function ChatSpaceSidebar({
                 }}
                 onPreload={() => preloadSpaceRoute(space.spaceId)}
                 isActive={isChatSidebarSpaceCursorTarget(activeCursorTarget, space.spaceId)}
-                isLeftDrawerCollapsed={shouldUseCollapsedCursorTone}
+                activeTone={activeTone}
                 isCollapseToggleClick={Boolean(
                   onToggleLeftDrawer
                   && !isLeftDrawerCollapsed

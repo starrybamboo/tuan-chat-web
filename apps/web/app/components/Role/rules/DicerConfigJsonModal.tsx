@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
-import toast from "react-hot-toast";
+import { useEffect, useRef, useState } from "react";
+
+import { appToast } from "@/components/common/appToast/appToast";
+import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
 
 type DicerConfigJsonModalProps = {
   isOpen: boolean;
@@ -25,12 +27,16 @@ export default function DicerConfigJsonModal({
   const [jsonError, setJsonError] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [showResetConfirm, setShowResetConfirm] = useState<boolean>(false);
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const resetConfirmDialogRef = useRef<HTMLDialogElement | null>(null);
 
   // 大小限制配置（可根据需要调整数值）
   const MAX_KEY_LENGTH = 50; // 分组键最大长度
   const MAX_ITEM_LENGTH = 300; // 每条文案最大长度
   const MAX_TOTAL_SIZE = 20000; // JSON整体最大字符数（字符串长度）
   const MAX_ITEMS_PER_GROUP = 100; // 每组最大条目数
+  const JSON_CONFIG_HELP_ID = "dicer-config-json-help";
+  const JSON_CONFIG_ERROR_ID = "dicer-config-json-error";
 
   // 当 copywritingTemplates 更新时，生成易读的 JSON
   useEffect(() => {
@@ -125,14 +131,23 @@ export default function DicerConfigJsonModal({
       await onSave(parsed as Record<string, string[]>);
       setIsSaving(false);
       setIsEdited(false);
-      toast.success("保存成功");
+      appToast.success("骰娘文案配置已保存");
     }
     catch (e) {
       if (e instanceof SyntaxError) {
         setJsonError(`JSON 语法错误: ${e.message}`);
+        appToast.error({
+          title: "JSON 配置格式有误",
+          description: "请修正语法后再保存。",
+        });
       }
       else {
-        setJsonError("保存失败");
+        const message = e instanceof Error && e.message ? e.message : "请检查配置内容后重试";
+        setJsonError(`保存失败：${message}`);
+        appToast.error({
+          title: "骰娘文案配置保存失败",
+          description: message,
+        });
       }
       setIsSaving(false);
     }
@@ -142,10 +157,14 @@ export default function DicerConfigJsonModal({
   const handleCopyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(jsonText);
-      toast.success("已复制到剪贴板");
+      appToast.success("JSON 配置已复制");
     }
     catch (err) {
-      toast.error(`复制失败: ${err}`);
+      const message = err instanceof Error && err.message ? err.message : "浏览器未允许访问剪贴板";
+      appToast.error({
+        title: "复制 JSON 配置失败",
+        description: `${message}。请手动选中内容复制。`,
+      });
     }
   };
 
@@ -160,17 +179,37 @@ export default function DicerConfigJsonModal({
     setShowResetConfirm(false);
   };
 
+  useEscapeToClose({
+    enabled: isOpen,
+    onClose,
+    containerRef: dialogRef,
+  });
+
+  useEscapeToClose({
+    enabled: showResetConfirm,
+    onClose: () => setShowResetConfirm(false),
+    containerRef: resetConfirmDialogRef,
+  });
+
   if (!isOpen)
     return null;
 
   return (
-    <dialog className="modal modal-open">
+    <dialog
+      ref={dialogRef}
+      data-modal-layer="true"
+      role="dialog"
+      aria-modal="true"
+      aria-label="骰娘文案配置 JSON"
+      className="modal modal-open"
+    >
       <div className="modal-box max-w-3xl">
         {/* 关闭按钮 */}
         <form method="dialog">
           <button
             type="button"
             className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+            aria-label="关闭骰子 JSON 配置"
             onClick={onClose}
           >
             ✕
@@ -182,10 +221,17 @@ export default function DicerConfigJsonModal({
 
         {/* JSON 编辑区域 */}
         <div className="mb-4">
+          <label className="mb-1 block text-sm font-medium" htmlFor="dicer-config-json-textarea">
+            JSON 配置
+          </label>
+          <p id={JSON_CONFIG_HELP_ID} className="mb-2 text-xs text-base-content/60">
+            请输入合法 JSON；保存失败时会在下方提示具体原因。
+          </p>
           <textarea
+            id="dicer-config-json-textarea"
             value={jsonText}
             autoComplete="off"
-            aria-label="JSON 配置"
+            aria-describedby={jsonError ? `${JSON_CONFIG_HELP_ID} ${JSON_CONFIG_ERROR_ID}` : JSON_CONFIG_HELP_ID}
             onChange={e => handleJsonChange(e.target.value)}
             className={`
               textarea textarea-bordered w-full h-96 font-mono text-sm
@@ -199,7 +245,7 @@ export default function DicerConfigJsonModal({
           />
           {jsonError && (
             <div className="label">
-              <span className="label-text-alt text-error">{jsonError}</span>
+              <span id={JSON_CONFIG_ERROR_ID} role="alert" className="label-text-alt text-error">{jsonError}</span>
             </div>
           )}
         </div>
@@ -211,6 +257,7 @@ export default function DicerConfigJsonModal({
             onClick={handleReset}
             className="btn btn-warning btn-sm"
             disabled={isSaving}
+            title="还原默认配置，会覆盖当前编辑"
           >
             <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -241,6 +288,7 @@ export default function DicerConfigJsonModal({
               type="button"
               onClick={handleSave}
               className="btn btn-primary btn-sm"
+              aria-busy={isSaving}
               disabled={isSaving}
             >
               {isSaving
@@ -273,7 +321,14 @@ export default function DicerConfigJsonModal({
 
       {/* 重置确认弹窗 */}
       {showResetConfirm && (
-        <dialog className="modal modal-open">
+        <dialog
+          ref={resetConfirmDialogRef}
+          data-modal-layer="true"
+          role="dialog"
+          aria-modal="true"
+          aria-label="确认重置骰娘配置"
+          className="modal modal-open"
+        >
           <div className="modal-box">
             <h3 className="font-bold text-lg mb-4">确认重置</h3>
             <p className="py-4">确认要还原默认配置吗？此操作不可撤销。</p>

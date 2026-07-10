@@ -21,4 +21,3 @@ export type ApiResultNotificationUnreadCountResponse = {
     errMsg?: string;
     data?: NotificationUnreadCountResponse;
 };
-

@@ -6,14 +6,14 @@ import type { Space } from "@tuanchat/openapi-client/models/Space";
 import { ArrowLeftIcon, CompassIcon, MagnifyingGlassIcon, PackageIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useRouter } from "@tanstack/react-router";
+import { useGetMyArchivedSpacesQuery } from "api/hooks/chatQueryHooks";
+import { tuanchat } from "api/instance";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import RepositoryDetailComponent from "@/components/repository/detail/repositoryDetail";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
 import { imageMediumUrl } from "@/utils/media/mediaUrl";
 import { appendPathQuery } from "@/utils/pathQuery";
-import { useGetMyArchivedSpacesQuery } from "api/hooks/chatQueryHooks";
-import { tuanchat } from "api/instance";
 
 type DiscoverArchivedSpacesMode = "square" | "my";
 
@@ -325,10 +325,13 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                       >
                         <ArrowLeftIcon className="size-5" weight="regular" />
                       </button>
-                      <div className="
-                        min-w-0 flex-1 truncate text-sm font-semibold
-                        text-base-content
-                      ">
+                      <div
+                        className="
+                          min-w-0 flex-1 truncate text-sm font-semibold
+                          text-base-content
+                        "
+                        title={pageTitle}
+                      >
                         {pageTitle}
                       </div>
                     </div>
@@ -347,10 +350,13 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                       flex min-w-0 items-center gap-3
                       sm:flex-1
                     ">
-                      <div className="
-                        min-w-0 flex-1 truncate text-sm font-semibold
-                        text-base-content
-                      ">{pageTitle}</div>
+                      <div
+                        className="
+                          min-w-0 flex-1 truncate text-sm font-semibold
+                          text-base-content
+                        "
+                        title={pageTitle}
+                      >{pageTitle}</div>
                       <span className="
                         hidden shrink-0 whitespace-nowrap rounded-full border
                         border-base-300 bg-base-100 px-2 py-0.5 text-[11px]
@@ -583,6 +589,8 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                                   text-base-content transition
                                   hover:border-info/30 hover:bg-base-100/90
                                 "
+                                aria-expanded={isExpanded}
+                                aria-label={isExpanded ? "收起关联空间" : "展开关联空间"}
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   toggleExpandedRepo(repositoryId);
@@ -611,7 +619,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                                             <div className="
                                               truncate text-sm font-semibold
                                               text-base-content
-                                            ">{spaceName}</div>
+                                            " title={spaceName}>{spaceName}</div>
                                             {timestamp && (
                                               <div className="
                                                 text-xs text-base-content/50

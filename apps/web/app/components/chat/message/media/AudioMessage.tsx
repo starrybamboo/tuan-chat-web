@@ -904,7 +904,7 @@ export default function AudioMessage({
             hover:bg-base-100 hover:text-base-content/90
           "
           onClick={handleTogglePlay}
-          aria-label={isPlaying ? "暂停" : "播放"}
+          aria-label={isPlaying ? `暂停语音 ${title}` : `播放语音 ${title}`}
         >
           {isPlaying
             ? <PauseIcon className="size-4" weight="fill" />
@@ -960,7 +960,7 @@ export default function AudioMessage({
             hover:bg-base-300/70
           "
           onClick={handleTogglePlay}
-          aria-label={isPlaying ? "暂停" : "播放"}
+          aria-label={isPlaying ? `暂停语音 ${title}` : `播放语音 ${title}`}
         >
           {isPlaying
             ? <PauseIcon className="size-4" weight="fill" />

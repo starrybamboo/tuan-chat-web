@@ -1,7 +1,7 @@
 import { createFileRoute, useLocation, useRouter } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 
-import LoginModal from "@/components/auth/LoginModal";
+import { LoginBrandIntro } from "@/components/auth/LoginBrandIntro";
+import { LoginPageAuthPanel } from "@/components/auth/LoginModal";
 import { normalizeAuthRedirectPath } from "@/utils/auth/redirect";
 import { createSeoMeta } from "@/utils/seo";
 
@@ -27,32 +27,22 @@ function LoginPage() {
   const searchParams = new URLSearchParams(location.searchStr);
   const redirect = normalizeAuthRedirectPath(searchParams.get("redirect"));
   const isMobileAuth = searchParams.get("from") === "mobile";
-  const [isOpen, setIsOpen] = useState(true);
-
-  useEffect(() => {
-    queueMicrotask(() => setIsOpen(true));
-  }, [redirect]);
 
   return (
-    <div className="min-h-screen bg-base-200">
-      {!isOpen && (
-        <div className="
-          flex min-h-screen items-center justify-center text-base-content/70
-        ">
-          <span className="loading loading-spinner loading-md" aria-label="Loading" />
-        </div>
-      )}
-      <LoginModal
-        isOpen={isOpen}
-        mobileCallbackEnabled={isMobileAuth}
-        onAuthenticated={() => {
-          router.history.replace(redirect);
-        }}
-        onClose={() => {
-          setIsOpen(false);
-          router.history.replace(redirect);
-        }}
-      />
-    </div>
+    <main className="h-[100dvh] min-h-screen overflow-y-auto bg-base-200 px-4 py-10 text-base-content sm:px-6">
+      <div className="mx-auto flex min-h-[calc(100dvh-5rem)] w-full max-w-3xl flex-col items-center justify-center gap-6">
+        <LoginBrandIntro />
+
+        <LoginPageAuthPanel
+          mobileCallbackEnabled={isMobileAuth}
+          onAuthenticated={() => {
+            router.history.replace(redirect);
+          }}
+          onClose={() => {
+            router.history.replace(redirect);
+          }}
+        />
+      </div>
+    </main>
   );
 }

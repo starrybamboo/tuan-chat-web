@@ -9,6 +9,7 @@ import { ReactCrop } from "react-image-crop";
 
 import type { ImageCompressionPreset } from "@/utils/media/imgCompressUtils";
 
+import { appToast } from "@/components/common/appToast/appToast";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { canvasPreview, createCenteredAspectCrop, getCroppedImageFile, useDebounceEffect } from "@/utils/imgCropper";
@@ -46,6 +47,10 @@ type ImgUploaderWithCopperProps = {
    * 固定裁剪比例（例如头像传 1 表示 1:1）。不传则为自由裁剪。
    */
   aspect?: number;
+  /**
+   * 触发上传的按钮的无障碍标签。未传时默认为“选择图片文件”。
+   */
+  triggerAriaLabel?: string;
 }
 
 function imageUrlByPreset(fileId: number | undefined, preset?: ImageCompressionPreset) {
@@ -78,6 +83,7 @@ export function ImgUploaderWithCopper({
   mutate,
   copperedCompressionPreset,
   aspect,
+  triggerAriaLabel,
 }: ImgUploaderWithCopperProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   // 控制弹窗的显示与隐藏
@@ -269,10 +275,12 @@ export function ImgUploaderWithCopper({
         });
       }
       setStatusMessage("上传完成");
+      appToast.success("图片已上传");
     }
     catch (error) {
       console.error("上传失败:", error);
       setStatusMessage("上传失败，请重试");
+      appToast.error("图片上传失败，请重试");
     }
     finally {
       setIsSubmitting(false);
@@ -310,10 +318,12 @@ export function ImgUploaderWithCopper({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       setStatusMessage("下载已开始");
+      appToast.success("裁剪图片已开始下载");
     }
     catch (err) {
       console.error("下载失败:", err);
       setStatusMessage("下载失败");
+      appToast.error("下载裁剪图片失败，请重试");
     }
     finally {
       setTimeout(() => setStatusMessage(""), 800);
@@ -354,6 +364,7 @@ export function ImgUploaderWithCopper({
         type="button"
         onClick={() => fileInputRef.current?.click()}
         className="contents"
+        aria-label={triggerAriaLabel ?? "选择图片文件"}
       >
         {children}
       </button>
@@ -376,7 +387,7 @@ export function ImgUploaderWithCopper({
               >
                 <img
                   ref={imgRef}
-                  alt="Crop me"
+                  alt="待裁剪图片"
                   src={imgSrc}
                   // style={{ transform: `scale(${scale})` }}
                   onLoad={onImageLoad}
@@ -408,7 +419,7 @@ export function ImgUploaderWithCopper({
               </div>
               {/* 状态提示 */}
               {statusMessage && (
-                <div className="text-lg text-base-500">{statusMessage}</div>
+                <div className="text-lg text-base-500" role="status" aria-live="polite">{statusMessage}</div>
               )}
               {
                 isSubmitting
@@ -420,6 +431,7 @@ export function ImgUploaderWithCopper({
                         disabled={true}
                         type="button"
                         aria-label="上传中"
+                        aria-busy={true}
                       >
                         <span className="sr-only">上传中</span>
                       </button>

@@ -1,7 +1,7 @@
 import type { FormEvent } from "react";
+import { appToast } from "@/components/common/appToast/appToast";
 
-import { useRef, useState } from "react";
-import toast from "react-hot-toast";
+import { useId, useRef, useState } from "react";
 
 import type { FeedbackIssueContent, FeedbackIssueDetail, FeedbackIssueType } from "@/components/feedback/feedbackTypes";
 
@@ -47,6 +47,7 @@ export default function FeedbackComposer({
   const uploadUtilsRef = useRef(new UploadUtils());
   const createMutation = useCreateFeedbackIssueMutation();
   const isSubmitting = createMutation.isPending || isUploadingAttachments;
+  const formRegionId = useId();
 
   const resetForm = () => {
     setTitle("");
@@ -59,13 +60,13 @@ export default function FeedbackComposer({
     event.preventDefault();
 
     if (!title.trim()) {
-      toast.error("标题不能为空");
+      appToast.error("标题不能为空");
       return;
     }
 
     const normalizedContent = normalizeMediaContent(content);
     if (!hasMeaningfulMediaContent(normalizedContent) && attachments.length === 0) {
-      toast.error("内容不能为空");
+      appToast.error("内容不能为空");
       return;
     }
 
@@ -74,7 +75,7 @@ export default function FeedbackComposer({
       const uploadedAttachments = await uploadFeedbackAttachments(attachments, uploadUtilsRef.current);
       const contentWithAttachments = appendFeedbackAttachmentTokens(normalizedContent, uploadedAttachments);
       if (!hasMeaningfulMediaContent(contentWithAttachments)) {
-        toast.error("内容不能为空");
+        appToast.error("内容不能为空");
         return;
       }
 
@@ -83,13 +84,25 @@ export default function FeedbackComposer({
         content: contentWithAttachments,
         issueType,
       });
-      toast.success("反馈已提交");
+      appToast.success({
+        title: "反馈已提交",
+        description: "我们会在反馈中心跟进这个问题。",
+        actions: [{
+          label: "查看反馈中心",
+          onClick: () => {
+            window.location.href = "/feedback";
+          },
+        }],
+      });
       resetForm();
       setIsExpanded(false);
       onCreated?.(issue);
     }
     catch (error) {
-      toast.error(readErrorMessage(error));
+      appToast.error({
+        title: "提交反馈失败",
+        description: readErrorMessage(error),
+      });
     }
     finally {
       setIsUploadingAttachments(false);
@@ -110,6 +123,8 @@ export default function FeedbackComposer({
 
         <button
           type="button"
+          aria-controls={formRegionId}
+          aria-expanded={isExpanded}
           className={`
             btn btn-sm
             ${isExpanded ? "btn-ghost" : "btn-warning"}
@@ -121,7 +136,7 @@ export default function FeedbackComposer({
       </div>
 
       {isExpanded && (
-        <div className="border-t border-base-300 px-4 py-4">
+        <div id={formRegionId} className="border-t border-base-300 px-4 py-4">
           <form className="space-y-4" autoComplete="off" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <label className="text-sm font-medium text-base-content" htmlFor="feedback-title">
@@ -192,7 +207,10 @@ export default function FeedbackComposer({
                       "
                     >
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-medium text-base-content">
+                        <div
+                          className="truncate text-sm font-medium text-base-content"
+                          title={attachment.file.name || "未命名附件"}
+                        >
                           {attachment.file.name || "未命名附件"}
                         </div>
                         <div className="text-xs text-base-content/55">
@@ -201,6 +219,7 @@ export default function FeedbackComposer({
                       </div>
                       <button
                         type="button"
+                        aria-label={`移除附件 ${attachment.file.name || "未命名附件"}`}
                         className="btn btn-ghost btn-xs"
                         disabled={isSubmitting}
                         onClick={() => setAttachments(current => current.filter(item => item.id !== attachment.id))}

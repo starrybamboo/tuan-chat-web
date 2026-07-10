@@ -12,4 +12,3 @@ export type RoomDndMapTokenRemoveRequest = {
      */
     roleId: number;
 };
-

@@ -11,7 +11,8 @@ type AnnotationChipProps = {
   subtle?: boolean;
 }
 
-const CHIP_SURFACE_CLASS = "supports-[backdrop-filter]:backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/35";
+const CHIP_HIT_TARGET_CLASS = "relative -m-1.5 inline-flex items-center justify-center rounded-lg p-1.5 focus-visible:outline-none focus-visible:ring-2";
+const CHIP_SURFACE_CLASS = "supports-[backdrop-filter]:backdrop-blur-md";
 const CHIP_SURFACE_ELEVATED_CLASS = `${CHIP_SURFACE_CLASS} shadow-sm`;
 const CHIP_SURFACE_SUBTLE_CLASS = `${CHIP_SURFACE_CLASS} shadow-none`;
 
@@ -65,46 +66,74 @@ export default function AnnotationChip({
   const sizeClass = rendersText
     ? (isFigurePositionTag ? "px-1 min-w-[26px]" : "px-1.5 min-w-[36px]")
     : "w-6";
-  const interactiveClass = interactive ? "active:scale-95" : "";
+  const interactiveClass = interactive ? "active:scale-95 motion-reduce:active:scale-100" : "";
   const activeClass = active && showActiveHighlight ? "ring-2 ring-info/35 shadow-md" : "";
   const surfaceClass = subtle ? CHIP_SURFACE_SUBTLE_CLASS : CHIP_SURFACE_ELEVATED_CLASS;
   const toneClass = subtle ? getSubtleToneClass(annotation) : getToneClass(annotation);
+  const chipSurface = (
+    <span
+      className={`
+        pointer-events-none inline-flex h-6 items-center justify-center
+        rounded-md border transition-[background-color,border-color,color,box-shadow]
+        ${surfaceClass}
+        ${sizeClass}
+        ${toneClass}
+        ${activeClass}
+      `}
+    >
+      {Icon
+        ? (
+            <Icon className="size-3.5" aria-hidden="true" />
+          )
+        : hasImage
+          ? (
+              <img src={annotation.iconUrl} alt="" className={isEffect ? `
+                size-5 object-contain
+              ` : `size-4 object-contain`} />
+            )
+          : hasLabel
+            ? (
+                <span className="
+                  text-[11px] font-semibold leading-none whitespace-nowrap
+                ">{annotation.label}</span>
+              )
+            : (
+                <span className="sr-only">{annotation.label}</span>
+              )}
+    </span>
+  );
+
+  if (!interactive) {
+    return (
+      <AnnotationTooltip annotation={annotation}>
+        <span
+          className={`
+            ${CHIP_HIT_TARGET_CLASS}
+            select-none
+          `}
+          aria-label={annotation.label}
+        >
+          {chipSurface}
+        </span>
+      </AnnotationTooltip>
+    );
+  }
 
   return (
     <AnnotationTooltip annotation={annotation}>
       <button
         type="button"
         className={`
-          inline-flex items-center justify-center h-6 rounded-md border
-          transition-[background-color,border-color,color,box-shadow,transform] select-none
-          ${surfaceClass}
-          ${sizeClass}
+          ${CHIP_HIT_TARGET_CLASS}
+          transition-transform motion-reduce:transition-none select-none
+          focus-visible:ring-info/35
           ${interactiveClass}
-          ${toneClass}
-          ${activeClass}
         `}
         onClick={onClick}
         aria-label={annotation.label}
+        aria-pressed={active}
       >
-        {Icon
-          ? (
-              <Icon className="size-3.5" aria-hidden="true" />
-            )
-          : hasImage
-            ? (
-                <img src={annotation.iconUrl} alt="" className={isEffect ? `
-                  size-5 object-contain
-                ` : `size-4 object-contain`} />
-              )
-            : hasLabel
-              ? (
-                  <span className="
-                    text-[11px] font-semibold leading-none whitespace-nowrap
-                  ">{annotation.label}</span>
-                )
-              : (
-                  <span className="sr-only">{annotation.label}</span>
-                )}
+        {chipSurface}
       </button>
     </AnnotationTooltip>
   );

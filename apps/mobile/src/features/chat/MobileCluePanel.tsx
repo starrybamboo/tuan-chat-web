@@ -325,14 +325,25 @@ function MobileClueFolderMessagesInner({ currentUserId, currentRoleId, currentRo
             >
               <View style={styles.editorHeader}>
                 <ThemedText style={[styles.editorTitle, { color: theme.text }]}>编辑线索</ThemedText>
-                <Pressable onPress={closeEditor} style={[styles.editorButton, { backgroundColor: theme.backgroundElement }]}>
+                <Pressable
+                  accessibilityLabel="取消编辑线索"
+                  accessibilityRole="button"
+                  onPress={closeEditor}
+                  style={[styles.editorButton, { backgroundColor: theme.backgroundElement }]}
+                >
                   <ThemedText type="smallBold" themeColor="textSecondary">取消</ThemedText>
                 </Pressable>
-                <Pressable onPress={handleSaveEditPress} style={[styles.editorButton, { backgroundColor: theme.accentMuted }]}>
+                <Pressable
+                  accessibilityLabel="保存线索"
+                  accessibilityRole="button"
+                  onPress={handleSaveEditPress}
+                  style={[styles.editorButton, { backgroundColor: theme.accentMuted }]}
+                >
                   <ThemedText type="smallBold" themeColor="accent">保存</ThemedText>
                 </Pressable>
               </View>
               <TextInput
+                accessibilityLabel="线索内容"
                 multiline
                 onChangeText={setDraftContent}
                 placeholder="写下这条线索..."
@@ -446,6 +457,9 @@ function MobileCluePanelInner({ clueRooms, currentUserId, currentRoleId, current
           return (
             <Pressable
               key={`clue-folder:${room.roomId ?? title}`}
+              accessibilityLabel={title}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
               onPress={() => handleSelectFolder(room.roomId)}
               style={[styles.folderTab, { backgroundColor: active ? theme.accentMuted : theme.backgroundElement }]}
             >

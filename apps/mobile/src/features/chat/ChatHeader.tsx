@@ -73,7 +73,7 @@ export function ChatHeader({ onBackToRoutePage, onSearch, roomName, unreadCount 
           : null}
       </Pressable>
 
-      <View style={styles.titleSection}>
+      <View style={styles.titleSection} accessibilityLabel={roomName ?? "未选择房间"}>
         <ThemedText style={styles.hashText}>#</ThemedText>
         <ThemedText numberOfLines={1} type="heading" style={{ fontSize: 16, flex: 1 }}>
           {roomName ?? "未选择房间"}

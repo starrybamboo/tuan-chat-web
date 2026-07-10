@@ -21,4 +21,3 @@ export type ApiResultCursorPageBaseResponseFeedWithStatsResponse = {
     errMsg?: string;
     data?: CursorPageBaseResponseFeedWithStatsResponse;
 };
-

@@ -47,6 +47,10 @@ export type ChatInputAreaHandle = {
    */
   getTextAroundCursor: () => { before: string; after: string };
   /**
+   * 获取当前光标在视口中的位置，用于渲染行内虚影补全。
+   */
+  getCaretClientRect: () => DOMRect | null;
+  /**
    * 返回底层的 DOM 元素。
    * 父组件中的 selection/range 工具可能需要它。
    */
@@ -75,6 +79,8 @@ type ChatInputAreaProps = {
   onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   onKeyUp: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   onMouseDown: (e: React.MouseEvent<HTMLDivElement>) => void;
+  /** 可选：输入框内部滚动时通知父组件更新浮层位置 */
+  onScroll?: React.UIEventHandler<HTMLDivElement>;
 
   /** 转发 Composition（输入法）开始事件 */
   onCompositionStart: () => void;
@@ -219,6 +225,43 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     afterRange.setEnd(editor, editor.childNodes.length);
 
     return { before: beforeRange.toString(), after: afterRange.toString() };
+  };
+
+  const getCaretClientRectInternal = (): DOMRect | null => {
+    const editor = internalTextareaRef.current;
+    if (!editor) {
+      return null;
+    }
+
+    const selectionInfo = getEditorRange(editor);
+    const range = selectionInfo?.range;
+    if (!range || !range.collapsed) {
+      return null;
+    }
+
+    const { after } = getTextAroundCursorInternal();
+    if (after.length > 0) {
+      return null;
+    }
+
+    const rect = range.getClientRects()[0] ?? range.getBoundingClientRect();
+    if (rect.height > 0) {
+      return rect;
+    }
+
+    const markerRange = range.cloneRange();
+    const marker = document.createElement("span");
+    marker.textContent = "\u200B";
+    markerRange.insertNode(marker);
+    const markerRect = marker.getBoundingClientRect();
+
+    const restoredRange = document.createRange();
+    restoredRange.setStartBefore(marker);
+    restoredRange.collapse(true);
+    marker.remove();
+    selectionInfo.selection.removeAllRanges();
+    selectionInfo.selection.addRange(restoredRange);
+    return markerRect.height > 0 ? markerRect : null;
   };
 
   const updateHasTextFlag = () => {
@@ -419,6 +462,7 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
      * API: 获取周围文本 (直接暴露内部函数)
      */
     getTextAroundCursor: getTextAroundCursorInternal,
+    getCaretClientRect: getCaretClientRectInternal,
     /**
      * API: 获取 DOM 元素
      */
@@ -436,7 +480,7 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     <div
       className={`
         w-full overflow-auto resize-none p-2
-        focus:outline-none focus:ring-2 focus:ring-info/30
+        focus:outline-none focus:ring-0
         div-textarea chatInputTextarea
         ${props.className ?? ""}
       `}
@@ -445,6 +489,7 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
       onKeyDown={handleKeyDownInternal}
       onKeyUp={props.onKeyUp} // 转发给父组件
       onMouseDown={props.onMouseDown} // 转发给父组件
+      onScroll={props.onScroll}
 
       // *** 添加缺失的 Composition 事件处理器 ***
       onCompositionStart={props.onCompositionStart}

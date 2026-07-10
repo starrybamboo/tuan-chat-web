@@ -209,7 +209,7 @@ export function RegisterForm({
   `;
 
   return (
-    <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
+    <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4" aria-busy={isLoading}>
       <div className="space-y-2">
         <label className={fieldLabelClass} htmlFor={usernameInputId}>
           用户名
@@ -306,6 +306,7 @@ export function RegisterForm({
           </div>
           <button
             type="button"
+            aria-busy={isSendingVerificationCode}
             className="btn btn-outline w-full whitespace-nowrap sm:w-auto"
             onClick={sendVerificationCode}
             disabled={
@@ -320,6 +321,13 @@ export function RegisterForm({
                 ? `${verificationCodeCooldownSeconds}s`
                 : "发送验证码"}
           </button>
+          <span role="status" aria-live="polite" className="sr-only">
+            {isSendingVerificationCode
+              ? "正在发送验证码"
+              : isVerificationCodeCoolingDown
+                ? `验证码已发送到 ${email.trim() || "邮箱"}`
+                : ""}
+          </span>
         </div>
       </div>
 
@@ -375,6 +383,7 @@ export function RegisterForm({
         {turnstile}
         <button
           type="submit"
+          aria-busy={isLoading}
           className="btn btn-primary w-full gap-2 shadow-sm hover:brightness-110"
           disabled={isLoading || hasInlineBlockingError}
         >

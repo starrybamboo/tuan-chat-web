@@ -1,11 +1,11 @@
 import { DownloadSimpleIcon, MaskHappyIcon, SparkleIcon } from "@phosphor-icons/react";
+import { useAbilityByRuleAndRole, useSetRoleAbilityMutation, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
+import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
+import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
 import { CloseIcon, WrenchIcon } from "@/icons";
-import { useAbilityByRuleAndRole, useSetRoleAbilityMutation, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
-import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
-import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 
 import type { RoleConfigTabKey } from "./configTabMeta";
 
@@ -57,6 +57,9 @@ export default function ExpansionModule({
   // 当前选中的Tab，依据角色类型设置默认
   const [activeTab, setActiveTab] = useState<RoleConfigTabKey>("basic");
   const isSmall = size === "small";
+  // 移动端快捷工具 dropdown 的展开状态：daisyUI 下拉靠 CSS focus-within 控制显隐，
+  // 这里仅观测焦点以同步 aria-expanded，不改变原有焦点行为。
+  const [isQuickToolsOpen, setIsQuickToolsOpen] = useState(false);
 
   // API Hooks
   const abilityQuery = useAbilityByRuleAndRole(roleId, selectedRuleId || 0);
@@ -449,15 +452,21 @@ export default function ExpansionModule({
           rounded-lg
           ${isSmall ? `w-full` : ""}
         `}>
-          <div className={`
+          <div
+            className={`
             flex min-w-0 flex-1 flex-nowrap gap-1
             md:flex-nowrap md:justify-start md:gap-3
             ${isSmall ? "" : ""}
-          `}>
+          `}
+            aria-label="角色配置"
+            role="tablist"
+          >
             {ROLE_CONFIG_TAB_ITEMS.map(({ key, label, shortLabel, Icon }) => (
               <button
                 key={key}
                 type="button"
+                aria-selected={activeTab === key}
+                role="tab"
                 className={`
                   btn
                   ${isSmall ? "btn-sm" : "btn-md"}
@@ -511,11 +520,19 @@ export default function ExpansionModule({
             </div>
           )}
           {hasQuickTools && (
-            <div className={`
-              dropdown
-              md:hidden
-              ${isSmall ? "" : "dropdown-end"}
-            `}>
+            <div
+              className={`
+                dropdown
+                md:hidden
+                ${isSmall ? "" : "dropdown-end"}
+              `}
+              onFocus={() => setIsQuickToolsOpen(true)}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                  setIsQuickToolsOpen(false);
+                }
+              }}
+            >
               <button
                 type="button"
                 tabIndex={0}
@@ -527,10 +544,13 @@ export default function ExpansionModule({
                   rounded-full
                 `}
                 aria-label="打开导入和生成功能"
+                aria-haspopup="menu"
+                aria-expanded={isQuickToolsOpen ? "true" : "false"}
+                aria-controls="role-config-quick-tools-menu"
               >
-                <WrenchIcon className="size-5" />
+                <WrenchIcon className="size-5" aria-hidden="true" />
               </button>
-              <ul tabIndex={0} className="
+              <ul id="role-config-quick-tools-menu" tabIndex={0} className="
                 dropdown-content z-20 menu p-2 shadow-lg bg-base-100 rounded-box
                 w-32 border border-base-content/10
               ">
@@ -737,16 +757,27 @@ export default function ExpansionModule({
           <div className="
             bg-base-100 rounded-2xl shadow-2xl max-w-2xl w-full mx-4
             max-h-[80vh] overflow-hidden
-          " onClick={e => e.stopPropagation()}>
+          "
+            role="dialog"
+            aria-modal="true"
+            aria-label="ST 指令"
+            onClick={e => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                onStImportModalClose?.();
+              }
+            }}
+          >
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold">ST指令</h3>
                 <button
                   type="button"
                   className="btn btn-sm btn-circle btn-ghost"
+                  aria-label="关闭 ST 指令弹窗"
                   onClick={onStImportModalClose}
                 >
-                  <CloseIcon className="size-4" />
+                  <CloseIcon className="size-4" aria-hidden="true" />
                 </button>
               </div>
               <div className="max-h-96 overflow-y-auto">

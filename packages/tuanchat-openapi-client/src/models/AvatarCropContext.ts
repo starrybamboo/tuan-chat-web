@@ -21,4 +21,3 @@ export type AvatarCropContext = {
     sourceHeight?: number;
     crop?: CropRect;
 };
-

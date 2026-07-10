@@ -48,4 +48,3 @@ export type UserPrivateInfoResponse = {
      */
     extra?: Record<string, Record<string, any>>;
 };
-

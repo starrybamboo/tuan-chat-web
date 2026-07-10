@@ -155,6 +155,7 @@ export function SpaceWebgalRenderWindowSettings({
           type="button"
           role="tab"
           aria-selected={settingsTab === "render"}
+          aria-controls="space-webgal-render-settings-panel"
           className={`
             tab
             ${settingsTab === "render" ? "tab-active" : ""}
@@ -167,6 +168,7 @@ export function SpaceWebgalRenderWindowSettings({
           type="button"
           role="tab"
           aria-selected={settingsTab === "roomContent"}
+          aria-controls="space-webgal-room-content-settings-panel"
           className={`
             tab
             ${settingsTab === "roomContent" ? "tab-active" : ""}
@@ -179,12 +181,13 @@ export function SpaceWebgalRenderWindowSettings({
 
       {settingsTab === "render"
         ? (
-            <>
+            <div id="space-webgal-render-settings-panel" role="tabpanel">
               <div className="flex flex-wrap items-center justify-end gap-2">
                 <button
                   type="button"
                   className="btn btn-xs btn-outline"
                   disabled={isAllSectionsExpanded}
+                  title={isAllSectionsExpanded ? "所有段落已展开" : "展开所有段落"}
                   onClick={onExpandAllSections}
                 >
                   一键展开
@@ -193,6 +196,7 @@ export function SpaceWebgalRenderWindowSettings({
                   type="button"
                   className="btn btn-xs btn-outline"
                   disabled={isAllSectionsCollapsed}
+                  title={isAllSectionsCollapsed ? "所有段落已折叠" : "折叠所有段落"}
                   onClick={onCollapseAllSections}
                 >
                   一键折叠
@@ -206,7 +210,12 @@ export function SpaceWebgalRenderWindowSettings({
                 <div className={`flex items-center justify-between gap-2${sectionExpandedMap.workflowLayer ? " mb-3" : ""}`.trim()}>
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="text-sm font-semibold shrink-0">流程图</div>
-                    <span className="text-xs text-base-content/60 truncate">（修改流程图请打开全屏修改）</span>
+                    <span
+                      className="text-xs text-base-content/60 truncate"
+                      title="修改流程图请打开全屏修改"
+                    >
+                      （修改流程图请打开全屏修改）
+                    </span>
                   </div>
                   <SectionCollapseToggle
                     expanded={sectionExpandedMap.workflowLayer}
@@ -310,6 +319,8 @@ export function SpaceWebgalRenderWindowSettings({
                         value={ttsApiInput}
                         onChange={event => setTtsApiInput(event.target.value)}
                         onKeyDown={(event) => {
+                          if (event.nativeEvent.isComposing)
+                            return;
                           if (event.key === "Enter") {
                             handleSaveTtsApi();
                           }
@@ -368,16 +379,18 @@ export function SpaceWebgalRenderWindowSettings({
                 handleStartupLogoFileChange={handleStartupLogoFileChange}
                 handleClearStartupLogo={handleClearStartupLogo}
               />
-            </>
+            </div>
           )
         : (
-            <SpaceWebgalRoomContentSettingsPanel
-              roomContentAlertThreshold={roomContentAlertThreshold}
-              roomContentAlertThresholdInput={roomContentAlertThresholdInput}
-              setRoomContentAlertThreshold={setRoomContentAlertThreshold}
-              setRoomContentAlertThresholdInput={setRoomContentAlertThresholdInput}
-              handleSaveRoomContentAlertThreshold={handleSaveRoomContentAlertThreshold}
-            />
+            <div id="space-webgal-room-content-settings-panel" role="tabpanel">
+              <SpaceWebgalRoomContentSettingsPanel
+                roomContentAlertThreshold={roomContentAlertThreshold}
+                roomContentAlertThresholdInput={roomContentAlertThresholdInput}
+                setRoomContentAlertThreshold={setRoomContentAlertThreshold}
+                setRoomContentAlertThresholdInput={setRoomContentAlertThresholdInput}
+                handleSaveRoomContentAlertThreshold={handleSaveRoomContentAlertThreshold}
+              />
+            </div>
           )}
     </>
   );

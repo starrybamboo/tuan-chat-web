@@ -1,15 +1,17 @@
 import { FilePlusIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import ChatStatusBar from "@/components/chat/chatStatusBar";
 import { formatUnreadBadgeCount } from "@/components/chat/clues/clueUnread";
 import ChatToolbarDock from "@/components/chat/input/chatToolbarDock";
+import { CANCEL_INSERT_MODE_LABEL } from "@/components/chat/room/roomComposerInsertMode";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
 import StickerWindow from "@/components/chat/window/StickerWindow";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import {
+  CloseIcon,
   DiceD6Icon,
   EmojiIconWhite,
   LinkFilled,
@@ -23,8 +25,8 @@ type ChatToolbarProps = {
   roomId?: number;
   /** 是否为KP（房主） */
   isKP?: boolean;
-  /** 当前空间是否已开启除 KP 外全员禁言 */
-  isSpaceMuted?: boolean;
+  /** 当前空间是否已归档，归档后仅 KP 可发言 */
+  isSpaceArchived?: boolean;
   /** KP：发送停止全员BGM指令 */
   onStopBgmForAll?: () => void;
 
@@ -39,6 +41,8 @@ type ChatToolbarProps = {
   // 消息发送
   disableSendMessage: boolean;
   handleMessageSubmit: () => void;
+  isInsertMode?: boolean;
+  onCancelInsertMode?: () => void;
 
   // 附件/表情等富消息入口
   disableRichMessageActions?: boolean;
@@ -104,13 +108,15 @@ function UnreadBadge({ count }: { count?: number }) {
 function ChatToolbar({
   roomId,
   isKP,
-  isSpaceMuted = false,
+  isSpaceArchived = false,
   updateEmojiUrls,
   updateImgFiles,
   updateFileAttachments,
   setEmojiMetaByUrl,
   disableSendMessage,
   handleMessageSubmit,
+  isInsertMode = false,
+  onCancelInsertMode,
   disableRichMessageActions = false,
   currentChatStatus,
   onChangeChatStatus,
@@ -152,7 +158,7 @@ function ChatToolbar({
 
   const handleBlockedRichMessageAction = useCallback(() => {
     if (disableRichMessageActions) {
-      toast.error("当前不可发送附件");
+      appToast.error("当前不可发送附件");
     }
   }, [disableRichMessageActions]);
   const isInline = layout === "inline";
@@ -222,13 +228,33 @@ function ChatToolbar({
       return;
     }
 
-    toast.error("当前仅支持图片、音频、视频");
+    appToast.error("当前仅支持图片、音频、视频");
     e.target.value = "";
   };
 
-  const sendButtonTip = isSpaceMuted && !isKP ? "当前空间已开启全员禁言" : "发送";
+  const sendButtonTip = isSpaceArchived && !isKP ? "当前空间已归档，仅主持人可发言" : "发送";
   const richActionDisabledClass = disableRichMessageActions ? "cursor-not-allowed opacity-20" : "cursor-pointer";
   const runModeToggleTip = runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/文档/战斗";
+  const cancelInsertButton = isInsertMode && onCancelInsertMode
+    ? (
+        <div className={isMobile ? "" : "tooltip tooltip-top"} data-tip={isMobile ? undefined : CANCEL_INSERT_MODE_LABEL}>
+          <button
+            type="button"
+            className="
+              inline-flex size-6 items-center justify-center rounded-md
+              text-info transition-[background-color,color,transform]
+              hover:bg-info/12 hover:text-info active:scale-95
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/35
+            "
+            aria-label={CANCEL_INSERT_MODE_LABEL}
+            title={CANCEL_INSERT_MODE_LABEL}
+            onClick={onCancelInsertMode}
+          >
+            <CloseIcon className="size-5 stroke-[4]" />
+          </button>
+        </div>
+      )
+    : null;
   const openMediaPicker = useCallback(() => {
     if (disableRichMessageActions) {
       handleBlockedRichMessageAction();
@@ -294,6 +320,7 @@ function ChatToolbar({
             ` : `flex items-center gap-2 flex-wrap`}
           `}>
             <div className="flex items-center gap-2 flex-wrap">
+              {cancelInsertButton}
               <div
                 ref={emojiDropdownRef}
                 className={`
@@ -415,11 +442,23 @@ function ChatToolbar({
               {/* 发送按钮 */}
               {showSendButton && !isStacked && (
                 <div className="tooltip tooltip-top" data-tip={sendButtonTip}>
-                  <SendIcon
-                    className={`size-6 font-light hover:text-info md:mb-1 ${disableSendMessage ? "cursor-not-allowed opacity-20" : ""}`.trim()}
+                  <button
+                    type="button"
+                    className="
+                      inline-flex appearance-none items-center justify-center
+                      border-0 bg-transparent p-0 text-inherit
+                      focus-visible:outline-none focus-visible:ring-2
+                      focus-visible:ring-info/30
+                    "
+                    aria-label={sendButtonTip}
+                    title={sendButtonTip}
+                    disabled={disableSendMessage}
                     onClick={handleMessageSubmit}
                   >
-                  </SendIcon>
+                    <SendIcon
+                      className={`size-6 font-light hover:text-info md:mb-1 ${disableSendMessage ? "cursor-not-allowed opacity-20" : ""}`.trim()}
+                    />
+                  </button>
                 </div>
               )}
             </div>
@@ -479,11 +518,23 @@ function ChatToolbar({
 
                 {showSendButton && (
                   <div className="tooltip tooltip-top" data-tip={sendButtonTip}>
-                    <SendIcon
-                      className={`size-6 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20" : ""}`.trim()}
+                    <button
+                      type="button"
+                      className="
+                        inline-flex appearance-none items-center justify-center
+                        border-0 bg-transparent p-0 text-inherit
+                        focus-visible:outline-none focus-visible:ring-2
+                        focus-visible:ring-info/30
+                      "
+                      aria-label={sendButtonTip}
+                      title={sendButtonTip}
+                      disabled={disableSendMessage}
                       onClick={handleMessageSubmit}
                     >
-                    </SendIcon>
+                      <SendIcon
+                        className={`size-6 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20" : ""}`.trim()}
+                      />
+                    </button>
                   </div>
                 )}
               </div>
@@ -493,7 +544,7 @@ function ChatToolbar({
       </div>
 
       {(showWebgalControls || showRunControls) && (
-        <div className={isInline ? "mt-1" : "mt-2"}>
+        <div className={isInline ? "flex h-6 items-center" : "mt-2"}>
           <ChatToolbarDock
             isInline={isInline}
             isRunModeOnly={runModeEnabled && !webgalLinkMode}

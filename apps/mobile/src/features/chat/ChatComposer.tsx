@@ -4,16 +4,18 @@ import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { IconProps } from "phosphor-react-native";
 import type { ComponentType } from "react";
 
-import { ImageSquare, PaperPlaneTilt, Smiley, X, XCircle } from "phosphor-react-native";
+import { CaretDown, ImageSquare, PaperPlaneTilt, PencilSimple, Smiley, X, XCircle } from "phosphor-react-native";
 import { memo, useCallback, useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { FlatList, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
+import type { MobileChatStatusType } from "@/features/messages/mobileChatStatus";
 import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
 import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
+import { resolveComposerInputHeight } from "@/features/messages/mobileComposerLayout";
 import {
   MOBILE_MESSAGE_ATTACHMENT_KIND,
 } from "@/features/messages/mobileMessageAttachment";
@@ -29,6 +31,39 @@ import { getMessagePreview } from "./mobileChatUtils";
 import { MobileCommandPanel } from "./MobileCommandPanel";
 
 const MENTION_LIST_MAX_HEIGHT = 180;
+const COMPOSER_INPUT_PADDING_TOP = 10;
+const COMPOSER_INPUT_PADDING_BOTTOM = Spacing.sm;
+
+const CHAT_STATUS_OPTIONS: Array<{
+  description: string;
+  label: string;
+  value: MobileChatStatusType;
+}> = [
+  { description: "清除正在输入", label: "空闲", value: "idle" },
+  { description: "标记正在输入", label: "输入中", value: "input" },
+  { description: "等待他人行动", label: "等待扮演", value: "wait" },
+  { description: "临时离开", label: "暂离", value: "leave" },
+];
+
+export type MobileVisibleChatStatus = {
+  label: string;
+  status: Exclude<MobileChatStatusType, "idle">;
+  userId: number;
+};
+
+function resolveChatStatusTone(status: MobileChatStatusType, theme: ReturnType<typeof useTheme>) {
+  switch (status) {
+    case "input":
+      return { color: theme.accent, selectedBackground: theme.accentMuted };
+    case "wait":
+      return { color: theme.warning, selectedBackground: "rgba(210, 153, 34, 0.16)" };
+    case "leave":
+      return { color: theme.danger, selectedBackground: theme.dangerMuted };
+    case "idle":
+    default:
+      return { color: theme.textSecondary, selectedBackground: theme.backgroundElement };
+  }
+}
 
 const styles = StyleSheet.create({
   composerWrapper: {
@@ -80,11 +115,59 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   replyText: { flex: 1 },
+  editBar: {
+    alignItems: "center",
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    gap: Spacing.md,
+    marginHorizontal: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  editIcon: {
+    alignItems: "center",
+    borderRadius: Radius.full,
+    height: 24,
+    justifyContent: "center",
+    width: 24,
+  },
+  editText: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
+  },
+  editTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 16,
+  },
+  editPreview: {
+    fontSize: 12,
+    lineHeight: 15,
+  },
   attachmentRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: Spacing.sm,
     marginHorizontal: Spacing.sm,
+  },
+  chatStatusBar: { marginHorizontal: Spacing.sm },
+  chatStatusContent: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.xs,
+    paddingRight: Spacing.lg,
+  },
+  chatStatusInlineText: {
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 16,
+  },
+  chatStatusSeparator: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginHorizontal: Spacing.xs,
   },
   attachmentChip: {
     alignItems: "center",
@@ -102,7 +185,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
   },
   inputRow: {
-    alignItems: "center",
+    alignItems: "flex-end",
     flexDirection: "row",
     gap: Spacing.sm,
   },
@@ -137,6 +220,46 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     lineHeight: 12,
   },
+  statusMenu: {
+    borderRadius: Radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    bottom: "100%",
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    position: "absolute",
+    right: Spacing.md,
+    width: 188,
+    zIndex: 20,
+  },
+  statusOption: {
+    alignItems: "center",
+    borderRadius: Radius.md,
+    flexDirection: "row",
+    gap: Spacing.md,
+    minHeight: 42,
+    overflow: "hidden",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  statusOptionAccent: {
+    borderRadius: Radius.full,
+    height: 28,
+    width: 3,
+  },
+  statusOptionText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  statusOptionLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 17,
+  },
+  statusOptionDescription: {
+    fontSize: 11,
+    lineHeight: 14,
+  },
   input: {
     borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
@@ -147,14 +270,28 @@ const styles = StyleSheet.create({
     maxHeight: COMPOSER_MAX_HEIGHT,
     minHeight: COMPOSER_MIN_HEIGHT,
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
-    paddingTop: 10,
+    paddingBottom: COMPOSER_INPUT_PADDING_BOTTOM,
+    paddingTop: COMPOSER_INPUT_PADDING_TOP,
   },
   sendButton: {
     alignItems: "center",
     height: 44,
     justifyContent: "center",
     width: 44,
+  },
+  statusTriggerButton: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 2,
+    height: 32,
+    justifyContent: "center",
+    paddingHorizontal: Spacing.sm,
+    width: 78,
+  },
+  statusTriggerLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 14,
   },
   roleButton: {
     alignItems: "center",
@@ -200,15 +337,22 @@ type ChatComposerProps = {
   availableRoles?: UserRole[];
   canUseAttachments: boolean;
   canUseExpressionPicker?: boolean;
+  commandPanelMaxHeight?: number;
   currentRole: UserRole | null;
+  currentRoleId?: number;
   currentAvatarFileId?: number;
   draftMessage: string;
+  editingMessage?: Message | null;
   errorMessage: string | null;
   isSubmitting: boolean;
   messageAttachments: MobileMessageAttachment[];
   messageMode: MobileMessageMode;
+  myChatStatus?: MobileChatStatusType;
+  otherChatStatuses?: readonly MobileVisibleChatStatus[];
   onChangeDraftMessage: (v: string) => void;
+  onChangeChatStatus?: (status: MobileChatStatusType) => void;
   onClearAnchor: () => void;
+  onCancelEdit?: () => void;
   onClearAttachments: () => void;
   onOpenExpressionPicker?: () => void;
   onOpenRoleSwitch: () => void;
@@ -233,15 +377,22 @@ function ChatComposerInner({
   availableRoles,
   canUseAttachments,
   canUseExpressionPicker = false,
+  commandPanelMaxHeight,
   currentRole,
+  currentRoleId,
   currentAvatarFileId,
   draftMessage,
+  editingMessage,
   errorMessage,
   isSubmitting,
   messageAttachments,
   messageMode,
+  myChatStatus = "idle",
+  otherChatStatuses = [],
   onChangeDraftMessage,
+  onChangeChatStatus,
   onClearAnchor,
+  onCancelEdit,
   onClearAttachments,
   onOpenExpressionPicker,
   onOpenRoleSwitch,
@@ -255,8 +406,13 @@ function ChatComposerInner({
 }: ChatComposerProps) {
   const theme = useTheme();
   const [inputHeight, setInputHeight] = useState(COMPOSER_MIN_HEIGHT);
+  const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
+  const [composerHeight, setComposerHeight] = useState(0);
 
   const canSend = draftMessage.trim().length > 0 || messageAttachments.length > 0;
+  const currentStatusOption = CHAT_STATUS_OPTIONS.find(option => option.value === myChatStatus) ?? CHAT_STATUS_OPTIONS[0];
+  const currentStatusTone = resolveChatStatusTone(myChatStatus, theme);
+  const visibleOtherChatStatuses = useMemo(() => otherChatStatuses, [otherChatStatuses]);
   const inputPlaceholder = messageMode === MOBILE_MESSAGE_MODE.TEXT
     ? `给 #${roomName ?? "频道"}...`
     : "输入先攻指令，例如 .ri";
@@ -296,6 +452,13 @@ function ChatComposerInner({
   }, [draftMessage.length, onChangeDraftMessage]);
 
   const resolvedInputHeight = draftMessage.length === 0 ? COMPOSER_MIN_HEIGHT : inputHeight;
+  const resolvedCommandPanelMaxHeight = useMemo(() => {
+    if (typeof commandPanelMaxHeight !== "number" || !Number.isFinite(commandPanelMaxHeight)) {
+      return undefined;
+    }
+    return Math.max(0, commandPanelMaxHeight - composerHeight);
+  }, [commandPanelMaxHeight, composerHeight]);
+
   const renderMentionRole = useCallback(({ item }: { item: UserRole }) => (
     <Pressable
       onPress={() => handleSelectMention(item)}
@@ -317,13 +480,23 @@ function ChatComposerInner({
   ), [handleSelectMention, theme.backgroundElement]);
 
   const handleContentSizeChange = useCallback((event: { nativeEvent: { contentSize: { height: number } } }) => {
-    const nextHeight = Math.min(Math.max(event.nativeEvent.contentSize.height, COMPOSER_MIN_HEIGHT), COMPOSER_MAX_HEIGHT);
+    const nextHeight = resolveComposerInputHeight(event.nativeEvent.contentSize.height);
     setInputHeight(prev => (prev === nextHeight ? prev : nextHeight));
+  }, []);
+
+  const handleComposerLayout = useCallback((event: { nativeEvent: { layout: { height: number } } }) => {
+    const nextHeight = Math.ceil(event.nativeEvent.layout.height);
+    setComposerHeight(prev => (prev === nextHeight ? prev : nextHeight));
   }, []);
 
   const handlePickImageAttachment = useCallback(() => {
     onPickAttachment(MOBILE_MESSAGE_ATTACHMENT_KIND.IMAGE);
   }, [onPickAttachment]);
+
+  const handleSelectChatStatus = useCallback((status: MobileChatStatusType) => {
+    setIsStatusMenuOpen(false);
+    onChangeChatStatus?.(status);
+  }, [onChangeChatStatus]);
 
   return (
     <View style={styles.composerWrapper}>
@@ -342,6 +515,7 @@ function ChatComposerInner({
       {!showMentionList && messageMode === MOBILE_MESSAGE_MODE.TEXT
         ? (
             <MobileCommandPanel
+              maxHeight={resolvedCommandPanelMaxHeight}
               draftMessage={draftMessage}
               onSelectCommand={handleSelectCommand}
               ruleId={ruleId ?? null}
@@ -349,7 +523,120 @@ function ChatComposerInner({
           )
         : null}
 
-      <View style={[styles.container, { paddingBottom: Spacing.md + safeAreaBottomInset }]}>
+      <View onLayout={handleComposerLayout} style={[styles.container, { paddingBottom: Spacing.md + safeAreaBottomInset }]}>
+        {isStatusMenuOpen && onChangeChatStatus
+          ? (
+              <View
+                style={[
+                  styles.statusMenu,
+                  {
+                    backgroundColor: theme.surfaceOverlay,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                {CHAT_STATUS_OPTIONS.map((option) => {
+                  const selected = option.value === myChatStatus;
+                  const tone = resolveChatStatusTone(option.value, theme);
+                  return (
+                    <Pressable
+                      key={option.value}
+                      accessibilityLabel={`切换聊天状态为${option.label}`}
+                      accessibilityRole="button"
+                      onPress={() => handleSelectChatStatus(option.value)}
+                      style={({ pressed }) => [
+                        styles.statusOption,
+                        { backgroundColor: selected ? tone.selectedBackground : pressed ? theme.backgroundElement : "transparent" },
+                      ]}
+                    >
+                      <View style={[styles.statusOptionAccent, { backgroundColor: tone.color, opacity: selected ? 1 : 0.55 }]} />
+                      <View style={styles.statusOptionText}>
+                        <ThemedText style={[styles.statusOptionLabel, { color: tone.color }]}>
+                          {option.label}
+                        </ThemedText>
+                        <ThemedText
+                          themeColor="textSecondary"
+                          numberOfLines={1}
+                          style={styles.statusOptionDescription}
+                        >
+                          {option.description}
+                        </ThemedText>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )
+          : null}
+
+        {visibleOtherChatStatuses.length > 0
+          ? (
+              <ScrollView
+                horizontal
+                keyboardShouldPersistTaps="handled"
+                showsHorizontalScrollIndicator={false}
+                style={styles.chatStatusBar}
+                contentContainerStyle={styles.chatStatusContent}
+              >
+                {visibleOtherChatStatuses.map((item) => {
+                  const tone = resolveChatStatusTone(item.status, theme);
+                  const statusLabel = item.status === "input"
+                    ? "正在输入"
+                    : CHAT_STATUS_OPTIONS.find(option => option.value === item.status)?.label ?? item.status;
+                  return (
+                    <View key={`${item.userId}:${item.status}`} style={styles.chatStatusContent}>
+                      <ThemedText
+                        numberOfLines={1}
+                        style={[styles.chatStatusInlineText, { color: tone.color }]}
+                      >
+                        {`${item.label} ${statusLabel}`}
+                      </ThemedText>
+                      <ThemedText style={[styles.chatStatusSeparator, { color: theme.textSecondary }]}>/</ThemedText>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            )
+          : null}
+
+        {editingMessage
+          ? (
+              <View
+                style={[
+                  styles.editBar,
+                  {
+                    backgroundColor: "rgba(210, 153, 34, 0.16)",
+                    borderColor: theme.warning,
+                  },
+                ]}
+              >
+                <View style={[styles.editIcon, { backgroundColor: theme.warning }]}>
+                  <PencilSimple size={14} color="#fff" weight="bold" />
+                </View>
+                <View style={styles.editText}>
+                  <ThemedText style={[styles.editTitle, { color: theme.warning }]}>
+                    正在编辑消息
+                  </ThemedText>
+                  <ThemedText style={[styles.editPreview, { color: theme.textSecondary }]} numberOfLines={1}>
+                    {getMessagePreview(editingMessage)}
+                  </ThemedText>
+                </View>
+                {onCancelEdit
+                  ? (
+                      <Pressable
+                        accessibilityLabel="取消编辑消息"
+                        accessibilityRole="button"
+                        hitSlop={8}
+                        onPress={onCancelEdit}
+                      >
+                        <X size={16} color={theme.textSecondary} />
+                      </Pressable>
+                    )
+                  : null}
+              </View>
+            )
+          : null}
+
         {anchorMessage
           ? (
               <View style={[styles.replyBar, { backgroundColor: theme.accentMuted, borderLeftColor: theme.accent }]}>
@@ -358,7 +645,12 @@ function ChatComposerInner({
                   {" "}
                   {getMessagePreview(anchorMessage)}
                 </ThemedText>
-                <Pressable onPress={onClearAnchor}>
+                <Pressable
+                  accessibilityLabel="取消回复"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={onClearAnchor}
+                >
                   <X size={14} color={theme.textSecondary} />
                 </Pressable>
               </View>
@@ -371,12 +663,23 @@ function ChatComposerInner({
                 {messageAttachments.map(a => (
                   <View key={a.id} style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}>
                     <ThemedText type="caption" numberOfLines={1}>{a.fileName}</ThemedText>
-                    <Pressable onPress={() => onRemoveAttachment(a.id)}>
+                    <Pressable
+                      accessibilityLabel={`移除附件 ${a.fileName}`}
+                      accessibilityRole="button"
+                      hitSlop={8}
+                      onPress={() => onRemoveAttachment(a.id)}
+                    >
                       <XCircle size={14} color={theme.textSecondary} weight="fill" />
                     </Pressable>
                   </View>
                 ))}
-                <Pressable onPress={onClearAttachments} style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}>
+                <Pressable
+                  accessibilityLabel="清空附件"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={onClearAttachments}
+                  style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}
+                >
                   <ThemedText type="caption" style={{ color: theme.danger }}>清空</ThemedText>
                 </Pressable>
               </View>
@@ -385,7 +688,6 @@ function ChatComposerInner({
 
         <View style={styles.inputRow}>
           <TextInput
-            editable={!isSubmitting}
             multiline
             onChangeText={handleChangeMessageText}
             onContentSizeChange={handleContentSizeChange}
@@ -402,6 +704,7 @@ function ChatComposerInner({
                 textAlignVertical: "top",
               },
             ]}
+            accessibilityLabel={messageMode === MOBILE_MESSAGE_MODE.TEXT ? "输入群聊消息" : "输入先攻指令"}
             value={draftMessage}
           />
 
@@ -410,6 +713,9 @@ function ChatComposerInner({
               disabled={isSubmitting || !canSend}
               onPress={onSend}
               style={styles.sendButton}
+              accessibilityLabel="发送消息"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isSubmitting || !canSend }}
             >
               <PaperPlaneTilt color={canSend ? theme.accent : theme.textSecondary} size={24} weight="fill" />
             </Pressable>
@@ -420,7 +726,8 @@ function ChatComposerInner({
           {canUseAttachments
             ? (
                 <Pressable
-                  disabled={isSubmitting}
+                  accessibilityLabel="添加图片附件"
+                  accessibilityRole="button"
                   onPress={handlePickImageAttachment}
                   style={styles.toolButton}
                 >
@@ -431,7 +738,12 @@ function ChatComposerInner({
 
           {canUseExpressionPicker && onOpenExpressionPicker
             ? (
-                <Pressable disabled={isSubmitting} onPress={onOpenExpressionPicker} style={styles.toolButton}>
+                <Pressable
+                  accessibilityLabel="打开表情面板"
+                  accessibilityRole="button"
+                  onPress={onOpenExpressionPicker}
+                  style={styles.toolButton}
+                >
                   <Smiley size={20} color={theme.textSecondary} />
                 </Pressable>
               )
@@ -444,7 +756,6 @@ function ChatComposerInner({
                 key={action.accessibilityLabel}
                 accessibilityLabel={action.accessibilityLabel}
                 accessibilityRole="button"
-                disabled={isSubmitting}
                 onPress={action.onPress}
                 style={styles.toolButton}
               >
@@ -464,17 +775,51 @@ function ChatComposerInner({
 
           <View style={{ flex: 1 }} />
 
-          <Pressable onPress={onOpenRoleSwitch} style={styles.toolButton}>
+          {onChangeChatStatus
+            ? (
+                <Pressable
+                  accessibilityLabel="切换聊天状态"
+                  accessibilityRole="button"
+                  onPress={() => setIsStatusMenuOpen(open => !open)}
+                  style={[
+                    styles.statusTriggerButton,
+                  ]}
+                >
+                  <ThemedText
+                    style={[
+                      styles.statusTriggerLabel,
+                      { color: currentStatusTone.color },
+                    ]}
+                  >
+                    {currentStatusOption.label}
+                  </ThemedText>
+                  <CaretDown
+                    color={currentStatusTone.color}
+                    size={12}
+                  />
+                </Pressable>
+              )
+            : null}
+
+          <Pressable
+            accessibilityLabel={currentRole?.roleName?.trim()
+              ? `当前角色 ${currentRole.roleName.trim()}，切换发言角色`
+              : "当前为旁白，切换发言角色"}
+            accessibilityRole="button"
+            onPress={onOpenRoleSwitch}
+            style={styles.toolButton}
+          >
             {(() => {
               const displayAvatarFileId = currentAvatarFileId ?? currentRole?.avatarFileId;
+              const isNarrator = typeof currentRoleId === "number" && currentRoleId < 0;
               return displayAvatarFileId
                 ? (
                     <CachedImage uri={avatarThumbUrl(displayAvatarFileId)} style={styles.roleButton} />
                   )
                 : (
-                    <View style={[styles.roleButton, { backgroundColor: currentRole ? "#8b5cf6" : "#6366f1" }]}>
+                    <View style={[styles.roleButton, { backgroundColor: currentRole ? "#8b5cf6" : isNarrator ? "#6366f1" : "#64748b" }]}>
                       <ThemedText style={styles.roleButtonText}>
-                        {currentRole ? (currentRole.roleName ?? "").slice(0, 1) || "R" : "旁"}
+                        {currentRole ? (currentRole.roleName ?? "").slice(0, 1) || "R" : isNarrator ? "旁" : "角"}
                       </ThemedText>
                     </View>
                   );

@@ -28,4 +28,3 @@ export type StickerCreateRequest = {
      */
     format: string;
 };
-

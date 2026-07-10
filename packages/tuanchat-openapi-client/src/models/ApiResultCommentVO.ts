@@ -21,4 +21,3 @@ export type ApiResultCommentVO = {
     errMsg?: string;
     data?: CommentVO;
 };
-

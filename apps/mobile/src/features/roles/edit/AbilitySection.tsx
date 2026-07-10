@@ -450,7 +450,11 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
               <SectionIcon size={18} color={theme.textSecondary} weight="bold" />
               <ThemedText type="heading">{item.label}</ThemedText>
             </View>
-            <Pressable onPress={() => { setAddingSection(item.key); setNewFieldName(""); }}>
+            <Pressable
+              accessibilityLabel={`添加${item.label}字段`}
+              accessibilityRole="button"
+              onPress={() => { setAddingSection(item.key); setNewFieldName(""); }}
+            >
               <ThemedText themeColor="accent" type="small">+ 添加</ThemedText>
             </Pressable>
           </View>
@@ -462,6 +466,8 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
                     {entries.filter((_, i) => i % 2 === 0).map(([fieldKey, fieldValue]) => (
                       <Pressable
                         key={fieldKey}
+                        accessibilityLabel={`编辑字段 ${fieldKey}，当前值 ${String(fieldValue ?? "0")}`}
+                        accessibilityRole="button"
                         onPress={() => handleFieldPress(item.key, fieldKey, String(fieldValue ?? ""))}
                         style={[styles.numericRow, { backgroundColor: theme.background }]}
                       >
@@ -478,6 +484,8 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
                     {entries.filter((_, i) => i % 2 === 1).map(([fieldKey, fieldValue]) => (
                       <Pressable
                         key={fieldKey}
+                        accessibilityLabel={`编辑字段 ${fieldKey}，当前值 ${String(fieldValue ?? "0")}`}
+                        accessibilityRole="button"
                         onPress={() => handleFieldPress(item.key, fieldKey, String(fieldValue ?? ""))}
                         style={[styles.numericRow, { backgroundColor: theme.background }]}
                       >
@@ -501,6 +509,8 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
                     return (
                       <Pressable
                         key={fieldKey}
+                        accessibilityLabel={`编辑字段 ${fieldKey}${fieldValue ? `，当前值 ${String(fieldValue)}` : ""}`}
+                        accessibilityRole="button"
                         onPress={() => handleFieldPress(item.key, fieldKey, String(fieldValue ?? ""))}
                         style={[styles.tagItem, { borderColor: theme.border }]}
                       >
@@ -531,6 +541,7 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
                   key={section.key}
                   accessibilityLabel={`切换到${section.label}`}
                   accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
                   onPress={() => handleDotPress(index)}
                   style={[
                     styles.dot,
@@ -574,19 +585,32 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
               style={[styles.sheetInput, { borderColor: theme.border, backgroundColor: theme.background, color: theme.text }]}
               value={editValue}
               onChangeText={setEditValue}
+              accessibilityLabel="字段值"
               placeholder="输入值"
               placeholderTextColor={theme.textSecondary}
               autoFocus
             />
           </View>
           <View style={styles.sheetActions}>
-            <Pressable onPress={handleFieldDelete} style={{ marginRight: "auto" }}>
+            <Pressable
+              accessibilityHint="会删除当前字段"
+              accessibilityLabel={`删除字段 ${editingField?.key ?? ""}`}
+              accessibilityRole="button"
+              onPress={handleFieldDelete}
+              style={{ marginRight: "auto" }}
+            >
               <ThemedText style={{ color: "#ef4444" }} type="small">删除</ThemedText>
             </Pressable>
-            <Pressable onPress={handleFieldRename}>
+            <Pressable
+              accessibilityLabel={`重命名字段 ${editingField?.key ?? ""}`}
+              accessibilityRole="button"
+              onPress={handleFieldRename}
+            >
               <ThemedText themeColor="textSecondary" type="small">重命名</ThemedText>
             </Pressable>
             <Pressable
+              accessibilityLabel={`保存字段 ${editingField?.key ?? ""}`}
+              accessibilityRole="button"
               onPress={handleFieldSave}
               style={[styles.sheetButton, { backgroundColor: theme.accent }]}
             >
@@ -606,16 +630,24 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
               style={[styles.sheetInput, { borderColor: theme.border, backgroundColor: theme.background, color: theme.text }]}
               value={renameValue}
               onChangeText={setRenameValue}
+              accessibilityLabel="新字段名称"
               placeholder="新字段名称"
               placeholderTextColor={theme.textSecondary}
               autoFocus
             />
           </View>
           <View style={styles.sheetActions}>
-            <Pressable onPress={() => setRenamingField(null)}>
+            <Pressable
+              accessibilityLabel="取消重命名字段"
+              accessibilityRole="button"
+              onPress={() => setRenamingField(null)}
+            >
               <ThemedText themeColor="textSecondary" type="small">取消</ThemedText>
             </Pressable>
             <Pressable
+              accessibilityLabel="确认重命名字段"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !renameValue.trim() || renameValue.trim() === renamingField?.key }}
               onPress={handleRenameConfirm}
               disabled={!renameValue.trim() || renameValue.trim() === renamingField?.key}
               style={[styles.sheetButton, { backgroundColor: theme.accent, opacity: (!renameValue.trim() || renameValue.trim() === renamingField?.key) ? 0.5 : 1 }]}
@@ -640,16 +672,24 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
               style={[styles.sheetInput, { borderColor: theme.border, backgroundColor: theme.background, color: theme.text }]}
               value={newFieldName}
               onChangeText={setNewFieldName}
+              accessibilityLabel="新增字段名称"
               placeholder="输入字段名称"
               placeholderTextColor={theme.textSecondary}
               autoFocus
             />
           </View>
           <View style={styles.sheetActions}>
-            <Pressable onPress={() => setAddingSection(null)}>
+            <Pressable
+              accessibilityLabel="取消新增字段"
+              accessibilityRole="button"
+              onPress={() => setAddingSection(null)}
+            >
               <ThemedText themeColor="textSecondary" type="small">取消</ThemedText>
             </Pressable>
             <Pressable
+              accessibilityLabel="添加字段"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !newFieldName.trim() }}
               onPress={handleAddField}
               disabled={!newFieldName.trim()}
               style={[styles.sheetButton, { backgroundColor: theme.accent, opacity: !newFieldName.trim() ? 0.5 : 1 }]}

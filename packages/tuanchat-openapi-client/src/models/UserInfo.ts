@@ -23,4 +23,3 @@ export type UserInfo = {
      */
     avatarMediaType?: string;
 };
-

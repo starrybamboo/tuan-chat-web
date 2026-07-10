@@ -1,17 +1,31 @@
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { createRootRoute, HeadContent, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { MotionConfig } from "motion/react";
+import {
+  AnimatePresence,
+  motion,
+  MotionConfig,
+  useAnimationControls,
+  useMotionValue,
+  useReducedMotion,
+  useSpring,
+} from "motion/react";
 import React from "react";
-import { toast, Toaster } from "react-hot-toast";
 
 import type {
   RouteMetaArgs,
 } from "@/routes/routeTypes";
 import type { CloudflareWebAnalyticsStatus } from "@/utils/cloudflareWebAnalytics";
 
+import {
+  CHAT_LOCAL_DB_UNAVAILABLE_EVENT,
+  type ChatLocalDbUnavailableEventDetail,
+  consumeChatLocalDbUnavailableEvent,
+  logChatLocalDbUnavailable,
+} from "@/components/chat/infra/localDb/localDbStatusEvents";
 import { installMediaDebugBridge } from "@/components/chat/infra/media/mediaDebug";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
+import { appToast, AppToaster } from "@/components/common/appToast/appToast";
 import { Button } from "@/components/common/Button";
 import { ConfirmDialogProvider } from "@/components/common/ConfirmDialog";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
@@ -212,7 +226,7 @@ function App() {
   React.useEffect(() => {
     const msg = consumeAuthToast();
     if (msg) {
-      toast.error(msg);
+      appToast.error(msg);
     }
   }, []);
 
@@ -223,6 +237,37 @@ function App() {
     catch {
       // ignore
     }
+  }, []);
+
+  React.useEffect(() => {
+    let hasShownLocalDbUnavailableToast = false;
+    const showLocalDbUnavailableToast = (detail: ChatLocalDbUnavailableEventDetail) => {
+      if (hasShownLocalDbUnavailableToast) {
+        return;
+      }
+      hasShownLocalDbUnavailableToast = true;
+      logChatLocalDbUnavailable(detail);
+      appToast.warning({
+        title: "本地消息缓存不可用",
+        description: detail.message,
+        details: detail.suggestion
+          ? `${detail.suggestion} 不影响正常收发消息；刷新后会从服务器重新拉取历史消息。`
+          : "不影响正常收发消息；刷新后会从服务器重新拉取历史消息。",
+      });
+    };
+    const handleLocalDbUnavailable = (event: Event) => {
+      showLocalDbUnavailableToast((event as CustomEvent<ChatLocalDbUnavailableEventDetail>).detail);
+      consumeChatLocalDbUnavailableEvent();
+    };
+
+    window.addEventListener(CHAT_LOCAL_DB_UNAVAILABLE_EVENT, handleLocalDbUnavailable);
+    const pendingLocalDbUnavailableEvent = consumeChatLocalDbUnavailableEvent();
+    if (pendingLocalDbUnavailableEvent) {
+      showLocalDbUnavailableToast(pendingLocalDbUnavailableEvent);
+    }
+    return () => {
+      window.removeEventListener(CHAT_LOCAL_DB_UNAVAILABLE_EVENT, handleLocalDbUnavailable);
+    };
   }, []);
 
   React.useEffect(() => {
@@ -241,7 +286,7 @@ function App() {
       <div id="modal-root"></div>
       {/* 挂载sideDrawer的地方 */}
       <div id="side-drawer"></div>
-      <Toaster position="top-center" toastOptions={{ duration: 2500 }} />
+      <AppToaster />
       {/* ToastWindow渲染器，可以访问Router上下文 */}
       <ToastWindowRenderer />
       {/* 命令式 confirm() 的承载者 */}
@@ -331,11 +376,22 @@ function ErrorBoundary({ error }: { error: Error }) {
   const handleDownloadDiagnosticLog = React.useCallback(() => {
     const result = exportDiagnosticConsoleFile();
     if (!result.ok) {
-      toast.error(`诊断日志下载失败：${result.error}`);
+      appToast.error({
+        title: "诊断日志下载失败",
+        description: result.error,
+        details: "你仍然可以手动截图或复制页面错误信息反馈给我们。",
+      });
       return result;
     }
 
-    toast.success(`已下载诊断日志：${result.fileName}`);
+    appToast.success({
+      title: "诊断日志已下载",
+      description: result.fileName,
+      terms: [{
+        label: "诊断日志",
+        description: "记录当前页面错误和控制台信息的文件，用于帮助定位问题。",
+      }],
+    });
     return result;
   }, []);
 
@@ -354,7 +410,10 @@ function ErrorBoundary({ error }: { error: Error }) {
       diagnosticFileName,
     }));
     if (!draftWritten || !attachmentWritten) {
-      toast.error("反馈草稿写入失败，请先下载诊断日志后手动补充。");
+      appToast.error({
+        title: "反馈草稿写入失败",
+        description: "请先下载诊断日志，再到反馈页手动补充错误信息。",
+      });
     }
     void navigate({ to: "/feedback" });
   }, [details, message, navigate]);
@@ -434,9 +493,57 @@ function ErrorBoundary({ error }: { error: Error }) {
   );
 }
 
+// 404 品牌角色彩蛋阈值与登录页 LoginBrandIntro 保持一致（4 击探头 / 8 击现身），
+// 让 404 上探头出来的角色就是登录页那只「跟过来了」的角色，复用同一组品牌图。
+const NOT_FOUND_PEEK_CLICK_THRESHOLD = 4;
+const NOT_FOUND_REVEAL_CLICK_THRESHOLD = 8;
+const NOT_FOUND_PEEK_IMAGE_SRC = "/login-brand-peek.png";
+const NOT_FOUND_REVEAL_IMAGE_SRC = "/login-brand-reveal.png";
+
+// galgame 风「迷路」台词：随点击推进；到现身阈值给出彩蛋句。
+const NOT_FOUND_DIALOGUE_LINES = [
+  "这里好像什么都没有……要不回去？",
+  "诶，你戳到我了。",
+  "再点也不会变出页面哦。",
+  "……不过，难得有人走到这儿。",
+  "既然你这么坚持——那我也出来吧。",
+  "这里啊，是我们的小角落。",
+  "嘘——别告诉别人你来过。",
+] as const;
+const NOT_FOUND_REVEAL_LINE = "「迷路，也是剧情的一部分。」 ✨";
+
+function resolveNotFoundEasterEggImage(clickCount: number): string | null {
+  if (clickCount >= NOT_FOUND_REVEAL_CLICK_THRESHOLD) {
+    return NOT_FOUND_REVEAL_IMAGE_SRC;
+  }
+  if (clickCount >= NOT_FOUND_PEEK_CLICK_THRESHOLD) {
+    return NOT_FOUND_PEEK_IMAGE_SRC;
+  }
+  return null;
+}
+
+function resolveNotFoundDialogue(clickCount: number): string {
+  if (clickCount >= NOT_FOUND_REVEAL_CLICK_THRESHOLD) {
+    return NOT_FOUND_REVEAL_LINE;
+  }
+  return NOT_FOUND_DIALOGUE_LINES[
+    Math.min(clickCount, NOT_FOUND_DIALOGUE_LINES.length - 1)
+  ];
+}
+
 function NotFoundFallback() {
   const navigate = useNavigate();
   const location = useLocation();
+  const reduceMotion = useReducedMotion();
+  const clickControls = useAnimationControls();
+  const [clickCount, setClickCount] = React.useState(0);
+
+  // 光标跟随：角色轻微偏头看向光标，制造「活着」的感觉；reduce-motion 下不动。
+  const tiltSource = useMotionValue(0);
+  const headTilt = useSpring(tiltSource, { stiffness: 140, damping: 18 });
+
+  const easterEggImage = resolveNotFoundEasterEggImage(clickCount);
+  const dialogue = resolveNotFoundDialogue(clickCount);
 
   const goBack = React.useCallback(() => {
     if (typeof window !== "undefined" && window.history.length > 1) {
@@ -446,31 +553,147 @@ function NotFoundFallback() {
     void navigate({ to: "/", replace: true });
   }, [navigate]);
 
+  const handleHeroClick = () => {
+    setClickCount(current => current + 1);
+    if (reduceMotion) {
+      return;
+    }
+    // 点击时的轻量「被戳到」回弹，与登录页 Logo 点击一致。
+    void clickControls.start({
+      rotate: [0, -1.4, 1.4, 0],
+      scale: [1, 0.97, 1.03, 1],
+      transition: { duration: 0.34, ease: "easeOut" },
+    });
+  };
+
+  const handleHeroPointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (reduceMotion) {
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    // 归一化到 -0.5..0.5，映射为 ±6deg 偏头。
+    const offsetX = (event.clientX - rect.left) / rect.width - 0.5;
+    tiltSource.set(offsetX * 12);
+  };
+
+  const handleHeroPointerLeave = () => {
+    tiltSource.set(0);
+  };
+
   return (
-    <main className="
-      min-h-screen bg-base-200 flex items-center justify-center p-4
-    ">
-      <section className="
-        w-full max-w-lg rounded-lg bg-base-100 p-8 text-center shadow-xl
-      ">
-        <div className="
-          mx-auto flex size-16 items-center justify-center rounded-full
-          bg-warning/15 text-warning
-        ">
-          <span className="text-3xl font-bold">404</span>
+    <main className="min-h-screen bg-base-200 flex items-center justify-center p-4">
+      <section className="w-full max-w-lg rounded-lg bg-base-100 p-8 text-center shadow-xl">
+        <motion.button
+          type="button"
+          aria-label="404 页面不存在，点按几下看看谁藏在这里"
+          onClick={handleHeroClick}
+          onPointerMove={handleHeroPointerMove}
+          onPointerLeave={handleHeroPointerLeave}
+          animate={clickControls}
+          className="
+            group relative mx-auto isolate flex flex-col items-center rounded-md px-6 py-2
+            transition-colors duration-200 hover:bg-base-content/5
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30
+          "
+        >
+          <motion.span
+            style={reduceMotion ? undefined : { rotateY: headTilt, transformPerspective: 600 }}
+            className="relative inline-flex items-center justify-center"
+          >
+            <AnimatePresence mode="wait">
+              {easterEggImage && (
+                <motion.img
+                  key={easterEggImage}
+                  src={easterEggImage}
+                  alt=""
+                  aria-hidden="true"
+                  className="
+                    pointer-events-none absolute bottom-[calc(100%-0.35rem)] left-1/2
+                    z-0 size-28 -translate-x-1/2 object-contain drop-shadow-xl
+                    sm:size-32
+                  "
+                  // 探头入场：从下方「藏着」→ 好奇探出(歪头偷看) → 缩一下 → 归位，四段关键帧模拟探头探脑。
+                  initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 56, scale: 0.82, rotate: 0 }}
+                  animate={
+                    reduceMotion
+                      ? { opacity: 1 }
+                      : {
+                          opacity: [0, 1, 1, 1],
+                          y: [56, -8, 10, 0],
+                          scale: [0.82, 1.05, 0.97, 1],
+                          rotate: [0, -4, 3, 0],
+                        }
+                  }
+                  exit={
+                    reduceMotion
+                      ? { opacity: 0 }
+                      : { opacity: 0, y: 28, scale: 0.9, rotate: 4, transition: { duration: 0.32, ease: "easeIn" } }
+                  }
+                  transition={
+                    reduceMotion ? { duration: 0 } : { duration: 0.8, ease: "easeOut", times: [0, 0.45, 0.75, 1] }
+                  }
+                />
+              )}
+            </AnimatePresence>
+
+            <span
+              aria-hidden="true"
+              className="relative z-10 text-7xl font-bold leading-none tracking-tight text-base-content sm:text-8xl"
+            >
+              404
+            </span>
+          </motion.span>
+        </motion.button>
+
+        <h1 className="mt-8 text-2xl font-bold text-base-content sm:text-3xl">页面不存在</h1>
+
+        {/* galgame 风对话：随点击推进，打字机式逐字浮现（复用登录页副标题的 maxWidth 手法）。 */}
+        <div className="mt-3 flex min-h-6 items-center justify-center text-sm text-base-content/70 sm:text-base">
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={dialogue}
+              className="inline-block overflow-hidden whitespace-nowrap"
+              initial={reduceMotion ? { opacity: 1, maxWidth: "none" } : { opacity: 0, maxWidth: 0 }}
+              animate={
+                reduceMotion
+                  ? { opacity: 1, maxWidth: "none" }
+                  : { opacity: 1, maxWidth: `${dialogue.length + 0.6}em` }
+              }
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, maxWidth: 0 }}
+              transition={reduceMotion ? { duration: 0 } : { duration: 0.5, ease: "easeOut" }}
+            >
+              {dialogue}
+            </motion.span>
+          </AnimatePresence>
+          <motion.span
+            aria-hidden="true"
+            className="ml-1 inline-block h-[0.9em] w-0.5 bg-primary"
+            animate={reduceMotion ? { opacity: 1 } : { opacity: [1, 0, 1] }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 1, repeat: Infinity, repeatDelay: 0.08 }}
+          />
         </div>
-        <h1 className="mt-6 text-3xl font-bold">页面不存在</h1>
-        <p className="mt-3 break-all text-base-content/70">
-          当前路径无法匹配到可用页面：
-          {location.pathname}
+
+        {/* 彩蛋可发现性提示：首次点击前显示，点击后淡出。 */}
+        <AnimatePresence>
+          {clickCount === 0 && (
+            <motion.p
+              className="mt-2 text-xs text-base-content/50"
+              initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0 }}
+            >
+              戳戳上面的 404 试试 →
+            </motion.p>
+          )}
+        </AnimatePresence>
+
+        <p className="mt-4 break-all text-xs text-base-content/50">
+          当前路径无法匹配到可用页面：{location.pathname}
         </p>
+
         <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <Button variant="outline" onClick={goBack}>
-            返回上一页
-          </Button>
-          <Button variant="primary" onClick={() => navigate({ to: "/", replace: true })}>
-            回到首页
-          </Button>
+          <Button variant="outline" onClick={goBack}>返回上一页</Button>
+          <Button variant="primary" onClick={() => navigate({ to: "/", replace: true })}>回到首页</Button>
         </div>
       </section>
     </main>

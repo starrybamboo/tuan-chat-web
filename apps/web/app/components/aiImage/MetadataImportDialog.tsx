@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 
 import { XIcon } from "@phosphor-icons/react";
+import { useRef } from "react";
 
 import type {
   MetadataImportSelectionState,
@@ -11,6 +12,7 @@ import image2imageIconSrc from "@/components/aiImage/assets/image2image.png";
 import preciseReferenceIconSrc from "@/components/aiImage/assets/precise-reference.png";
 import vibeTransferIconSrc from "@/components/aiImage/assets/vibe-transfer.png";
 import { ReferenceActionIcon } from "@/components/aiImage/ReferenceActionIcon";
+import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
 import PortalTooltip from "@/components/common/portalTooltip";
 
 type MetadataImportDialogProps = {
@@ -82,6 +84,7 @@ export function MetadataImportDialog({
   onImportSourceImageTarget,
   onConfirmMetadataImport,
 }: MetadataImportDialogProps) {
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
   const isOpen = Boolean(pendingMetadataImport);
   const hasImportedMetadata = Boolean(pendingMetadataImport?.metadata);
   const previewFrameClassName = hasImportedMetadata
@@ -91,9 +94,20 @@ export function MetadataImportDialog({
     ? "mx-auto h-[220px] w-full max-w-[170px] object-contain"
     : "mx-auto h-[260px] w-full max-w-full object-contain";
 
+  useEscapeToClose({
+    enabled: isOpen,
+    onClose,
+    containerRef: dialogRef,
+  });
+
   return (
     <dialog
+      ref={dialogRef}
       open={isOpen}
+      data-modal-layer={isOpen ? "true" : undefined}
+      role="dialog"
+      aria-modal="true"
+      aria-label="图片导入"
       className={`
         modal
         ${isOpen ? "modal-open" : ""}
@@ -146,7 +160,7 @@ export function MetadataImportDialog({
               font-serif text-[1.52rem] font-semibold leading-[1.22]
               text-base-content
             ">
-              What do you want to do with this image?
+              你想怎么处理这张图片？
             </h3>
           </div>
 
@@ -166,28 +180,33 @@ export function MetadataImportDialog({
             <button
               type="button"
               className={IMAGE_TARGET_BUTTON_CLASS_NAME}
+              aria-label="导入源图片到图生图"
               onClick={() => onImportSourceImageTarget("img2img")}
             >
               <ReferenceActionIcon className="size-[15px] shrink-0" src={image2imageIconSrc} />
-              Image2Image
+              图生图
             </button>
             <button
               type="button"
               className={IMAGE_TARGET_BUTTON_CLASS_NAME}
               disabled
+              title="暂不可用"
+              aria-label="风格迁移，暂不可用"
               onClick={() => onImportSourceImageTarget("vibe")}
             >
               <ReferenceActionIcon className="size-[15px] shrink-0" src={vibeTransferIconSrc} />
-              Vibe Transfer
+              风格迁移
             </button>
             <button
               type="button"
               className={IMAGE_TARGET_BUTTON_CLASS_NAME}
               disabled
+              title="暂不可用"
+              aria-label="精准参考，暂不可用"
               onClick={() => onImportSourceImageTarget("precise")}
             >
               <ReferenceActionIcon className="size-[15px] shrink-0" src={preciseReferenceIconSrc} />
-              Precise Reference
+              精准参考
             </button>
           </div>
 
@@ -197,10 +216,10 @@ export function MetadataImportDialog({
                   <div className="mt-7">
                     <div className="
                       text-[1rem] font-semibold leading-6 text-base-content
-                    ">This image has metadata!</div>
+                    ">这张图片包含元数据！</div>
                     <div className="
                       text-[1rem] font-semibold leading-6 text-base-content
-                    ">Did you want to import that instead?</div>
+                    ">要改为导入这些元数据吗？</div>
                   </div>
 
                   <div className="
@@ -219,7 +238,7 @@ export function MetadataImportDialog({
                           disabled={!canImportMetadataPrompt}
                           onChange={event => setMetadataImportSelection(prev => ({ ...prev, prompt: event.target.checked }))}
                         />
-                        <span>Prompt</span>
+                        <span>提示词</span>
                       </label>
 
                       <label className={`
@@ -233,7 +252,7 @@ export function MetadataImportDialog({
                           disabled={!canImportMetadataNegativePrompt}
                           onChange={event => setMetadataImportSelection(prev => ({ ...prev, undesiredContent: event.target.checked }))}
                         />
-                        <span>Undesired Content</span>
+                        <span>反向提示词</span>
                       </label>
 
                       <label className={`
@@ -253,7 +272,7 @@ export function MetadataImportDialog({
                             }));
                           }}
                         />
-                        <span>Characters</span>
+                        <span>角色</span>
                       </label>
 
                       <label className={`
@@ -269,7 +288,7 @@ export function MetadataImportDialog({
                           disabled={!canImportMetadataCharacters || !metadataImportSelection.characters}
                           onChange={event => setMetadataImportSelection(prev => ({ ...prev, appendCharacters: event.target.checked }))}
                         />
-                        <span>Append</span>
+                        <span>追加</span>
                       </label>
 
                       <label className={`
@@ -283,7 +302,7 @@ export function MetadataImportDialog({
                           disabled={!canImportMetadataSettings}
                           onChange={event => setMetadataImportSelection(prev => ({ ...prev, settings: event.target.checked }))}
                         />
-                        <span>Settings</span>
+                        <span>设置</span>
                       </label>
 
                       <label className={`
@@ -297,7 +316,7 @@ export function MetadataImportDialog({
                           disabled={!canImportMetadataSeed}
                           onChange={event => setMetadataImportSelection(prev => ({ ...prev, seed: event.target.checked }))}
                         />
-                        <span>Seed</span>
+                        <span>种子</span>
                       </label>
                     </div>
 
@@ -317,9 +336,10 @@ export function MetadataImportDialog({
                           disabled:bg-base-200 disabled:text-base-content/50
                         "
                         disabled={!hasAnyMetadataImportSelection}
+                        title={!hasAnyMetadataImportSelection ? "请选择要导入的元数据" : undefined}
                         onClick={onConfirmMetadataImport}
                       >
-                        Import Metadata
+                        导入元数据
                       </button>
 
                       <label className="
@@ -332,7 +352,7 @@ export function MetadataImportDialog({
                           checked={metadataImportSelection.cleanImports}
                           onChange={event => setMetadataImportSelection(prev => ({ ...prev, cleanImports: event.target.checked }))}
                         />
-                        <span>Clean Imports</span>
+                        <span>清理导入文本</span>
                         <CleanImportsHint />
                       </label>
                     </div>
@@ -343,7 +363,7 @@ export function MetadataImportDialog({
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
-        <button type="button" onClick={onClose}>close</button>
+        <button type="button" onClick={onClose}>关闭</button>
       </form>
     </dialog>
   );

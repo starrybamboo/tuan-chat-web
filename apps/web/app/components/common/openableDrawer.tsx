@@ -6,6 +6,8 @@ import type { ScreenSize } from "@/utils/getScreenSize";
 import { useHorizontalResizeDrag } from "@/components/common/customHooks/useHorizontalResizeDrag";
 import { getScreenSize } from "@/utils/getScreenSize";
 
+const DRAWER_RESIZE_KEYBOARD_STEP = 24;
+
 /**
  * 在大屏与中屏幕的时候，开启会直接返回children，在小屏幕的时候，开启会占满父元素的宽度
  * 注意！！ 若要此组件正常工作，请给父组件加上relative
@@ -289,6 +291,31 @@ export function OpenAbleDrawer({
     },
   });
 
+  const handleResizeHandleKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    const visualDelta = event.key === "ArrowLeft"
+      ? -DRAWER_RESIZE_KEYBOARD_STEP
+      : event.key === "ArrowRight"
+        ? DRAWER_RESIZE_KEYBOARD_STEP
+        : 0;
+    const nextWidth = event.key === "Home"
+      ? bounds.min
+      : event.key === "End"
+        ? bounds.max
+        : visualDelta === 0
+          ? null
+          : clamp(renderedWidth + (handlePosition === "left" ? -visualDelta : visualDelta), bounds.min, bounds.max);
+
+    if (nextWidth == null) {
+      return;
+    }
+
+    event.preventDefault();
+    shouldCommitCollapseRef.current = false;
+    setDragCollapsedPreview(false);
+    setWidth(nextWidth);
+    onWidthChange?.(nextWidth);
+  }, [bounds.max, bounds.min, clamp, handlePosition, onWidthChange, renderedWidth, setDragCollapsedPreview]);
+
   if (screenSize === "sm" || overWrite) {
     return (
       <AnimatePresence initial={false}>
@@ -310,7 +337,7 @@ export function OpenAbleDrawer({
     );
   }
 
-  // 大屏情况下，返回可调整宽度的容器
+  // 大屏情况下，返回可调整宽度的容器。
   const visibleWidth = isDragCollapsed ? 0 : Math.max(0, renderedWidth);
   const visibleOpacity = isDragCollapsed ? 0 : 1;
   const widthAnimationDuration = isDragCollapseAnimating ? 0.16 : isResizing ? 0 : animationDuration;
@@ -334,21 +361,31 @@ export function OpenAbleDrawer({
           }}
           style={{ maxWidth: "100%" }}
         >
-          {/* 拖拽手柄（默认在左侧） - 加宽并提升 z-index，同时使用 pointer 事件以避免被子元素捕获 */}
           <div
             className={`
-              absolute top-0 h-full w-4 cursor-col-resize z-2000
+              group/openable-resize-handle absolute top-0 h-full w-6 cursor-col-resize z-2000
               ${handlePosition === "left" ? `left-0` : `right-0`}
-              hover:bg-info/20
-              transition-colors pointer-events-auto
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30
+              pointer-events-auto
             `}
             onPointerDown={handlePointerDown}
+            onKeyDown={handleResizeHandleKeyDown}
             style={{ touchAction: "none" }}
             title="拖拽调整宽度"
+            role="separator"
+            tabIndex={0}
+            aria-label="调整抽屉宽度"
+            aria-orientation="vertical"
+            aria-valuemin={Math.round(bounds.min)}
+            aria-valuemax={Math.round(bounds.max)}
+            aria-valuenow={Math.round(renderedWidth)}
           >
             <div
               className={`
-                absolute top-0 h-full w-0.5 bg-base-content/18
+                absolute top-0 h-full w-0.5 bg-base-content/18 transition-colors
+                group-hover/openable-resize-handle:bg-info/70
+                group-active/openable-resize-handle:bg-info
+                group-focus-visible/openable-resize-handle:bg-info
                 ${handlePosition === "left" ? `left-0` : `right-0`}
               `}
             />

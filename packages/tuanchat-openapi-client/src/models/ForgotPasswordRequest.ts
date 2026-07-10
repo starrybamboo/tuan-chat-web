@@ -15,4 +15,3 @@ export type ForgotPasswordRequest = {
      */
     turnstileToken?: string;
 };
-

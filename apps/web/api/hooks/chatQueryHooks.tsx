@@ -13,7 +13,6 @@ import type { RoomRoleDeleteRequest } from "@tuanchat/openapi-client/models/Room
 import type { RoomRoleAddRequest } from "@tuanchat/openapi-client/models/RoomRoleAddRequest";
 import type { RoomMemberAddRequest } from "@tuanchat/openapi-client/models/RoomMemberAddRequest";
 import type { RoomMemberDeleteRequest } from "@tuanchat/openapi-client/models/RoomMemberDeleteRequest";
-import type { SpaceMuteRequest } from "@tuanchat/openapi-client/models/SpaceMuteRequest";
 import type { RoomUpdateRequest } from "@tuanchat/openapi-client/models/RoomUpdateRequest";
 import type { SpaceUpdateRequest } from "@tuanchat/openapi-client/models/SpaceUpdateRequest";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
@@ -24,8 +23,9 @@ import type { SpaceRole } from "@tuanchat/openapi-client/models/SpaceRole";
 import type { SpaceArchiveRequest } from "@tuanchat/openapi-client/models/SpaceArchiveRequest";
 import type { SpaceRecoverRequest } from "@tuanchat/openapi-client/models/SpaceRecoverRequest";
 import type { LeaderTransferRequest } from "@tuanchat/openapi-client/models/LeaderTransferRequest";
-import type {HistoryMessageRequest} from "@tuanchat/openapi-client/models/HistoryMessageRequest";
 import type { ApiResultString } from "@tuanchat/openapi-client/models/ApiResultString";
+import type { ApiResultRoom } from "@tuanchat/openapi-client/models/ApiResultRoom";
+import type { ApiResultRoomListResponse } from "@tuanchat/openapi-client/models/ApiResultRoomListResponse";
 import {
     usePatchMessagesMutation as useSharedPatchMessagesMutation,
     useSendMessageMutation as useSharedSendMessageMutation,
@@ -39,6 +39,7 @@ import {
     getMyArchivedSpacesQueryKey,
     getUserActiveSpacesQueryKey,
     getUserSpacesQueryKey,
+    patchExistingUserRoomData,
     type ResourceQueryOptions,
     useGetMyArchivedSpacesQuery as useSharedGetMyArchivedSpacesQuery,
     useGetUserActiveSpacesQuery as useSharedGetUserActiveSpacesQuery,
@@ -119,6 +120,14 @@ export async function addRoomRoleWithSuccessGuard(requestBody: RoomRoleAddReques
     const result = await tuanchat.roomRoleController.addRole(requestBody);
     if (!isSuccessfulApiResult(result)) {
         throw new Error(getApiResultErrorMessage(result, "添加房间角色失败"));
+    }
+    return result;
+}
+
+async function updateRoomWithSuccessGuard(requestBody: RoomUpdateRequest) {
+    const result = await tuanchat.roomController.updateRoom(requestBody);
+    if (!isSuccessfulApiResult(result)) {
+        throw new Error(getApiResultErrorMessage(result, "更新房间信息失败"));
     }
     return result;
 }
@@ -221,6 +230,32 @@ function patchApiResultData(queryClient: QueryClient, queryKey: readonly unknown
             },
         };
     });
+}
+
+type RoomUpdateQuerySnapshot = {
+    roomInfoQueryKey: readonly ["getRoomInfo", number];
+    roomInfo?: ApiResultRoom;
+    userRoomsEntries: Array<[readonly unknown[], ApiResultRoomListResponse | undefined]>;
+};
+
+function patchRoomUpdateQueryCache(queryClient: QueryClient, request: RoomUpdateRequest) {
+    patchApiResultData(queryClient, roomInfoQueryKey(request.roomId), request);
+    for (const [queryKey] of queryClient.getQueriesData<ApiResultRoomListResponse>({ queryKey: ["getUserRooms"] })) {
+        queryClient.setQueryData<ApiResultRoomListResponse>(
+            queryKey,
+            current => patchExistingUserRoomData(current, request),
+        );
+    }
+}
+
+function rollbackRoomUpdateQueryCache(queryClient: QueryClient, snapshot?: RoomUpdateQuerySnapshot) {
+    if (!snapshot) {
+        return;
+    }
+    queryClient.setQueryData(snapshot.roomInfoQueryKey, snapshot.roomInfo);
+    for (const [queryKey, data] of snapshot.userRoomsEntries) {
+        queryClient.setQueryData(queryKey, data);
+    }
 }
 
 export function patchSpaceExtraCache(queryClient: QueryClient, request: SpaceExtraSetRequest) {
@@ -409,35 +444,34 @@ queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
 export function useUpdateRoomMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: RoomUpdateRequest) => tuanchat.roomController.updateRoom(req),
+        mutationFn: updateRoomWithSuccessGuard,
         mutationKey: ['updateRoom'],
-        onSuccess: (result, variables) => {
-            if (isSuccessfulApiResult(result)) {
-                patchApiResultData(queryClient, roomInfoQueryKey(variables.roomId), variables);
+        onMutate: async (variables) => {
+            await Promise.all([
+                queryClient.cancelQueries({ queryKey: roomInfoQueryKey(variables.roomId) }),
+                queryClient.cancelQueries({ queryKey: ["getUserRooms"] }),
+            ]);
+
+            const snapshot: RoomUpdateQuerySnapshot = {
+                roomInfoQueryKey: roomInfoQueryKey(variables.roomId),
+                roomInfo: queryClient.getQueryData<ApiResultRoom>(roomInfoQueryKey(variables.roomId)),
+                userRoomsEntries: queryClient.getQueriesData<ApiResultRoomListResponse>({ queryKey: ["getUserRooms"] }),
+            };
+            patchRoomUpdateQueryCache(queryClient, variables);
+            return snapshot;
+        },
+        onError: (_error, _variables, context) => {
+            rollbackRoomUpdateQueryCache(queryClient, context);
+        },
+        onSuccess: (_result, variables) => {
+            patchRoomUpdateQueryCache(queryClient, variables);
+        },
+        onSettled: (_result, _error, variables) => {
+            if (!variables) {
+                return;
             }
             queryClient.invalidateQueries({ queryKey: roomInfoQueryKey(variables.roomId) });
             queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
-        }
-    })
-}
-
-/**
- * 更新空间禁言状态
- */
-export function useUpdateSpaceMuteStatusMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: SpaceMuteRequest) => tuanchat.spaceController.updateSpaceMuteStatus(req),
-        mutationKey: ['updateSpaceMuteStatus'],
-        onSuccess: (result, variables) => {
-            if (isSuccessfulApiResult(result) && typeof variables.spaceId === "number") {
-                patchApiResultData(queryClient, spaceInfoQueryKey(variables.spaceId), {
-                    muteStatus: variables.muteStatus,
-                });
-                queryClient.invalidateQueries({ queryKey: spaceInfoQueryKey(variables.spaceId) });
-            }
-            queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
-            queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
         }
     })
 }
@@ -617,18 +651,6 @@ queryClient.invalidateQueries({ queryKey: getMyArchivedSpacesQueryKey() });
 
 // ==================== 消息系统 ====================
 /**
- * 获取群聊所有消息（实时性要求高）
- * @param roomId 群聊ID
- */
-export function useGetAllMessageQuery(roomId: number) {
-    return useQuery({
-        queryKey: ['getHistoryMessages', roomId, 0],
-        queryFn: () => tuanchat.chatController.getHistoryMessages({ roomId, syncId: 0 }),
-        staleTime: 0 // 实时数据不缓存
-    });
-}
-
-/**
  * 发消息（备用接口）
  * @param roomId 关联的群聊ID（用于缓存刷新）
  */
@@ -672,20 +694,6 @@ export function useGetMessageBySyncIdQuery(requestBody: { roomId: number; syncId
         enabled: !!requestBody.syncId // 当有syncId时才启用查询
     });
 }
-/**
- * 获取历史消息
- * 返回房间下syncId大于等于请求中syncId的消息，用于重新上线时获取历史消息
- * @param requestBody 请求参数
- */
-export function useGetHistoryMessagesQuery(requestBody: HistoryMessageRequest) {
-    return useQuery({
-        queryKey: ['getHistoryMessages', requestBody],
-        queryFn: () => tuanchat.chatController.getHistoryMessages(requestBody),
-        staleTime: 30000, // 30秒缓存
-        enabled: !!requestBody.syncId // 当有syncId时才启用查询
-    });
-}
-
 // ==================== 权限管理 ====================
 /**
  * 设置用户为玩家

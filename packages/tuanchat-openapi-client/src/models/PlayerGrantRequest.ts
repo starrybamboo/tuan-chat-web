@@ -12,4 +12,3 @@ export type PlayerGrantRequest = {
      */
     uidList: Array<number>;
 };
-

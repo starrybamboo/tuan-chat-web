@@ -120,7 +120,11 @@ function MaterialCard({
       image={item.coverUrl}
       title={item.name}
       subtitle={item.subtitle}
-      content={item.description || "暂无描述"}
+      content={item.description
+        ? item.description
+        : item.badgeLabel === "公开素材"
+          ? "暂无描述"
+          : "添加一句描述，方便搜索和复用"}
       badgeLabel={item.badgeLabel}
       hoverMetadata={metadata}
       imageAspect="square"

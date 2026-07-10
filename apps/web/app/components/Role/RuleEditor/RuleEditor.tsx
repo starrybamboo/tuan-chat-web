@@ -1,9 +1,9 @@
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
 
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { EditIcon, SaveIcon } from "@/icons";
@@ -239,7 +239,7 @@ export default function RuleEditor({
       };
     });
     setCloneVersion(prev => prev + 1);
-    toast.success("规则导入成功");
+    appToast.success("规则导入成功");
   }
 
   const handleSave = useCallback(() => {
@@ -250,18 +250,18 @@ export default function RuleEditor({
     // 编辑态校验，该校验必须放在规则名称校验之前
     const hasEditingModule = Object.values(editingMap).some(Boolean);
     if (hasEditingModule) {
-      toast.error("请先应用或取消所有编辑");
+      appToast.error("请先应用或取消所有编辑");
       return;
     }
 
     // 规则名称校验
     const nextRuleName = ruleEdit.ruleName ?? "";
     if (nextRuleName.length === 0) {
-      toast.error("规则名称不能为空");
+      appToast.error("规则名称不能为空");
       return;
     }
     if (mode === "create" && isRuleNameDuplicated) {
-      toast.error("规则名已存在");
+      appToast.error("规则名已存在");
       return;
     }
 
@@ -269,7 +269,7 @@ export default function RuleEditor({
     if (mode === "edit") {
       const currentRuleId = ruleEdit.ruleId ?? ruleId;
       if (typeof currentRuleId !== "number" || currentRuleId <= 0) {
-        toast.error("规则ID无效，无法保存");
+        appToast.error("规则ID无效，无法保存");
         return;
       }
 
@@ -277,11 +277,11 @@ export default function RuleEditor({
       if (typeof authorId === "number" && authorId > 0) {
         const loginUserId = userId ?? -1;
         if (loginUserId <= 0) {
-          toast.error("未登录，无法修改规则");
+          appToast.error("未登录，无法修改规则");
           return;
         }
         if (loginUserId !== authorId) {
-          toast.error("只有规则作者可以修改该规则");
+          appToast.error("只有规则作者可以修改该规则");
           return;
         }
       }
@@ -292,14 +292,14 @@ export default function RuleEditor({
 
     const onMutationError = (err: any) => {
       const msg = err instanceof ApiError ? err.body?.errMsg : undefined;
-      toast.error(msg || (mode === "edit" ? "保存失败" : "创建失败"));
+      appToast.error(msg || (mode === "edit" ? "保存失败" : "创建失败"));
       setIsSavingRule(false);
       setPendingHeaderSave(false);
     };
 
     const onMutationSuccess = (res: any, isCreate: boolean) => {
       if (res?.success) {
-        toast.success(isCreate ? "规则已创建" : "规则已保存");
+        appToast.success(isCreate ? "规则已创建" : "规则已保存");
 
         // 成功时延时关闭过渡状态
         setTimeout(() => {
@@ -317,7 +317,7 @@ export default function RuleEditor({
         }, 300);
       }
       else {
-        toast.error(res?.errMsg || (isCreate ? "创建失败" : "保存失败"));
+        appToast.error(res?.errMsg || (isCreate ? "创建失败" : "保存失败"));
         setIsSavingRule(false);
         setPendingHeaderSave(false);
       }
@@ -660,7 +660,10 @@ export default function RuleEditor({
                   flex w-full items-start justify-between gap-2 mb-3
                 ">
                   <div className="min-w-0">
-                    <h1 className="font-semibold text-2xl min-w-0 truncate">
+                    <h1
+                      className="font-semibold text-2xl min-w-0 truncate"
+                      title={ruleEdit.ruleName || "未命名规则"}
+                    >
                       {ruleEdit.ruleName || "未命名规则"}
                     </h1>
                     <div className={`

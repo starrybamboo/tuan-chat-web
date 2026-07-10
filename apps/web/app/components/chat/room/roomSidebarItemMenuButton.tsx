@@ -21,9 +21,9 @@ export default function RoomSidebarItemMenuButton({
     <button
       type="button"
       className={`
-        pointer-events-none hidden size-7 items-center justify-center rounded-md
+        pointer-events-none hidden size-8 items-center justify-center rounded-md
         border border-base-300/70 bg-base-100/92 text-base-content/55 opacity-0
-        shadow-sm transition duration-150
+        shadow-sm transition duration-150 motion-reduce:transition-none
         hover:border-info/40 hover:text-base-content
         md:flex
         md:group-hover:pointer-events-auto md:group-hover:opacity-100

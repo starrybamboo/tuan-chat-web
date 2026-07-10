@@ -4,6 +4,7 @@ import {
   isWithinBottomThreshold,
   resolveBottomThresholdTransition,
   resolveVisibleMessageAppendAction,
+  shouldAutoScrollOnContentSizeChange,
 } from "./messageListScrollState";
 
 describe("messageListScrollState", () => {
@@ -56,5 +57,26 @@ describe("messageListScrollState", () => {
       shouldCountNewMessages: false,
       shouldScrollToBottom: true,
     });
+  });
+
+  it("底部内容尺寸变化时不额外触发贴底滚动", () => {
+    expect(shouldAutoScrollOnContentSizeChange({
+      hasPendingScrollToBottom: false,
+      isAtBottom: true,
+    })).toBe(false);
+  });
+
+  it("待贴底滚动尚未完成时内容尺寸变化会再次贴底", () => {
+    expect(shouldAutoScrollOnContentSizeChange({
+      hasPendingScrollToBottom: true,
+      isAtBottom: false,
+    })).toBe(true);
+  });
+
+  it("用户离开底部且没有待贴底请求时不强制跳底", () => {
+    expect(shouldAutoScrollOnContentSizeChange({
+      hasPendingScrollToBottom: false,
+      isAtBottom: false,
+    })).toBe(false);
   });
 });

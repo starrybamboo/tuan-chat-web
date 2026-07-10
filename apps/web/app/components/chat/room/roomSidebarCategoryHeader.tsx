@@ -145,7 +145,7 @@ export default function RoomSidebarCategoryHeader({
         `} />
       </button>
 
-      <span className="flex-1 truncate cursor-pointer">{categoryName}</span>
+      <span className="flex-1 truncate cursor-pointer" title={categoryName}>{categoryName}</span>
 
       {canEdit && (
         <button

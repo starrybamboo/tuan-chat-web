@@ -287,9 +287,12 @@ export function SpaceWebgalGameConfigSection({
                           max={20}
                           step={0.1}
                           className="input input-bordered input-sm flex-1"
+                          aria-label="打字音播放间隔（每多少字播放一次）"
                           value={typingSoundIntervalInput}
                           onChange={event => setTypingSoundIntervalInput(event.target.value)}
                           onKeyDown={(event) => {
+                            if (event.nativeEvent.isComposing)
+                              return;
                             if (event.key === "Enter") {
                               handleSaveTypingSoundInterval();
                             }
@@ -313,9 +316,12 @@ export function SpaceWebgalGameConfigSection({
                           max={5000}
                           step={10}
                           className="input input-bordered input-sm flex-1"
+                          aria-label="打字音标点额外停顿（毫秒）"
                           value={typingSoundPunctuationPauseInput}
                           onChange={event => setTypingSoundPunctuationPauseInput(event.target.value)}
                           onKeyDown={(event) => {
+                            if (event.nativeEvent.isComposing)
+                              return;
                             if (event.key === "Enter") {
                               handleSaveTypingSoundPunctuationPause();
                             }
@@ -399,9 +405,12 @@ export function SpaceWebgalGameConfigSection({
                       max={5000}
                       step={10}
                       className="input input-bordered input-sm flex-1"
+                      aria-label="立绘默认入场时长（毫秒）"
                       value={figureDefaultEnterDurationInput}
                       onChange={event => setFigureDefaultEnterDurationInput(event.target.value)}
                       onKeyDown={(event) => {
+                        if (event.nativeEvent.isComposing)
+                          return;
                         if (event.key === "Enter") {
                           handleSaveFigureDefaultEnterDuration();
                         }
@@ -425,9 +434,12 @@ export function SpaceWebgalGameConfigSection({
                       max={5000}
                       step={10}
                       className="input input-bordered input-sm flex-1"
+                      aria-label="立绘默认出场时长（毫秒）"
                       value={figureDefaultExitDurationInput}
                       onChange={event => setFigureDefaultExitDurationInput(event.target.value)}
                       onKeyDown={(event) => {
+                        if (event.nativeEvent.isComposing)
+                          return;
                         if (event.key === "Enter") {
                           handleSaveFigureDefaultExitDuration();
                         }
@@ -501,6 +513,8 @@ export function SpaceWebgalGameConfigSection({
                   value={descriptionInput}
                   onChange={event => setDescriptionInput(event.target.value)}
                   onKeyDown={(event) => {
+                    if (event.nativeEvent.isComposing)
+                      return;
                     if (event.key === "Enter") {
                       handleSaveDescription();
                     }
@@ -531,6 +545,8 @@ export function SpaceWebgalGameConfigSection({
                   value={packageNameInput}
                   onChange={event => setPackageNameInput(event.target.value)}
                   onKeyDown={(event) => {
+                    if (event.nativeEvent.isComposing)
+                      return;
                     if (event.key === "Enter") {
                       handleSavePackageName();
                     }

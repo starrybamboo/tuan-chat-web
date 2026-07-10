@@ -141,7 +141,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
             <BaselineArrowBackIosNew className="size-5" />
           </button>
           <PageIcon className="size-4 opacity-70" />
-          <div className="text-sm font-medium opacity-80 truncate">
+          <div className="text-sm font-medium opacity-80 truncate" title={pageTitle}>
             {pageTitle}
           </div>
         </div>
@@ -311,12 +311,14 @@ function RoomSettingForm({
               className="
                 size-full object-cover transition duration-200
                 group-hover:scale-105 group-hover:brightness-75
+                motion-reduce:scale-100 motion-reduce:transition-none
               "
               fallbackSrc="/favicon.ico"
             />
             <div className="
               absolute inset-0 flex items-center justify-center bg-black/20
               opacity-0 transition duration-200 group-hover:opacity-100
+              motion-reduce:transition-none
             ">
               <span className="rounded bg-base-100/85 px-2 py-1 text-xs font-medium text-base-content">
                 更换头像
@@ -367,6 +369,7 @@ function RoomSettingForm({
           className="btn btn-primary btn-sm"
           disabled={isPending}
           onClick={() => flushRoomRedundant()}
+          aria-busy={isPending}
         >
           保存
         </button>

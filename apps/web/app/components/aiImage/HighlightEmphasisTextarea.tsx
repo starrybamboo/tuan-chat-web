@@ -274,6 +274,7 @@ export function HighlightEmphasisTextarea({
   surfaceClassName,
   textareaRef,
   value,
+  "aria-label": ariaLabel,
   ...textareaProps
 }: HighlightEmphasisTextareaProps) {
   const overlayContentRef = useRef<HTMLDivElement | null>(null);
@@ -358,6 +359,7 @@ export function HighlightEmphasisTextarea({
         {...textareaProps}
         id={textareaId}
         ref={handleTextareaRef}
+        aria-label={ariaLabel ?? placeholder}
         readOnly={readOnly}
         spellCheck={spellCheck}
         value={stringValue}

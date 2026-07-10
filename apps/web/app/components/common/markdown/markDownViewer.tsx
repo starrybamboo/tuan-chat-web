@@ -132,6 +132,8 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
           download={fileName}
           target="_blank"
           rel="noopener noreferrer"
+          title={fileName}
+          aria-label={`下载文件 ${fileName}`}
         >
           <span className="truncate">{fileName}</span>
         </a>

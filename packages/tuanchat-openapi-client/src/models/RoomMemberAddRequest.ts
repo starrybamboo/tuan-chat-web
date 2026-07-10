@@ -12,4 +12,3 @@ export type RoomMemberAddRequest = {
      */
     userIdList: Array<number>;
 };
-

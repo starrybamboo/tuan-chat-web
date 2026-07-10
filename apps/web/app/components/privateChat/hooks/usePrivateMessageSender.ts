@@ -1,6 +1,6 @@
 import { useState } from "react";
-import toast from "react-hot-toast";
 import { useImmer } from "use-immer";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { internalMessageMediaSource } from "@/components/chat/message/messageMediaSource";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
@@ -9,12 +9,14 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { getImageSize } from "@/utils/media/getImgSize";
 import { UploadUtils } from "@/utils/media/UploadUtils";
 
-import type { MessageDirectSendRequest } from "../../../../api";
+import type { MessageDirectResponse, MessageDirectSendRequest } from "../../../../api";
 
 type UsePrivateMessageSenderProps = {
   webSocketUtils: any;
   userId: number;
   currentContactUserId: number | null;
+  replyMessage?: MessageDirectResponse | null;
+  onMessageSent?: () => void;
 };
 
 type EmojiAttachmentMeta = {
@@ -26,8 +28,59 @@ type EmojiAttachmentMeta = {
   fileName?: string;
 };
 
-export function usePrivateMessageSender({ webSocketUtils, userId, currentContactUserId }: UsePrivateMessageSenderProps) {
-  const WEBSOCKET_TYPE = 5; // WebSocket 私聊消息类型
+const WEBSOCKET_DIRECT_MESSAGE_TYPE = 5;
+
+type DirectMessageOptimisticWebSocketUtils = {
+  pushOptimisticDirectMessage: (request: MessageDirectSendRequest) => number | null;
+  removeOptimisticDirectMessage: (optimisticMessageId: number) => void;
+  sendWithResult: (request: { type: number; data: MessageDirectSendRequest }) => Promise<boolean>;
+};
+
+export async function sendDirectMessageWithOptimisticRollback(
+  webSocketUtils: DirectMessageOptimisticWebSocketUtils,
+  message: MessageDirectSendRequest,
+) {
+  const optimisticMessageId = webSocketUtils.pushOptimisticDirectMessage(message);
+  try {
+    const sent = await webSocketUtils.sendWithResult({
+      type: WEBSOCKET_DIRECT_MESSAGE_TYPE,
+      data: message,
+    });
+    if (!sent && optimisticMessageId != null) {
+      webSocketUtils.removeOptimisticDirectMessage(optimisticMessageId);
+    }
+    return sent;
+  }
+  catch (error) {
+    if (optimisticMessageId != null) {
+      webSocketUtils.removeOptimisticDirectMessage(optimisticMessageId);
+    }
+    throw error;
+  }
+}
+
+export function withPrivateReplyMessageId(
+  message: MessageDirectSendRequest,
+  replyMessage?: MessageDirectResponse | null,
+): MessageDirectSendRequest {
+  const replyMessageId = replyMessage?.messageId;
+  if (typeof replyMessageId !== "number" || replyMessageId <= 0) {
+    return message;
+  }
+
+  return {
+    ...message,
+    replyMessageId,
+  };
+}
+
+export function usePrivateMessageSender({
+  webSocketUtils,
+  userId,
+  currentContactUserId,
+  replyMessage,
+  onMessageSent,
+}: UsePrivateMessageSenderProps) {
   const uploadUtils = new UploadUtils();
 
   // 状态管理
@@ -61,12 +114,7 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
 
   // 发送消息函数
   const sendDirectMessageWithOptimistic = async (message: MessageDirectSendRequest) => {
-    const optimisticMessageId = webSocketUtils.pushOptimisticDirectMessage(message);
-    const sent = await webSocketUtils.sendWithResult({ type: WEBSOCKET_TYPE, data: message });
-    if (!sent && optimisticMessageId != null) {
-      webSocketUtils.removeOptimisticDirectMessage(optimisticMessageId);
-    }
-    return sent;
+    return sendDirectMessageWithOptimisticRollback(webSocketUtils, message);
   };
 
   const handleSendMessage = async () => {
@@ -107,7 +155,7 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
               },
             }),
           };
-          const sent = await sendDirectMessageWithOptimistic(imageMessage);
+          const sent = await sendDirectMessageWithOptimistic(withPrivateReplyMessageId(imageMessage, replyMessage));
           if (!sent) {
             throw new Error("发送图片消息失败");
           }
@@ -123,7 +171,7 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
           messageType: 1,
           extra: {},
         };
-        const sent = await sendDirectMessageWithOptimistic(sendMessage);
+        const sent = await sendDirectMessageWithOptimistic(withPrivateReplyMessageId(sendMessage, replyMessage));
         if (!sent) {
           throw new Error("发送文本消息失败");
         }
@@ -162,7 +210,7 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
               },
             }),
           };
-          const sent = await sendDirectMessageWithOptimistic(emojiMessage);
+          const sent = await sendDirectMessageWithOptimistic(withPrivateReplyMessageId(emojiMessage, replyMessage));
           if (!sent) {
             throw new Error("发送表情消息失败");
           }
@@ -172,10 +220,11 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
         });
         setEmojiMetaByUrlState({});
       }
+      onMessageSent?.();
     }
     catch (error) {
       console.error("私聊消息发送失败", error);
-      toast.error("私聊消息发送失败，请稍后重试");
+      appToast.error("私聊消息发送失败，请稍后重试");
     }
     finally {
       setIsSubmitting(false);

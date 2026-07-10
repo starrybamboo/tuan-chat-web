@@ -89,6 +89,13 @@ export function InpaintCanvasStage({
             overscrollBehavior: "none",
           }}
         >
+          <p className="
+            pointer-events-none absolute left-1/2 top-3 z-10 -translate-x-1/2
+            rounded-full bg-base-100/70 px-3 py-1 text-xs text-base-content/60
+            backdrop-blur-sm
+          ">
+            用画笔涂抹需要修补的区域
+          </p>
           <div
             className="absolute left-0 top-0 origin-top-left"
             style={{
@@ -99,7 +106,7 @@ export function InpaintCanvasStage({
           >
             <img
               src={source.dataUrl}
-              alt="inpaint-source"
+              alt="待修补图片"
               className="
                 block h-full w-full select-none object-contain
                 shadow-xl
@@ -109,6 +116,8 @@ export function InpaintCanvasStage({
             <canvas
               ref={canvasRef}
               className="absolute inset-0 h-full w-full cursor-none touch-none"
+              role="img"
+              aria-label="用画笔涂抹需要修补的区域"
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}

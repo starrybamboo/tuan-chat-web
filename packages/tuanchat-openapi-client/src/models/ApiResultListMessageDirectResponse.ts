@@ -24,4 +24,3 @@ export type ApiResultListMessageDirectResponse = {
      */
     data?: Array<MessageDirectResponse>;
 };
-

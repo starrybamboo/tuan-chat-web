@@ -21,4 +21,3 @@ export type ApiResultCursorPageBaseResponseNotificationItemResponse = {
     errMsg?: string;
     data?: CursorPageBaseResponseNotificationItemResponse;
 };
-

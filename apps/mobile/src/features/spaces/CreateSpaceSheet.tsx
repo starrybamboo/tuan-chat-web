@@ -129,6 +129,7 @@ export function CreateSpaceSheet({ onClose, onCreated, visible }: CreateSpaceShe
       <ThemedText style={styles.title}>创建空间</ThemedText>
 
       <TextInput
+        accessibilityLabel="空间名称"
         autoFocus
         onChangeText={setName}
         placeholder="空间名称"
@@ -138,6 +139,9 @@ export function CreateSpaceSheet({ onClose, onCreated, visible }: CreateSpaceShe
       />
 
       <Pressable
+        accessibilityLabel="选择空间头像"
+        accessibilityRole="button"
+        accessibilityState={{ disabled: loading }}
         disabled={loading}
         onPress={() => void handlePickAvatar()}
         style={[styles.avatarButton, { borderColor: theme.border, backgroundColor: theme.background }]}
@@ -156,6 +160,9 @@ export function CreateSpaceSheet({ onClose, onCreated, visible }: CreateSpaceShe
         : null}
 
       <Pressable
+        accessibilityLabel={loading ? "正在创建空间" : "创建空间"}
+        accessibilityRole="button"
+        accessibilityState={{ busy: loading, disabled: !name.trim() || loading }}
         disabled={!name.trim() || loading}
         onPress={handleCreate}
         style={[styles.button, { backgroundColor: name.trim() ? theme.accent : theme.backgroundElement, opacity: loading ? 0.6 : 1 }]}

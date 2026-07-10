@@ -56,6 +56,8 @@ export function StandardPreviewWorkspace({
                     ` : `border-base-300`}
                   `}
                   onClick={() => onSelectCurrentResult(index)}
+                  aria-label={`选择第 ${index + 1} 张生成结果`}
+                  aria-pressed={!selectedHistoryPreviewKey && selectedResultIndex === index}
                 >
                   <img src={item.dataUrl} alt={`result-${index + 1}`} className={previewThumbnailImageClassName} />
                 </button>
@@ -75,8 +77,8 @@ export function StandardPreviewWorkspace({
                   <button
                     type="button"
                     className={previewToolbarIconButtonClassName}
-                    title="Upscale disabled"
-                    aria-label="Upscale disabled"
+                    title="放大功能暂不可用"
+                    aria-label="放大（暂不可用）"
                     disabled
                     onClick={() => void onRunUpscale()}
                   >

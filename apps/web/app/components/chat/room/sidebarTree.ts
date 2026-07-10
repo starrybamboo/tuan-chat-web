@@ -1,6 +1,5 @@
 export {
   appendSidebarNodeToCategory,
-  applySidebarDocFallbackCache,
   buildDefaultSidebarTree,
   buildSidebarDocNode,
   buildSidebarRoomNode,

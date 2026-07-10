@@ -21,4 +21,3 @@ export type ApiResultRule = {
     errMsg?: string;
     data?: Rule;
 };
-

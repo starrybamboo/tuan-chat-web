@@ -19,6 +19,8 @@ export default function LoginButton({ autoOpen }: { autoOpen?: boolean }) {
         type="button"
         onClick={() => setIsLoginModalOpen(true)}
         className="btn btn-primary gap-2"
+        aria-haspopup="dialog"
+        aria-expanded={isLoginModalOpen}
       >
         <RoomChatIcon className="size-4" />
         登录 / 注册

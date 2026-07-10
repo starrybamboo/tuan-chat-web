@@ -35,6 +35,7 @@ export default function CharacterDetailLeftPanelHorizontal({
     title,
     subtitle,
     subtitleClassName,
+    actionLabel,
     icon,
     onClick,
   }: {
@@ -55,6 +56,8 @@ export default function CharacterDetailLeftPanelHorizontal({
         transition-colors
         hover:bg-base-300/50
       "
+      aria-label={`${actionLabel}：${title}，${subtitle}`}
+      title={`${title}，${subtitle}`}
       onClick={onClick}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -62,11 +65,11 @@ export default function CharacterDetailLeftPanelHorizontal({
           {icon}
         </div>
         <div className="min-w-0 space-y-0.5">
-          <div className="truncate text-sm font-semibold">{title}</div>
+          <div className="truncate text-sm font-semibold" title={title}>{title}</div>
           <div className={`
             truncate text-xs/5 font-medium
             ${subtitleClassName}
-          `}>
+          `} title={subtitle}>
             {subtitle}
           </div>
         </div>
@@ -205,6 +208,7 @@ export default function CharacterDetailLeftPanelHorizontal({
                 hover:bg-base-300/50
                 transition-colors
               "
+              aria-label="打开规则选择"
               onClick={onOpenRuleModal}
             >
               <span className="inline-flex min-w-0 items-center gap-2">
@@ -231,6 +235,7 @@ export default function CharacterDetailLeftPanelHorizontal({
                   hover:bg-base-300/50
                   transition-colors
                 "
+                aria-label={currentDicerRoleId ? "更改关联骰娘" : "设置关联骰娘"}
                 onClick={onOpenDiceMaidenLinkModal}
               >
                 <span className="inline-flex min-w-0 items-center gap-2">
@@ -260,6 +265,7 @@ export default function CharacterDetailLeftPanelHorizontal({
                 hover:bg-base-300/50
                 transition-colors
               `}
+              aria-label={hasRoleVoiceMedia(localRole) ? "更换角色音频" : "上传角色音频"}
               onClick={onOpenAudioModal}
             >
               <span className="inline-flex min-w-0 items-center gap-2">

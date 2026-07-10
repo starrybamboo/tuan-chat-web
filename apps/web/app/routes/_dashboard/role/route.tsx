@@ -94,6 +94,7 @@ function RoleLayout() {
               w-6 h-12 cursor-pointer bg-base-300 transition-all duration-200
               rounded-r-full flex items-center justify-center group
             "
+            aria-label={isSidebarCollapsed ? "展开角色侧边栏" : "收起角色侧边栏"}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { WebgalPublishJobStatus } from "@/webGAL/publishClient";
 
@@ -239,17 +239,17 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
         const nextStatus = await getWebgalPublishJob(jobId);
         setPublishStatus(nextStatus);
         if (nextStatus.status === "success") {
-          toast.success("WebGAL 已发布到 Cloudflare Pages", { id: "space-webgal-publish" });
+          appToast.success("WebGAL 已发布到 Cloudflare Pages", { id: "space-webgal-publish" });
           return;
         }
         if (nextStatus.status === "failed") {
-          toast.error(`发布失败：${nextStatus.errorMessage || "请稍后重试"}`, { id: "space-webgal-publish" });
+          appToast.error(`发布失败：${nextStatus.errorMessage || "请稍后重试"}`, { id: "space-webgal-publish" });
           return;
         }
         pollPublishJob(jobId);
       }
       catch (error) {
-        toast.error(`查询发布状态失败：${getErrorMessage(error)}`, { id: "space-webgal-publish" });
+        appToast.error(`查询发布状态失败：${getErrorMessage(error)}`, { id: "space-webgal-publish" });
       }
     }, 2000);
   }, []);
@@ -288,11 +288,11 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       return;
     }
     if (renderableRooms.length === 0) {
-      toast("当前空间没有可发布的房间");
+      appToast.info("当前空间没有可发布的房间");
       return;
     }
 
-    toast.loading("正在整理 WebGAL 发布包...", { id: "space-webgal-publish" });
+    appToast.loading("正在整理 WebGAL 发布包...", { id: "space-webgal-publish" });
     try {
       await ensureHydrated(spaceId);
 
@@ -341,7 +341,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       });
       const publishPackage = await renderWebgalPublishPackage(publishSnapshot);
 
-      toast.loading("正在上传到 Cloudflare Pages...", { id: "space-webgal-publish" });
+      appToast.loading("正在上传到 Cloudflare Pages...", { id: "space-webgal-publish" });
       const status = await startWebgalPublish({
         spaceId,
         packageData: {
@@ -356,17 +356,17 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       });
       setPublishStatus(status);
       if (status.status === "success") {
-        toast.success("WebGAL 已发布到 Cloudflare Pages", { id: "space-webgal-publish" });
+        appToast.success("WebGAL 已发布到 Cloudflare Pages", { id: "space-webgal-publish" });
         return;
       }
       if (status.status === "failed") {
-        toast.error(`发布失败：${status.errorMessage || "请稍后重试"}`, { id: "space-webgal-publish" });
+        appToast.error(`发布失败：${status.errorMessage || "请稍后重试"}`, { id: "space-webgal-publish" });
         return;
       }
       pollPublishJob(status.jobId);
     }
     catch (error) {
-      toast.error(`发布失败：${getErrorMessage(error)}`, { id: "space-webgal-publish" });
+      appToast.error(`发布失败：${getErrorMessage(error)}`, { id: "space-webgal-publish" });
     }
   }, [
     ensureHydrated,
@@ -396,7 +396,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     });
     const electronEnv = launchResult.runtime === "electron";
     if (electronEnv && !launchResult.ok) {
-      toast.error(appendWebgalLaunchHints(launchResult.error || "WebGAL 启动失败"), { id: "space-webgal-init" });
+      appToast.error(appendWebgalLaunchHints(launchResult.error || "WebGAL 启动失败"), { id: "space-webgal-init" });
       return false;
     }
     if (electronEnv && typeof launchResult.port === "number" && Number.isFinite(launchResult.port)) {
@@ -404,7 +404,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       setTerrePortOverride(launchResult.port);
     }
 
-    toast.loading("正在启动 WebGAL...", { id: "space-webgal-init" });
+    appToast.loading("正在启动 WebGAL...", { id: "space-webgal-init" });
     try {
       if (!electronEnv) {
         await pollPort(
@@ -414,13 +414,13 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
         );
       }
 
-      toast.loading("正在初始化空间渲染器...", { id: "space-webgal-init" });
+      appToast.loading("正在初始化空间渲染器...", { id: "space-webgal-init" });
       const success = await startRealtimeRender();
       if (!success) {
-        toast.error(appendWebgalLaunchHints("WebGAL 渲染器启动失败"), { id: "space-webgal-init" });
+        appToast.error(appendWebgalLaunchHints("WebGAL 渲染器启动失败"), { id: "space-webgal-init" });
         return false;
       }
-      toast.success("WebGAL 渲染器已启动", { id: "space-webgal-init" });
+      appToast.success("WebGAL 渲染器已启动", { id: "space-webgal-init" });
       return true;
     }
     catch (error) {
@@ -429,7 +429,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
           ? `WebGAL 启动失败：${error.message}`
           : "WebGAL 启动超时",
       );
-      toast.error(message, { id: "space-webgal-init" });
+      appToast.error(message, { id: "space-webgal-init" });
       return false;
     }
   }, [ensureHydrated, isRealtimeActive, realtimeStatus, setTerrePortOverride, spaceId, startRealtimeRender]);
@@ -437,7 +437,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   const handleStopRealtimeRender = useCallback(() => {
     stopRealtimeRender();
     resetRealtimeRuntime();
-    toast.success("已停止空间 WebGAL 渲染");
+    appToast.success("已停止空间 WebGAL 渲染");
   }, [resetRealtimeRuntime, stopRealtimeRender]);
 
   const handleRenderAllRooms = useCallback(async () => {
@@ -445,7 +445,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       return;
     }
     if (renderableRooms.length === 0) {
-      toast("当前空间没有可渲染的房间");
+      appToast.info("当前空间没有可渲染的房间");
       return;
     }
 
@@ -522,7 +522,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       if (renderableRooms[0]) {
         await switchRoom(renderableRooms[0].roomId);
       }
-      toast.success(`空间渲染完成：${successCount}/${renderableRooms.length} 个房间`);
+      appToast.success(`空间渲染完成：${successCount}/${renderableRooms.length} 个房间`);
     }
     finally {
       setIsBatchRendering(false);
@@ -540,65 +540,65 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
 
   const handleSaveTtsApi = useCallback(() => {
     setTtsApiUrl(ttsApiInput.trim());
-    toast.success("TTS 地址已保存");
+    appToast.success("TTS 地址已保存");
   }, [setTtsApiUrl, ttsApiInput]);
 
   const handleSaveDescription = useCallback(() => {
     setGameConfig({ description: descriptionInput.trim() });
-    toast.success("游戏简介已保存");
+    appToast.success("游戏简介已保存");
   }, [descriptionInput, setGameConfig]);
 
   const handleSavePackageName = useCallback(() => {
     setGameConfig({ packageName: packageNameInput.trim() });
-    toast.success("游戏包名已保存");
+    appToast.success("游戏包名已保存");
   }, [packageNameInput, setGameConfig]);
 
   const handleSaveFigureDefaultEnterDuration = useCallback(() => {
     const parsed = Number(figureDefaultEnterDurationInput.trim());
     if (!Number.isFinite(parsed) || parsed < 0) {
-      toast.error("请输入大于等于 0 的毫秒数");
+      appToast.error("请输入大于等于 0 的毫秒数");
       return;
     }
     const normalized = Math.max(0, Math.min(5000, Math.floor(parsed)));
     setGameConfig({ figureDefaultEnterDuration: normalized });
     setFigureDefaultEnterDurationInput(String(normalized));
-    toast.success("立绘默认入场时长已保存");
+    appToast.success("立绘默认入场时长已保存");
   }, [figureDefaultEnterDurationInput, setGameConfig]);
 
   const handleSaveFigureDefaultExitDuration = useCallback(() => {
     const parsed = Number(figureDefaultExitDurationInput.trim());
     if (!Number.isFinite(parsed) || parsed < 0) {
-      toast.error("请输入大于等于 0 的毫秒数");
+      appToast.error("请输入大于等于 0 的毫秒数");
       return;
     }
     const normalized = Math.max(0, Math.min(5000, Math.floor(parsed)));
     setGameConfig({ figureDefaultExitDuration: normalized });
     setFigureDefaultExitDurationInput(String(normalized));
-    toast.success("立绘默认出场时长已保存");
+    appToast.success("立绘默认出场时长已保存");
   }, [figureDefaultExitDurationInput, setGameConfig]);
 
   const handleSaveTypingSoundInterval = useCallback(() => {
     const parsed = Number(typingSoundIntervalInput.trim());
     if (!Number.isFinite(parsed) || parsed <= 0) {
-      toast.error("请输入大于 0 的数字");
+      appToast.error("请输入大于 0 的数字");
       return;
     }
     const normalized = Math.max(0.1, Math.min(20, Number(parsed.toFixed(2))));
     setGameConfig({ typingSoundInterval: normalized });
     setTypingSoundIntervalInput(String(normalized));
-    toast.success("打字音频率已保存");
+    appToast.success("打字音频率已保存");
   }, [setGameConfig, typingSoundIntervalInput]);
 
   const handleSaveTypingSoundPunctuationPause = useCallback(() => {
     const parsed = Number(typingSoundPunctuationPauseInput.trim());
     if (!Number.isFinite(parsed) || parsed < 0) {
-      toast.error("请输入大于等于 0 的毫秒数");
+      appToast.error("请输入大于等于 0 的毫秒数");
       return;
     }
     const normalized = Math.max(0, Math.min(5000, Math.floor(parsed)));
     setGameConfig({ typingSoundPunctuationPause: normalized });
     setTypingSoundPunctuationPauseInput(String(normalized));
-    toast.success("标点停顿已保存");
+    appToast.success("标点停顿已保存");
   }, [setGameConfig, typingSoundPunctuationPauseInput]);
 
   const handlePickTypingSoundSe = useCallback(() => {
@@ -615,12 +615,12 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       return;
     }
     if (!file.type.startsWith("audio/")) {
-      toast.error("请上传音频文件");
+      appToast.error("请上传音频文件");
       return;
     }
 
     setIsTypingSoundSeUploading(true);
-    toast.loading("正在上传打字音效...", { id: "space-webgal-typing-se-upload" });
+    appToast.loading("正在上传打字音效...", { id: "space-webgal-typing-se-upload" });
     try {
       const uploadedAudio = await uploadUtilsRef.current.uploadAudioOriginalAsset(file, 1);
       setGameConfig({
@@ -628,10 +628,10 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
         typingSoundSeFileId: uploadedAudio.fileId,
         typingSoundSeMediaType: uploadedAudio.mediaType,
       });
-      toast.success("打字音效上传成功", { id: "space-webgal-typing-se-upload" });
+      appToast.success("打字音效上传成功", { id: "space-webgal-typing-se-upload" });
     }
     catch (error) {
-      toast.error(`打字音效上传失败：${getErrorMessage(error)}`, { id: "space-webgal-typing-se-upload" });
+      appToast.error(`打字音效上传失败：${getErrorMessage(error)}`, { id: "space-webgal-typing-se-upload" });
     }
     finally {
       setIsTypingSoundSeUploading(false);
@@ -643,7 +643,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     if (typingSoundSeFileInputRef.current) {
       typingSoundSeFileInputRef.current.value = "";
     }
-    toast.success("打字音效已恢复默认");
+    appToast.success("打字音效已恢复默认");
   }, [setGameConfig]);
 
   const handlePickTitleImage = useCallback(() => {
@@ -660,12 +660,12 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       return;
     }
     if (!file.type.startsWith("image/")) {
-      toast.error("请上传图片文件");
+      appToast.error("请上传图片文件");
       return;
     }
 
     setIsTitleImageUploading(true);
-    toast.loading("正在上传标题背景图...", { id: "space-webgal-title-image-upload" });
+    appToast.loading("正在上传标题背景图...", { id: "space-webgal-title-image-upload" });
     try {
       const uploadedImage = await uploadUtilsRef.current.uploadDualImage(file, 1);
       setGameConfig({
@@ -674,10 +674,10 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
         originalTitleImageUrl: "",
         originalTitleImageFileId: uploadedImage.fileId,
       });
-      toast.success("标题背景图上传成功", { id: "space-webgal-title-image-upload" });
+      appToast.success("标题背景图上传成功", { id: "space-webgal-title-image-upload" });
     }
     catch (error) {
-      toast.error(`标题背景图上传失败：${getErrorMessage(error)}`, { id: "space-webgal-title-image-upload" });
+      appToast.error(`标题背景图上传失败：${getErrorMessage(error)}`, { id: "space-webgal-title-image-upload" });
     }
     finally {
       setIsTitleImageUploading(false);
@@ -694,7 +694,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     if (titleImageFileInputRef.current) {
       titleImageFileInputRef.current.value = "";
     }
-    toast.success("标题背景图已清空");
+    appToast.success("标题背景图已清空");
   }, [setGameConfig]);
 
   const handlePickStartupLogo = useCallback(() => {
@@ -711,12 +711,12 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       return;
     }
     if (!file.type.startsWith("image/")) {
-      toast.error("请上传图片文件");
+      appToast.error("请上传图片文件");
       return;
     }
 
     setIsStartupLogoUploading(true);
-    toast.loading("正在上传启动图...", { id: "space-webgal-startup-logo-upload" });
+    appToast.loading("正在上传启动图...", { id: "space-webgal-startup-logo-upload" });
     try {
       const uploadedImage = await uploadUtilsRef.current.uploadDualImage(file, 1);
       setGameConfig({
@@ -725,10 +725,10 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
         originalStartupLogoUrl: "",
         originalStartupLogoFileId: uploadedImage.fileId,
       });
-      toast.success("启动图上传成功", { id: "space-webgal-startup-logo-upload" });
+      appToast.success("启动图上传成功", { id: "space-webgal-startup-logo-upload" });
     }
     catch (error) {
-      toast.error(`启动图上传失败：${getErrorMessage(error)}`, { id: "space-webgal-startup-logo-upload" });
+      appToast.error(`启动图上传失败：${getErrorMessage(error)}`, { id: "space-webgal-startup-logo-upload" });
     }
     finally {
       setIsStartupLogoUploading(false);
@@ -745,7 +745,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     if (startupLogoFileInputRef.current) {
       startupLogoFileInputRef.current.value = "";
     }
-    toast.success("启动图已清空");
+    appToast.success("启动图已清空");
   }, [setGameConfig]);
 
   const handleSaveTerrePort = useCallback(() => {
@@ -753,7 +753,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     if (!trimmedPort) {
       setTerrePortOverride(null);
       setTerrePortError(null);
-      toast.success("已改为默认 Terre 端口");
+      appToast.success("已改为默认 Terre 端口");
       return;
     }
 
@@ -765,7 +765,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     }
     setTerrePortError(null);
     setTerrePortOverride(normalized);
-    toast.success("Terre 端口已保存");
+    appToast.success("Terre 端口已保存");
   }, [setTerrePortOverride, terrePortInput]);
 
   const handleTerrePortInputChange = useCallback((value: string) => {
@@ -778,20 +778,20 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     if (!trimmedValue) {
       setRoomContentAlertThreshold(DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD);
       setRoomContentAlertThresholdInput(String(DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD));
-      toast.success("房间内容阈值已恢复推荐值");
+      appToast.success("房间内容阈值已恢复推荐值");
       return;
     }
 
     const parsed = Number(trimmedValue);
     const normalized = Number.isFinite(parsed) ? Math.floor(parsed) : Number.NaN;
     if (!Number.isFinite(normalized) || normalized < MIN_ROOM_CONTENT_ALERT_THRESHOLD || normalized > MAX_ROOM_CONTENT_ALERT_THRESHOLD) {
-      toast.error(`请输入 ${MIN_ROOM_CONTENT_ALERT_THRESHOLD}-${MAX_ROOM_CONTENT_ALERT_THRESHOLD} 的整数`);
+      appToast.error(`请输入 ${MIN_ROOM_CONTENT_ALERT_THRESHOLD}-${MAX_ROOM_CONTENT_ALERT_THRESHOLD} 的整数`);
       return;
     }
 
     setRoomContentAlertThreshold(normalized);
     setRoomContentAlertThresholdInput(String(normalized));
-    toast.success("房间内容阈值已保存");
+    appToast.success("房间内容阈值已保存");
   }, [roomContentAlertThresholdInput, setRoomContentAlertThreshold]);
 
   const toggleSection = useCallback((key: CollapsibleSectionKey) => {

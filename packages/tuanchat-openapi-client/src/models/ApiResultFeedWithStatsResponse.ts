@@ -21,4 +21,3 @@ export type ApiResultFeedWithStatsResponse = {
     errMsg?: string;
     data?: FeedWithStatsResponse;
 };
-

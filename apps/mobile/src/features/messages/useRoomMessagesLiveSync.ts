@@ -18,6 +18,11 @@ import { AppState } from "react-native";
 
 import { useAuthSession } from "@/features/auth/auth-session";
 import { writeCachedDirectMessages } from "@/features/friends/mobileDirectMessageCache";
+import {
+  applyMobileChatStatusEvent,
+  parseMobileChatStatusEvent,
+  registerMobileChatStatusSender,
+} from "@/features/messages/mobileChatStatus";
 import { writeCachedRoomMessages } from "@/features/messages/mobileRoomMessageCache";
 import {
   extractChatMessageResponses,
@@ -43,6 +48,8 @@ const GROUP_MESSAGE_BATCH_PUSH_TYPE = 25;
 const DIRECT_MESSAGE_PUSH_TYPE = 1;
 const USER_NOTIFICATION_PUSH_TYPE = 23;
 const TOKEN_INVALID_PUSH_TYPE = 100;
+const CHAT_STATUS_REQ_TYPE = 4;
+const CHAT_STATUS_PUSH_TYPE = 17;
 // 心跳：上行 type 与服务端 WSReqTypeEnum.HEARTBEAT 对齐；下行 pong 复用同一 type。
 const HEARTBEAT_REQ_TYPE = 2;
 // 发送心跳的间隔。服务端读空闲阈值为 60s，这里取 25s 留足余量（每个心跳都会换回一个 pong）。
@@ -286,6 +293,14 @@ function parseIncomingNotification(rawData: unknown): Record<string, unknown> | 
   return envelope.data as Record<string, unknown>;
 }
 
+function parseIncomingChatStatus(rawData: unknown) {
+  const envelope = parseWebSocketEnvelope(rawData);
+  if (envelope?.type !== CHAT_STATUS_PUSH_TYPE) {
+    return null;
+  }
+  return parseMobileChatStatusEvent(envelope.data);
+}
+
 function normalizeIncomingNotification(notification: Record<string, unknown>): NotificationItemResponse {
   return {
     notificationId: isPositiveId(notification.notificationId) ? notification.notificationId : undefined,
@@ -406,6 +421,19 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
         socketRef.current = null;
       }
     };
+
+    const unregisterStatusSender = registerMobileChatStatusSender((chatStatusEvent) => {
+      const socket = socketRef.current;
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        return false;
+      }
+
+      socket.send(JSON.stringify({
+        data: chatStatusEvent,
+        type: CHAT_STATUS_REQ_TYPE,
+      }));
+      return true;
+    });
 
     function scheduleReconnect() {
       cleanupReconnectTimer();
@@ -720,6 +748,12 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
           return;
         }
 
+        const chatStatusEvent = parseIncomingChatStatus(event.data);
+        if (chatStatusEvent) {
+          applyMobileChatStatusEvent(chatStatusEvent);
+          return;
+        }
+
         const directMessage = parseIncomingDirectMessage(event.data);
         if (directMessage) {
           directReceivedCountRef.current += 1;
@@ -901,6 +935,7 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
     return () => {
       logNotificationTrace("ws.effect.cleanup");
       disposed = true;
+      unregisterStatusSender();
       foregroundSubscription.remove();
       stopHeartbeat();
       stopWatchdog();

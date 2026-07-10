@@ -13,7 +13,7 @@ import { useTheme } from "@/hooks/use-theme";
 
 import type { RoomStateRuntimeValue } from "./useRoomStateRuntime";
 
-import { formatUnreadBadgeCount } from "./clueUnread";
+import { formatClueUnreadAccessibilityLabel, formatUnreadBadgeCount } from "./clueUnread";
 import { CombatPanel } from "./CombatPanel";
 import { MapPanel } from "./MapPanel";
 import { MobileCluePanel } from "./MobileCluePanel";
@@ -202,7 +202,13 @@ function RightDrawerPanelContent({
       </View>
 
       <View style={[styles.tabBar, { borderTopColor: theme.border, paddingBottom: insets.bottom }]}>
-        <Pressable style={styles.tab} onPress={handleShowClues}>
+        <Pressable
+          style={styles.tab}
+          accessibilityLabel={formatClueUnreadAccessibilityLabel(clueUnreadCount)}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === "clues" }}
+          onPress={handleShowClues}
+        >
           <View style={styles.tabLabelWrap}>
             <ThemedText
               type="smallBold"
@@ -221,7 +227,13 @@ function RightDrawerPanelContent({
               : null}
           </View>
         </Pressable>
-        <Pressable style={styles.tab} onPress={handleShowCombat}>
+        <Pressable
+          style={styles.tab}
+          accessibilityLabel="战斗"
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === "combat" }}
+          onPress={handleShowCombat}
+        >
           <ThemedText
             type="smallBold"
             themeColor={activeTab === "combat" ? "accent" : "textSecondary"}
@@ -229,7 +241,13 @@ function RightDrawerPanelContent({
             战斗
           </ThemedText>
         </Pressable>
-        <Pressable style={styles.tab} onPress={handleShowMap}>
+        <Pressable
+          style={styles.tab}
+          accessibilityLabel="地图"
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === "map" }}
+          onPress={handleShowMap}
+        >
           <ThemedText
             type="smallBold"
             themeColor={activeTab === "map" ? "accent" : "textSecondary"}

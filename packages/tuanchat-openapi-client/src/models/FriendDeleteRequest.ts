@@ -11,4 +11,3 @@ export type FriendDeleteRequest = {
      */
     targetUserId: number;
 };
-

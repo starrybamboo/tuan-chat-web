@@ -27,4 +27,3 @@ export type UserRegisterRequest = {
      */
     inviteCode?: string;
 };
-

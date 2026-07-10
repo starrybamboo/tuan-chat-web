@@ -117,12 +117,22 @@ export default function RoleAvatarComponent({
       {stopToastWindow
         ? avatarContent
         : (
-            <button type="button" className={width === "full" ? "h-full w-full" : ""} onClick={() => setIsOpen(true)}>
+            <button
+              type="button"
+              className={width === "full" ? "h-full w-full" : ""}
+              aria-label={`查看角色头像详情${typeof avatarQuery.data?.data?.avatarTitle === "string" ? `：${avatarQuery.data.data.avatarTitle}` : avatarQuery.data?.data?.avatarTitle?.label ? `：${avatarQuery.data.data.avatarTitle.label}` : ""}`}
+              onClick={() => setIsOpen(true)}
+            >
               {avatarContent}
             </button>
           )}
       {withTitle && (
-        <div className="text-xs truncate max-w-full">
+        <div
+          className="text-xs truncate max-w-full"
+          title={typeof avatarQuery.data?.data?.avatarTitle === "string"
+            ? avatarQuery.data.data.avatarTitle
+            : avatarQuery.data?.data?.avatarTitle?.label ?? ""}
+        >
           {typeof avatarQuery.data?.data?.avatarTitle === "string"
             ? avatarQuery.data.data.avatarTitle
             : avatarQuery.data?.data?.avatarTitle?.label ?? ""}

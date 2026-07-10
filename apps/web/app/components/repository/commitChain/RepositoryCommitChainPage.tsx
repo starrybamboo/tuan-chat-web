@@ -102,9 +102,10 @@ export default function RepositoryCommitChainPage() {
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="badge badge-outline">{chainSummary}</span>
-            {commitChain?.truncated && <span className="
-              badge badge-warning badge-outline
-            ">结果已截断</span>}
+            {commitChain?.truncated && <span
+              className="badge badge-warning badge-outline"
+              title="仅显示最近若干条提交，调整筛选可查看完整提交链"
+            >结果已截断</span>}
             {commitChain?.broken && <span className="
               badge badge-error badge-outline
             ">链路存在断点</span>}

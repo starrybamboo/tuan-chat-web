@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
@@ -160,7 +160,7 @@ function SpaceTrpgSettingWindow() {
     catch {
       const now = Date.now();
       if (now - lastFailureToastAtRef.current > 3000) {
-        toast.error("跑团设置自动保存失败，将自动重试");
+        appToast.error("跑团设置自动保存失败，将自动重试");
         lastFailureToastAtRef.current = now;
       }
 
@@ -261,6 +261,7 @@ function SpaceTrpgSettingWindow() {
                       ${canEdit ? "" : `cursor-not-allowed opacity-70`}
                     `}
                     aria-disabled={!canEdit}
+                    title={!canEdit ? "无编辑权限" : undefined}
                     onClick={(event) => {
                       if (!canEdit) {
                         event.preventDefault();
@@ -313,12 +314,24 @@ function SpaceTrpgSettingWindow() {
                       hover:bg-base-300
                     ` : `cursor-not-allowed opacity-70`}
                   `}
+                  role="button"
+                  tabIndex={canEdit ? 0 : -1}
+                  aria-disabled={!canEdit}
+                  title={!canEdit ? "无编辑权限" : undefined}
                   onClick={() => {
                     if (canEdit) {
                       setIsDiceMaidenLinkModalOpen(true);
                     }
                   }}
-                  aria-disabled={!canEdit}
+                  onKeyDown={(event) => {
+                    if (!canEdit) {
+                      return;
+                    }
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setIsDiceMaidenLinkModalOpen(true);
+                    }
+                  }}
                 >
                   <div className="card-body p-4">
                     <div className="flex items-center justify-between">

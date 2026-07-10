@@ -19,6 +19,15 @@
   padding: 0;
 }
 
+.chatInputTextarea--insert-mode {
+  caret-color: #38bdf8;
+}
+
+.chatInputTextarea--insert-mode.div-textarea[data-has-text="false"]::before {
+  color: var(--color-info);
+  opacity: 0.95;
+}
+
 .chatInputTextarea {
   word-break: break-all;
   word-wrap: break-word;
@@ -69,41 +78,40 @@
 @keyframes highlight-fade-out {
   0% {
     background-color: hsla(207, 90%, 54%, 0.4);
-    transform: scale(1.008);
+    box-shadow: 0 0 0 2px hsla(207, 90%, 54%, 0.26) inset;
   }
 
   15% {
-    transform: scale(1);
+    box-shadow: 0 0 0 2px hsla(207, 90%, 54%, 0.2) inset;
   }
 
   100% {
     background-color: transparent;
-    transform: scale(1);
+    box-shadow: 0 0 0 0 hsla(207, 90%, 54%, 0) inset;
   }
 }
 
 .highlight-animation {
   border-radius: 0.5rem;
   animation: highlight-fade-out 3s ease-out;
-  transform-origin: center;
 }
 
 @keyframes message-sending-enter {
   0% {
     opacity: 0.72;
-    transform: translateY(8px) scale(0.982);
+    transform: translateY(8px);
     filter: saturate(0.9);
   }
 
   62% {
     opacity: 0.98;
-    transform: translateY(-1px) scale(1.002);
+    transform: translateY(-1px);
     filter: saturate(1);
   }
 
   100% {
     opacity: 0.99;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
     filter: saturate(1);
   }
 }
@@ -173,18 +181,32 @@
 @keyframes private-chat-panel-entry {
   0% {
     opacity: 0;
-    transform: translateY(8px) scale(0.995);
+    transform: translateY(8px);
   }
 
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
 .private-chat-panel-entry {
   animation: private-chat-panel-entry 0.16s ease-out both;
   will-change: opacity, transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jump_icon:hover,
+  .highlight-animation,
+  .message-sending,
+  .message-send-failed,
+  .webgal-mode-message-entry,
+  .private-chat-panel-entry,
+  .private-direct-message-list-entry,
+  .skeleton,
+  .animate-pulse {
+    animation: none !important;
+  }
 }
 
 @keyframes private-direct-message-list-entry {

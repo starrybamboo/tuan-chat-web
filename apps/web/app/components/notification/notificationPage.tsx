@@ -1,6 +1,6 @@
 import { useRouter } from "@tanstack/react-router";
 import { lazy, startTransition, Suspense, useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { UserNotificationItem } from "@/components/notification/notificationTypes";
 
@@ -35,7 +35,7 @@ export default function NotificationPage() {
   const openNotification = async (item: UserNotificationItem) => {
     const targetPath = normalizeNotificationTargetPath(item.targetPath);
     if (!targetPath) {
-      toast.error("通知目标链接无效，请稍后重试");
+      appToast.error("通知目标链接无效，请稍后重试");
       return;
     }
 
@@ -102,6 +102,7 @@ export default function NotificationPage() {
                   ${!unreadOnly ? "btn-info" : `btn-ghost`}
                 `}
                 onClick={() => setUnreadOnly(false)}
+                aria-pressed={!unreadOnly}
               >
                 全部
               </button>
@@ -112,6 +113,7 @@ export default function NotificationPage() {
                   ${unreadOnly ? "btn-info" : `btn-ghost`}
                 `}
                 onClick={() => setUnreadOnly(true)}
+                aria-pressed={unreadOnly}
               >
                 未读
               </button>
@@ -120,6 +122,8 @@ export default function NotificationPage() {
                 className="btn btn-outline btn-sm"
                 disabled={(unreadCountQuery.data?.unreadCount ?? 0) <= 0 || markAllReadMutation.isPending}
                 onClick={() => void markAllReadMutation.mutateAsync({})}
+                aria-busy={markAllReadMutation.isPending}
+                title={(unreadCountQuery.data?.unreadCount ?? 0) <= 0 ? "没有未读通知" : undefined}
               >
                 全部已读
               </button>
@@ -147,6 +151,7 @@ export default function NotificationPage() {
                       className="btn btn-outline btn-sm"
                       disabled={notificationsQuery.isFetchingNextPage}
                       onClick={() => void notificationsQuery.fetchNextPage()}
+                      aria-busy={notificationsQuery.isFetchingNextPage}
                     >
                       {notificationsQuery.isFetchingNextPage ? "正在加载..." : "加载更多"}
                     </button>

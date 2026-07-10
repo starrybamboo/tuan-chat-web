@@ -24,6 +24,7 @@ const styles = StyleSheet.create({
 type State = {
   hasError: boolean;
   error?: Error;
+  isBusy?: boolean;
 };
 
 export class ErrorBoundary extends React.Component<React.PropsWithChildren, State> {
@@ -42,21 +43,29 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren, Stat
   };
 
   handleShareLogs = async () => {
+    this.setState({ isBusy: true });
     try {
       await shareLogs();
     }
     catch {
       Alert.alert("分享失败", "请稍后重试");
     }
+    finally {
+      this.setState({ isBusy: false });
+    }
   };
 
   handleExportLogs = async () => {
+    this.setState({ isBusy: true });
     try {
       const file = await exportLogsToPickedDirectory();
       Alert.alert("已导出", `日志文件已保存：${file.fileName}`);
     }
     catch {
       Alert.alert("导出失败", "请稍后重试");
+    }
+    finally {
+      this.setState({ isBusy: false });
     }
   };
 
@@ -100,23 +109,55 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren, Stat
           </ScrollView>
 
           <View style={styles.actions}>
-            <Pressable onPress={() => void copyLogs()} style={[styles.btn, { backgroundColor: theme.backgroundSelected }]}>
+            <Pressable
+              accessibilityHint="复制日志文本到剪贴板"
+              accessibilityLabel="复制日志"
+              accessibilityRole="button"
+              onPress={() => void copyLogs()}
+              style={[styles.btn, { backgroundColor: theme.backgroundSelected }]}
+            >
               <ThemedText>复制日志</ThemedText>
             </Pressable>
-            <Pressable onPress={() => void this.handleShareLogs()} style={[styles.btn, { backgroundColor: theme.accent }]}>
+            <Pressable
+              accessibilityHint="分享日志文本给其他应用"
+              accessibilityLabel="分享日志文本"
+              accessibilityRole="button"
+              accessibilityState={{ busy: this.state.isBusy }}
+              onPress={() => void this.handleShareLogs()}
+              style={[styles.btn, { backgroundColor: theme.accent }]}
+            >
               <ThemedText style={{ color: "#fff", fontWeight: "600" }}>分享日志文本</ThemedText>
             </Pressable>
           </View>
 
-          <Pressable onPress={() => void this.handleExportLogs()} style={[styles.btn, { backgroundColor: theme.backgroundSelected }]}>
+          <Pressable
+            accessibilityHint="选择目录并保存日志文件"
+            accessibilityLabel="导出日志文件"
+            accessibilityRole="button"
+            accessibilityState={{ busy: this.state.isBusy }}
+            onPress={() => void this.handleExportLogs()}
+            style={[styles.btn, { backgroundColor: theme.backgroundSelected }]}
+          >
             <ThemedText>导出日志文件</ThemedText>
           </Pressable>
 
-          <Pressable onPress={() => void this.handleOpenFeedback()} style={[styles.btn, { backgroundColor: theme.accent }]}>
+          <Pressable
+            accessibilityHint="携带错误信息跳转到反馈页"
+            accessibilityLabel="提交反馈"
+            accessibilityRole="button"
+            onPress={() => void this.handleOpenFeedback()}
+            style={[styles.btn, { backgroundColor: theme.accent }]}
+          >
             <ThemedText style={{ color: "#fff", fontWeight: "600" }}>提交反馈</ThemedText>
           </Pressable>
 
-          <Pressable onPress={this.handleRestart} style={[styles.btn, { backgroundColor: theme.backgroundElement }]}>
+          <Pressable
+            accessibilityHint="重新加载当前界面"
+            accessibilityLabel="重试"
+            accessibilityRole="button"
+            onPress={this.handleRestart}
+            style={[styles.btn, { backgroundColor: theme.backgroundElement }]}
+          >
             <ThemedText themeColor="accent">重试</ThemedText>
           </Pressable>
         </SafeAreaView>

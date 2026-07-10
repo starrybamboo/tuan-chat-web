@@ -325,6 +325,10 @@ export function NotificationDeliveryDiagnosticsCard({
       ))}
       <View style={styles.actionRow}>
         <Pressable
+          accessibilityHint="重新读取后台推送诊断状态"
+          accessibilityLabel="刷新诊断状态"
+          accessibilityRole="button"
+          accessibilityState={{ busy: isRefreshing, disabled: isRefreshing }}
           onPress={() => void refreshDiagnostics()}
           disabled={isRefreshing}
           style={[styles.action, { backgroundColor: theme.backgroundSelected, opacity: isRefreshing ? 0.6 : 1 }]}
@@ -337,18 +341,27 @@ export function NotificationDeliveryDiagnosticsCard({
           ? (
               <>
                 <Pressable
+                  accessibilityHint="打开系统通知设置，用于允许消息通知提醒"
+                  accessibilityLabel="通知设置"
+                  accessibilityRole="button"
                   onPress={() => openSetting("notificationSettings")}
                   style={[styles.action, { backgroundColor: theme.backgroundSelected }]}
                 >
                   <ThemedText type="small">通知设置</ThemedText>
                 </Pressable>
                 <Pressable
+                  accessibilityHint="打开电池优化设置，避免系统限制后台消息"
+                  accessibilityLabel="电池优化"
+                  accessibilityRole="button"
                   onPress={() => openSetting("batteryOptimization")}
                   style={[styles.action, { backgroundColor: theme.backgroundSelected }]}
                 >
                   <ThemedText type="small">电池优化</ThemedText>
                 </Pressable>
                 <Pressable
+                  accessibilityHint="打开系统后台权限设置，用于允许后台接收消息"
+                  accessibilityLabel="后台权限"
+                  accessibilityRole="button"
                   onPress={() => openSetting("manufacturerBackground")}
                   style={[styles.action, { backgroundColor: theme.accentMuted }]}
                 >

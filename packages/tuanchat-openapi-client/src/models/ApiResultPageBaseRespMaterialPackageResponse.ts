@@ -21,4 +21,3 @@ export type ApiResultPageBaseRespMaterialPackageResponse = {
     errMsg?: string;
     data?: PageBaseRespMaterialPackageResponse;
 };
-

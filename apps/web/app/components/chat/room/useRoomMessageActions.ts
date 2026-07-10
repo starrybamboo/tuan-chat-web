@@ -1,6 +1,6 @@
 import { createOptimisticRoomMessage, getNextAppendPosition } from "@tuanchat/query/room-message-lifecycle";
 import { useCallback, useRef } from "react";
-import { toast } from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 
@@ -149,7 +149,7 @@ export default function useRoomMessageActions({
       const result = await sendMessage(request);
       if (!result.success || !result.data) {
         await revertOptimisticMessage(optimisticMessage);
-        toast.error("发送消息失败");
+        appToast.error("发送消息失败");
         return null;
       }
 
@@ -160,7 +160,7 @@ export default function useRoomMessageActions({
     catch (error) {
       console.error(errorLogLabel, error);
       await revertOptimisticMessage(optimisticMessage);
-      toast.error("发送消息失败");
+      appToast.error("发送消息失败");
       return null;
     }
   }, [
@@ -176,7 +176,7 @@ export default function useRoomMessageActions({
     try {
       const result = await sendMessage(request);
       if (!result.success || !result.data) {
-        toast.error("发送消息失败");
+        appToast.error("发送消息失败");
         return null;
       }
 
@@ -189,7 +189,7 @@ export default function useRoomMessageActions({
     }
     catch (error) {
       console.error(errorLogLabel, error);
-      toast.error("发送消息失败");
+      appToast.error("发送消息失败");
       return null;
     }
   }, [addOrUpdateMessage, roomUiStoreApi, sendMessage]);
@@ -210,7 +210,7 @@ export default function useRoomMessageActions({
       const result = await sendMessage(requestWithStablePosition);
       if (!result.success || !result.data) {
         await revertOptimisticMessage(optimisticMessage);
-        toast.error("发送消息失败");
+        appToast.error("发送消息失败");
         return null;
       }
 
@@ -221,7 +221,7 @@ export default function useRoomMessageActions({
     catch (error) {
       console.error(errorLogLabel, error);
       await revertOptimisticMessage(optimisticMessage);
-      toast.error("发送消息失败");
+      appToast.error("发送消息失败");
       return null;
     }
   }, [
@@ -267,7 +267,7 @@ export default function useRoomMessageActions({
       const createdMessages = Array.isArray(result?.data) ? result.data : [];
       if (!result?.success || createdMessages.length !== requests.length) {
         await revertOptimisticMessages(optimisticMessages);
-        toast.error("批量发送消息失败");
+        appToast.error("批量发送消息失败");
         return [];
       }
 
@@ -287,7 +287,7 @@ export default function useRoomMessageActions({
     catch (error) {
       console.error(errorLogLabel, error);
       await revertOptimisticMessages(optimisticMessages);
-      toast.error("批量发送消息失败");
+      appToast.error("批量发送消息失败");
       return [];
     }
   }, [
@@ -358,7 +358,7 @@ export default function useRoomMessageActions({
       const createdMessages = Array.isArray(result?.data) ? result.data : [];
       if (!result?.success || createdMessages.length !== requests.length) {
         await revertOptimisticMessages(optimisticMessages);
-        toast.error("批量发送消息失败");
+        appToast.error("批量发送消息失败");
         return [];
       }
 
@@ -378,7 +378,7 @@ export default function useRoomMessageActions({
     catch (error) {
       console.error("批量发送消息失败", error);
       await revertOptimisticMessages(optimisticMessages);
-      toast.error("批量发送消息失败");
+      appToast.error("批量发送消息失败");
       return [];
     }
   }, [

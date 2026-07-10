@@ -67,6 +67,7 @@ export default function AudioPlayer({ role, size = "default", onRoleUpdate, onDe
             `}
             onClick={handleDeleteAudio}
             title="删除音频"
+            aria-label="删除角色音频"
           >
             <svg className={isCompact ? "size-3.5" : "size-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path

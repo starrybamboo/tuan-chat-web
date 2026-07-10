@@ -1,9 +1,9 @@
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
 
 import type { MaterialEditorActionScope } from "@/components/chat/chatPage.types";
 
+import { appToast } from "@/components/common/appToast/appToast";
 import { imageMediumUrl, imageOriginalUrl } from "@/utils/media/mediaUrl";
 import { UploadUtils } from "@/utils/media/UploadUtils";
 
@@ -138,7 +138,7 @@ export default function MaterialPackageEditor({
     }
 
     if (!draft.name.trim()) {
-      toast.error("素材包名称不能为空");
+      appToast.error("素材包名称不能为空");
       return;
     }
 
@@ -152,7 +152,7 @@ export default function MaterialPackageEditor({
 
     setIsCoverUploading(true);
     const toastId = "material-cover-upload";
-    toast.loading("封面上传中...", { id: toastId });
+    appToast.loading("正在上传封面…", { id: toastId });
 
     try {
       const uploadedImage = await uploadUtils.uploadImageAsset(file, 4);
@@ -162,11 +162,14 @@ export default function MaterialPackageEditor({
         coverUrl: imageMediumUrl(uploadedImage.fileId),
         originalCoverUrl: imageOriginalUrl(uploadedImage.fileId),
       }));
-      toast.success("封面上传成功", { id: toastId });
+      appToast.success("素材包封面已上传", { id: toastId });
     }
     catch (error) {
       const message = error instanceof Error ? error.message : "未知错误";
-      toast.error(`封面上传失败：${message}`, { id: toastId });
+      appToast.error({
+        title: "素材包封面上传失败",
+        description: message,
+      }, { id: toastId });
     }
     finally {
       setIsCoverUploading(false);
@@ -220,7 +223,10 @@ export default function MaterialPackageEditor({
           const message = error instanceof Error ? error.message : "未知错误";
           lastFailedSnapshotRef.current = saveSnapshot;
           setAutoSaveState("error");
-          toast.error(`自动保存失败：${message}`, { id: "material-package-auto-save" });
+          appToast.error({
+            title: "素材包自动保存失败",
+            description: message,
+          }, { id: "material-package-auto-save" });
         });
     }, 800);
   }, [autoSaveEnabled, onSave, savePayload, savePending, saveSnapshot]);
@@ -234,7 +240,7 @@ export default function MaterialPackageEditor({
       case "pending":
         return "待自动保存";
       case "saving":
-        return "自动保存中...";
+        return "自动保存中…";
       case "saved":
         return "已自动保存";
       case "invalid":
@@ -318,8 +324,9 @@ export default function MaterialPackageEditor({
               "
               onClick={() => void onExtraAction()}
               disabled={extraActionPending}
+              aria-busy={extraActionPending}
             >
-              {extraActionPending ? "处理中..." : extraActionLabel}
+              {extraActionPending ? "处理中…" : extraActionLabel}
             </button>
           )}
 
@@ -339,8 +346,9 @@ export default function MaterialPackageEditor({
               "
               onClick={() => void handleSave()}
               disabled={savePending}
+              aria-busy={savePending}
             >
-              {savePending ? "保存中..." : saveLabel}
+              {savePending ? "保存中…" : saveLabel}
             </button>
           )}
         </div>

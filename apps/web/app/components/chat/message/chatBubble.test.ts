@@ -180,12 +180,13 @@ describe("chatBubble annotations", () => {
     expect(html).toContain("data-normal-only=\"false\"");
   });
 
-  it("普通模式下仍然会折叠普通模式隐藏的注解", () => {
+  it("普通模式下不会展示消息注解", () => {
     const html = renderToStaticMarkup(createElement(ChatBubble, {
       chatMessageResponse: createChatMessageResponse(["figure.pos.left"]),
     }));
 
-    expect(html).toContain("data-normal-only=\"true\"");
+    expect(html).not.toContain("data-testid=\"annotations-bar\"");
+    expect(html).not.toContain("data-annotations=\"figure.pos.left\"");
   });
 
   it("编辑过的消息头不再展示已编辑标记", () => {

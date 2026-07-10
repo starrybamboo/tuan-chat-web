@@ -1,14 +1,14 @@
 import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
+import { appToast } from "@/components/common/appToast/appToast";
 
+import { useCreateStickerMutation, useDeleteStickerMutation, useGetUserStickersQuery } from "api/hooks/stickerQueryHooks";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
 
 import { MediaImage } from "@/components/common/mediaImage";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { getImageSize } from "@/utils/media/getImgSize";
 import { mediaFileUrl } from "@/utils/media/mediaUrl";
 import { UploadUtils } from "@/utils/media/UploadUtils";
-import { useCreateStickerMutation, useDeleteStickerMutation, useGetUserStickersQuery } from "api/hooks/stickerQueryHooks";
 
 const SUPPORTED_STICKER_FORMATS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
 const uploadUtils = new UploadUtils();
@@ -52,7 +52,7 @@ export default function StickerWindow({ onChoose }:
     }
     const selectedFormat = normalizeStickerFormat(newImg.type.split("/").pop());
     if (!selectedFormat) {
-      toast.error("表情仅支持 jpg/jpeg/png/gif/webp");
+      appToast.error("表情仅支持 jpg/jpeg/png/gif/webp");
       return;
     }
     try {
@@ -60,7 +60,7 @@ export default function StickerWindow({ onChoose }:
       const format = resolveStickerFormat(newImg);
 
       if (!format) {
-        toast.error("表情仅支持 jpg/jpeg/png/gif/webp");
+        appToast.error("表情仅支持 jpg/jpeg/png/gif/webp");
         return;
       }
 
@@ -76,12 +76,12 @@ export default function StickerWindow({ onChoose }:
 
       createStickerMutation.mutate(stickerCreateRequest, {
         onError: (error) => {
-          toast.error(getErrorMessage(error));
+          appToast.error(getErrorMessage(error));
         },
       });
     }
     catch (error) {
-      toast.error(getErrorMessage(error));
+      appToast.error(getErrorMessage(error));
     }
   };
 
@@ -92,7 +92,7 @@ export default function StickerWindow({ onChoose }:
     }
     deleteStickerMutation.mutate(stickerId, {
       onError: (error) => {
-        toast.error(getErrorMessage(error));
+        appToast.error(getErrorMessage(error));
       },
     });
   };
@@ -135,10 +135,11 @@ export default function StickerWindow({ onChoose }:
                   type="button"
                   key={sticker.stickerId}
                   onClick={() => { onChoose(sticker); }}
+                  aria-label={`选择表情 ${sticker.name || sticker.stickerId || ""}`.trim()}
                   className={`
                     aspect-square cursor-pointer rounded-lg p-1
-                    transition-transform relative
-                    ${deleteButtonVisible ? "" : `hover:scale-105`}
+                    transition-transform relative motion-reduce:transition-none
+                    ${deleteButtonVisible ? "" : `hover:scale-105 motion-reduce:hover:scale-100`}
                   `}
                 >
                   <MediaImage
@@ -158,6 +159,7 @@ export default function StickerWindow({ onChoose }:
                         hover:bg-base-content/10
                         transition-colors
                       "
+                      aria-label={`删除表情 ${sticker.name || sticker.stickerId || ""}`.trim()}
                       onClick={(e) => {
                         e.stopPropagation();
                         onDelete(sticker.stickerId || -1);
@@ -177,6 +179,8 @@ export default function StickerWindow({ onChoose }:
               hover:bg-base-200
               rounded-lg p-1 transition-transform
             "
+            aria-pressed={deleteButtonVisible}
+            aria-label="切换表情删除模式"
             onClick={() => {
               setDeleteButtonVisible(!deleteButtonVisible);
             }}

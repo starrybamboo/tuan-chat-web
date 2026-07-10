@@ -20,11 +20,11 @@ import {
   TrashIcon,
 } from "@phosphor-icons/react";
 import { useCallback, useState } from "react";
-import { toast } from "react-hot-toast";
 
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import type { FloatingSelectionToolbarPosition } from "@/components/common/floatingSelectionToolbar";
 
+import { appToast } from "@/components/common/appToast/appToast";
 import { FloatingSelectionToolbar, useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import "@/components/common/textEnhanceAnimations.css";
@@ -217,8 +217,8 @@ function ToolbarButton({
     <button
       type="button"
       className={[
-        "flex h-8 min-w-8 items-center gap-1.5 rounded-md px-2 text-sm text-base-content/80 transition hover:bg-base-200 hover:text-base-content",
-        active ? "bg-base-200 text-base-content" : "",
+        "flex h-7 min-w-7 items-center gap-1 rounded-md px-1.5 text-xs text-base-content/75 transition hover:bg-base-content/10 hover:text-base-content",
+        active ? "bg-base-content/10 text-base-content" : "",
       ].join(" ")}
       onMouseDown={onMouseDown}
       title={label}
@@ -249,9 +249,9 @@ function SplitButton({
       <button
         type="button"
         className="
-          flex h-8 items-center gap-1.5 rounded-l-md px-2 text-sm
-          text-base-content/80 transition
-          hover:bg-base-200 hover:text-base-content
+          flex h-7 items-center gap-1 rounded-l-md px-1.5 text-xs
+          text-base-content/75 transition
+          hover:bg-base-content/10 hover:text-base-content
         "
         onMouseDown={(event) => {
           preventSelectionLoss(event);
@@ -265,9 +265,9 @@ function SplitButton({
       <button
         type="button"
         className="
-          flex h-8 w-6 items-center justify-center rounded-r-md border-l
-          border-base-300/70 text-base-content/60 transition
-          hover:bg-base-200 hover:text-base-content
+          flex h-7 w-5 items-center justify-center rounded-r-md border-l
+          border-base-content/10 text-base-content/55 transition
+          hover:bg-base-content/10 hover:text-base-content
         "
         onMouseDown={(event) => {
           preventSelectionLoss(event);
@@ -287,8 +287,9 @@ function DropdownPanel({ children }: { children: ReactNode }) {
   return (
     <div
       className="
-        absolute left-0 top-10 z-41 min-w-48 rounded-md border border-base-300
-        bg-base-100 p-2.5 text-sm shadow-xl
+        absolute left-0 top-9 z-41 min-w-48 rounded-lg border border-base-content/10
+        bg-base-100/98 p-2.5 text-sm shadow-[0_16px_42px_rgba(0,0,0,0.32)]
+        ring-1 ring-white/5 backdrop-blur-xl
       "
       onMouseDown={event => event.stopPropagation()}
       role="presentation"
@@ -351,8 +352,8 @@ function SwatchMenu({
         <button
           type="button"
           className="
-            h-8 rounded-md border border-base-300 px-2.5 text-sm transition
-            hover:bg-base-200
+            h-8 rounded-md border border-base-content/10 px-2.5 text-sm transition
+            hover:bg-base-content/10
           "
           onMouseDown={(event) => {
             preventSelectionLoss(event);
@@ -391,7 +392,7 @@ function FontSizeMenu({
             key={size}
             type="button"
             className={[
-              "h-8 rounded-md px-2.5 text-left transition hover:bg-base-200",
+              "h-8 rounded-md px-2.5 text-left transition hover:bg-base-content/10",
               selectedFontSize === size ? "bg-info/10 text-info" : "text-base-content/80",
             ].join(" ")}
             onMouseDown={(event) => {
@@ -422,7 +423,7 @@ function HeadingMenu({
             className="
               flex h-8 items-center gap-2.5 rounded-md px-2.5 text-left
               transition
-              hover:bg-base-200
+              hover:bg-base-content/10
             "
             onMouseDown={(event) => {
               preventSelectionLoss(event);
@@ -929,17 +930,17 @@ function AdvancedStyleDialog({
 
   const handleCopyAiPrompt = useCallback(async () => {
     if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
-      toast.error("当前环境不支持复制到剪贴板。");
+      appToast.error("当前环境不支持复制到剪贴板。");
       return;
     }
 
     try {
       await navigator.clipboard.writeText(TEXT_STYLE_AI_PROMPT);
-      toast.success("AI 提示词已复制");
+      appToast.success("AI 提示词已复制");
     }
     catch (error) {
       console.error("复制 AI 提示词失败", error);
-      toast.error("复制失败，请重试");
+      appToast.error("复制失败，请重试");
     }
   }, []);
 
@@ -1367,7 +1368,7 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
       position={externalSelectionActive ? externalSelection?.position ?? null : toolbarPos}
       toolbarRef={toolbarRef}
       className={className}
-      shellClassName="max-w-[calc(100vw-1rem)] flex-wrap gap-1 rounded-xl px-2 py-1.5 text-sm"
+      shellClassName="max-w-[calc(100vw-1rem)] flex-wrap gap-0.5 rounded-xl px-1.5 py-1 text-xs"
     >
       <SplitButton
         title="标题"

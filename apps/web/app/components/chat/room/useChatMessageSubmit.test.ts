@@ -29,8 +29,8 @@ vi.mock("react", async () => {
   };
 });
 
-vi.mock("react-hot-toast", () => ({
-  toast: {
+vi.mock("@/components/common/appToast/appToast", () => ({
+  appToast: {
     error: mocks.toastErrorMock,
     success: mocks.toastSuccessMock,
   },
@@ -933,7 +933,10 @@ describe("useChatMessageSubmit", () => {
       },
     }), { optimistic: false });
     expect(String(sendMessageWithInsert.mock.calls[1]?.[0]?.content ?? "")).not.toMatch(/^[.。/]/);
-    expect(mocks.toastSuccessMock).toHaveBeenCalledWith("状态已更新", { id: "state-event-sent" });
+    expect(mocks.toastSuccessMock).toHaveBeenCalledWith(expect.objectContaining({
+      title: "状态已更新",
+      description: "角色卡数值已经写入，并已发送状态变更消息。",
+    }), { id: "state-event-sent" });
   });
 
   it("连写带符号 .st 会发送骰娘反馈和 STATE_EVENT(varOp)", async () => {
@@ -1484,7 +1487,10 @@ describe("useChatMessageSubmit", () => {
         },
       },
     }), { optimistic: false });
-    expect(mocks.toastSuccessMock).toHaveBeenCalledWith("状态已更新", { id: "state-event-sent" });
+    expect(mocks.toastSuccessMock).toHaveBeenCalledWith(expect.objectContaining({
+      title: "状态已更新",
+      description: "角色卡数值已经写入，并已发送状态变更消息。",
+    }), { id: "state-event-sent" });
   });
 
   it("其他命令仍然走旧 cmdPre 逻辑", async () => {

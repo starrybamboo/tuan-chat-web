@@ -1,6 +1,6 @@
 import { useParams } from "@tanstack/react-router";
 
-import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import { getScreenSize } from "@/utils/getScreenSize";
 
 import ChatList from "./components/ChatList";
@@ -19,7 +19,6 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   };
 
   const userId = useGlobalUserId() || -1;
-  const webSocketUtils = useGlobalWebSocket();
   const { roomId: urlRoomId } = useParams({ strict: false });
   const currentContactUserId = urlRoomId ? Number.parseInt(urlRoomId) : null;
 
@@ -31,7 +30,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
     realTimeContacts,
     sortedRealTimeMessages,
     deletedThisContactId,
-  } = usePrivateMessageList({ webSocketUtils, userId });
+  } = usePrivateMessageList({ userId });
 
   // 未读消息数
   const { unreadMessageNumbers, updateReadlinePosition }

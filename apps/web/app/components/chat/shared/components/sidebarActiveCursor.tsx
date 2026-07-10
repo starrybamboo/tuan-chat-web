@@ -1,8 +1,10 @@
 import { motion } from "motion/react";
 
+import type { ChatSidebarActiveTone } from "./chatSidebarActiveTone";
+
 type SidebarActiveCursorProps = {
   isActive: boolean;
-  tone?: "default" | "collapsed";
+  tone?: ChatSidebarActiveTone;
 };
 
 export const chatSidebarActiveCursorLayoutId = "chat-sidebar-active-cursor";

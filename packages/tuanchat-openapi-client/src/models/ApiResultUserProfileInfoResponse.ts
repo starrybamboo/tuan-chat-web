@@ -21,4 +21,3 @@ export type ApiResultUserProfileInfoResponse = {
     errMsg?: string;
     data?: UserProfileInfoResponse;
 };
-

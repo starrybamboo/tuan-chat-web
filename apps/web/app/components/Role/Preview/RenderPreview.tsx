@@ -32,6 +32,7 @@ function RenderPreviewComponent({
   characterName = "角色名",
   dialogContent = "对话内容",
 }: RenderPreviewProps) {
+  const isCalibrationHint = dialogContent.trim().startsWith("点击进行");
   // --- 关键步骤 2: 创建 ref 和 state ---
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
@@ -111,7 +112,20 @@ function RenderPreviewComponent({
                 block font-medium mt-[3%] text-transparent bg-clip-text
                 bg-linear-to-b from-white to-cyan-100
               " style={{ fontSize: `${55 * scaleX}px` }}>{characterName}</span>
-              <span className="block mt-[1%]" style={{ fontSize: `${55 * scaleX}px` }}>{dialogContent}</span>
+              <span
+                className={`block mt-[1%] ${isCalibrationHint ? "font-semibold text-warning" : ""}`}
+                style={{
+                  fontSize: `${55 * scaleX}px`,
+                  ...(isCalibrationHint
+                    ? {
+                        color: "#FBBF24",
+                        textShadow: "0 0 4px rgba(251, 191, 36, 0.58), 0 0 10px rgba(34, 211, 238, 0.28), 0 1px 2px rgba(0, 0, 0, 0.9)",
+                      }
+                    : {}),
+                }}
+              >
+                {dialogContent}
+              </span>
             </p>
           </div>
         </div>

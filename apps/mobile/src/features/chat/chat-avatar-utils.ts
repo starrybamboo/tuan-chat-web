@@ -19,11 +19,15 @@ export function buildRoomRolesById(roomRoles: readonly UserRole[]) {
   return roomRolesById;
 }
 
-export function resolveMessageAvatarFileId(message: Pick<Message, "avatarFileId" | "roleId">, roomRolesById?: RoomRolesById) {
+export function resolveMessageDirectAvatarFileId(message: Pick<Message, "avatarFileId">) {
   if (isPositiveInteger(message.avatarFileId)) {
     return message.avatarFileId;
   }
 
+  return null;
+}
+
+export function resolveRoleDefaultAvatarFileId(message: Pick<Message, "roleId">, roomRolesById?: RoomRolesById) {
   if (isPositiveInteger(message.roleId)) {
     const roleAvatarFileId = roomRolesById?.get(message.roleId)?.avatarFileId;
     if (isPositiveInteger(roleAvatarFileId)) {
@@ -34,11 +38,15 @@ export function resolveMessageAvatarFileId(message: Pick<Message, "avatarFileId"
   return null;
 }
 
-export function resolveMessageAvatarId(message: Pick<Message, "avatarId" | "roleId">, roomRolesById?: RoomRolesById) {
+export function resolveMessageDirectAvatarId(message: Pick<Message, "avatarId">) {
   if (isPositiveInteger(message.avatarId)) {
     return message.avatarId;
   }
 
+  return null;
+}
+
+export function resolveRoleDefaultAvatarId(message: Pick<Message, "roleId">, roomRolesById?: RoomRolesById) {
   if (isPositiveInteger(message.roleId)) {
     const roleAvatarId = roomRolesById?.get(message.roleId)?.avatarId;
     if (isPositiveInteger(roleAvatarId)) {
@@ -49,7 +57,29 @@ export function resolveMessageAvatarId(message: Pick<Message, "avatarId" | "role
   return null;
 }
 
-export function resolveMessageAvatarUrl(message: Pick<Message, "avatarFileId" | "roleId">, roomRolesById?: RoomRolesById) {
+export function resolveMessageAvatarFileId(message: Pick<Message, "avatarFileId" | "avatarId" | "roleId">, roomRolesById?: RoomRolesById) {
+  const directAvatarFileId = resolveMessageDirectAvatarFileId(message);
+  if (directAvatarFileId != null) {
+    return directAvatarFileId;
+  }
+
+  if (resolveMessageDirectAvatarId(message) != null) {
+    return null;
+  }
+
+  return resolveRoleDefaultAvatarFileId(message, roomRolesById);
+}
+
+export function resolveMessageAvatarId(message: Pick<Message, "avatarId" | "roleId">, roomRolesById?: RoomRolesById) {
+  const directAvatarId = resolveMessageDirectAvatarId(message);
+  if (directAvatarId != null) {
+    return directAvatarId;
+  }
+
+  return resolveRoleDefaultAvatarId(message, roomRolesById);
+}
+
+export function resolveMessageAvatarUrl(message: Pick<Message, "avatarFileId" | "avatarId" | "roleId">, roomRolesById?: RoomRolesById) {
   const avatarFileId = resolveMessageAvatarFileId(message, roomRolesById);
   return avatarFileId ? avatarThumbUrl(avatarFileId) : null;
 }

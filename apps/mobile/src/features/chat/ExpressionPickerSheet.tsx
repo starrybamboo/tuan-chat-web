@@ -250,6 +250,9 @@ export function ExpressionPickerSheet({
                       return (
                         <Pressable
                           key={sticker.stickerId ?? sticker.fileId}
+                          accessibilityHint="点按发送该表情"
+                          accessibilityLabel={`发送表情 ${sticker.name?.trim() || `表情 ${sticker.stickerId ?? sticker.fileId}`}`}
+                          accessibilityRole="button"
                           onPress={() => {
                             onSelectExpression(sticker);
                             onClose();

@@ -80,9 +80,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       type="button"
       className={classes}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...rest}
     >
-      {loading ? <span className="loading loading-spinner loading-xs" /> : icon}
+      {loading ? <span className="loading loading-spinner loading-xs" aria-hidden="true" /> : icon}
       {children}
     </button>
   );

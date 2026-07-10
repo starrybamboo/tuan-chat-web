@@ -21,4 +21,3 @@ export type ApiResultAiGatewayModelCatalogResponse = {
     errMsg?: string;
     data?: AiGatewayModelCatalogResponse;
 };
-

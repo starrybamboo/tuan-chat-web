@@ -35,4 +35,3 @@ export type SpaceMember = {
     observer?: boolean;
     leader?: boolean;
 };
-

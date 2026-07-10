@@ -1,9 +1,9 @@
 import type { QueryClient } from "@tanstack/react-query";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
-import toast from "react-hot-toast";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { DicerMessageVisibility } from "@/components/common/dicer/commandMessageVisibility";
@@ -491,7 +491,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       };
 
       const sendToast = (message: string) => {
-        toast(message);
+        appToast.info(message);
       };
 
       // 设置文案键，用于从骰娘 extra.copywriting 中随机抽取文案
@@ -756,7 +756,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         await discardOptimisticCommandMessage(pendingOptimisticCommandMessage);
       }
       console.error("执行骰子指令失败", error);
-      toast.error(`执行错误：${error instanceof Error ? error.message : String(error)}`);
+      appToast.error(`执行错误：${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
   }

@@ -60,7 +60,7 @@ export function StandardHistoryPanel({
       <div className="flex h-full flex-col">
         <div className="mb-3 flex items-center gap-2 px-1">
           <div className="flex items-center gap-1">
-            <div className="text-sm font-medium">History</div>
+            <div className="text-sm font-medium">历史记录</div>
             <HistoryHint />
           </div>
           <button

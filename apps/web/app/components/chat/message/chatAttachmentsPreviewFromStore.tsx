@@ -150,7 +150,10 @@ export default function ChatAttachmentsPreviewFromStore({ roomId }: ChatAttachme
                     : <ArticleIcon className="size-4 opacity-70 shrink-0" />}
                   <span className="text-xs truncate">{file.name}</span>
                 </div>
-                <div
+                <button
+                  type="button"
+                  aria-label={`移除附件 ${file.name}`}
+                  title={`移除附件 ${file.name}`}
                   className="
                     absolute -top-1 -right-1 bg-base-100 rounded-full shadow
                     cursor-pointer
@@ -164,7 +167,7 @@ export default function ChatAttachmentsPreviewFromStore({ roomId }: ChatAttachme
                   " viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
-                </div>
+                </button>
                 <div className="
                   absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px]
                   px-1 truncate rounded-b
@@ -182,7 +185,10 @@ export default function ChatAttachmentsPreviewFromStore({ roomId }: ChatAttachme
               " title={audioFile.name}>
                 <MusicNote className="size-6 opacity-70" />
               </div>
-              <div
+              <button
+                type="button"
+                aria-label="移除语音附件"
+                title="移除语音附件"
                 className="
                   absolute -top-1 -right-1 bg-base-100 rounded-full shadow
                   cursor-pointer
@@ -194,7 +200,7 @@ export default function ChatAttachmentsPreviewFromStore({ roomId }: ChatAttachme
                 <svg xmlns="http://www.w3.org/2000/svg" className="size-4 p-0.5" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
-              </div>
+              </button>
               <div className="
                 absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px]
                 px-1 truncate rounded-b

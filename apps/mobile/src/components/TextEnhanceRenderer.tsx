@@ -97,6 +97,7 @@ type TextEnhanceRendererProps = {
 };
 
 export function TextEnhanceRenderer({ content, numberOfLines, style }: TextEnhanceRendererProps) {
+  // 本组件会按 numberOfLines 截断文本，读屏无法读取被截断部分；完整文本应由父级 accessibilityLabel 提供。
   if (!content)
     return null;
 

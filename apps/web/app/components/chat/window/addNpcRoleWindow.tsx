@@ -57,18 +57,22 @@ export function AddNpcRoleWindow({
               hover:shadow-lg
               transition-shadow cursor-pointer
             " key={role.roleId}>
-              <div className="flex flex-col items-center p-3">
-                <button type="button" onClick={() => handleAddRole(role.roleId)}>
-                  <RoleAvatarByRole
-                    role={role}
-                    width={24}
-                    isRounded={true}
-                    withTitle={false}
-                    stopToastWindow={true}
-                  />
-                </button>
-                <p className="text-center block">{role.roleName}</p>
-              </div>
+              <button
+                type="button"
+                className="flex flex-col items-center p-3"
+                aria-label={`添加 NPC ${role.roleName}`}
+                title={role.roleName}
+                onClick={() => handleAddRole(role.roleId)}
+              >
+                <RoleAvatarByRole
+                  role={role}
+                  width={24}
+                  isRounded={true}
+                  withTitle={false}
+                  stopToastWindow={true}
+                />
+                <span className="text-center block">{role.roleName}</span>
+              </button>
             </div>
           ))}
           <button

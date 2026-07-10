@@ -1,9 +1,10 @@
 import type { MaterialPackageResponse } from "@tuanchat/openapi-client/models/MaterialPackageResponse";
 import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
 
-import { useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { useMemo, useRef, useState } from "react";
 
+import { appToast } from "@/components/common/appToast/appToast";
+import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
 import { useImportSpaceMaterialPackageMutation, useMyMaterialPackagesQuery, usePublicMaterialPackagesQuery } from "../../../../api/hooks/materialPackageQueryHooks";
 import { buildMaterialPackageImportSuccessMessage, getMaterialPackageDisplayName } from "./materialPackageImportFeedback";
 
@@ -25,6 +26,8 @@ function PackageSourceCard({
   onImport: (packageId: number) => void;
   importing: boolean;
 }) {
+  const displayName = getMaterialPackageDisplayName(item.name);
+
   return (
     <div className="
       rounded-2xl border border-base-300 bg-base-100/80 p-4 shadow-sm
@@ -32,7 +35,7 @@ function PackageSourceCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-2">
           <div className="flex items-center gap-2">
-            <div className="font-medium truncate">{getMaterialPackageDisplayName(item.name)}</div>
+            <div className="font-medium truncate" title={displayName}>{displayName}</div>
             {item.isPublic ? <span className="badge badge-info badge-outline">公开</span> : <span className="
               badge badge-outline
             ">私有</span>}
@@ -68,6 +71,7 @@ export default function MaterialPackageImportModal({
 }: MaterialPackageImportModalProps) {
   const [activeTab, setActiveTab] = useState<SourceTab>("my");
   const [keyword, setKeyword] = useState("");
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
   const myRequest = useMemo(() => ({
     pageNo: 1,
     pageSize: 50,
@@ -82,6 +86,12 @@ export default function MaterialPackageImportModal({
   const publicPackagesQuery = usePublicMaterialPackagesQuery(publicRequest, isOpen && activeTab === "public");
   const importMutation = useImportSpaceMaterialPackageMutation();
 
+  useEscapeToClose({
+    enabled: isOpen,
+    onClose,
+    containerRef: dialogRef,
+  });
+
   if (!isOpen) {
     return null;
   }
@@ -92,7 +102,14 @@ export default function MaterialPackageImportModal({
   const loading = activeTab === "my" ? myPackagesQuery.isLoading : publicPackagesQuery.isLoading;
 
   return (
-    <dialog className="modal modal-open">
+    <dialog
+      ref={dialogRef}
+      data-modal-layer="true"
+      role="dialog"
+      aria-modal="true"
+      aria-label="导入局外素材包"
+      className="modal modal-open"
+    >
       <div className="modal-box max-w-4xl rounded-2xl p-0">
         <div className="border-b border-base-300 px-6 py-5">
           <div className="text-xl font-semibold">导入局外素材包</div>
@@ -165,7 +182,7 @@ export default function MaterialPackageImportModal({
                     {
                       onSuccess: (result) => {
                         const importedPackage = result.data;
-                        toast.success(buildMaterialPackageImportSuccessMessage(importedPackage?.name ?? item.name));
+                        appToast.success(buildMaterialPackageImportSuccessMessage(importedPackage?.name ?? item.name));
                         if (importedPackage) {
                           onImported?.(importedPackage);
                         }

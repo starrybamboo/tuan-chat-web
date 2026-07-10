@@ -10,8 +10,8 @@ describe("useRoomSidebarSplitLayout", () => {
     });
 
     expect(metrics.usableHeight).toBe(600 - ROOM_SIDEBAR_SPLIT_HANDLE_HEIGHT);
-    expect(metrics.topHeight).toBe(147);
-    expect(metrics.bottomHeight).toBe(441);
+    expect(metrics.topHeight).toBe(145);
+    expect(metrics.bottomHeight).toBe(435);
     expect(metrics.minSectionHeight).toBe(120);
   });
 

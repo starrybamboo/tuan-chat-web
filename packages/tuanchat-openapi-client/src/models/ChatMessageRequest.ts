@@ -46,4 +46,3 @@ export type ChatMessageRequest = {
     position?: number;
     extra: MessageExtra;
 };
-

@@ -12,4 +12,3 @@ export type RoomRoleDeleteRequest = {
      */
     roleIdList: Array<number>;
 };
-

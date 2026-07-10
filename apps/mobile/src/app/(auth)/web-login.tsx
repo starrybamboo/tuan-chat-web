@@ -1,10 +1,11 @@
+import type { ShouldStartLoadRequest, WebViewNavigation } from "react-native-webview/lib/WebViewTypes";
+
 import { Redirect, router } from "expo-router";
 import { ArrowLeft, WarningCircle } from "phosphor-react-native";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
-import type { ShouldStartLoadRequest, WebViewNavigation } from "react-native-webview/lib/WebViewTypes";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
@@ -95,6 +96,7 @@ export default function WebLoginScreen() {
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <Pressable
           accessibilityLabel="返回登录页"
+          accessibilityRole="button"
           onPress={() => router.back()}
           style={({ pressed }) => [
             styles.backButton,
@@ -143,6 +145,7 @@ export default function WebLoginScreen() {
           <View style={[styles.loader, { backgroundColor: theme.background }]}>
             <ActivityIndicator color={theme.accent} />
             <ThemedText themeColor="textSecondary" type="small">正在加载网页登录…</ThemedText>
+            <ThemedText themeColor="textSecondary" type="small">用于完成安全验证，成功后会自动返回 App</ThemedText>
           </View>
         ) : null}
 
@@ -152,6 +155,8 @@ export default function WebLoginScreen() {
             <ThemedText type="subtitle">网页登录页加载失败</ThemedText>
             <ThemedText themeColor="textSecondary">{loadError}</ThemedText>
             <Pressable
+              accessibilityLabel="重新加载网页登录页"
+              accessibilityRole="button"
               onPress={() => {
                 setLoadError(null);
                 setHasLoadedOnce(false);

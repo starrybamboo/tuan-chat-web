@@ -33,4 +33,3 @@ export type MessageExtra = {
     roomJump?: RoomJumpExtra;
     stateEvent?: StateEventExtra;
 };
-

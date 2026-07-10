@@ -49,7 +49,8 @@ export function HistoryImageTile({
           active:cursor-grabbing
         "
         draggable={draggable}
-        title={title}
+        aria-label={title}
+        title={draggable ? `可拖拽为参考图` : title}
         onClick={onClick}
         onDragStart={onDragStart}
       >

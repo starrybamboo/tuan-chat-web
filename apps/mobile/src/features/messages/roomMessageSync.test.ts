@@ -1,6 +1,5 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
-import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
 import {
   createOptimisticRoomMessage,
   getRoomMessageLocalRenderKey,
@@ -10,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { RoomMessagesQueryData } from "./roomMessagesQueryData";
 
 import { extractRoomMessagesFromQueryData } from "./roomMessagesQueryData";
+import { getRoomMessagesQueryKey } from "./roomMessagesQueryKey";
 import {
   extractChatMessageResponses,
   fetchRoomMessagesWithLocalSync,
@@ -41,7 +41,7 @@ function createRoomMessage(
 
 function createQueryClientStub(initialData: RoomMessagesQueryData = []) {
   const data = new Map<string, RoomMessagesQueryData>();
-  data.set(JSON.stringify(getAllRoomMessagesQueryKey(9)), initialData);
+  data.set(JSON.stringify(getRoomMessagesQueryKey(9)), initialData);
 
   return {
     getQueryData: vi.fn((queryKey: readonly unknown[]) => {
@@ -51,8 +51,8 @@ function createQueryClientStub(initialData: RoomMessagesQueryData = []) {
       const key = JSON.stringify(queryKey);
       data.set(key, updater(data.get(key)));
     }),
-    rawData: () => data.get(JSON.stringify(getAllRoomMessagesQueryKey(9))),
-    snapshot: () => extractRoomMessagesFromQueryData(data.get(JSON.stringify(getAllRoomMessagesQueryKey(9)))),
+    rawData: () => data.get(JSON.stringify(getRoomMessagesQueryKey(9))),
+    snapshot: () => extractRoomMessagesFromQueryData(data.get(JSON.stringify(getRoomMessagesQueryKey(9)))),
   };
 }
 

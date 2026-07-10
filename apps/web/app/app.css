@@ -77,6 +77,13 @@
   --tc-safe-area-right: env(safe-area-inset-right, 0px);
   --tc-safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --tc-safe-area-left: env(safe-area-inset-left, 0px);
+  --tc-selection-bg: color-mix(in oklab, var(--color-info) 24%, transparent);
+  --tc-selection-text: var(--color-base-content);
+}
+
+::selection {
+  background-color: var(--tc-selection-bg);
+  color: var(--tc-selection-text);
 }
 
 html,

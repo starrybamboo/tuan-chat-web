@@ -1,9 +1,14 @@
 import type { ReactNode } from "react";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { PlusIcon, Trash } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
+import { fetchUserRoomsWithCache, useCreateSpaceMutation, useSetSpaceExtraMutation } from "api/hooks/chatQueryHooks";
+import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
+import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
+import { useGetUserInfoQuery } from "api/hooks/UserHooks";
+import { useGetUserRolesQuery } from "api/queryHooks";
 import { useEffect, useId, useMemo, useState } from "react";
-import toast from "react-hot-toast";
 
 import checkBack from "@/components/common/autoContrastText";
 import { MediaImage } from "@/components/common/mediaImage";
@@ -14,11 +19,6 @@ import { useGlobalUserId } from "@/components/globalContextProvider";
 import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
 import { DiceFiveIcon, RoomChatIcon, WebgalIcon } from "@/icons";
 import { imageLowUrl } from "@/utils/media/mediaUrl";
-import { fetchUserRoomsWithCache, useCreateSpaceMutation, useSetSpaceExtraMutation } from "api/hooks/chatQueryHooks";
-import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
-import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
-import { useGetUserInfoQuery } from "api/hooks/UserHooks";
-import { useGetUserRolesQuery } from "api/queryHooks";
 
 import type { ResolvedImportChatMessage } from "./importChatMessagesWindow";
 import type { InitialImportChatMessage } from "./initialChatImport";
@@ -88,6 +88,7 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
   const availableRoles = userRolesQuery.data?.data ?? [];
   const spaceAvatarThumbUploadId = useId().replace(/:/g, "");
   const spaceNameInputId = useId().replace(/:/g, "");
+  const ruleDropdownListId = useId().replace(/:/g, "");
   const defaultSpaceAvatarFileId = userInfo?.avatarFileId;
   const defaultSpaceAvatar = imageLowUrl(defaultSpaceAvatarFileId);
   const defaultSpaceName = userInfo?.username ? `${String(userInfo.username)}的空间` : "";
@@ -104,6 +105,7 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
   const [selectedRuleId, setSelectedRuleId] = useState<number>(1);
   const [dicerRoleId, setDicerRoleId] = useState<number | undefined>(undefined);
   const [isDiceMaidenLinkModalOpen, setIsDiceMaidenLinkModalOpen] = useState(false);
+  const [isRuleDropdownOpen, setIsRuleDropdownOpen] = useState(false);
   const [isTrpgSettingsExpanded, setIsTrpgSettingsExpanded] = useState(true);
   const [isWebgalSettingsExpanded, setIsWebgalSettingsExpanded] = useState(true);
   const [webgalInitialSettings, setWebgalInitialSettings] = useState<WebgalInitialSettings>(DEFAULT_WEBGAL_INITIAL_SETTINGS);
@@ -155,6 +157,12 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
     }
   }, [rules, selectedRuleId]);
 
+  useEffect(() => {
+    if (!isTrpgSettingsExpanded) {
+      setIsRuleDropdownOpen(false);
+    }
+  }, [isTrpgSettingsExpanded]);
+
   function updateWebgalInitialSetting(key: keyof WebgalInitialSettings, value: boolean) {
     setWebgalInitialSettings(prev => ({
       ...prev,
@@ -190,7 +198,7 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
           });
         }
         catch {
-          toast.error("空间已创建，WebGAL 设置稍后可在面板调整");
+          appToast.error("空间已创建，WebGAL 设置稍后可在面板调整");
         }
 
         if (initialImportMessages.length > 0) {
@@ -205,10 +213,10 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
               throw new Error("未找到空间主聊天房");
             }
             await sendInitialImportChatMessages(mainRoomId, initialImportMessages, availableRoles);
-            toast.success("初始对话已导入主聊天房");
+            appToast.success("初始对话已导入主聊天房");
           }
           catch (error) {
-            toast.error(error instanceof Error ? error.message : "空间已创建，但初始对话导入失败");
+            appToast.error(error instanceof Error ? error.message : "空间已创建，但初始对话导入失败");
           }
         }
       }
@@ -216,7 +224,7 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
       onSuccess?.();
     }
     catch {
-      toast.error("创建空间失败");
+      appToast.error("创建空间失败");
       setIsCreateFlowSubmitting(false);
     }
   }
@@ -383,6 +391,7 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                     type="button"
                     className="btn btn-ghost btn-sm btn-square"
                     title="清空初始对话"
+                    aria-label="清空初始对话"
                     onClick={() => setInitialImportMessages([])}
                     disabled={isSubmitting}
                   >
@@ -410,9 +419,21 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
             onToggle={() => setIsTrpgSettingsExpanded(prev => !prev)}
           >
             <div className="space-y-2.5">
-              <div className="dropdown dropdown-bottom w-full">
+              <div
+                className="relative w-full"
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget)) {
+                    setIsRuleDropdownOpen(false);
+                  }
+                }}
+              >
                 <button
                   type="button"
+                  aria-controls={ruleDropdownListId}
+                  aria-expanded={isRuleDropdownOpen}
+                  aria-haspopup="listbox"
+                  aria-label={`选择规则，当前为 ${selectedRuleName ?? (getRulesQuery.isLoading ? "加载中" : "未找到规则")}`}
+                  title={selectedRuleName ?? undefined}
                   className="
                     group flex w-full items-center gap-3 rounded-xl border
                     border-base-300/70 bg-base-100 px-4 py-3 text-left
@@ -421,6 +442,12 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                     focus:border-info/60 focus:outline-none focus:ring-2
                     focus:ring-info/20
                   "
+                  onClick={() => setIsRuleDropdownOpen(prev => !prev)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      setIsRuleDropdownOpen(false);
+                    }
+                  }}
                 >
                   <span className="
                     flex size-8 shrink-0 items-center justify-center rounded-lg
@@ -433,16 +460,17 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                       block text-[11px] uppercase tracking-wide
                       text-base-content/50
                     ">规则</span>
-                    <span className="mt-0.5 block truncate text-sm font-medium">
+                    <span className="mt-0.5 block truncate text-sm font-medium" title={selectedRuleName ?? undefined}>
                       {selectedRuleName ?? (getRulesQuery.isLoading ? "加载中..." : "未找到规则")}
                     </span>
                   </span>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="
+                    className={`
                       size-4 shrink-0 text-base-content/45 transition
                       group-hover:text-base-content/70
-                    "
+                      ${isRuleDropdownOpen ? "rotate-180" : ""}
+                    `}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -450,17 +478,24 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-                <ul className="
-                  dropdown-content menu z-30 mt-2 max-h-60 w-full
-                  overflow-y-auto rounded-xl border border-base-300/70
-                  bg-base-100 p-1.5 shadow-2xl
-                ">
+                <ul
+                  id={ruleDropdownListId}
+                  role="listbox"
+                  className={`
+                    menu absolute left-0 right-0 top-full z-50 mt-2 max-h-60
+                    w-full overflow-y-auto rounded-xl border border-base-300/70
+                    bg-base-100 p-1.5 shadow-2xl
+                    ${isRuleDropdownOpen ? "" : "hidden"}
+                  `}
+                >
                   {rules.map((rule) => {
                     const isActive = rule.ruleId === selectedRuleId;
                     return (
                       <li key={rule.ruleId}>
                         <button
                           type="button"
+                          role="option"
+                          aria-selected={isActive}
                           className={`
                             flex w-full items-center justify-between rounded-lg
                             px-3 py-2 text-left text-sm transition
@@ -472,10 +507,9 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                           `}
                           onClick={() => {
                             setSelectedRuleId(Number(rule.ruleId));
-                            if (document.activeElement instanceof HTMLElement) {
-                              document.activeElement.blur();
-                            }
+                            setIsRuleDropdownOpen(false);
                           }}
+                          title={rule.ruleName}
                         >
                           <span className="truncate">{rule.ruleName}</span>
                           {isActive && (
@@ -658,13 +692,15 @@ function SettingsSection({
   onToggle: () => void;
   title: string;
 }) {
+  const sectionId = `create-space-settings-${title.replace(/\s+/g, "-")}`;
   return (
     <section>
       <button
         type="button"
+        aria-controls={sectionId}
         className={`
           mb-3 flex w-full items-center gap-3 rounded-xl border p-3 text-left
-          transition
+          transition motion-reduce:transition-none
           ${
           isExpanded
             ? "border-info/40 bg-info/5"
@@ -691,7 +727,7 @@ function SettingsSection({
         <svg
           xmlns="http://www.w3.org/2000/svg"
           className={`
-            size-4 shrink-0 text-base-content/45 transition-transform
+            size-4 shrink-0 text-base-content/45 transition-transform motion-reduce:transition-none
             ${isExpanded ? `rotate-180` : ""}
           `}
           fill="none"
@@ -702,7 +738,7 @@ function SettingsSection({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-      {isExpanded && children}
+      {isExpanded && <div id={sectionId}>{children}</div>}
     </section>
   );
 }

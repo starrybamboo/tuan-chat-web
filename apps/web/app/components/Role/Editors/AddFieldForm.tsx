@@ -288,6 +288,7 @@ export default function AddFieldForm({
                 handleKeyInputArrowSwitch(e);
                 handleEnterToAdd(e);
               }}
+              aria-label="字段名"
               placeholder={placeholder.key || "字段名"}
               data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
               className="
@@ -310,6 +311,7 @@ export default function AddFieldForm({
                   handleValueInputArrowSwitch(e);
                   handleCtrlEnterToAdd(e);
                 }}
+                aria-label="字段值"
                 placeholder={placeholder.value || "字段值"}
                 data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
                 className="
@@ -323,6 +325,14 @@ export default function AddFieldForm({
                 type="button"
                 onClick={() => void handleAddField()}
                 disabled={!canAdd || isSubmitting}
+                aria-busy={isSubmitting}
+                title={
+                  isSubmitting
+                    ? "正在保存字段"
+                    : fieldStatus === "empty"
+                      ? "请输入字段名"
+                      : stackedAddTip
+                }
                 className="btn btn-primary btn-xs"
               >
                 {isSubmitting ? "保存中..." : isSubmitSaved ? "已保存" : isSubmitError ? "保存失败" : "✓ 添加"}
@@ -404,6 +414,7 @@ export default function AddFieldForm({
               ${tileSubmitButtonStateClassName}
             `}
             title={inlineAddTip}
+            aria-busy={isSubmitting}
             aria-label={isSubmitting ? "保存中" : isSubmitSaved ? "已保存" : isSubmitError ? "保存失败" : "添加字段"}
           >
             {isSubmitting && <span className="loading loading-spinner loading-xs" aria-hidden="true" />}
@@ -468,6 +479,14 @@ export default function AddFieldForm({
             type="button"
             onClick={() => void handleAddField()}
             disabled={!canAdd || isSubmitting}
+            aria-busy={isSubmitting}
+            title={
+              isSubmitting
+                ? "正在保存字段"
+                : fieldStatus === "empty"
+                  ? "请输入字段名"
+                  : inlineAddTip
+            }
             className="btn btn-xs btn-primary"
           >
             {isSubmitting ? "保存中..." : isSubmitSaved ? "已保存" : isSubmitError ? "保存失败" : "✓ 添加"}

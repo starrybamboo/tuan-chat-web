@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildDirectMessageSendRequestsFromUploadedMedia,
+  findDirectReplyMessage,
   getDirectMessagePreviewText,
   getDirectUnreadCount,
   groupDirectConversations,
@@ -137,6 +138,14 @@ describe("direct message helpers", () => {
 
   it("会把已删除私聊消息转换成撤回预览", () => {
     expect(getDirectMessagePreviewText(createDirectMessage({ status: 1 }))).toBe("[消息已撤回]");
+  });
+
+  it("按 replyMessageId 找到私聊回复引用消息", () => {
+    const first = createDirectMessage({ content: "被回复", messageId: 8 });
+    const second = createDirectMessage({ content: "新消息", messageId: 9, replyMessageId: 8 });
+
+    expect(findDirectReplyMessage([first, second], second.replyMessageId)).toBe(first);
+    expect(findDirectReplyMessage([first, second], undefined)).toBeNull();
   });
 
   it("会把上传后的媒体草稿转换成私聊发送请求", () => {

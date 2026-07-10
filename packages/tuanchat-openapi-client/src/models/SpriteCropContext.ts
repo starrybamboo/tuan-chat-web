@@ -29,4 +29,3 @@ export type SpriteCropContext = {
      */
     outputHeight?: number;
 };
-

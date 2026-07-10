@@ -7,74 +7,16 @@ import { parseSpaceDocId } from "@/components/chat/infra/doc/space/spaceDocId";
 import {
   isSpaceDocTitleSyncNonRetryableError,
   readPendingSpaceDocTitleSyncMap,
-  readSpaceDocMetaCache,
   removePendingSpaceDocTitleSync,
   upsertPendingSpaceDocTitleSync,
-  writeSpaceDocMetaCache,
 } from "@/components/chat/infra/doc/space/spaceDocMetaPersistence";
-import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import { tuanchat } from "api/instance";
 
 type UseSpaceDocMetaStateParams = {
   activeSpaceId?: number | null;
   canViewDocs: boolean;
   docMetasFromSidebarTree: MinimalDocMeta[];
-  isSidebarTreeReady?: boolean;
-  onDocHeaderChange?: (payload: {
-    docId: string;
-    title: string;
-    imageUrl: string;
-    imageFileId?: number;
-    originalImageFileId?: number;
-    imageMediaType?: string;
-  }) => void;
 };
-
-type DocHeaderOverrideMap = Record<string, {
-  title?: string;
-  imageUrl?: string;
-  imageFileId?: number;
-  originalImageFileId?: number;
-  imageMediaType?: string;
-}>;
-
-function applyDocHeaderOverrides(list: MinimalDocMeta[], headerOverrides: DocHeaderOverrideMap): MinimalDocMeta[] {
-  return list.map((meta) => {
-    const override = headerOverrides[meta.id];
-    if (!override) {
-      return meta;
-    }
-
-    const overrideTitle = typeof override.title === "string" ? override.title.trim() : "";
-    const overrideImageUrl = typeof override.imageUrl === "string" ? override.imageUrl.trim() : "";
-    const overrideImageFileId = typeof override.imageFileId === "number" && override.imageFileId > 0 ? override.imageFileId : undefined;
-    const overrideOriginalImageFileId = typeof override.originalImageFileId === "number" && override.originalImageFileId > 0
-      ? override.originalImageFileId
-      : undefined;
-    const overrideImageMediaType = typeof override.imageMediaType === "string" ? override.imageMediaType.trim() : "";
-    const nextTitle = overrideTitle || meta.title;
-    const nextImageUrl = overrideImageUrl || meta.imageUrl;
-    const nextImageFileId = overrideImageFileId ?? meta.imageFileId;
-    const nextOriginalImageFileId = overrideOriginalImageFileId ?? meta.originalImageFileId;
-    const nextImageMediaType = overrideImageMediaType || meta.imageMediaType;
-    if (nextTitle === meta.title
-      && nextImageUrl === meta.imageUrl
-      && nextImageFileId === meta.imageFileId
-      && nextOriginalImageFileId === meta.originalImageFileId
-      && nextImageMediaType === meta.imageMediaType) {
-      return meta;
-    }
-
-    return {
-      id: meta.id,
-      ...(nextTitle ? { title: nextTitle } : {}),
-      ...(nextImageUrl ? { imageUrl: nextImageUrl } : {}),
-      ...(nextImageFileId ? { imageFileId: nextImageFileId } : {}),
-      ...(nextOriginalImageFileId ? { originalImageFileId: nextOriginalImageFileId } : {}),
-      ...(nextImageMediaType ? { imageMediaType: nextImageMediaType } : {}),
-    };
-  });
-}
 
 function isSameDocMetaList(a: MinimalDocMeta[] | null, b: MinimalDocMeta[] | null): boolean {
   if (a === b)
@@ -110,8 +52,6 @@ export default function useSpaceDocMetaState({
   activeSpaceId,
   canViewDocs,
   docMetasFromSidebarTree,
-  isSidebarTreeReady = false,
-  onDocHeaderChange,
 }: UseSpaceDocMetaStateParams) {
   const [spaceDocMetas, setSpaceDocMetas] = useState<MinimalDocMeta[] | null>(null);
 
@@ -156,28 +96,6 @@ export default function useSpaceDocMetaState({
 
     return [...map.values()];
   }, []);
-
-  const buildLocalSpaceDocMetas = useCallback((headerOverrides?: DocHeaderOverrideMap): MinimalDocMeta[] | null => {
-    if (!activeSpaceId || activeSpaceId <= 0) {
-      return null;
-    }
-
-    const resolvedHeaderOverrides = headerOverrides ?? useDocHeaderOverrideStore.getState().headers;
-    const cachedDocMetas = readSpaceDocMetaCache(activeSpaceId);
-    const sidebarDocIds = new Set(docMetasFromSidebarTree.map(meta => meta.id));
-    const filteredCachedDocMetas = isSidebarTreeReady
-      ? cachedDocMetas.filter(meta => sidebarDocIds.has(meta.id))
-      : cachedDocMetas;
-    const merged = isSidebarTreeReady
-      ? mergeDocMetas(docMetasFromSidebarTree, filteredCachedDocMetas)
-      : mergeDocMetas(filteredCachedDocMetas, docMetasFromSidebarTree);
-
-    if (!isSidebarTreeReady && merged.length === 0) {
-      return null;
-    }
-
-    return applyDocHeaderOverrides(merged, resolvedHeaderOverrides);
-  }, [activeSpaceId, docMetasFromSidebarTree, isSidebarTreeReady, mergeDocMetas]);
 
   const spaceDocTitleSyncTimerRef = useRef<number | null>(null);
   const spaceDocTitleSyncPendingRef = useRef<{ docId: number; title: string } | null>(null);
@@ -269,12 +187,6 @@ export default function useSpaceDocMetaState({
       ? payload.header.originalImageFileId
       : undefined;
     const imageMediaType = String(payload?.header?.imageMediaType ?? "").trim();
-    useDocHeaderOverrideStore.getState().setHeader({
-      docId,
-      header: { title, imageUrl, imageFileId, originalImageFileId, imageMediaType },
-    });
-    onDocHeaderChange?.({ docId, title, imageUrl, imageFileId, originalImageFileId, imageMediaType });
-
     setSpaceDocMetas((prev) => {
       if (!Array.isArray(prev) || prev.length === 0)
         return prev;
@@ -338,7 +250,7 @@ export default function useSpaceDocMetaState({
         // ignore
       }
     }
-  }, [onDocHeaderChange, syncSpaceDocTitle]);
+  }, [syncSpaceDocTitle]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -368,13 +280,21 @@ export default function useSpaceDocMetaState({
   }, [flushPendingSpaceDocTitleSyncQueue]);
 
   const loadSpaceDocMetas = useCallback(async (): Promise<MinimalDocMeta[]> => {
-    if (typeof window === "undefined" || !activeSpaceId || activeSpaceId <= 0) {
+    if (!activeSpaceId || activeSpaceId <= 0) {
       return [];
     }
 
-    const headerOverrides = useDocHeaderOverrideStore.getState().headers;
-    return applyDocHeaderOverrides(readSpaceDocMetaCache(activeSpaceId), headerOverrides);
-  }, [activeSpaceId]);
+    const result = await tuanchat.spaceDocController.listDocs(activeSpaceId);
+    const docs = Array.isArray(result.data) ? result.data : [];
+    return mergeDocMetas(docs.map((doc) => {
+      const docId = Number(doc.docId ?? doc.roomId);
+      const title = typeof doc.title === "string" && doc.title.trim() ? doc.title.trim() : undefined;
+      return {
+        id: Number.isFinite(docId) && docId > 0 ? String(docId) : "",
+        ...(title ? { title } : {}),
+      };
+    }));
+  }, [activeSpaceId, mergeDocMetas]);
 
   useEffect(() => {
     if (!activeSpaceId || activeSpaceId <= 0) {
@@ -386,46 +306,29 @@ export default function useSpaceDocMetaState({
       return;
     }
 
-    const nextMetas = buildLocalSpaceDocMetas();
-    if (nextMetas == null) {
-      setSpaceDocMetas(prev => (prev === null ? prev : null));
-      return;
-    }
+    let cancelled = false;
+    setSpaceDocMetas(prev => (prev === null ? prev : null));
+    void loadSpaceDocMetas()
+      .then((remoteMetas) => {
+        if (cancelled) {
+          return;
+        }
+        const nextMetas = mergeDocMetas(remoteMetas, docMetasFromSidebarTree);
+        setSpaceDocMetas(prev => (isSameDocMetaList(prev, nextMetas) ? prev : nextMetas));
+      })
+      .catch((error) => {
+        console.warn("[space-doc] failed to load remote doc metas", error);
+        if (cancelled) {
+          return;
+        }
+        const nextMetas = mergeDocMetas(docMetasFromSidebarTree);
+        setSpaceDocMetas(prev => (isSameDocMetaList(prev, nextMetas) ? prev : nextMetas));
+      });
 
-    setSpaceDocMetas(prev => (isSameDocMetaList(prev, nextMetas) ? prev : nextMetas));
-  }, [activeSpaceId, buildLocalSpaceDocMetas, canViewDocs]);
-
-  useEffect(() => {
-    if (!activeSpaceId || activeSpaceId <= 0 || !canViewDocs) {
-      return;
-    }
-
-    return useDocHeaderOverrideStore.subscribe((state, prevState) => {
-      if (state.headers === prevState.headers) {
-        return;
-      }
-
-      const nextMetas = buildLocalSpaceDocMetas(state.headers);
-      if (nextMetas == null) {
-        setSpaceDocMetas(prev => (prev === null ? prev : null));
-        return;
-      }
-      setSpaceDocMetas(prev => (isSameDocMetaList(prev, nextMetas) ? prev : nextMetas));
-    });
-  }, [activeSpaceId, buildLocalSpaceDocMetas, canViewDocs]);
-
-  useEffect(() => {
-    if (!activeSpaceId || activeSpaceId <= 0) {
-      return;
-    }
-    if (!canViewDocs) {
-      return;
-    }
-    if (!Array.isArray(spaceDocMetas)) {
-      return;
-    }
-    writeSpaceDocMetaCache(activeSpaceId, spaceDocMetas);
-  }, [activeSpaceId, canViewDocs, spaceDocMetas]);
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSpaceId, canViewDocs, docMetasFromSidebarTree, loadSpaceDocMetas, mergeDocMetas]);
 
   return {
     spaceDocMetas,

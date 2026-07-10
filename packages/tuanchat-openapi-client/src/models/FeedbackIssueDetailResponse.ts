@@ -49,4 +49,3 @@ export type FeedbackIssueDetailResponse = {
      */
     updateTime?: string;
 };
-

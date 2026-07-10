@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { transcodeAudioFileToOpusOrThrow } from "./audioTranscodeUtils";
-import { generateMediaUploadFiles, uploadGeneratedMediaFiles, uploadMediaFile } from "./mediaUpload";
+import { generateMediaUploadFiles, generateOriginalFirstImageUploadFiles, uploadGeneratedMediaFiles, uploadMediaFile } from "./mediaUpload";
 import { transcodeVideoFileToWebmOrThrow } from "./videoTranscodeUtils";
 
 const {
@@ -245,6 +245,26 @@ describe("mediaUpload", () => {
     }));
   });
 
+  it("原图优先图片生成只同步处理 original，并将 low 和 medium 派生延后", async () => {
+    const file = new File([new Uint8Array(1024)], "role.png", { type: "image/png" });
+    compressImageMock.mockImplementation(async (_file: File, profile: { maxSizeKB?: number }) => {
+      const bytes = profile.maxSizeKB === 3072 ? 900 * 1024 : 1024;
+      return new File([new Uint8Array(bytes)], `derived-${profile.maxSizeKB}.webp`, { type: "image/webp" });
+    });
+
+    const result = await generateOriginalFirstImageUploadFiles(file, 3);
+
+    expect(compressImageMock).toHaveBeenCalledTimes(1);
+    expect(result.filesByQuality.original?.name).toBe("derived-3072.webp");
+    expect(result.filesByQuality.low).toBeUndefined();
+    expect(result.filesByQuality.medium).toBeUndefined();
+    expect(result.metadata.uploadedQualities).toEqual(["original", "low", "medium"]);
+
+    const low = await result.deferredFilesByQuality?.low?.();
+    expect(low?.name).toBe("derived-40.webp");
+    expect(compressImageMock).toHaveBeenCalledTimes(2);
+  });
+
   it("派生 target 首次失败后会按 target 重试并在成功后标记为可用", async () => {
     const original = new File(["original"], "original.webp", { type: "image/webp" });
     const low = new File(["low"], "low.webp", { type: "image/webp" });
@@ -283,6 +303,70 @@ describe("mediaUpload", () => {
       degraded: false,
     }));
     expect(completeUploadMock).toHaveBeenCalledWith(99, expect.objectContaining({
+      availableQualities: ["original", "low"],
+      pendingQualities: [],
+      failedQualities: [],
+      degraded: false,
+    }));
+  });
+
+  it("可在 original 上传完成后立即 complete，并在后台生成和上传派生 target", async () => {
+    const original = new File(["original"], "original.webp", { type: "image/webp" });
+    const low = new File(["low"], "low.webp", { type: "image/webp" });
+    let resolveLow!: (file: File) => void;
+    const lowReady = new Promise<File>((resolve) => {
+      resolveLow = resolve;
+    });
+    const lowFactory = vi.fn(async () => await lowReady);
+    prepareUploadMock.mockResolvedValueOnce({
+      success: true,
+      data: {
+        fileId: 47,
+        mediaType: "image",
+        uploadRequired: true,
+        sessionId: 104,
+        uploadTargets: {
+          original: { uploadUrl: "https://oss.example.com/original" },
+          low: { uploadUrl: "https://oss.example.com/low" },
+        },
+      },
+    });
+    completeUploadMock.mockResolvedValue({ success: true });
+
+    const result = await uploadGeneratedMediaFiles({
+      original,
+      mediaType: "image",
+      hasNovelAiMetadata: false,
+      metadata: {},
+      filesByQuality: { original },
+      deferredFilesByQuality: {
+        low: lowFactory,
+      },
+    }, {
+      completeAfterPrimaryQuality: true,
+      retryPolicy: { baseDelayMs: 0, jitter: false },
+    });
+
+    expect(result).toEqual(expect.objectContaining({
+      fileId: 47,
+      availableQualities: ["original"],
+      pendingQualities: ["low"],
+      degraded: true,
+    }));
+    expect(completeUploadMock).toHaveBeenNthCalledWith(1, 104, expect.objectContaining({
+      availableQualities: ["original"],
+      pendingQualities: ["low"],
+      degraded: true,
+    }));
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    expect(lowFactory).toHaveBeenCalledTimes(1);
+
+    resolveLow(low);
+    await vi.waitFor(() => {
+      expect(completeUploadMock).toHaveBeenCalledTimes(2);
+    });
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    expect(completeUploadMock).toHaveBeenNthCalledWith(2, 104, expect.objectContaining({
       availableQualities: ["original", "low"],
       pendingQualities: [],
       failedQualities: [],

@@ -39,6 +39,8 @@ export function FollowButton({ userId, status, onStatusChange, className = "", s
         ${className}
       `}
       onClick={handleClick}
+      aria-pressed={currentStatus !== 0}
+      aria-label={currentStatus === 0 ? "关注用户" : currentStatus === 1 ? "取消关注用户" : "取消互相关注用户"}
     >
       {currentStatus === 0 ? "关注" : currentStatus === 1 ? "已关注" : "互相关注"}
     </button>

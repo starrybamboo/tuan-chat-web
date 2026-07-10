@@ -1,8 +1,7 @@
 import { X } from "@phosphor-icons/react";
-import { motion } from "motion/react";
 import { useEffect, useRef } from "react";
 
-import { floatingListItemMotionProps, floatingPanelMotionProps } from "@/components/common/motion/floatingPanelMotion";
+import { FloatingMotionButton, FloatingMotionPanel } from "@/components/common/motion/FloatingMotionPanel";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 
 import type { MessageEditorSpeakerMenuItem } from "../model/messageEditorSpeaker";
@@ -40,13 +39,14 @@ export function MessageEditorSpeakerMenu({
   }
 
   return (
-    <motion.div
+    <FloatingMotionPanel
       data-me-speaker-menu="true"
+      role="listbox"
+      aria-label="角色候选"
       className="
         w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-lg border
         border-base-300 bg-base-100 shadow-2xl
       "
-      {...floatingPanelMotionProps}
     >
       {items.length === 0
         ? (
@@ -60,19 +60,21 @@ export function MessageEditorSpeakerMenu({
                 const active = index === selectedIndex;
                 if (item.kind === "clear") {
                   return (
-                    <motion.button
+                    <FloatingMotionButton
                       key="speaker:clear"
+                      index={index}
                       ref={(element) => {
                         itemRefs.current[index] = element;
                       }}
                       type="button"
+                      role="option"
+                      aria-selected={active}
                       className={[
                         "flex w-full items-center gap-2 px-3 py-2 text-left transition",
                         active
                           ? "bg-base-300 text-base-content"
-                          : "bg-base-100 text-base-content/75 hover:bg-base-200 hover:text-base-content",
+                        : "bg-base-100 text-base-content/75 hover:bg-base-200 hover:text-base-content",
                       ].join(" ")}
-                      {...floatingListItemMotionProps(index)}
                       onMouseDown={event => event.preventDefault()}
                       onClick={() => onSelect(item)}
                     >
@@ -83,10 +85,13 @@ export function MessageEditorSpeakerMenu({
                         <X className="size-3.5" weight="regular" />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium">{item.label}</span>
-                        <span className="
-                          mt-0.5 block truncate text-xs text-base-content/50
-                        ">
+                        <span className="block truncate text-sm font-medium" title={item.label}>{item.label}</span>
+                        <span
+                          className="
+                            mt-0.5 block truncate text-xs text-base-content/50
+                          "
+                          title={item.description || "取消角色"}
+                        >
                           {item.description || "取消角色"}
                         </span>
                       </span>
@@ -98,23 +103,25 @@ export function MessageEditorSpeakerMenu({
                           当前
                         </span>
                       )}
-                    </motion.button>
+                    </FloatingMotionButton>
                   );
                 }
                 return (
-                  <motion.button
+                  <FloatingMotionButton
                     key={`role:${item.roleId}`}
+                    index={index}
                     ref={(element) => {
                       itemRefs.current[index] = element;
                     }}
                     type="button"
+                    role="option"
+                    aria-selected={active}
                     className={[
                       "flex w-full items-center gap-2 px-3 py-2 text-left transition",
                       active
                         ? "bg-base-300 text-base-content"
-                        : "bg-base-100 text-base-content/75 hover:bg-base-200 hover:text-base-content",
+                      : "bg-base-100 text-base-content/75 hover:bg-base-200 hover:text-base-content",
                     ].join(" ")}
-                    {...floatingListItemMotionProps(index)}
                     onMouseDown={event => event.preventDefault()}
                     onClick={() => onSelect(item)}
                   >
@@ -128,11 +135,14 @@ export function MessageEditorSpeakerMenu({
                       hoverToScale={false}
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium">{item.label}</span>
+                      <span className="block truncate text-sm font-medium" title={item.label}>{item.label}</span>
                       {item.description && (
-                        <span className="
-                          mt-0.5 block truncate text-xs text-base-content/50
-                        ">
+                        <span
+                          className="
+                            mt-0.5 block truncate text-xs text-base-content/50
+                          "
+                          title={item.description}
+                        >
                           {item.description}
                         </span>
                       )}
@@ -145,11 +155,11 @@ export function MessageEditorSpeakerMenu({
                         当前
                       </span>
                     )}
-                  </motion.button>
+                  </FloatingMotionButton>
                 );
               })}
             </div>
           )}
-    </motion.div>
+    </FloatingMotionPanel>
   );
 }

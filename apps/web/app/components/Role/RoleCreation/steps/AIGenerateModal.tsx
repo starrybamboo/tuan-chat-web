@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+
+import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
 
 // AI生成的预览数据类型
 type AIGeneratedData = {
@@ -37,6 +39,7 @@ export default function AIGenerateModal({
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewData, setPreviewData] = useState<AIGeneratedData | null>(null);
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
 
   const handleGenerate = async () => {
     if (!prompt.trim() || ruleId <= 0)
@@ -99,6 +102,12 @@ export default function AIGenerateModal({
     setPrompt("");
   };
 
+  useEscapeToClose({
+    enabled: isOpen,
+    onClose: handleClose,
+    containerRef: dialogRef,
+  });
+
   const renderPreviewSection = (title: string, data: Record<string, string> | undefined) => {
     if (!data || Object.keys(data).length === 0)
       return null;
@@ -134,12 +143,20 @@ export default function AIGenerateModal({
     return null;
 
   return (
-    <dialog className="modal modal-open">
+    <dialog
+      ref={dialogRef}
+      data-modal-layer="true"
+      role="dialog"
+      aria-modal="true"
+      aria-label="AI 智能生成角色"
+      className="modal modal-open"
+    >
       <div className="modal-box max-w-2xl max-h-[85vh]">
         <form method="dialog">
           <button
             type="button"
             className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+            aria-label="关闭 AI 生成角色弹窗"
             onClick={handleClose}
           >
             ✕
@@ -163,7 +180,11 @@ export default function AIGenerateModal({
         <div className="space-y-4">
           {/* 输入区域 */}
           <div className="space-y-2">
+            <label htmlFor="ai-generate-prompt" className="block text-sm font-medium">
+              生成提示词
+            </label>
             <textarea
+              id="ai-generate-prompt"
               className="
                 textarea textarea-bordered rounded-md w-full min-h-[100px]
                 bg-base-100
@@ -173,16 +194,27 @@ export default function AIGenerateModal({
               "
               autoComplete="off"
               aria-label="生成提示词"
-              placeholder="例如：一个来自北方的勇敢战士，擅长双手剑，有着保护弱者的坚定信念，曾经是皇家骑士团的成员..."
+              placeholder="例如：来自北方的勇敢战士，擅长双手剑"
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
               disabled={isGenerating}
             />
+            <p className="text-xs text-base-content/60">
+              将基于当前规则生成角色表演、基础能力、计算能力与技能字段。
+            </p>
             <button
               type="button"
               className="btn btn-info w-full rounded-md"
               onClick={handleGenerate}
               disabled={!prompt.trim() || isGenerating || ruleId <= 0}
+              aria-busy={isGenerating}
+              title={
+                !prompt.trim()
+                  ? "请输入生成提示词"
+                  : ruleId <= 0
+                    ? "请选择规则后再生成"
+                    : undefined
+              }
             >
               {isGenerating
                 ? (
@@ -223,6 +255,7 @@ export default function AIGenerateModal({
                 <button
                   type="button"
                   className="btn btn-success text-white rounded-md flex-1"
+                  aria-label="应用 AI 生成结果到角色"
                   onClick={handleApply}
                 >
                   <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">

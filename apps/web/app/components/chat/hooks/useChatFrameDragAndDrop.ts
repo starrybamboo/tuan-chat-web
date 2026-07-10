@@ -1,7 +1,7 @@
 import type { VirtuosoHandle } from "react-virtuoso";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { useCallback, useRef, useState } from "react";
-import toast from "react-hot-toast";
 
 import { computeMoveMessageUpdates } from "@/components/chat/hooks/chatFrameDragUtils";
 import useChatFrameDragAutoScroll from "@/components/chat/hooks/useChatFrameDragAutoScroll";
@@ -121,7 +121,7 @@ export default function useChatFrameDragAndDrop({
     });
 
     if (hasUnmovable) {
-      toast.error("部分消息不支持移动");
+      appToast.error("部分消息不支持移动");
     }
     if (updatedMessages.length === 0) {
       return;
@@ -226,7 +226,7 @@ export default function useChatFrameDragAndDrop({
     }
 
     if (messageDragPayload && messageDragPayload.sourceRoomId !== roomId) {
-      toast.error("暂不支持跨房间移动消息");
+      appToast.error("暂不支持跨房间移动消息");
       resetMessageDragState();
       return;
     }

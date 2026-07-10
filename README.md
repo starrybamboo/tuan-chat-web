@@ -11,7 +11,7 @@
 ## 环境要求
 
 - Node.js 22 或更高版本
-- pnpm 9.6.0
+- pnpm 11.7.0（以 `packageManager` 为准，建议通过 Corepack 启用）
 - 本地开发默认需要 TuanChat 后端运行在 `http://localhost:8081`，WebSocket 运行在 `ws://localhost:8090`
 - Electron 打包如需携带 WebGAL_Terre，需要准备 `WebGAL_Terre` release 目录
 
@@ -33,7 +33,9 @@ pnpm test:e2e
 pnpm test:coverage
 pnpm lint
 pnpm lint:fix
+pnpm lint:all
 pnpm typecheck
+pnpm typecheck:all
 pnpm encoding:check
 pnpm openapi
 ```
@@ -42,7 +44,10 @@ pnpm openapi
 - `pnpm dev:force`：清理隔离的 Vite optimize deps 缓存后启动开发服务。
 - `pnpm build`：构建 Web 产物。
 - `pnpm start`：服务化运行已构建产物；运行前需要先 `pnpm build`。
+- `pnpm test`：运行 Web 端 `*.test.ts` Vitest 单元测试，不包含 `*.e2e.test.ts`。
+- `pnpm test:coverage`：运行同一组 Web Vitest 测试并启用 V8 覆盖率阈值，当前阈值为行、分支、函数、语句各 70%。
 - `pnpm test:e2e`：运行 `*.e2e.test.ts` 浏览器端测试。
+- `pnpm lint` / `pnpm typecheck`：默认覆盖 repo、Web 与桌面端；需要连同移动端一起验收时使用 `pnpm lint:all` / `pnpm typecheck:all`。
 - `pnpm openapi`：从 `packages/tuanchat-openapi-client/tuanchat_OpenAPI.json` 重新生成 OpenAPI client，并执行结果守卫补丁。
 
 移动端常用入口：
@@ -50,9 +55,11 @@ pnpm openapi
 ```bash
 pnpm mobile:start
 pnpm mobile:android
+pnpm mobile:ios
 pnpm mobile:web
 pnpm mobile:typecheck
 pnpm mobile:local-apk
+pnpm mobile:emulator-apk
 pnpm mobile:cloud-apk
 pnpm mobile:workflow:preview
 pnpm mobile:workflow:production
@@ -62,7 +69,8 @@ pnpm mobile:ios:bootstrap-production
 
 - `pnpm mobile:start`：启动 Expo 开发服务器，终端会显示二维码。
 - `pnpm mobile:android`：启动 Expo 开发服务器并尝试唤起 Android。
-- 其余 `mobile:*` 为发版和云端 EAS 相关入口。
+- `pnpm mobile:emulator-apk`：面向模拟器构建、安装并启动本地 APK，默认使用 x86_64 架构。
+- 其余 `mobile:*` 为本地打包、发版和云端 EAS 相关入口。
 
 ## 环境变量
 
@@ -140,26 +148,28 @@ pnpm openapi
 开发：
 
 ```bash
-pnpm electron:dev
+pnpm desktop:dev
 ```
 
 打包：
 
 ```bash
-pnpm electron:build
-pnpm electron:build:win:zip
-pnpm electron:build:win:nsis
-pnpm electron:build:mac:zip
-pnpm electron:build:mac:dmg
+pnpm desktop:build
+pnpm desktop:build:win:zip
+pnpm desktop:build:win:nsis
+pnpm desktop:build:mac:zip
+pnpm desktop:build:mac:dmg
 ```
+
+`electron:*` 命令仍作为兼容别名保留；新增说明和日常使用优先采用 `desktop:*` 命名。
 
 Electron 打包前会运行：
 
 ```bash
-pnpm electron:check:webgal
+pnpm desktop:check:webgal
 ```
 
-该脚本只校验 WebGAL_Terre 发行目录，不再复制到项目内的中转目录。本地默认读取 `D:\A_collection\WebGAL_Terre\release`；如果默认位置不可用，可设置 `WEBGAL_TERRE_RELEASE_DIR` 指向 release 目录。electron-builder 会按白名单把发行目录中的 `WebGAL_Terre.exe`、`assets`、`lib`、`public` 打进 `resources/webgal-terre`，并排除 `public/games` 等本地用户内容。
+默认本地打包会先运行 `pnpm desktop:prepare:webgal`，链式构建 `D:\A_collection\WebGAL`、`D:\A_collection\WebGAL_Terre`，并把 Terre 运行时输出到 `D:\A_collection\WebGAL_Terre\release\tuanchat-runtime`。随后 `pnpm desktop:check:webgal` 只校验该发行目录，不再复制到项目内的中转目录；如果需要使用其他发行目录，可设置 `WEBGAL_TERRE_RELEASE_DIR`。electron-builder 会按白名单把发行目录中的 `WebGAL_Terre.exe`、`assets`、`lib`、`public` 打进 `resources/webgal-terre`，并排除 `public/games` 等本地用户内容。本地 Electron 产物默认覆盖输出到 `D:\A_collection\tuan-chat-web\release_local_latest`。
 
 Windows 下 electron-builder 首次下载 `nsis` / `winCodeSign` 可能受网络影响。可先构建 zip，再单独构建 nsis；必要时设置 `ELECTRON_BUILDER_CACHE` 或 `ELECTRON_BUILDER_BINARIES_MIRROR`。
 
@@ -203,8 +213,9 @@ scripts/                     仓库级开发、生成、导入脚本
 
 ## 开发约定
 
-- 新增或修改测试文件后，按影响范围运行 `pnpm test` 或对应 e2e / package 测试。
-- 修改 Web / Electron / 根配置后，默认需要关注 `pnpm test`、`pnpm lint`、`pnpm typecheck`。
+- 新增或修改测试文件后，按影响范围运行对应 Vitest、e2e 或 package 测试；不要因为局部测试改动默认扩大到全量。
+- 修改 Web / 桌面端 / 根配置后，优先运行相关 Vitest 目标、相关 `lint` / `typecheck` 或更小范围的验收；只有改动触及共享基础逻辑、构建配置、跨模块契约，或明确要求完整验收时，才运行 `pnpm test`、`pnpm lint`、`pnpm typecheck` 全量组合。
+- 修改移动端代码时，优先运行 `pnpm lint:mobile`、`pnpm typecheck:mobile` 或受影响共享逻辑的对应测试；需要覆盖所有端时再使用 `pnpm lint:all` / `pnpm typecheck:all`。
 - 仅修改文档时至少运行 `pnpm encoding:check`。
 - 新增 API hook 前先搜索 `api/hooks/**` 和 `packages/tuanchat-query/**`，避免重复封装。
 - mutation 成功后要按现有模式 invalidate 或更新对应 query cache。

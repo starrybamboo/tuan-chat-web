@@ -21,4 +21,3 @@ export type ApiResultPageBaseRespRoleAbility = {
     errMsg?: string;
     data?: PageBaseRespRoleAbility;
 };
-

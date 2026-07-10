@@ -17,6 +17,7 @@ export type DirectMessageLike = Pick<
   | "receiverAvatarFileId"
   | "receiverId"
   | "receiverUsername"
+  | "replyMessageId"
   | "senderAvatarFileId"
   | "senderId"
   | "senderUsername"
@@ -90,6 +91,16 @@ export function getDirectMessagePreviewText(message?: MessageDirectResponse | nu
   }
 
   return getMessagePreviewText(message as Message);
+}
+
+export function findDirectReplyMessage<T extends Pick<DirectMessageLike, "messageId">>(
+  messages: readonly T[],
+  replyMessageId: number | null | undefined,
+): T | null {
+  if (typeof replyMessageId !== "number" || replyMessageId <= 0) {
+    return null;
+  }
+  return messages.find(message => message.messageId === replyMessageId) ?? null;
 }
 
 export function buildDirectMessageSendRequestsFromUploadedMedia({

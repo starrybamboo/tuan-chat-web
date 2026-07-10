@@ -50,11 +50,13 @@ function FeedbackTimelineActionButton({
   label,
   icon,
   tone = "default",
+  pressed,
   onClick,
 }: {
   label: string;
   icon: React.ReactNode;
   tone?: "default" | "danger";
+  pressed?: boolean;
   onClick: () => void;
 }) {
   const toneClass = tone === "danger"
@@ -64,6 +66,7 @@ function FeedbackTimelineActionButton({
   return (
     <button
       type="button"
+      {...(pressed !== undefined ? { "aria-pressed": pressed ? "true" : "false" } : {})}
       className={`
         btn btn-ghost btn-xs h-8 min-h-8 rounded-full px-3 transition-colors
         ${toneClass}
@@ -157,14 +160,17 @@ function TimelineReplyReference({
 function TimelineCommentCard({
   comment,
   currentUserId,
+  activeReplyCommentId,
   onReply,
 }: {
   comment: CommentTimelineVO;
   currentUserId: number;
+  activeReplyCommentId?: number;
   onReply: (target: ReplyTarget) => void;
 }) {
   const deleteCommentMutation = useDeleteCommentMutation();
   const commentContext = use(CommentContext);
+  const isReplyActive = activeReplyCommentId != null && activeReplyCommentId === (comment.commentId ?? 0);
 
   return (
     <article className="
@@ -197,6 +203,7 @@ function TimelineCommentCard({
           <FeedbackTimelineActionButton
             label="回复"
             icon={<ReplyIcon className="h-4 w-4" />}
+            pressed={isReplyActive}
             onClick={() => {
               onReply({
                 commentId: comment.commentId ?? 0,
@@ -346,6 +353,7 @@ export default function FeedbackIssueTimeline({
                     <TimelineCommentCard
                       comment={comment}
                       currentUserId={loginUserId}
+                      activeReplyCommentId={replyTarget?.commentId}
                       onReply={(target) => {
                         setReplyTarget(target);
                       }}
@@ -367,6 +375,7 @@ export default function FeedbackIssueTimeline({
               <button
                 type="button"
                 className="btn btn-outline btn-sm rounded-full px-5"
+                aria-busy={isFetchingNextPage ? "true" : "false"}
                 disabled={isFetchingNextPage}
                 onClick={() => void getCommentTimelineInfiniteQuery.fetchNextPage()}
               >
@@ -374,6 +383,16 @@ export default function FeedbackIssueTimeline({
               </button>
             </div>
           )}
+
+          <div aria-live="polite" className="sr-only">
+            {isFetchingNextPage
+              ? "正在加载更多评论"
+              : getCommentTimelineInfiniteQuery.isError
+                ? "加载更多评论失败，请重试"
+                : !hasNextPage && timelineComments.length > 0
+                  ? "已加载全部评论"
+                  : ""}
+          </div>
 
           <TimelineItem avatarUser={{ userId: loginUserId > 0 ? loginUserId : -1 }} isLast={true}>
             <TimelineComposerCard

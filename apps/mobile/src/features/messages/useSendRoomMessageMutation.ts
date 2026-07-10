@@ -9,7 +9,6 @@ import {
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 import {
-  getAllRoomMessagesQueryKey,
   useSendMessageMutation as useSharedSendMessageMutation,
 } from "@tuanchat/query/chat";
 import {
@@ -31,6 +30,7 @@ import {
   withStableRoomMessagePositions,
 } from "./roomMessagePosition";
 import { extractRoomMessagesFromQueryData, updateRoomMessagesQueryData } from "./roomMessagesQueryData";
+import { getRoomMessagesQueryKey } from "./roomMessagesQueryKey";
 export { withStableRoomMessagePosition, withStableRoomMessagePositions } from "./roomMessagePosition";
 
 type SendMessageContext = {
@@ -82,22 +82,15 @@ export function useSendRoomMessageMutation(
     if (resolvedRoomId <= 0)
       return [];
     const queryMessages = extractRoomMessagesFromQueryData(
-      queryClient.getQueryData<RoomMessagesQueryData>(getAllRoomMessagesQueryKey(resolvedRoomId)),
+      queryClient.getQueryData<RoomMessagesQueryData>(getRoomMessagesQueryKey(resolvedRoomId)),
     );
     return mergeRoomMessagesForLocalState([...currentMessagesForPosition], queryMessages);
   };
 
   const updateQueryCache = (updater: (current: ChatMessageResponse[] | undefined) => ChatMessageResponse[]) => {
     const resolvedRoomId = requirePositiveRoomId(roomId);
-    const queryKey = getAllRoomMessagesQueryKey(resolvedRoomId);
+    const queryKey = getRoomMessagesQueryKey(resolvedRoomId);
     queryClient.setQueryData<RoomMessagesQueryData>(queryKey, current => updateRoomMessagesQueryData(current, updater));
-  };
-
-  const persistOptimisticToCache = (messages: ChatMessageResponse[]) => {
-    const resolvedRoomId = roomId ?? -1;
-    if (resolvedRoomId <= 0 || messages.length === 0)
-      return;
-    void writeCachedRoomMessages(resolvedRoomId, messages).catch(() => {});
   };
 
   const insertOptimistic = (request: ChatMessageRequest): ChatMessageResponse => {
@@ -111,7 +104,6 @@ export function useSendRoomMessageMutation(
       position,
     });
     updateQueryCache(current => mergeRoomMessagesForLocalState(current, [optimistic]));
-    persistOptimisticToCache([optimistic]);
     return optimistic;
   };
 
@@ -127,7 +119,6 @@ export function useSendRoomMessageMutation(
       });
     });
     updateQueryCache(current => mergeRoomMessagesForLocalState(current, optimistics));
-    persistOptimisticToCache(optimistics);
     return optimistics;
   };
 

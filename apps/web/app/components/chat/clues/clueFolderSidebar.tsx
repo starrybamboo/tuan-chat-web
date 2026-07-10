@@ -1,17 +1,12 @@
 import type { ChangeEvent, ClipboardEvent, DragEvent, MouseEvent } from "react";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { FilmSlateIcon, ImageIcon, MusicNotesIcon, PlusIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
-import {
-  invalidateClueFolderMessageQueries,
-  patchClueMessageCreatedQueryCache,
-  patchClueMessageDeletedQueryCache,
-  patchClueMessageUpdatedQueryCache,
-} from "@tuanchat/query/clue-folder";
+import { getUserMessageSessionsQueryKey } from "@tuanchat/query/message-sessions";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import toast from "react-hot-toast";
 
 import type { ClueFolderScope } from "@/components/chat/clues/clueRooms";
 import type { MessageDraft } from "@/types/messageDraft";
@@ -21,6 +16,7 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import useChatFrameMessages from "@/components/chat/hooks/useChatFrameMessages";
 import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
+import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { useClueReferenceNavigationStore } from "@/components/chat/stores/clueReferenceNavigationStore";
 import { setClueRefDragData } from "@/components/chat/utils/clueRef";
@@ -28,6 +24,7 @@ import { isFileDrag } from "@/components/chat/utils/dndUpload";
 import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { hasHostPrivileges, isObserverLike } from "@/components/chat/utils/memberPermissions";
 import { confirm } from "@/components/common/ConfirmDialog";
+import { MediaImage } from "@/components/common/mediaImage";
 import { useGlobalWebSocket } from "@/components/globalContextProvider";
 import { BaselineDeleteOutline, CloseIcon, FileTextIcon, SaveIcon } from "@/icons";
 import { buildChatMessageRequestFromDraft, buildMessageDraftsFromUploadedMedia } from "@/types/messageDraft";
@@ -394,10 +391,11 @@ function ClueFolderSection({
   }, [messages]);
 
   return (
-    <div className="space-y-1">
+    <div className="group/clue-list relative py-0.5">
       {isLoading && (
         <div className="
-          flex items-center gap-2 px-2 py-1.5 text-xs text-base-content/50
+          flex items-center gap-2 rounded-md border border-dashed border-base-content/10
+          bg-base-100/35 px-2.5 py-2 text-xs text-base-content/55
         ">
           <span className="loading loading-spinner loading-xs"></span>
           <span>正在加载线索...</span>
@@ -405,12 +403,15 @@ function ClueFolderSection({
       )}
 
       {!isLoading && clueMessages.length === 0 && (
-        <div className="px-2 py-1.5 text-xs text-base-content/50">
+        <div className="
+          rounded-md border border-dashed border-base-content/12 bg-base-100/30
+          px-2.5 py-2 text-xs text-base-content/55
+        ">
           暂无线索
         </div>
       )}
 
-      {clueMessages.map(({ message }) => {
+      {clueMessages.map(({ message }, index) => {
         const messageId = getMessageId(message);
         if (!messageId) {
           return null;
@@ -418,19 +419,23 @@ function ClueFolderSection({
         const previewText = getClueListPreviewText(message);
         const titleText = getClueListPreviewText(message, CLUE_TITLE_PREVIEW_MAX_LENGTH);
         const isDropTarget = reorderState?.targetMessageId === messageId;
+        const imagePayload = getImageMessageExtra(message.extra);
+        const thumbUrl = imagePayload ? resolveMessageMediaUrl(imagePayload, "low", "image") : "";
         return (
           <button
             key={messageId}
             type="button"
             className={`
-              group relative w-full rounded-md border border-base-content/10 px-2 py-1.5
-              select-none text-left text-xs text-base-content/80 transition-colors
-              hover:border-info hover:bg-info/12
-              ${activeMessageId === messageId ? `border-info bg-info/12 ring-1 ring-info/35` : ""}
+              group/clue-card relative w-full select-none border-base-content/10 px-2.5 py-2
+              text-left transition-colors duration-150 hover:bg-base-content/5
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/45
+              ${index > 0 ? "border-t" : ""}
+              ${activeMessageId === messageId ? "bg-info/12 ring-1 ring-info/30" : ""}
             `}
             data-clue-message-id={messageId}
             draggable
-            title={titleText}
+            aria-label={titleText}
+            title="可拖拽排序/移动到文件夹"
             onMouseDown={(event) => {
               if (event.detail > 1) {
                 event.preventDefault();
@@ -503,12 +508,12 @@ function ClueFolderSection({
                 placement,
               });
             }}
-          >
+            >
             {isDropTarget && (
               <span
                 className={`
                   pointer-events-none absolute inset-x-1 z-10 h-[2px]
-                  rounded-full bg-info
+                  rounded-full bg-info shadow-[0_0_12px_hsl(var(--in)/0.55)]
                   ${
                   reorderState?.placement === "before" ? "-top-px" : `
                     -bottom-px
@@ -518,11 +523,26 @@ function ClueFolderSection({
                 aria-hidden="true"
               />
             )}
-            <span className="
-              block min-w-0 overflow-hidden text-ellipsis wrap-break-word
-              leading-5 line-clamp-2
-            ">
-              {previewText}
+            <span className="flex min-w-0 items-start gap-2">
+              {thumbUrl
+                ? (
+                  <MediaImage
+                    src={thumbUrl}
+                    alt=""
+                    loading="lazy"
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
+                    className="size-9 shrink-0 rounded object-cover"
+                  />
+                )
+                : null}
+              <span className="
+                block min-w-0 overflow-hidden text-ellipsis wrap-break-word
+                text-xs/5 text-base-content/82 line-clamp-2
+              ">
+                {previewText}
+              </span>
             </span>
           </button>
         );
@@ -567,21 +587,15 @@ export default function ClueFolderSidebar({
   const clueHistory = useChatHistory(room?.roomId ?? null);
   const navigationTarget = useClueReferenceNavigationStore(state => state.target);
   const clearNavigationTarget = useClueReferenceNavigationStore(state => state.clearTarget);
-  const websocketUtils = useGlobalWebSocket();
+  const { updateLastReadSyncId } = useGlobalWebSocket();
   const lastMarkedReadSyncRef = useRef<Record<number, number>>({});
   const publicJoinRequestRef = useRef<{ requested: boolean; spaceId: number | null }>({
     requested: false,
     spaceId: null,
   });
-  const receivedMessages = useMemo(() => {
-    return room ? (websocketUtils.receivedMessages[room.roomId] ?? []) : [];
-  }, [room, websocketUtils.receivedMessages]);
   const { historyMessages } = useChatFrameMessages({
     chatHistory: clueHistory,
     currentUserId,
-    enableWsSync: Boolean(room),
-    receivedMessages,
-    roomId: room?.roomId ?? -1,
   });
   useEffect(() => {
     if (!room || clueHistory.loading) {
@@ -596,8 +610,8 @@ export default function ClueFolderSidebar({
       return;
     }
     lastMarkedReadSyncRef.current[roomId] = latestSyncId;
-    websocketUtils.updateLastReadSyncId(roomId, latestSyncId);
-  }, [clueHistory.latestSyncId, clueHistory.loading, room, websocketUtils]);
+    updateLastReadSyncId(roomId, latestSyncId);
+  }, [clueHistory.latestSyncId, clueHistory.loading, room, updateLastReadSyncId]);
 
   const closeEditor = () => {
     if (isSaving || isDeleting) {
@@ -680,7 +694,7 @@ export default function ClueFolderSidebar({
 
     const targetMessage = historyMessages.find(({ message }) => getMessageId(message) === navigationTarget.sourceMessageId)?.message;
     if (!targetMessage) {
-      toast.error("未找到原线索，可能已删除");
+      appToast.error("未找到原线索，可能已删除");
       clearNavigationTarget(navigationTarget.requestId);
       return;
     }
@@ -727,11 +741,11 @@ export default function ClueFolderSidebar({
   const handleAttachmentFiles = (files: File[]) => {
     const availableFiles = files.filter(Boolean);
     if (availableFiles.length === 0) {
-      toast.error("未检测到可用附件");
+      appToast.error("未检测到可用附件");
       return;
     }
     if (availableFiles.length > 1) {
-      toast.error("一条线索只能添加 1 个附件，已取第一个");
+      appToast.error("一条线索只能添加 1 个附件，已取第一个");
     }
     handleAttachmentPicked(availableFiles[0]);
   };
@@ -794,7 +808,7 @@ export default function ClueFolderSidebar({
   const handleDraftContentChange = (value: string) => {
     const normalized = normalizeClueDraftContent(value);
     if (normalized.length !== value.length) {
-      toast.error(`线索内容最多 ${CLUE_CONTENT_MAX_LENGTH} 字，已截断`);
+      appToast.error(`线索内容最多 ${CLUE_CONTENT_MAX_LENGTH} 字，已截断`);
     }
     setDraftContent(normalized);
   };
@@ -805,7 +819,7 @@ export default function ClueFolderSidebar({
     }
     const draggedMessage = historyMessages.find(({ message }) => getMessageId(message) === draggedMessageId)?.message;
     if (!draggedMessage) {
-      toast.error("未找到要排序的线索");
+      appToast.error("未找到要排序的线索");
       return;
     }
     const nextPosition = getReorderedCluePosition(historyMessages, {
@@ -827,29 +841,28 @@ export default function ClueFolderSidebar({
         throw new Error(getErrorMessage(result, "线索排序失败"));
       }
       const nextMessage = result.data ?? updatedMessage;
-      patchClueMessageUpdatedQueryCache(queryClient, nextMessage);
       await clueHistory.addOrUpdateMessage({ message: nextMessage });
-      await invalidateClueFolderMessageQueries(queryClient, room.roomId);
-      toast.success("线索排序已更新");
+      queryClient.invalidateQueries({ queryKey: getUserMessageSessionsQueryKey() });
+      appToast.success("线索排序已更新");
     }
     catch (error) {
       console.error("[ClueFolder] reorder clue failed", error);
-      toast.error(error instanceof Error ? error.message : "线索排序失败");
+      appToast.error(error instanceof Error ? error.message : "线索排序失败");
     }
   };
 
   const saveClue = async () => {
     const content = draftContent.trim();
     if (draftContent.length > CLUE_CONTENT_MAX_LENGTH) {
-      toast.error(`线索内容最多 ${CLUE_CONTENT_MAX_LENGTH} 字`);
+      appToast.error(`线索内容最多 ${CLUE_CONTENT_MAX_LENGTH} 字`);
       return;
     }
     if (editorState?.mode === "create" && !content && !draftAttachment) {
-      toast.error("线索内容不能为空");
+      appToast.error("线索内容不能为空");
       return;
     }
     if (editorState?.mode === "edit" && !content) {
-      toast.error("线索内容不能为空");
+      appToast.error("线索内容不能为空");
       return;
     }
 
@@ -861,7 +874,7 @@ export default function ClueFolderSidebar({
         })
       : null;
     if (senderContext?.ok === false) {
-      toast.error(senderContext.message);
+      appToast.error(senderContext.message);
       return;
     }
 
@@ -876,10 +889,9 @@ export default function ClueFolderSidebar({
           throw new Error(getErrorMessage(result, "保存线索失败"));
         }
         const nextMessage = result.data ?? { ...editorState.message, content };
-        patchClueMessageUpdatedQueryCache(queryClient, nextMessage);
         await clueHistory.addOrUpdateMessage({ message: nextMessage });
-        await invalidateClueFolderMessageQueries(queryClient, editorState.message.roomId);
-        toast.success("线索已保存");
+        queryClient.invalidateQueries({ queryKey: getUserMessageSessionsQueryKey() });
+        appToast.success("线索已保存");
       }
       else {
         const targetRoom = await ensureClueFolderRoom(scope);
@@ -961,13 +973,12 @@ export default function ClueFolderSidebar({
           throw new Error(getErrorMessage(result, "创建线索失败"));
         }
         if (result.data) {
-          patchClueMessageCreatedQueryCache(queryClient, targetRoom.roomId, result.data);
           if (targetRoom.roomId === room?.roomId) {
             await clueHistory.addOrUpdateMessage({ message: result.data });
           }
         }
-        await invalidateClueFolderMessageQueries(queryClient, targetRoom.roomId);
-        toast.success("线索已创建");
+        queryClient.invalidateQueries({ queryKey: getUserMessageSessionsQueryKey() });
+        appToast.success("线索已创建");
       }
       setEditorState(null);
       setDraftContent("");
@@ -975,7 +986,7 @@ export default function ClueFolderSidebar({
     }
     catch (error) {
       console.error("[ClueFolder] save clue failed", error);
-      toast.error(error instanceof Error ? error.message : "保存线索失败");
+      appToast.error(error instanceof Error ? error.message : "保存线索失败");
     }
     finally {
       setIsSaving(false);
@@ -988,7 +999,7 @@ export default function ClueFolderSidebar({
     }
     const messageId = getMessageId(editorState.message);
     if (!messageId) {
-      toast.error("线索不存在，无法删除");
+      appToast.error("线索不存在，无法删除");
       return;
     }
     const confirmed = await confirm({ title: "删除线索", description: "确定删除这条线索吗？", variant: "danger" });
@@ -1002,22 +1013,20 @@ export default function ClueFolderSidebar({
       if (!isSuccess(result)) {
         throw new Error(getErrorMessage(result, "删除线索失败"));
       }
-      patchClueMessageDeletedQueryCache(queryClient, editorState.message.roomId, messageId);
       if (result.data) {
-        patchClueMessageUpdatedQueryCache(queryClient, result.data);
         await clueHistory.addOrUpdateMessage({ message: result.data });
       }
       else {
         await clueHistory.removeMessageById(messageId);
       }
-      await invalidateClueFolderMessageQueries(queryClient, editorState.message.roomId);
-      toast.success("线索已删除");
+      queryClient.invalidateQueries({ queryKey: getUserMessageSessionsQueryKey() });
+      appToast.success("线索已删除");
       setEditorState(null);
       setDraftContent("");
     }
     catch (error) {
       console.error("[ClueFolder] delete clue failed", error);
-      toast.error(error instanceof Error ? error.message : "删除线索失败");
+      appToast.error(error instanceof Error ? error.message : "删除线索失败");
     }
     finally {
       setIsDeleting(false);
@@ -1046,7 +1055,17 @@ export default function ClueFolderSidebar({
       </div>
 
       {portalTarget && editorState && createPortal(
-        <div className="modal modal-open z-10000">
+        <div
+          className="modal modal-open z-10000"
+          role="dialog"
+          aria-modal="true"
+          aria-label={editorState.mode === "create" ? "新建线索" : "编辑线索"}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              closeEditor();
+            }
+          }}
+        >
           <div
             className="modal-box max-w-2xl"
             onDragOver={handleAttachmentDragOver}
@@ -1074,6 +1093,7 @@ export default function ClueFolderSidebar({
                   <button
                     type="button"
                     className="btn btn-ghost btn-sm"
+                    aria-label="添加线索附件"
                     disabled={isSaving || isDeleting}
                     onClick={() => attachmentInputRef.current?.click()}
                   >
@@ -1088,6 +1108,7 @@ export default function ClueFolderSidebar({
                   ref={attachmentInputRef}
                   type="file"
                   className="hidden"
+                  aria-label="上传附件"
                   accept="image/*,audio/*,video/*,*/*"
                   onChange={handleAttachmentInputChange}
                 />

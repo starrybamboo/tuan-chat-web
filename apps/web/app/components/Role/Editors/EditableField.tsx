@@ -295,6 +295,8 @@ export default function EditableField({
                     setEditingFieldKey(null);
                   }}
                   onKeyDown={(e) => {
+                    if (e.nativeEvent.isComposing)
+                      return;
                     if (e.key === "Enter") {
                       if (tempFieldKey.trim() && tempFieldKey !== fieldKey) {
                         handleRename(tempFieldKey);
@@ -324,10 +326,13 @@ export default function EditableField({
             : (
                 <span
                   ref={keyScrollRef}
+                  role="button"
+                  tabIndex={0}
                   className={`
                     cursor-pointer
                     hover:text-info
                     font-medium whitespace-nowrap overflow-x-auto
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30
                     ${isCompact ? `
                       text-[10px]
                       md:text-xs
@@ -344,7 +349,16 @@ export default function EditableField({
                     setEditingFieldKey(fieldKey);
                     setTempFieldKey(fieldKey);
                   }}
-                  title="点击编辑字段名"
+                  onKeyDown={(e) => {
+                    if (e.nativeEvent.isComposing)
+                      return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setEditingFieldKey(fieldKey);
+                      setTempFieldKey(fieldKey);
+                    }
+                  }}
+                  title={`点击编辑字段名：${fieldKey}`}
                 >
                   {fieldKey}
                 </span>
@@ -400,6 +414,7 @@ export default function EditableField({
               max-md:min-h-0
             `}
             title="删除字段"
+            aria-label={`删除字段 ${fieldKey}`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="
               size-3

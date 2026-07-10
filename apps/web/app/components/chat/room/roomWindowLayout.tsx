@@ -42,6 +42,18 @@ const roomContentEnterVariants = {
   },
 };
 
+export const COMBAT_VISUAL_OVERLAY_STYLE = {
+  backgroundColor: "transparent",
+  backgroundImage: [
+    "linear-gradient(90deg, rgba(234, 179, 8, 0.24) 0, rgba(250, 204, 21, 0.14) 12px, transparent 32px, transparent calc(100% - 32px), rgba(250, 204, 21, 0.14) calc(100% - 12px), rgba(234, 179, 8, 0.24) 100%)",
+    "radial-gradient(circle at center, rgba(250, 204, 21, 0.06) 0, rgba(250, 204, 21, 0.02) 46%, transparent 76%)",
+    "linear-gradient(180deg, rgba(250, 204, 21, 0.08) 0, transparent 12px, transparent calc(100% - 12px), rgba(250, 204, 21, 0.08) 100%)",
+  ].join(", "),
+  backgroundSize: "100% 100%, 100% 100%, 100% 100%",
+  backgroundPosition: "center, center, center",
+  boxShadow: "inset 0 0 0 1px rgba(250, 204, 21, 0.10), inset 0 0 96px rgba(234, 179, 8, 0.08)",
+} as const;
+
 type RoomWindowLayoutProps = {
   spaceId: number;
   roomId: number;
@@ -66,10 +78,6 @@ type RoomWindowLayoutProps = {
   hideSecondaryPanels?: boolean;
   onClearAndReloadAllMessages?: () => void | Promise<void>;
   isReloadingAllMessages?: boolean;
-  canManageMute?: boolean;
-  isSpaceMuted?: boolean;
-  onToggleMute?: () => void | Promise<void>;
-  isTogglingMute?: boolean;
 }
 
 export default function RoomWindowLayout({
@@ -96,10 +104,6 @@ export default function RoomWindowLayout({
   hideSecondaryPanels = false,
   onClearAndReloadAllMessages,
   isReloadingAllMessages = false,
-  canManageMute = false,
-  isSpaceMuted = false,
-  onToggleMute,
-  isTogglingMute = false,
 }: RoomWindowLayoutProps) {
   const shouldRenderEffectOverlay = Boolean(currentEffect && currentEffect !== "none");
   const prefersReducedMotion = useReducedMotion();
@@ -143,15 +147,7 @@ export default function RoomWindowLayout({
         "
         style={{
           opacity: combatVisualActive ? 1 : 0,
-          backgroundColor: "rgba(24, 14, 10, 0.16)",
-          backgroundImage: [
-            "linear-gradient(90deg, rgba(127, 29, 29, 0.56) 0, rgba(180, 83, 9, 0.34) 12px, transparent 32px, transparent calc(100% - 32px), rgba(180, 83, 9, 0.34) calc(100% - 12px), rgba(127, 29, 29, 0.56) 100%)",
-            "radial-gradient(circle at center, rgba(245, 158, 11, 0.14) 0, rgba(245, 158, 11, 0.05) 46%, transparent 76%)",
-            "linear-gradient(180deg, rgba(245, 158, 11, 0.16) 0, transparent 12px, transparent calc(100% - 12px), rgba(245, 158, 11, 0.16) 100%)",
-          ].join(", "),
-          backgroundSize: "100% 100%, 100% 100%, 100% 100%",
-          backgroundPosition: "center, center, center",
-          boxShadow: "inset 0 0 0 1px rgba(245, 158, 11, 0.16), inset 0 0 120px rgba(127, 29, 29, 0.16)",
+          ...COMBAT_VISUAL_OVERLAY_STYLE,
         }}
       />
 
@@ -172,10 +168,6 @@ export default function RoomWindowLayout({
             onCloseSubWindow={onCloseSubWindow}
             onClearAndReloadAllMessages={onClearAndReloadAllMessages}
             isReloadingAllMessages={isReloadingAllMessages}
-            canManageMute={canManageMute}
-            isSpaceMuted={isSpaceMuted}
-            onToggleMute={onToggleMute}
-            isTogglingMute={isTogglingMute}
           />
           <div className="
             flex-1 w-full bg-transparent relative min-h-0 overflow-hidden

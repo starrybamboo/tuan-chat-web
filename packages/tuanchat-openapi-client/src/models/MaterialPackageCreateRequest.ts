@@ -25,4 +25,3 @@ export type MaterialPackageCreateRequest = {
     isPublic?: boolean;
     content: MaterialPackageContent;
 };
-

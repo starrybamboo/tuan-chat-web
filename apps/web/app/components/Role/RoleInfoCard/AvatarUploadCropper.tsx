@@ -1,8 +1,9 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { RoleAvatarVariant } from "api";
 
+import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
 import { normalizeImageFileOrNull } from "@/utils/media/mediaMime";
 
 export type UploadVariantTarget =
@@ -66,6 +67,7 @@ export function CharacterCopper({
 }: CharacterCopperProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const externalFilesHandledRef = useRef<number | null>(null);
+  const variantTargetDialogRef = useRef<HTMLDivElement | null>(null);
   const variantGroups = useMemo(() => availableVariants ?? [], [availableVariants]);
   const variantGroupById = useMemo(() => {
     const map = new Map<number, RoleAvatarVariant>();
@@ -104,7 +106,7 @@ export function CharacterCopper({
     }
     catch (error) {
       console.error("上传入口处理失败:", error);
-      toast.error(error instanceof Error ? error.message : "上传入口处理失败");
+      appToast.error(error instanceof Error ? error.message : "上传入口处理失败");
     }
     finally {
       setIsSubmittingFiles(false);
@@ -129,14 +131,14 @@ export function CharacterCopper({
     if (variantTargetDraft.mode === "new") {
       const name = variantTargetDraft.name.trim();
       if (!name) {
-        toast.error("请输入立绘组名称");
+        appToast.error("请输入立绘组名称");
         return null;
       }
       return { mode: "new", name };
     }
     const variantId = normalizeVariantId(variantTargetDraft.variantId);
     if (!variantId) {
-      toast.error("请选择立绘组");
+      appToast.error("请选择立绘组");
       return null;
     }
     return {
@@ -150,7 +152,7 @@ export function CharacterCopper({
     const imageFiles = (await Promise.all(files.map(async file => await normalizeImageFileOrNull(file))))
       .filter((file): file is File => Boolean(file));
     if (imageFiles.length === 0) {
-      toast.error("请选择图片文件");
+      appToast.error("请选择图片文件");
       return;
     }
     if (availableVariants) {
@@ -211,6 +213,12 @@ export function CharacterCopper({
     setPendingUploadFiles(null);
   }, []);
 
+  useEscapeToClose({
+    enabled: variantTargetDialogOpen,
+    onClose: handleCancelVariantTarget,
+    containerRef: variantTargetDialogRef,
+  });
+
   return (
     <div className={wrapperClassName || ""}>
       <input
@@ -223,8 +231,21 @@ export function CharacterCopper({
       />
       <div
         className={triggerClassName || ""}
+        role="button"
+        tabIndex={isSubmittingFiles ? -1 : 0}
+        aria-label="上传头像"
+        aria-busy={isSubmittingFiles}
         onClick={() => {
           if (!isSubmittingFiles) {
+            fileInputRef.current?.click();
+          }
+        }}
+        onKeyDown={(event) => {
+          if (isSubmittingFiles) {
+            return;
+          }
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
             fileInputRef.current?.click();
           }
         }}
@@ -233,7 +254,14 @@ export function CharacterCopper({
       </div>
 
       {variantTargetDialogOpen && (
-        <div className="modal modal-open">
+        <div
+          ref={variantTargetDialogRef}
+          data-modal-layer="true"
+          role="dialog"
+          aria-modal="true"
+          aria-label="选择头像上传目标"
+          className="modal modal-open"
+        >
           <div className="modal-box w-[92vw] max-w-md rounded-md">
             <h3 className="text-lg font-bold">
               {pendingUploadFiles && pendingUploadFiles.length > 1 ? "批量上传头像" : "上传头像"}
@@ -311,6 +339,7 @@ export function CharacterCopper({
                 <input
                   className="input input-sm mt-2 w-full"
                   autoComplete="off"
+                  aria-label="立绘组名称"
                   value={variantTargetDraft.name}
                   onChange={(event) => {
                     const name = event.currentTarget.value;
@@ -321,7 +350,7 @@ export function CharacterCopper({
                     }));
                   }}
                   disabled={variantTargetDraft.mode !== "new"}
-                  placeholder="立绘组名称"
+                  placeholder="立绘组 1"
                 />
               </label>
             </div>
@@ -334,8 +363,9 @@ export function CharacterCopper({
                 className="btn btn-primary"
                 onClick={handleConfirmVariantTarget}
                 disabled={isSubmittingFiles}
+                aria-busy={isSubmittingFiles}
               >
-                {isSubmittingFiles ? "处理中..." : "继续校正"}
+                {isSubmittingFiles ? "正在准备头像校正..." : "继续校正"}
               </button>
             </div>
           </div>

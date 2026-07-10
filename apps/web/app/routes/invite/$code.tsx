@@ -113,13 +113,13 @@ function InvitePage() {
         {isProcessing && !error && (
           <>
             <div className="mb-4">
-              <svg className="animate-spin h-8 w-8 mx-auto text-base-content/60" viewBox="0 0 24 24">
+              <svg className="animate-spin h-8 w-8 mx-auto text-base-content/60 motion-reduce:animate-none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
               </svg>
             </div>
             <h2 className="text-lg font-medium">正在处理邀请……</h2>
-            <p className="text-sm text-base-content/60 mt-2">请稍等，系统正在尝试将您加入空间。</p>
+            <p className="text-sm text-base-content/60 mt-2">请稍等，系统正在尝试将您加入空间。失败后可重试或返回首页。</p>
           </>
         )}
 

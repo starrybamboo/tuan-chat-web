@@ -24,4 +24,3 @@ export type UserInfoResponse = {
      */
     activeStatus?: string;
 };
-

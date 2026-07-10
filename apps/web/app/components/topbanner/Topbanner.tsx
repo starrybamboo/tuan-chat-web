@@ -1,4 +1,5 @@
 import type { ComponentType, SVGProps } from "react";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { BugBeetleIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +7,6 @@ import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { buildAccountInviteRegisterUrl } from "@tuanchat/domain/account-invite";
 import { motion, useAnimationControls } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
 
 import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
@@ -196,20 +196,20 @@ export default function Topbar() {
 
   const handleCopyInviteLink = useCallback(async () => {
     if (!inviteRegisterLink) {
-      toast.error("邀请码还没有生成，请稍后重试。");
+      appToast.error("邀请码还没有生成，请稍后重试。");
       return;
     }
     if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
-      toast.error("当前环境不支持复制到剪贴板。");
+      appToast.error("当前环境不支持复制到剪贴板。");
       return;
     }
 
     try {
       await navigator.clipboard.writeText(inviteRegisterLink);
-      toast.success("邀请链接已复制");
+      appToast.success("邀请链接已复制");
     }
     catch {
-      toast.error("复制失败，请稍后重试。");
+      appToast.error("复制失败，请稍后重试。");
     }
   }, [inviteRegisterLink]);
 
@@ -232,7 +232,7 @@ export default function Topbar() {
     const status = exportBugReportLog();
     setBugReportExportStatus(status);
     if (!status.ok) {
-      toast.error(status.message);
+      appToast.error(status.message);
     }
     setIsBugQqOpen(true);
   }, [exportBugReportLog]);
@@ -418,10 +418,10 @@ export default function Topbar() {
                             clickEnterProfilePage={false}
                           />
                           <div className="min-w-0">
-                            <div className="text-sm font-medium truncate">
+                            <div className="text-sm font-medium truncate" title={username || `用户 ${userId}`}>
                               {username || `用户 ${userId}`}
                             </div>
-                            <p className="text-xs opacity-60 truncate">
+                            <p className="text-xs opacity-60 truncate" title={`ID: ${userId}`}>
                               ID:
                               {userId}
                             </p>
@@ -452,6 +452,7 @@ export default function Topbar() {
                                       btn btn-ghost btn-xs h-7 min-h-7 px-2
                                     "
                                     onClick={handleCopyInviteLink}
+                                    aria-label={`复制邀请链接（${username || `用户 ${userId}`} · ID ${userId}）`}
                                   >
                                     复制链接
                                   </button>
@@ -526,6 +527,7 @@ export default function Topbar() {
                           type="button"
                           className="btn btn-outline btn-sm w-full gap-2"
                           onClick={handleLogout}
+                          title="退出当前账号"
                         >
                           <SignOutIcon className="size-4" />
                           退出登录

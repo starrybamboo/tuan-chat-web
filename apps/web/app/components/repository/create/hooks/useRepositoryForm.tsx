@@ -1,10 +1,11 @@
 import type { SubmitHandler } from "react-hook-form";
 
+import { useAddRepositoryMutation } from "api/hooks/repositoryQueryHooks";
+import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
+import { appToast } from "@/components/common/appToast/appToast";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import message from "@/components/common/message/message";
-import { useAddRepositoryMutation } from "api/hooks/repositoryQueryHooks";
 
 export type RepositoryCreateRequest = {
   ruleId: number;
@@ -20,6 +21,7 @@ export function useRepositoryForm() {
     "repositoryCreateModalOpen",
     false,
   );
+  const [createdRepositoryName, setCreatedRepositoryName] = useState("");
 
   // react-hook-form 表单
   const {
@@ -51,9 +53,20 @@ export function useRepositoryForm() {
       data,
       {
         onSuccess: () => {
-          message.success("创建仓库成功");
+          const repositoryName = data.repositoryName.trim() || "未命名仓库";
+          setCreatedRepositoryName(repositoryName);
+          appToast.success({
+            title: `仓库「${repositoryName}」已创建`,
+            description: "可以继续前往创作工作台编辑内容。",
+          });
           setModalOpen(true);
           reset();
+        },
+        onError: (error) => {
+          appToast.error({
+            title: "仓库创建失败",
+            description: error instanceof Error && error.message ? error.message : "请稍后重试。",
+          });
         },
       },
     );
@@ -68,6 +81,7 @@ export function useRepositoryForm() {
     submit,
     modalOpen,
     setModalOpen,
+    createdRepositoryName,
     ruleId,
   };
 }

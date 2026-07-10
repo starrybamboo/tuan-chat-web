@@ -464,6 +464,7 @@ export default function MaterialPackageWorkbench({
         && (draggedNodeKey === nodeKey || isAncestorPath(parseNodePath(draggedNodeKey), path));
       const canExpand = isFolder && (node.children?.length ?? 0) > 0;
       const rowStyle = { paddingLeft: 8 + depth * 14 };
+      const nodeLabel = getNodeLabel(node, isFolder ? "未命名文件夹" : "未命名素材");
 
       return (
         <div key={nodeKey} className="space-y-1">
@@ -530,6 +531,8 @@ export default function MaterialPackageWorkbench({
                 `}
               `}
               onClick={() => selectNode(nodeKey)}
+              aria-label={nodeLabel}
+              title={readOnly ? nodeLabel : `${nodeLabel}（可拖拽移动/重排）`}
               draggable={!readOnly}
               onDragStart={(event) => {
                 if (readOnly) {
@@ -1067,6 +1070,8 @@ export default function MaterialPackageWorkbench({
                                 ` : ""}
                                 draggable={canDrag}
                                 onDragStart={handleAssetDragStart}
+                                aria-label={getNodeLabel(selectedNode, "未命名素材")}
+                                title={canDrag ? "可拖拽发送到群聊或加入副窗口" : undefined}
                               >
                                 <ReadOnlyAssetCard
                                   message={message}
@@ -1089,6 +1094,8 @@ export default function MaterialPackageWorkbench({
                               `}
                               draggable={canDrag}
                               onDragStart={handleAssetDragStart}
+                              aria-label={getNodeLabel(selectedNode, "未命名素材")}
+                              title={canDrag ? "可拖拽移动/复制" : undefined}
                             >
                               <MaterialMessageEditorCard
                                 message={message}

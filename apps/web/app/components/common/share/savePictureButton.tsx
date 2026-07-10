@@ -1,5 +1,5 @@
 import * as htmltoimage from "html-to-image";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { SharpDownload } from "@/icons";
 
@@ -33,7 +33,7 @@ export default function SavePictureButton({ targetRef, qrLink, className }: Save
 
       // 原始容器
       if (!targetRef.current) {
-        toast.error("未找到目标元素，无法保存");
+        appToast.error("未找到目标元素，无法保存");
         return;
       }
       const cloneNode = targetRef?.current.cloneNode(true) as HTMLElement;
@@ -140,7 +140,7 @@ export default function SavePictureButton({ targetRef, qrLink, className }: Save
     }
     catch (err) {
       console.error(err);
-      toast.error("保存图片失败，请稍后重试");
+      appToast.error("保存图片失败，请稍后重试");
     }
   };
 

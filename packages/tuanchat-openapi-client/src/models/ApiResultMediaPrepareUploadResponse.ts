@@ -21,4 +21,3 @@ export type ApiResultMediaPrepareUploadResponse = {
     errMsg?: string;
     data?: MediaPrepareUploadResponse;
 };
-

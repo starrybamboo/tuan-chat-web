@@ -1,6 +1,8 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useId, useRef, type MouseEvent, type ReactNode } from "react";
 
+import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
+
 /**
  * 统一模态弹窗：基于原生 <dialog> + showModal()。
  * 原生提供 focus trap、ESC 关闭、背景滚动锁定；::backdrop 作遮罩。
@@ -41,6 +43,12 @@ export function Modal({
   const titleId = useId();
   const shouldReduceMotion = useReducedMotion();
   const accessibleLabel = ariaLabel?.trim() || "弹窗";
+
+  useEscapeToClose({
+    enabled: open,
+    onClose: () => onOpenChange(false),
+    containerRef: ref,
+  });
 
   useEffect(() => {
     const dialog = ref.current;
@@ -88,10 +96,15 @@ export function Modal({
   return (
     <dialog
       ref={ref}
+      data-modal-layer={open ? "true" : undefined}
       className="modal"
       aria-modal="true"
       aria-label={accessibleLabel}
       onClick={handleBackdropClick}
+      onCancel={(event) => {
+        event.preventDefault();
+        onOpenChange(false);
+      }}
     >
       <AnimatePresence>
         {open && (

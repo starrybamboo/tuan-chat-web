@@ -185,7 +185,15 @@ export default function DiceMaidenLinkModal({
       <div
         className="bg-base-100 rounded-xl shadow-2xl w-full mx-4 flex flex-col"
         style={{ maxWidth: "28rem", height: "600px" }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="关联骰娘"
         onClick={e => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            onClose();
+          }
+        }}
       >
         {/* 头部 - 固定 */}
         <div className="p-6 pb-4 flex-shrink-0">
@@ -194,9 +202,10 @@ export default function DiceMaidenLinkModal({
             <button
               type="button"
               className="btn btn-sm btn-circle btn-ghost"
+              aria-label="关闭"
               onClick={onClose}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>

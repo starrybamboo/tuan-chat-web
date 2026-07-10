@@ -16,4 +16,3 @@ export type RoomListResponse = {
      */
     rooms?: Array<Room>;
 };
-

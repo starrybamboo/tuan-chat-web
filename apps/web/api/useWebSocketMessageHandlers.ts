@@ -18,6 +18,7 @@ import type {
 
 import { triggerAudioAutoPlay } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayRuntime";
 import { resolveAudioAutoPlayPurposeFromAnnotationTransition } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayPolicy";
+import { emitRoomMessagesReceived } from "@/components/chat/infra/localDb/roomMessageEvents";
 import { applyRoomDndMapChange, roomDndMapQueryKey } from "@/components/chat/shared/map/roomDndMapApi";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { FEEDBACK_ISSUE_TARGET_TYPE } from "@/components/feedback/feedbackTypes";
@@ -25,11 +26,15 @@ import { getSoundMessageExtra } from "@/types/messageExtra";
 import { handleUnauthorized } from "@/utils/auth/unauthorized";
 import { mediaFileUrl } from "@/utils/media/mediaUrl";
 import { useCallback } from "react";
+import {
+  replaceDirectOptimisticMessageInCache,
+  upsertDirectInboxQueryData,
+} from "@tuanchat/query/direct-message";
+import { loadChatHistoryDb } from "@/components/chat/infra/localDb/chatHistoryDbLoader";
 import { recoverAuthTokenFromSession } from "./authRecovery";
 import { FEEDBACK_ISSUES_QUERY_KEY, feedbackIssueDetailQueryKey } from "./feedbackQueryCache";
 import { prependNotificationToCaches } from "./notificationQueryCache";
 import { buildCommentPageQueryKey } from "./hooks/commentQueryHooks";
-import { spaceInfoQueryKey } from "./hooks/chatQueryHooks";
 import { spaceSidebarTreeQueryKey } from "./hooks/spaceSidebarTreeHooks";
 import { MessageType } from "./wsModels";
 import { invalidateMemberChangeQueries, invalidateRoleChangeQueries } from "./wsInvalidation";
@@ -45,7 +50,6 @@ type UseWebSocketMessageHandlersOptions = {
   wsRef: MutableRefObject<WebSocket | null>;
   closingRef: MutableRefObject<boolean>;
   reconnectAttempts: MutableRefObject<number>;
-  receivedMessagesRef: MutableRefObject<Record<number, ChatMessageResponse[]>>;
   optimisticDirectMessageRequestMapRef: MutableRefObject<Map<number, OptimisticDirectMessagePending>>;
   unhandledWsTypes: MutableRefObject<Set<number>>;
   connect: () => void;
@@ -58,8 +62,6 @@ type UseWebSocketMessageHandlersOptions = {
   syncWsDebugToWindow: () => void;
   updateChatStatus: ImmerUpdater<Record<number, ChatStatus[]>>;
   updateLatestSyncId: (roomId: number, latestSyncId: number) => void;
-  updateReceivedDirectMessages: ImmerUpdater<Record<number, DirectMessageEvent[]>>;
-  updateReceivedMessages: ImmerUpdater<Record<number, ChatMessageResponse[]>>;
 };
 
 function normalizeExtraForMatch(extra: unknown): string {
@@ -73,6 +75,82 @@ function normalizeExtraForMatch(extra: unknown): string {
 
 function isChatMessageResponse(value: unknown): value is ChatMessageResponse {
   return !!(value as ChatMessageResponse | undefined)?.message;
+}
+
+function upsertDirectMessageIntoInboxCache(
+  queryClient: QueryClient,
+  selfUserId: number,
+  message: DirectMessageEvent,
+  optimisticMessageId?: number | null,
+): void {
+  if (!Number.isFinite(selfUserId) || selfUserId <= 0) {
+    return;
+  }
+
+  const inboxMessage = {
+    messageId: message.messageId,
+    userId: message.userId,
+    syncId: message.syncId,
+    senderId: message.senderId,
+    senderUsername: message.senderUsername,
+    senderAvatarFileId: message.senderAvatarFileId,
+    senderAvatarMediaType: message.senderAvatarMediaType,
+    receiverId: message.receiverId,
+    receiverUsername: message.receiverUsername,
+    receiverAvatarFileId: message.receiverAvatarFileId,
+    receiverAvatarMediaType: message.receiverAvatarMediaType,
+    content: message.content,
+    messageType: message.messageType,
+    replyMessageId: message.replyMessageId,
+    status: message.status,
+    extra: message.extra,
+    createTime: message.createTime,
+  };
+
+  if (typeof optimisticMessageId === "number") {
+    replaceDirectOptimisticMessageInCache(queryClient, selfUserId, optimisticMessageId, inboxMessage);
+    return;
+  }
+
+  upsertDirectInboxQueryData(queryClient, selfUserId, [inboxMessage]);
+}
+
+async function triggerRoomSoundAutoPlayFromWs(chatMessageResponse: ChatMessageResponse): Promise<void> {
+  const message = chatMessageResponse.message;
+  if (message.messageType !== MessageType.SOUND) {
+    return;
+  }
+
+  const sound = getSoundMessageExtra(message.extra);
+  const source = sound?.source;
+  const url = source?.kind === "external"
+    ? source.url
+    : mediaFileUrl(source?.fileId, "audio", "high");
+  if (!url || typeof message.messageId !== "number") {
+    return;
+  }
+
+  let previousMessage: ChatMessageResponse["message"] | undefined;
+  try {
+    const db = await loadChatHistoryDb();
+    previousMessage = (await db.getMessageById(message.messageId))?.message;
+  }
+  catch (error) {
+    console.error("[WS] Failed to read previous room sound message:", error);
+  }
+
+  const purpose = resolveAudioAutoPlayPurposeFromAnnotationTransition(previousMessage, message);
+  if (!purpose) {
+    return;
+  }
+
+  triggerAudioAutoPlay({
+    source: "ws",
+    roomId: message.roomId,
+    messageId: message.messageId,
+    purpose,
+    url,
+  });
 }
 
 export function parseRoomMessagePushPayload(type: number, data: unknown): ChatMessageResponse[] {
@@ -90,7 +168,6 @@ export function useWebSocketMessageHandlers({
   wsRef,
   closingRef,
   reconnectAttempts,
-  receivedMessagesRef,
   optimisticDirectMessageRequestMapRef,
   unhandledWsTypes,
   connect,
@@ -103,8 +180,6 @@ export function useWebSocketMessageHandlers({
   syncWsDebugToWindow,
   updateChatStatus,
   updateLatestSyncId,
-  updateReceivedDirectMessages,
-  updateReceivedMessages,
 }: UseWebSocketMessageHandlersOptions) {
   const handleChatStatusChange = useCallback((chatStatusEvent: ChatStatusEvent) => {
     const { roomId, userId, status } = chatStatusEvent;
@@ -133,73 +208,28 @@ export function useWebSocketMessageHandlers({
     }
 
     const roomId = chatMessageResponse.message.roomId;
-    if (chatMessageResponse.message.status === 0) {
+    if (
+      typeof chatMessageResponse.message.syncId === "number"
+      && Number.isFinite(chatMessageResponse.message.syncId)
+      && chatMessageResponse.message.syncId > 0
+    ) {
       updateLatestSyncId(roomId, chatMessageResponse.message.syncId);
     }
 
-    // WS 层只负责接收增量消息并去重；补洞统一由 useChatFrameMessages 处理。
-    const messagesToAdd: ChatMessageResponse[] = [chatMessageResponse];
-    const mergedRoomMessages = [...(receivedMessagesRef.current[roomId] ?? [])];
-    let replacedCount = 0;
-    let appendedCount = 0;
+    const message = chatMessageResponse.message;
+    void triggerRoomSoundAutoPlayFromWs(chatMessageResponse);
 
-    for (const msg of messagesToAdd) {
-      const m = msg?.message;
-      if (!m)
-        continue;
-      const existedIndex = typeof m.messageId === "number"
-        ? mergedRoomMessages.findIndex(item => item?.message?.messageId === m.messageId)
-        : -1;
-      const previousMessage = existedIndex >= 0 ? mergedRoomMessages[existedIndex]?.message : undefined;
-
-      if (m.messageType === MessageType.SOUND) {
-        const sound = getSoundMessageExtra(m.extra);
-        const source = sound?.source;
-        const url = source?.kind === "external"
-          ? source.url
-          : mediaFileUrl(source?.fileId, "audio", "high");
-        if (url && typeof m.messageId === "number") {
-          const purpose = resolveAudioAutoPlayPurposeFromAnnotationTransition(previousMessage, m);
-          if (purpose) {
-            triggerAudioAutoPlay({
-              source: "ws",
-              roomId: m.roomId,
-              messageId: m.messageId,
-              purpose,
-              url,
-            });
-          }
-        }
-      }
-
-      if (m.messageType === MessageType.SYSTEM) {
-        const content = (m.content ?? "").toString();
-        if (
-          content.includes("[停止全员BGM]")
-          || content.includes("[停止BGM]")
-        ) {
-          useAudioMessageAutoPlayStore.getState().markBgmStopFromWs(m.roomId);
-        }
-      }
-
-      if (existedIndex >= 0) {
-        mergedRoomMessages[existedIndex] = msg;
-        replacedCount += 1;
-      }
-      else {
-        mergedRoomMessages.push(msg);
-        appendedCount += 1;
+    if (message.messageType === MessageType.SYSTEM) {
+      const content = (message.content ?? "").toString();
+      if (
+        content.includes("[停止全员BGM]")
+        || content.includes("[停止BGM]")
+      ) {
+        useAudioMessageAutoPlayStore.getState().markBgmStopFromWs(message.roomId);
       }
     }
 
-    receivedMessagesRef.current = {
-      ...receivedMessagesRef.current,
-      [roomId]: mergedRoomMessages,
-    };
-
-    updateReceivedMessages((draft) => {
-      draft[roomId] = mergedRoomMessages;
-    });
+    emitRoomMessagesReceived(roomId, [chatMessageResponse]);
 
     const sendingUserId = chatMessageResponse.message.userId;
     if (sendingUserId) {
@@ -209,7 +239,7 @@ export function useWebSocketMessageHandlers({
     }
 
     void notifyNewGroupMessage(chatMessageResponse);
-  }, [handleChatStatusChange, notifyNewGroupMessage, receivedMessagesRef, updateLatestSyncId, updateReceivedMessages]);
+  }, [handleChatStatusChange, notifyNewGroupMessage, updateLatestSyncId]);
 
   const handleChatMessages = useCallback((chatMessageResponses: ChatMessageResponse[]) => {
     for (const chatMessageResponse of chatMessageResponses) {
@@ -252,37 +282,16 @@ export function useWebSocketMessageHandlers({
       }
     }
 
-    let isNewMessage = false;
-    updateReceivedDirectMessages((draft) => {
-      const channelMessages = draft[channelId] ?? [];
-      if (!(channelId in draft)) {
-        draft[channelId] = channelMessages;
-      }
-
-      if (matchedOptimisticMessageId !== null) {
-        const optimisticIndex = channelMessages.findIndex(item => item.messageId === matchedOptimisticMessageId);
-        if (optimisticIndex >= 0) {
-          channelMessages.splice(optimisticIndex, 1);
-        }
+    if (matchedOptimisticMessageId !== null) {
+      const pendingMessage = optimisticDirectMessageRequestMapRef.current.get(matchedOptimisticMessageId);
+      if (pendingMessage) {
+        clearTimeout(pendingMessage.cleanupTimer);
         optimisticDirectMessageRequestMapRef.current.delete(matchedOptimisticMessageId);
       }
-
-      const existingIndex = channelMessages.findIndex(msg => message.messageId === msg.messageId);
-      if (existingIndex !== -1) {
-        channelMessages[existingIndex] = message;
-      }
-      else {
-        isNewMessage = true;
-        channelMessages.push(message);
-      }
-    });
-
-    if (!isNewMessage) {
-      return;
     }
 
-    queryClient.invalidateQueries({ queryKey: ["getInboxMessagePage"] });
-    queryClient.invalidateQueries({ queryKey: ["inboxMessageWithUser"] });
+    upsertDirectMessageIntoInboxCache(queryClient, selfUserId, message, matchedOptimisticMessageId);
+    queryClient.invalidateQueries({ queryKey: ["dmInbox"] });
 
     if ((message?.content ?? "").trim() === "好友申请同意") {
       queryClient.invalidateQueries({ queryKey: ["friendList"] });
@@ -298,13 +307,15 @@ export function useWebSocketMessageHandlers({
     optimisticDirectMessageRequestMapRef,
     queryClient,
     resolveSelfUserId,
-    updateReceivedDirectMessages,
   ]);
 
   const onMessage = useCallback((message: WsMessage<unknown>) => {
     const wsMessageHandlers: Record<number, () => void> = {
       1: () => {
         handleDirectChatMessage(message.data as DirectMessageEvent);
+      },
+      2: () => {
+        // 心跳响应只用于确认连接存活，不触发业务状态更新。
       },
       [GROUP_MESSAGE_PUSH_TYPE]: () => {
         handleChatMessages(parseRoomMessagePushPayload(message.type, message.data));
@@ -342,26 +353,6 @@ export function useWebSocketMessageHandlers({
         if (WS_HANDLER_DEBUG_LOG_ENABLED) {
           console.info("Room extra change:", event);
         }
-      },
-      16: () => {
-        const { spaceId, muteStatus } = message.data as { spaceId: number; muteStatus?: number };
-        if (typeof muteStatus === "number") {
-          queryClient.setQueryData(spaceInfoQueryKey(spaceId), (old: any) => {
-            if (!old?.data) {
-              return old;
-            }
-            return {
-              ...old,
-              data: {
-                ...old.data,
-                muteStatus,
-              },
-            };
-          });
-        }
-        queryClient.invalidateQueries({ queryKey: spaceInfoQueryKey(spaceId) });
-        queryClient.invalidateQueries({ queryKey: ["getUserSpaces"] });
-        queryClient.invalidateQueries({ queryKey: ["getUserActiveSpaces"] });
       },
       17: () => {
         handleChatStatusChange(message.data as ChatStatusEvent);

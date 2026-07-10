@@ -21,4 +21,3 @@ export type ApiResultSpaceSidebarTreeResponse = {
     errMsg?: string;
     data?: SpaceSidebarTreeResponse;
 };
-

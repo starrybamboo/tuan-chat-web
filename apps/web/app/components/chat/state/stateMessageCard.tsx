@@ -1,6 +1,9 @@
 import React from "react";
 
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
+import EditableMessageContent from "@/components/chat/message/editableMessageContent";
 import { useOptionalStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import { collectStateEventScopeLabels, formatStateEventAtomDetail, formatStateEventPreviewText, formatStateRoleLabel, formatStateScopeLabel, getNormalizedStateEventExtra } from "@/types/stateEvent";
 
@@ -8,6 +11,11 @@ import type { Message } from "../../../../api";
 
 type StateMessageCardProps = {
   message: Pick<Message, "content" | "extra"> & Partial<Pick<Message, "messageId">>;
+  canEditContent?: boolean;
+  onContentCommit?: (nextContent: string) => void;
+  onContentEditingChange?: (editing: boolean) => void;
+  editInputRef?: React.RefObject<ChatInputAreaHandle | null>;
+  shouldIgnoreContentBlur?: (relatedTarget: EventTarget | null) => boolean;
 }
 
 const STATE_MESSAGE_CARD_CLASS = "inline-flex min-w-0 max-w-full items-center gap-1 rounded px-1.5 py-0.5 text-[11px] leading-4 transition-colors duration-150";
@@ -46,7 +54,14 @@ export function buildStateRoleLabelReplacements(
   return replacements.sort((left, right) => right.rawLabel.length - left.rawLabel.length);
 }
 
-export default function StateMessageCard({ message }: StateMessageCardProps) {
+export default function StateMessageCard({
+  message,
+  canEditContent = false,
+  onContentCommit,
+  onContentEditingChange,
+  editInputRef,
+  shouldIgnoreContentBlur,
+}: StateMessageCardProps) {
   const roomContext = React.use(RoomContext);
   const runtime = useOptionalStateRuntimeContext();
   const [expanded, setExpanded] = React.useState(false);
@@ -117,12 +132,29 @@ export default function StateMessageCard({ message }: StateMessageCardProps) {
         ${STATE_MESSAGE_CARD_CLASS}
         ${STATE_MESSAGE_IDLE_CLASS}
       `}>
-        <span className={STATE_MESSAGE_TEXT_CLASS}>
-          {compactText}
-        </span>
+        {onContentCommit
+          ? (
+              <EditableMessageContent
+                content={message.content ?? ""}
+                displayContent={compactText}
+                className={`${STATE_MESSAGE_TEXT_CLASS} editable-field`}
+                canEdit={canEditContent}
+                onCommit={onContentCommit}
+                onEditingChange={onContentEditingChange}
+                editInputRef={editInputRef}
+                shouldIgnoreBlur={shouldIgnoreContentBlur}
+              />
+            )
+          : (
+              <span className={STATE_MESSAGE_TEXT_CLASS}>
+                {compactText}
+              </span>
+            )}
         <button
           type="button"
           className={STATE_MESSAGE_ACTION_CLASS}
+          aria-expanded={expanded}
+          aria-label={expanded ? "收起状态消息详情" : "展开状态消息详情"}
           onClick={(event) => {
             event.stopPropagation();
             setExpanded(value => !value);
@@ -142,8 +174,8 @@ export default function StateMessageCard({ message }: StateMessageCardProps) {
               记录文本
             </div>
             <div className="
-              wrap-break-word rounded-md bg-base-200/35 px-2 py-1.5 font-mono
-              text-[12px] text-base-content/76
+              wrap-break-word rounded-md bg-base-200/35 px-2 py-1.5
+              font-mono text-[12px] text-base-content/76
             ">
               {message.content || "[空记录]"}
             </div>

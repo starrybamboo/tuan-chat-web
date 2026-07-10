@@ -5,6 +5,7 @@ import { useRouter } from "@tanstack/react-router";
 import { useDebounce } from "ahooks";
 import { Suspense, useCallback, useDeferredValue, useEffect, useState } from "react";
 
+import { ImeAwareSearchInput } from "@/components/common/imeAwareSearchInput";
 import { useRulePageSuspenseQuery } from "api/hooks/ruleQueryHooks";
 
 type RulesListProps = {
@@ -98,13 +99,13 @@ export default function RulesSection({
           relative flex-1
           md:flex-none
         ">
-          <input
-            type="search"
+          <ImeAwareSearchInput
+            type="text"
             autoComplete="off"
             aria-label="搜索规则"
             placeholder="搜索规则..."
             value={keyword}
-            onChange={e => handleSearchInput(e.target.value)}
+            onValueChange={handleSearchInput}
             className={`
               input input-bordered input-sm w-full
               md:w-64
@@ -143,6 +144,8 @@ export default function RulesSection({
             type="button"
             onClick={() => setPageNum(Math.max(pageNum - 1, 1))}
             disabled={pageNum === 1}
+            aria-label="上一页"
+            title={pageNum === 1 ? "已经是第一页" : "上一页"}
             className="
               join-item btn btn-ghost btn-sm
               disabled:opacity-50
@@ -160,6 +163,8 @@ export default function RulesSection({
             type="button"
             onClick={() => setPageNum(pageNum + 1)}
             disabled={isLastPage ?? (rulesCount < pageSize)}
+            aria-label="下一页"
+            title={(isLastPage ?? rulesCount < pageSize) ? "已经是最后一页" : "下一页"}
             className="
               join-item btn btn-ghost btn-sm
               disabled:opacity-50
@@ -348,7 +353,16 @@ function RulesList({
                 `
               }
               `}
+              role="button"
+              tabIndex={0}
+              aria-label={`选择规则：${rule.ruleName}`}
               onClick={() => onRuleChange(rule.ruleId || 0)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onRuleChange(rule.ruleId || 0);
+                }
+              }}
             >
               <div className="
                 card-body p-5

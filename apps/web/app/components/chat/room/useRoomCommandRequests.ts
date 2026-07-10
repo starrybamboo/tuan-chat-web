@@ -4,7 +4,7 @@ import {
   stripCommandRequestAllToken as stripToken,
 } from "@tuanchat/domain/command-request";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 type CommandExecutor = (payload: {
   command: string;
@@ -131,26 +131,26 @@ export default function useRoomCommandRequests({
     const { command, requestMessageId } = payload;
     const rawCommand = String(command ?? "").trim();
     if (!rawCommand) {
-      toast.error("请输入指令");
+      appToast.error("请输入指令");
       return;
     }
 
     if (noRole && !isSpaceOwner && !notMember) {
-      toast.error("旁白仅主持可用，请先选择/拉入你的角色");
+      appToast.error("旁白仅主持可用，请先选择/拉入你的角色");
       return;
     }
     if (isSubmitting) {
-      toast.error("正在提交中，请稍后");
+      appToast.error("正在提交中，请稍后");
       return;
     }
     const requestKey = buildRequestConsumeKey(roomId, requestMessageId);
     const currentConsumedRequestKeys = consumedRequestKeysRef.current;
     if (currentConsumedRequestKeys.has(requestKey)) {
-      toast.error("该检定请求已执行");
+      appToast.error("该检定请求已执行");
       return;
     }
     if (pendingRequestKeysRef.current.has(requestKey)) {
-      toast.error("检定请求正在执行，请稍后");
+      appToast.error("检定请求正在执行，请稍后");
       return;
     }
 
@@ -163,7 +163,7 @@ export default function useRoomCommandRequests({
           replyMessageId: requestMessageId,
         });
         if (executed === false) {
-          toast.error("检定请求未执行成功，请重试");
+          appToast.error("检定请求未执行成功，请重试");
           return;
         }
 
@@ -175,7 +175,7 @@ export default function useRoomCommandRequests({
       }
       catch (error) {
         console.error("执行检定请求失败", error);
-        toast.error("检定请求执行失败，请重试");
+        appToast.error("检定请求执行失败，请重试");
       }
       finally {
         pendingRequestKeysRef.current.delete(requestKey);

@@ -1,7 +1,7 @@
-import { toast } from "react-hot-toast";
 
 import { Button } from "@/components/common/Button";
 import { Link } from "@/icons";
+import { appToast } from "@/components/common/appToast/appToast";
 
 type CopyLinkButtonProps = {
   title?: string;
@@ -12,10 +12,10 @@ export default function CopyLinkButton({ title, className }: CopyLinkButtonProps
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(textToCopy);
-      toast.success("链接已复制！");
+      appToast.success("链接已复制！");
     }
     catch (err) {
-      toast.error("复制失败，请手动复制");
+      appToast.error("复制失败，请手动复制");
       console.error(err);
     }
   };

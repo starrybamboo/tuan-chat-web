@@ -104,6 +104,7 @@ export default function FeedbackScreen() {
           <ThemedView type="backgroundElement" style={styles.card}>
             <ThemedText type="smallBold">{initialTitle || "问题描述（可选）"}</ThemedText>
             <TextInput
+              accessibilityLabel="问题描述"
               value={description}
               onChangeText={setDescription}
               style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.background }]}
@@ -116,7 +117,12 @@ export default function FeedbackScreen() {
           <ThemedView type="backgroundElement" style={styles.card}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
               <ThemedText type="smallBold">运行日志</ThemedText>
-              <Pressable onPress={handleClear}>
+              <Pressable
+                accessibilityLabel="清除运行日志"
+                accessibilityRole="button"
+                hitSlop={8}
+                onPress={handleClear}
+              >
                 <ThemedText themeColor="danger" type="small">清除</ThemedText>
               </Pressable>
             </View>
@@ -126,16 +132,31 @@ export default function FeedbackScreen() {
           </ThemedView>
 
           <View style={styles.actions}>
-            <Pressable onPress={() => void handleCopy()} style={[styles.btn, { backgroundColor: theme.backgroundSelected }]}>
+            <Pressable
+              accessibilityLabel="复制运行日志"
+              accessibilityRole="button"
+              onPress={() => void handleCopy()}
+              style={[styles.btn, { backgroundColor: theme.backgroundSelected }]}
+            >
               <ThemedText>复制日志</ThemedText>
             </Pressable>
-            <Pressable onPress={() => void handleShare()} style={[styles.btn, { backgroundColor: theme.accent }]}>
+            <Pressable
+              accessibilityLabel="分享运行日志文本"
+              accessibilityRole="button"
+              onPress={() => void handleShare()}
+              style={[styles.btn, { backgroundColor: theme.accent }]}
+            >
               <ThemedText style={{ color: "#fff", fontWeight: "600" }}>分享日志文本</ThemedText>
             </Pressable>
           </View>
 
           <View style={styles.actions}>
-            <Pressable onPress={() => void handleExportFile()} style={[styles.btn, { backgroundColor: theme.backgroundSelected }]}>
+            <Pressable
+              accessibilityLabel="导出运行日志文件"
+              accessibilityRole="button"
+              onPress={() => void handleExportFile()}
+              style={[styles.btn, { backgroundColor: theme.backgroundSelected }]}
+            >
               <ThemedText>导出日志文件</ThemedText>
             </Pressable>
           </View>

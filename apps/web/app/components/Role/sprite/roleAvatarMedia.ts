@@ -11,7 +11,11 @@ import {
 export type RoleAvatarMediaSource = Pick<
   RoleAvatar,
   "avatarFileId" | "spriteFileId" | "originFileId"
->;
+> & {
+  localAvatarUrl?: string;
+  localOriginUrl?: string;
+  localSpriteUrl?: string;
+};
 
 export type ResolvedRoleAvatarMedia = {
   avatar: {
@@ -34,11 +38,12 @@ export function resolveRoleAvatarMedia(
 ): ResolvedRoleAvatarMedia {
   const avatarMedium = avatarUrl(avatar?.avatarFileId) || "";
   const avatarOriginal = avatarOriginalUrl(avatar?.avatarFileId) || "";
-  const avatarResolvedUrl = avatarMedium || avatarOriginal;
+  const avatarResolvedUrl = avatar?.localAvatarUrl || avatarMedium || avatarOriginal;
 
   const spriteMedium = imageMediumUrl(avatar?.spriteFileId) || "";
   const spriteOriginal = imageOriginalUrl(avatar?.spriteFileId) || "";
-  const originResolvedUrl = imageOriginalUrl(avatar?.originFileId) || "";
+  const spriteResolvedOriginal = avatar?.localSpriteUrl || spriteOriginal;
+  const originResolvedUrl = avatar?.localOriginUrl || imageOriginalUrl(avatar?.originFileId) || "";
 
   return {
     avatar: {
@@ -47,9 +52,9 @@ export function resolveRoleAvatarMedia(
       originalUrl: avatarOriginal || avatarResolvedUrl,
     },
     sprite: {
-      url: spriteMedium || spriteOriginal,
-      cropSourceUrl: spriteOriginal,
-      originalUrl: spriteOriginal,
+      url: avatar?.localSpriteUrl || spriteMedium || spriteOriginal,
+      cropSourceUrl: spriteResolvedOriginal,
+      originalUrl: spriteResolvedOriginal,
     },
     origin: {
       url: originResolvedUrl,

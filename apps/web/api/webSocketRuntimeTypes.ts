@@ -13,6 +13,7 @@ export interface WsMessage<T> {
 
 export type OptimisticDirectMessagePending = {
   channelId: number;
+  cleanupTimer: ReturnType<typeof setTimeout>;
   request: MessageDirectSendRequest;
   createdAt: number;
 };

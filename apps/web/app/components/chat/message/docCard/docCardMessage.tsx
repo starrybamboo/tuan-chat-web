@@ -1,6 +1,6 @@
 import { FileTextIcon } from "@phosphor-icons/react";
 import React, { use, useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { ChatPageDocContent } from "@/components/chat/chatPageMainContent";
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -39,7 +39,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
 
   const openPreview = () => {
     if (isDisabled) {
-      toast.error(disabledReason || "无法打开文档预览");
+      appToast.error(disabledReason || "无法打开文档预览");
       return;
     }
     setIsOpen(true);
@@ -114,12 +114,15 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <div className="line-clamp-2 font-semibold text-base-content/90">{title}</div>
+              <div className="line-clamp-2 font-semibold text-base-content/90" title={title}>{title}</div>
               {excerpt
                 ? (
-                    <div className="
+                    <div
+                      className="
                       line-clamp-3 text-sm/relaxed text-base-content/70
-                    ">{excerpt}</div>
+                    "
+                      title={excerpt}
+                    >{excerpt}</div>
                   )
                 : (
                     <div className="

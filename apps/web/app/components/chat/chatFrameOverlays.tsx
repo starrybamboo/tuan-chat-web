@@ -12,7 +12,7 @@ import ExportChatWindow from "@/components/chat/window/exportChatWindow";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import MessageFilterWindow from "@/components/chat/window/messageFilterWindow";
-import { floatingPanelMotionProps } from "@/components/common/motion/floatingPanelMotion";
+import { FloatingMotionPanel } from "@/components/common/motion/FloatingMotionPanel";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { resolveWheelScrollDelta } from "@/utils/browserShortcutGuard";
 
@@ -112,9 +112,8 @@ export default function ChatFrameOverlays({
             onPointerDown={() => setIsMessageFilterWindowOpen(false)}
             onWheelCapture={handleMessageFilterWheel}
           >
-            <motion.div
+            <FloatingMotionPanel
               className="pointer-events-auto"
-              {...floatingPanelMotionProps}
               onPointerDown={event => event.stopPropagation()}
             >
               <MessageFilterWindow
@@ -123,7 +122,7 @@ export default function ChatFrameOverlays({
                 onChangeFilter={onChangeMessageFilter}
                 onClose={() => setIsMessageFilterWindowOpen(false)}
               />
-            </motion.div>
+            </FloatingMotionPanel>
           </motion.div>
         )}
       </AnimatePresence>

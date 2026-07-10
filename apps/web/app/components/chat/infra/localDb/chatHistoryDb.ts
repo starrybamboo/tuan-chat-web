@@ -3,42 +3,34 @@ import type {
   RoomMessageSqliteDriver,
   SqliteValue,
 } from "@tuanchat/local-db";
-import type { Database, SqlValue } from "sql.js";
 
 import { createRoomMessageRepository } from "@tuanchat/local-db";
-import initSqlJs from "sql.js";
-import sqlWasmUrl from "sql.js/dist/sql-wasm.wasm?url";
 
 import type { ChatMessageResponse } from "../../../../../api";
 
-const SQLITE_FILE_NAME = "tuanchat-web-local.sqlite";
+import { dispatchChatLocalDbUnavailableEvent } from "./localDbStatusEvents";
+
 const WEB_COLLECTION_TABLE_NAME = "web_local_collection";
-const WEB_DOC_SNAPSHOT_TABLE_NAME = "doc_snapshots";
 const WEB_KEY_VALUE_TABLE_NAME = "web_local_kv";
-
-type WebFileSystemWritableFileStream = {
-  close: () => Promise<void>;
-  write: (data: BufferSource | Blob | string) => Promise<void>;
-};
-
-type WebFileSystemFileHandle = {
-  createWritable: () => Promise<WebFileSystemWritableFileStream>;
-  getFile: () => Promise<Blob>;
-};
-
-type WebFileSystemDirectoryHandle = {
-  getFileHandle: (name: string, options?: { create?: boolean }) => Promise<WebFileSystemFileHandle>;
-};
+const SQLITE_WASM_WORKER_TIMEOUT_MS = 30_000;
 
 type NavigatorWithOpfs = Navigator & {
   storage?: StorageManager & {
-    getDirectory?: () => Promise<WebFileSystemDirectoryHandle>;
+    getDirectory?: () => Promise<unknown>;
   };
 };
 
+type SqliteWasmOpfsSupportCheck =
+  | { ok: true }
+  | {
+      message: string;
+      ok: false;
+      reason: "insecure-context" | "missing-opfs-api" | "missing-worker-api";
+      suggestion: string;
+    };
+
 type LocalDbContext = {
   collectionRepository: WebCollectionRepository;
-  docSnapshotRepository: WebDocSnapshotRepository;
   keyValueRepository: WebKeyValueRepository;
   roomMessageRepository: RoomMessageRepository;
 };
@@ -95,22 +87,19 @@ type WebKeyValueRepository = {
   writeValue: <T>(key: string, value: T, options?: LocalValueScopeOptions & { now?: number }) => Promise<void>;
 };
 
-type WebDocSnapshotRecord = {
-  doc_id: string;
-  snapshot_json: string;
-  updated_at: number;
-};
+type SqliteWorkerRequestBody =
+  | { type: "all"; sql: string; params?: SqliteValue[] }
+  | { type: "exec"; sql: string }
+  | { type: "run"; sql: string; params?: SqliteValue[] };
 
-type WebDocSnapshotEntry<T> = {
-  docId: string;
-  snapshot: T;
-  updatedAt: number;
-};
+type SqliteWorkerRequest = SqliteWorkerRequestBody & { id: number };
 
-type WebDocSnapshotRepository = {
-  readSnapshot: <T>(docId: string) => Promise<WebDocSnapshotEntry<T> | null>;
-  removeSnapshot: (docId: string) => Promise<void>;
-  writeSnapshot: <T>(docId: string, snapshot: T, options?: { now?: number }) => Promise<void>;
+type SqliteWorkerResponse =
+  | { id: number; ok: true; result?: unknown }
+  | { id: number; ok: false; error: string };
+
+type DisposableRoomMessageSqliteDriver = RoomMessageSqliteDriver & {
+  dispose: () => void;
 };
 
 function getOpfsStorage(): NavigatorWithOpfs["storage"] | null {
@@ -120,135 +109,161 @@ function getOpfsStorage(): NavigatorWithOpfs["storage"] | null {
   return (navigator as NavigatorWithOpfs).storage ?? null;
 }
 
-function isNotFoundError(error: unknown): boolean {
-  return error instanceof DOMException && error.name === "NotFoundError";
+function checkSqliteWasmOpfsSupport(): SqliteWasmOpfsSupportCheck {
+  if (typeof Worker === "undefined") {
+    return {
+      message: "当前浏览器上下文缺少 Web Worker，已禁用本地消息缓存。",
+      ok: false,
+      reason: "missing-worker-api",
+      suggestion: "请使用现代 Chrome、Edge 或 Safari 打开页面。",
+    };
+  }
+
+  if (typeof window !== "undefined" && window.isSecureContext === false) {
+    return {
+      message: "当前页面不是安全上下文，浏览器不会开放 OPFS SQLite 能力。",
+      ok: false,
+      reason: "insecure-context",
+      suggestion: "请通过 HTTPS、localhost 或 127.0.0.1 打开；局域网 http://IP 通常会触发此限制。",
+    };
+  }
+
+  // opfs-sahpool 在 worker 内检测 sync access handle，主线程只做基础入口检查，避免误判可用浏览器。
+  if (!getOpfsStorage()?.getDirectory) {
+    return {
+      message: "当前浏览器上下文缺少 OPFS 文件系统 API，已禁用本地消息缓存。",
+      ok: false,
+      reason: "missing-opfs-api",
+      suggestion: "请使用支持 OPFS 的现代浏览器，并通过 HTTPS、localhost 或 127.0.0.1 打开。",
+    };
+  }
+
+  return { ok: true };
 }
 
-async function readOpfsSqliteFile(): Promise<Uint8Array | null> {
-  const storage = getOpfsStorage();
-  if (!storage?.getDirectory) {
-    return null;
-  }
-
-  try {
-    const root = await storage.getDirectory();
-    const fileHandle = await root.getFileHandle(SQLITE_FILE_NAME);
-    const file = await fileHandle.getFile();
-    return new Uint8Array(await file.arrayBuffer());
-  }
-  catch (error) {
-    if (isNotFoundError(error)) {
-      return null;
-    }
-    throw error;
-  }
-}
-
-async function writeOpfsSqliteFile(value: Uint8Array): Promise<void> {
-  const storage = getOpfsStorage();
-  if (!storage?.getDirectory) {
-    return;
-  }
-  const root = await storage.getDirectory();
-  const fileHandle = await root.getFileHandle(SQLITE_FILE_NAME, { create: true });
-  const writable = await fileHandle.createWritable();
-  try {
-    const bytes = value.slice();
-    await writable.write(bytes.buffer);
-  }
-  finally {
-    await writable.close();
-  }
-}
-
-function createWebSqliteDriver(database: Database): {
-  flush: () => Promise<void>;
-  driver: Parameters<typeof createRoomMessageRepository>[0];
-  markDirty: () => void;
-} {
-  let dirty = false;
-  let transactionDepth = 0;
-  let flushQueue = Promise.resolve();
-
-  function scheduleFlush(): Promise<void> {
-    if (!dirty || transactionDepth > 0) {
-      return flushQueue;
-    }
-
-    dirty = false;
-    const exported = database.export();
-    flushQueue = flushQueue.catch(() => undefined).then(async () => {
-      try {
-        await writeOpfsSqliteFile(exported);
-      }
-      catch (error) {
-        dirty = true;
-        console.error("[ChatHistory] Failed to persist SQLite room message cache:", error);
-      }
-    });
-    return flushQueue;
-  }
-
-  function markDirty(): void {
-    dirty = true;
-    void scheduleFlush();
-  }
-
-  function mapRows<T>(result: ReturnType<Database["exec"]>): T[] {
-    const first = result[0];
-    if (!first) {
-      return [];
-    }
-    return first.values.map((values) => {
-      const row: Record<string, unknown> = {};
-      first.columns.forEach((column, index) => {
-        row[column] = values[index];
-      });
-      return row as T;
-    });
-  }
-
-  const driver = {
-    async all<T>(sql: string, params: SqliteValue[] = []): Promise<T[]> {
-      return mapRows<T>(database.exec(sql, params as SqlValue[]));
-    },
-    async exec(sql: string): Promise<void> {
-      database.run(sql);
-      markDirty();
-    },
-    async run(sql: string, params: SqliteValue[] = []): Promise<void> {
-      database.run(sql, params as SqlValue[]);
-      markDirty();
-    },
-    async transaction<T>(task: () => Promise<T>): Promise<T> {
-      if (transactionDepth > 0) {
-        return task();
-      }
-
-      const wasDirty = dirty;
-      database.run("BEGIN TRANSACTION");
-      transactionDepth += 1;
-      try {
-        const result = await task();
-        transactionDepth -= 1;
-        database.run("COMMIT");
-        markDirty();
-        await scheduleFlush();
-        return result;
-      }
-      catch (error) {
-        transactionDepth -= 1;
-        database.run("ROLLBACK");
-        dirty = wasDirty;
-        throw error;
-      }
-    },
+function createDisabledSqliteDriver(): RoomMessageSqliteDriver {
+  return {
+    all: async () => [],
+    exec: async () => undefined,
+    run: async () => undefined,
+    transaction: async task => task(),
   };
+}
+
+function createSqliteWasmWorkerDriver(): DisposableRoomMessageSqliteDriver {
+  const worker = new Worker(new URL("./sqliteWasmWorker.ts", import.meta.url), { type: "module" });
+  let nextId = 1;
+  let queue = Promise.resolve();
+  let transactionDepth = 0;
+  const pending = new Map<number, {
+    reject: (reason?: unknown) => void;
+    resolve: (value: unknown) => void;
+    timeoutId: ReturnType<typeof setTimeout>;
+  }>();
+
+  function request<T>(message: SqliteWorkerRequestBody): Promise<T> {
+    const id = nextId++;
+    const payload = { ...message, id } as SqliteWorkerRequest;
+    return new Promise<T>((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        pending.delete(id);
+        reject(new Error(`SQLite worker request timed out: ${message.type}`));
+      }, SQLITE_WASM_WORKER_TIMEOUT_MS);
+      pending.set(id, {
+        reject,
+        resolve: value => resolve(value as T),
+        timeoutId,
+      });
+      worker.postMessage(payload);
+    });
+  }
+
+  worker.addEventListener("message", (event: MessageEvent<SqliteWorkerResponse>) => {
+    const response = event.data;
+    const entry = pending.get(response.id);
+    if (!entry) {
+      return;
+    }
+    pending.delete(response.id);
+    clearTimeout(entry.timeoutId);
+    if (response.ok) {
+      entry.resolve(response.result);
+      return;
+    }
+    entry.reject(new Error(response.error));
+  });
+
+  worker.addEventListener("error", (event) => {
+    const error = new Error(event.message || "SQLite worker failed.");
+    for (const entry of pending.values()) {
+      clearTimeout(entry.timeoutId);
+      entry.reject(error);
+    }
+    pending.clear();
+  });
+
+  worker.addEventListener("messageerror", () => {
+    const error = new Error("SQLite worker failed to deserialize a message.");
+    for (const entry of pending.values()) {
+      clearTimeout(entry.timeoutId);
+      entry.reject(error);
+    }
+    pending.clear();
+  });
+
+  function dispose(): void {
+    for (const entry of pending.values()) {
+      clearTimeout(entry.timeoutId);
+      entry.reject(new Error("SQLite worker was disposed."));
+    }
+    pending.clear();
+    worker.terminate();
+  }
+
+  function enqueue<T>(task: () => Promise<T>): Promise<T> {
+    const result = queue.then(task, task);
+    queue = result.then(() => undefined, () => undefined);
+    return result;
+  }
+
+  function enqueueOrRun<T>(task: () => Promise<T>): Promise<T> {
+    if (transactionDepth > 0) {
+      return task();
+    }
+    return enqueue(task);
+  }
 
   return {
-    driver,
-    flush: scheduleFlush,
-    markDirty,
+    all<T>(sql: string, params: SqliteValue[] = []): Promise<T[]> {
+      return enqueueOrRun(() => request<T[]>({ params, sql, type: "all" }));
+    },
+    exec(sql: string): Promise<void> {
+      return enqueueOrRun(() => request<void>({ sql, type: "exec" }));
+    },
+    run(sql: string, params: SqliteValue[] = []): Promise<void> {
+      return enqueueOrRun(() => request<void>({ params, sql, type: "run" }));
+    },
+    transaction<T>(task: () => Promise<T>): Promise<T> {
+      return enqueue(async () => {
+        if (transactionDepth > 0) {
+          return task();
+        }
+        await request<void>({ sql: "BEGIN TRANSACTION", type: "exec" });
+        transactionDepth += 1;
+        try {
+          const result = await task();
+          transactionDepth -= 1;
+          await request<void>({ sql: "COMMIT", type: "exec" });
+          return result;
+        }
+        catch (error) {
+          transactionDepth -= 1;
+          await request<void>({ sql: "ROLLBACK", type: "exec" }).catch(() => undefined);
+          throw error;
+        }
+      });
+    },
+    dispose,
   };
 }
 
@@ -543,106 +558,47 @@ function createWebKeyValueRepository(driver: RoomMessageSqliteDriver): WebKeyVal
   };
 }
 
-function createWebDocSnapshotRepository(driver: RoomMessageSqliteDriver): WebDocSnapshotRepository {
-  let schemaReadyPromise: Promise<void> | null = null;
-
-  async function ensureSchema(): Promise<void> {
-    schemaReadyPromise ??= (async () => {
-      await driver.exec(`CREATE TABLE IF NOT EXISTS ${WEB_DOC_SNAPSHOT_TABLE_NAME} (
-        doc_id TEXT PRIMARY KEY NOT NULL,
-        snapshot_json TEXT NOT NULL,
-        updated_at INTEGER NOT NULL
-      )`);
-    })();
-    await schemaReadyPromise;
-  }
-
-  return {
-    async readSnapshot<T>(docId: string): Promise<WebDocSnapshotEntry<T> | null> {
-      const normalizedDocId = normalizeCacheKey(docId);
-      if (!normalizedDocId) {
-        return null;
-      }
-
-      await ensureSchema();
-      const rows = await driver.all<WebDocSnapshotRecord>(
-        `SELECT doc_id, snapshot_json, updated_at
-          FROM ${WEB_DOC_SNAPSHOT_TABLE_NAME}
-          WHERE doc_id = ?
-          LIMIT 1`,
-        [normalizedDocId],
-      );
-      const record = rows[0];
-      if (!record) {
-        return null;
-      }
-
-      try {
-        return {
-          docId: record.doc_id,
-          snapshot: JSON.parse(record.snapshot_json) as T,
-          updatedAt: record.updated_at,
-        };
-      }
-      catch {
-        await driver.run(`DELETE FROM ${WEB_DOC_SNAPSHOT_TABLE_NAME} WHERE doc_id = ?`, [normalizedDocId]);
-        return null;
-      }
-    },
-
-    async removeSnapshot(docId) {
-      const normalizedDocId = normalizeCacheKey(docId);
-      if (!normalizedDocId) {
-        return;
-      }
-
-      await ensureSchema();
-      await driver.run(`DELETE FROM ${WEB_DOC_SNAPSHOT_TABLE_NAME} WHERE doc_id = ?`, [normalizedDocId]);
-    },
-
-    async writeSnapshot<T>(docId: string, snapshot: T, options: { now?: number } = {}): Promise<void> {
-      const normalizedDocId = normalizeCacheKey(docId);
-      if (!normalizedDocId) {
-        return;
-      }
-
-      await ensureSchema();
-      await driver.run(
-        `INSERT OR REPLACE INTO ${WEB_DOC_SNAPSHOT_TABLE_NAME}
-          (doc_id, snapshot_json, updated_at)
-          VALUES (?, ?, ?)`,
-        [
-          normalizedDocId,
-          serializeJsonPayload(snapshot),
-          options.now ?? Date.now(),
-        ],
-      );
-    },
-  };
-}
-
 async function getLocalDbContext(): Promise<LocalDbContext> {
   contextPromise ??= (async () => {
-    const SQL = await initSqlJs({
-      locateFile: file => (file.endsWith(".wasm") ? sqlWasmUrl : file),
-    });
-    const opfsSqliteFile = await readOpfsSqliteFile();
-    const database = opfsSqliteFile
-      ? new SQL.Database(opfsSqliteFile)
-      : new SQL.Database();
-    const { driver } = createWebSqliteDriver(database);
+    const driver = await createPreferredSqliteDriver();
     const roomMessageRepository = createRoomMessageRepository(driver);
-    const docSnapshotRepository = createWebDocSnapshotRepository(driver);
     const keyValueRepository = createWebKeyValueRepository(driver);
     const collectionRepository = createWebCollectionRepository(driver);
     return {
       collectionRepository,
-      docSnapshotRepository,
       keyValueRepository,
       roomMessageRepository,
     };
   })();
   return contextPromise;
+}
+
+async function createPreferredSqliteDriver(): Promise<RoomMessageSqliteDriver> {
+  const support = checkSqliteWasmOpfsSupport();
+  if (!support.ok) {
+    dispatchChatLocalDbUnavailableEvent({
+      message: support.message,
+      reason: support.reason,
+      suggestion: support.suggestion,
+    });
+    return createDisabledSqliteDriver();
+  }
+
+  const driver = createSqliteWasmWorkerDriver();
+  try {
+    await driver.all<{ ok: number }>("SELECT 1 AS ok");
+    return driver;
+  }
+  catch (error) {
+    driver.dispose();
+    console.warn("[ChatHistory] SQLite WASM OPFS SAH pool worker unavailable; disabling local message cache.", error);
+    dispatchChatLocalDbUnavailableEvent({
+      message: "高性能本地 SQLite 初始化失败，已禁用本地消息缓存。",
+      reason: "sqlite-wasm-worker-failed",
+      suggestion: "常见原因是其他标签页占用同一个 OPFS SAH pool。请先关闭同站点其他标签页后刷新。",
+    });
+    return createDisabledSqliteDriver();
+  }
 }
 
 async function getRoomMessageRepository(): Promise<RoomMessageRepository> {
@@ -673,25 +629,14 @@ export async function getMessagesByRoomId(roomId: number): Promise<ChatMessageRe
   return repository.getMessagesByRoomId(roomId);
 }
 
+export async function getMessageById(messageId: number): Promise<ChatMessageResponse | null> {
+  const repository = await getRoomMessageRepository();
+  return repository.getMessageById(messageId);
+}
+
 export async function clearMessagesByRoomId(roomId: number): Promise<void> {
   const repository = await getRoomMessageRepository();
   await repository.clearRoomMessages(roomId);
-}
-
-export async function getDocSnapshot<T>(docId: string): Promise<T | null> {
-  const repository = (await getLocalDbContext()).docSnapshotRepository;
-  const entry = await repository.readSnapshot<T>(docId);
-  return entry?.snapshot ?? null;
-}
-
-export async function setDocSnapshot<T>(docId: string, snapshot: T): Promise<void> {
-  const repository = (await getLocalDbContext()).docSnapshotRepository;
-  await repository.writeSnapshot(docId, snapshot);
-}
-
-export async function removeDocSnapshot(docId: string): Promise<void> {
-  const repository = (await getLocalDbContext()).docSnapshotRepository;
-  await repository.removeSnapshot(docId);
 }
 
 export async function getLocalValue<T>(key: string, options?: LocalValueScopeOptions): Promise<T | null> {

@@ -1,5 +1,5 @@
 import { useParams } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { useGetInboxMessageWithUserQuery, useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks";
@@ -13,10 +13,13 @@ import { usePrivateMessageReceiver } from "./hooks/usePrivateMessageRecever";
 import { usePrivateUnreadStateStore } from "./privateUnreadStateStore";
 import { getLatestIncomingSync } from "./privateUnreadUtils";
 
+import type { MessageDirectResponse } from "../../../api";
+
 export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDrawer: (isOpen: boolean) => void }) {
   const userId = useGlobalUserId() || -1;
   const { roomId: urlRoomId } = useParams({ strict: false });
   const currentContactUserId = urlRoomId ? Number.parseInt(urlRoomId) : null;
+  const [replyMessage, setReplyMessage] = useState<MessageDirectResponse | null>(null);
 
   // 历史消息hook（全局）
   const { historyMessages, refetch } = useGetInboxMessageWithUserQuery(userId, currentContactUserId || -1);
@@ -50,6 +53,17 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
 
   // 右键菜单hook（全局）
   const { contextMenu, setContextMenu, handleContextMenu, handleRevokeMessage } = useContextMenu({ refetch });
+  const handleReplyMessage = useCallback((message: MessageDirectResponse) => {
+    setReplyMessage(message);
+  }, []);
+
+  const handleCancelReply = useCallback(() => {
+    setReplyMessage(null);
+  }, []);
+
+  useEffect(() => {
+    setReplyMessage(null);
+  }, [currentContactUserId]);
 
   return (
     <div
@@ -77,6 +91,9 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
         key={currentContactUserId}
         userId={userId}
         currentContactUserId={currentContactUserId}
+        replyMessage={replyMessage}
+        onCancelReply={handleCancelReply}
+        onMessageSent={handleCancelReply}
       />
 
       {/* 右键菜单 */}
@@ -86,6 +103,7 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
         contextMenu={contextMenu}
         setContextMenu={setContextMenu}
         handleRevokeMessage={handleRevokeMessage}
+        handleReplyMessage={handleReplyMessage}
       />
     </div>
   );

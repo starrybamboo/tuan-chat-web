@@ -1,6 +1,5 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
-import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
 import { mergeRoomMessagesForLocalState } from "@tuanchat/query/room-message-lifecycle";
 
 import type {
@@ -12,6 +11,7 @@ import {
   extractRoomMessagesFromQueryData,
   updateRoomMessagesQueryData,
 } from "./roomMessagesQueryData";
+import { getRoomMessagesQueryKey } from "./roomMessagesQueryKey";
 
 export type { RoomMessagesSyncResult } from "./roomMessagesQueryData";
 
@@ -139,7 +139,7 @@ export function upsertRoomMessagesToQueryAndDisk(
     return;
   }
 
-  const queryKey = getAllRoomMessagesQueryKey(roomId);
+  const queryKey = getRoomMessagesQueryKey(roomId);
   deps.queryClient.setQueryData(queryKey, currentData => updateRoomMessagesQueryData(
     currentData,
     currentMessages => mergeRoomMessagesForLocalState(currentMessages, incomingMessages),
@@ -164,7 +164,7 @@ export function upsertLiveRoomMessagesWithGapRepair(
     return;
   }
 
-  const queryKey = getAllRoomMessagesQueryKey(roomId);
+  const queryKey = getRoomMessagesQueryKey(roomId);
   const currentMessages = extractRoomMessagesFromQueryData(deps.queryClient.getQueryData(queryKey));
   const currentSyncIndex = buildRoomMessageSyncIndex(currentMessages);
   const gapStartSyncId = messages.length === 1

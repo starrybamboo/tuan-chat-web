@@ -21,4 +21,3 @@ export type ApiResultWebgalPublishJobStatusResponse = {
     errMsg?: string;
     data?: WebgalPublishJobStatusResponse;
 };
-

@@ -114,6 +114,49 @@ describe("ensureCreatedRoleDefaultAvatar", () => {
     });
   });
 
+  it("默认头像没有头像文件但已有原图时，直接复用原图作为头像", async () => {
+    const queryClient = createQueryClient();
+    getRoleAvatarMock.mockResolvedValueOnce({
+      success: true,
+      data: {
+        avatarId: 34,
+        roleId: 12,
+        originFileId: 88,
+        spriteFileId: 89,
+      },
+    });
+    updateRoleAvatarMock.mockResolvedValueOnce({
+      success: true,
+      data: {
+        avatarId: 34,
+        roleId: 12,
+        avatarFileId: 88,
+        originFileId: 88,
+        spriteFileId: 89,
+      },
+    });
+
+    const avatar = await ensureRoleAvatarDefaultMedia(queryClient, 12, 34);
+
+    expect(uploadMediaFileMock).not.toHaveBeenCalled();
+    expect(updateRoleAvatarMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        avatarId: 34,
+        roleId: 12,
+        avatarFileId: 88,
+        originFileId: 88,
+        spriteFileId: 89,
+      }),
+    );
+    expect(avatar).toMatchObject({
+      avatarId: 34,
+      roleId: 12,
+      avatarFileId: 88,
+      originFileId: 88,
+      spriteFileId: 89,
+    });
+  });
+
   it("默认头像本身已有立绘时不重复补写", async () => {
     const queryClient = createQueryClient();
     getRoleAvatarMock.mockResolvedValueOnce({

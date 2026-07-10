@@ -37,7 +37,8 @@ export default function CreatePageHeader({
           <button type="button" className="
             btn btn-lg btn-outline rounded-md btn-ghost mr-4
           " onClick={onBack}>
-            ← 返回
+            <span aria-hidden="true">←</span>
+            返回上一步
           </button>
         )}
         <div>
@@ -73,6 +74,7 @@ export default function CreatePageHeader({
               onClick={button.onClick}
               disabled={button.disabled}
               title={button.label}
+              aria-label={button.label}
             >
               <span className="flex items-center gap-1">
                 {button.icon}

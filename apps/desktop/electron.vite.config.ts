@@ -1,12 +1,14 @@
-import { defineConfig, externalizeDepsPlugin } from "electron-vite";
+import { defineConfig } from "electron-vite";
 import { resolve } from "node:path";
 
 const desktopRoot = __dirname;
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
     build: {
+      externalizeDeps: {
+        exclude: ["electron-updater", "fflate"],
+      },
       outDir: resolve(desktopRoot, "electron", "main"),
       rollupOptions: {
         input: resolve(desktopRoot, "src", "main", "index.ts"),
@@ -18,7 +20,6 @@ export default defineConfig({
     },
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
     build: {
       outDir: resolve(desktopRoot, "electron", "preload"),
       rollupOptions: {

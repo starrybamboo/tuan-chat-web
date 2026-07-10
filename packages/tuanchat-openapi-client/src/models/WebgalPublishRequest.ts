@@ -14,4 +14,3 @@ export type WebgalPublishRequest = {
     commitId?: number;
     packageData?: WebgalPublishClientPackage;
 };
-

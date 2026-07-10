@@ -21,4 +21,3 @@ export type ApiResultMessageSession = {
     errMsg?: string;
     data?: MessageSession;
 };
-

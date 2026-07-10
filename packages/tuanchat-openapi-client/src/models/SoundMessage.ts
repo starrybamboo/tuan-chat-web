@@ -26,4 +26,3 @@ export type SoundMessage = {
      */
     volume?: number;
 };
-

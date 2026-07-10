@@ -36,10 +36,13 @@ export function CollapsibleAlert({
   }, [message, replacements]);
 
   return (
-    <div
+    <button
+      type="button"
       className={`
-        cursor-pointer select-none transition-all duration-200 rounded-lg
+        w-full cursor-pointer select-none transition-all duration-200 rounded-lg
+        motion-reduce:transition-none
         overflow-hidden
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30
         ${
         isExpanded ? `
           alert
@@ -52,6 +55,8 @@ export function CollapsibleAlert({
       `}
       onClick={() => setIsExpanded(!isExpanded)}
       title={isExpanded ? "点击收起" : "点击展开提示信息"}
+      aria-expanded={isExpanded}
+      aria-label={isExpanded ? "收起提示信息" : "展开提示信息"}
     >
       {isExpanded && (
         <>
@@ -81,6 +86,6 @@ export function CollapsibleAlert({
           </svg>
         </>
       )}
-    </div>
+    </button>
   );
 }

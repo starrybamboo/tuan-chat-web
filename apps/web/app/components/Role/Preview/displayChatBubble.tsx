@@ -9,6 +9,10 @@ import { MediaImage } from "@/components/common/mediaImage";
 const PREVIEW_MESSAGE_META_ROW_CLASS = "flex min-w-0 w-full items-center gap-2 sm:gap-3 relative";
 const PREVIEW_MESSAGE_BUBBLE_CLASS = `${CHAT_MESSAGE_BUBBLE_DEFAULT_CLASS} !max-w-full sm:!max-w-full`;
 
+function isCalibrationHintContent(content: string): boolean {
+  return content.trim().startsWith("点击进行");
+}
+
 /**
  * 展示用聊天气泡组件的属性接口
  */
@@ -25,6 +29,8 @@ type DisplayChatBubbleProps = {
   renderKey?: number;
   /** 是否使用气泡样式，默认为true */
   useChatBubbleStyle?: boolean;
+  /** 预览文案语气 */
+  contentTone?: "default" | "warning" | "danger";
 }
 
 /**
@@ -38,6 +44,7 @@ export function DisplayChatBubble({
   avatarCanvasRef,
   avatarUrl,
   renderKey,
+  contentTone = "default",
 }: DisplayChatBubbleProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -50,6 +57,23 @@ export function DisplayChatBubble({
     ? "size-10 sm:size-12 rounded-full overflow-hidden"
     : "size-9 sm:size-20.5 rounded-md overflow-hidden";
   const displayRoleName = roleName || "Undefined";
+  const isCalibrationHint = isCalibrationHintContent(content);
+  const contentToneStyle = contentTone === "danger"
+    ? {
+        color: "#F87171",
+        textShadow: "0 0 4px rgba(248, 113, 113, 0.62), 0 0 10px rgba(239, 68, 68, 0.28), 0 1px 2px rgba(0, 0, 0, 0.9)",
+      }
+    : contentTone === "warning" || isCalibrationHint
+      ? {
+        color: "#FBBF24",
+        textShadow: "0 0 4px rgba(251, 191, 36, 0.58), 0 0 10px rgba(34, 211, 238, 0.28), 0 1px 2px rgba(0, 0, 0, 0.9)",
+      }
+      : undefined;
+  const contentToneClassName = contentTone === "danger"
+    ? "font-semibold text-error"
+    : contentTone === "warning" || isCalibrationHint
+      ? "font-semibold text-warning"
+      : "";
 
   const redrawRef = useRef<(() => void) | null>(null);
 
@@ -245,17 +269,20 @@ export function DisplayChatBubble({
         <div className="flex min-w-0 max-w-full flex-col items-start">
           <div className={PREVIEW_MESSAGE_META_ROW_CLASS}>
             <div className="relative flex min-w-0 max-w-full items-center gap-2">
-              <span className="
-                block min-w-10 max-w-full truncate pb-0.5 text-sm
-                font-medium text-base-content/85 transition-all duration-200
-                sm:pb-1 sm:text-sm
-              ">
+              <span
+                className="
+                  block min-w-10 max-w-full truncate pb-0.5 text-sm
+                  font-medium text-base-content/85 transition-all duration-200
+                  sm:pb-1 sm:text-sm
+                "
+                title={displayRoleName}
+              >
                 {displayRoleName}
               </span>
             </div>
           </div>
           <div className={PREVIEW_MESSAGE_BUBBLE_CLASS}>
-            <div className="whitespace-pre-wrap">{content}</div>
+            <div className={`whitespace-pre-wrap ${contentToneClassName}`} style={contentToneStyle}>{content}</div>
           </div>
         </div>
       </div>
@@ -290,7 +317,7 @@ export function DisplayChatBubble({
               transition-all duration-200
               sm:text-base/6
             ">
-              <div className="block min-w-0 truncate">
+              <div className="block min-w-0 truncate" title={displayRoleName}>
                 {`【${displayRoleName}】`}
               </div>
             </div>
@@ -304,7 +331,7 @@ export function DisplayChatBubble({
           lg:text-base
           hover:bg-base-200/50
         ">
-          <div className="whitespace-pre-wrap">{content}</div>
+          <div className={`whitespace-pre-wrap ${contentToneClassName}`} style={contentToneStyle}>{content}</div>
         </div>
       </div>
     </div>

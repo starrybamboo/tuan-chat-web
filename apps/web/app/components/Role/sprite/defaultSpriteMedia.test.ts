@@ -21,7 +21,7 @@ describe("defaultSpriteMedia", () => {
     });
   });
 
-  it("上传原图和默认立绘时复用同一份派生媒体字节触发秒传", async () => {
+  it("上传默认立绘时只等待原图完成，并复用原图作为立绘文件", async () => {
     const file = new File(["raw-image"], "source.png", { type: "image/png" });
     const generatedOriginal = new File(["generated-webp"], "source.webp", { type: "image/webp" });
     const payload: GeneratedMediaUploadFiles = {
@@ -38,11 +38,6 @@ describe("defaultSpriteMedia", () => {
       mediaType: "image",
       uploadRequired: true,
     };
-    const secondUpload: UploadedMediaFile = {
-      fileId: 201,
-      mediaType: "image",
-      uploadRequired: false,
-    };
     const generate = vi.fn<(
       input: File,
       scene?: number,
@@ -51,14 +46,13 @@ describe("defaultSpriteMedia", () => {
       input: GeneratedMediaUploadFiles,
       options?: UploadMediaFileOptions,
     ) => Promise<UploadedMediaFile>>()
-      .mockResolvedValueOnce(firstUpload)
-      .mockResolvedValueOnce(secondUpload);
+      .mockResolvedValueOnce(firstUpload);
     const readDimensions = vi.fn<(input: File) => Promise<{ width: number; height: number }>>()
       .mockResolvedValue({ width: 800, height: 1200 });
     const options = { scene: 3 };
 
     const result = await uploadOriginAndDefaultSpriteMedia(file, options, {
-      generateMediaUploadFiles: generate,
+      generateOriginalFirstImageUploadFiles: generate,
       uploadGeneratedMediaFiles: upload,
       readImageFileDimensions: readDimensions,
     });
@@ -66,12 +60,14 @@ describe("defaultSpriteMedia", () => {
     expect(generate).toHaveBeenCalledTimes(1);
     expect(generate).toHaveBeenCalledWith(file, 3);
     expect(readDimensions).toHaveBeenCalledWith(generatedOriginal);
-    expect(upload).toHaveBeenCalledTimes(2);
-    expect(upload).toHaveBeenNthCalledWith(1, payload, options);
-    expect(upload).toHaveBeenNthCalledWith(2, payload, options);
+    expect(upload).toHaveBeenCalledTimes(1);
+    expect(upload).toHaveBeenCalledWith(payload, {
+      ...options,
+      completeAfterPrimaryQuality: true,
+    });
     expect(result).toEqual({
       origin: firstUpload,
-      sprite: secondUpload,
+      sprite: firstUpload,
       spriteCropContext: {
         sourceOriginFileId: 201,
         sourceWidth: 800,

@@ -1,7 +1,7 @@
+import { appToast } from "@/components/common/appToast/appToast";
 // AI image page: aligned with NovelAI Image desktop layout and interactions; keeps free single-image txt2img and preview-area Inpaint.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
 
 import type {
   ActivePreviewAction,
@@ -173,11 +173,11 @@ export function useAiImagePageController() {
   const [normalizeReferenceStrengths, setNormalizeReferenceStrengths] = useState<boolean>(false);
 
   const showSuccessToast = useCallback((message: string) => {
-    toast.success(message);
+    appToast.success(message);
   }, []);
 
   const showErrorToast = useCallback((message: string) => {
-    toast.error(message);
+    appToast.error(message);
   }, []);
 
   const {

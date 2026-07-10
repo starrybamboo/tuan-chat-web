@@ -24,6 +24,8 @@ type AvatarPreviewProps = {
   imageClassName?: string;
   // 自定义聊天消息
   chatMessages?: string[];
+  // 当前头像是否缺少已创建的头像文件
+  isAvatarMissing?: boolean;
   // 是否显示气泡样式
   showBubbleStyle?: boolean;
   // 是否显示传统样式
@@ -47,7 +49,8 @@ function AvatarPreviewComponent({
   mode = "full",
   className = "",
   imageClassName = "",
-  chatMessages = ["这是使用新头像的聊天消息！", "完成后就可以开始聊天了~"],
+  chatMessages = ["点击进行头像矫正"],
+  isAvatarMissing = false,
   showBubbleStyle = true,
   showTraditionalStyle = true,
   hideTitle = false,
@@ -59,6 +62,9 @@ function AvatarPreviewComponent({
   const displayAvatarUrl = currentAvatarUrl || ROLE_DEFAULT_AVATAR_URL;
   const roomUseChatBubbleStyle = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   const activeUseChatBubbleStyle = roomUseChatBubbleStyle ? showBubbleStyle : !showTraditionalStyle;
+  const resolvedChatMessages = isAvatarMissing ? ["头像缺失，请点击创建头像"] : chatMessages;
+  const contentTone = isAvatarMissing ? "danger" : "warning";
+  const chatAvatarUrl = isAvatarMissing ? "" : displayAvatarUrl;
 
   // 渲染图片预览
   const renderImagePreview = () => (
@@ -92,15 +98,16 @@ function AvatarPreviewComponent({
     <div className={`
       ${className}
     `}>
-      {chatMessages.map(message => (
+      {resolvedChatMessages.map(message => (
         <DisplayChatBubble
           key={`chat-${message}`}
           roleName={characterName}
           avatarCanvasRef={previewCanvasRef}
-          avatarUrl={displayAvatarUrl}
+          avatarUrl={chatAvatarUrl}
           renderKey={previewRenderKey}
           content={message}
           useChatBubbleStyle={activeUseChatBubbleStyle}
+          contentTone={contentTone}
         />
       ))}
     </div>
@@ -109,21 +116,24 @@ function AvatarPreviewComponent({
   // 渲染完整预览
   const renderFullPreview = () => {
     const previewContent = (
-      <div className="
-        ml-auto w-14/15 rounded-lg border border-base-300 bg-base-100/50 p-4
-        space-y-2
-      ">
-        {chatMessages.map(message => (
-          <DisplayChatBubble
-            key={`preview-${message}`}
-            roleName={characterName}
-            avatarCanvasRef={previewCanvasRef}
-            avatarUrl={displayAvatarUrl}
-            content={message}
-            useChatBubbleStyle={activeUseChatBubbleStyle}
-            renderKey={previewRenderKey}
-          />
-        ))}
+      <div className="relative ml-auto w-14/15">
+        <div className="
+          rounded-lg border border-base-300 bg-base-100/50 p-4
+          space-y-2
+        ">
+          {resolvedChatMessages.map(message => (
+            <DisplayChatBubble
+              key={`preview-${message}`}
+              roleName={characterName}
+              avatarCanvasRef={previewCanvasRef}
+              avatarUrl={chatAvatarUrl}
+              content={message}
+              useChatBubbleStyle={activeUseChatBubbleStyle}
+              contentTone={contentTone}
+              renderKey={previewRenderKey}
+            />
+          ))}
+        </div>
       </div>
     );
 

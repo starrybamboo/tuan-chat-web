@@ -14,7 +14,9 @@ type RoleBasicInfoEditorProps = {
   className?: string;
   nameClassName?: string;
   nameDisplayClassName?: string;
+  nameTitle?: string;
   descriptionDisplayClassName?: string;
+  descriptionTitle?: string;
   descriptionButtonClassName?: string;
   descriptionEditorClassName?: string;
   descriptionTextareaClassName?: string;
@@ -32,7 +34,9 @@ export default function RoleBasicInfoEditor({
   className = "",
   nameClassName = "",
   nameDisplayClassName = "",
+  nameTitle,
   descriptionDisplayClassName = "",
+  descriptionTitle,
   descriptionButtonClassName = "",
   descriptionEditorClassName = "",
   descriptionTextareaClassName = "",
@@ -108,6 +112,7 @@ export default function RoleBasicInfoEditor({
             <button
               type="button"
               onClick={startEditing}
+              title={nameTitle}
               className={`
                 relative inline-block max-w-full rounded-md p-1
                 transition-colors
@@ -148,7 +153,7 @@ export default function RoleBasicInfoEditor({
                 onChange={event => setDescriptionDraft(event.target.value)}
                 autoComplete="off"
                 aria-label="角色描述"
-                placeholder="角色描述"
+                placeholder="一句话介绍角色"
                 className={`
                   min-h-32 size-full resize-none rounded-md border
                   border-base-content/15 bg-base-100 p-2 text-sm transition
@@ -159,6 +164,9 @@ export default function RoleBasicInfoEditor({
                 `}
                 maxLength={maxDescriptionLength}
               />
+              <p className="mt-1 text-xs text-base-content/50">
+                用于角色简介，会随角色一起保存
+              </p>
               <div className="mt-2 flex items-center justify-between gap-3">
                 <span className={`
                   text-sm
@@ -207,7 +215,7 @@ export default function RoleBasicInfoEditor({
                 ${descriptionButtonClassName}
               `}
             >
-              <span className={descriptionDisplayClassName}>
+              <span className={descriptionDisplayClassName} title={descriptionTitle}>
                 {localRole.description || "暂无描述"}
               </span>
             </button>

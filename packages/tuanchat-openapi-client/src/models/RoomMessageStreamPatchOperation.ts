@@ -26,4 +26,3 @@ export type RoomMessageStreamPatchOperation = {
     message?: RoomMessageStreamItem;
     insert?: boolean;
 };
-

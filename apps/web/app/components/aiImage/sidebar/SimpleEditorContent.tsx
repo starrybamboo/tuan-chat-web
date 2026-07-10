@@ -146,6 +146,7 @@ export const SimpleEditorContent = memo(({
                             top-auto bottom-3
                           `}
                           onClick={handleReturnToSimpleTags}
+                          aria-label="返回 Tags 编辑"
                         >
                           <ArrowCounterClockwise className="size-3.5" weight="regular" />
                           返回tags
@@ -197,6 +198,7 @@ export const SimpleEditorContent = memo(({
                 <div className={segmentedControlClassName}>
                   <button
                     type="button"
+                    aria-pressed={simplePromptTab === "prompt"}
                     className={`
                       ${segmentedButtonBaseClassName}
                       ${simplePromptTab === "prompt" ? `
@@ -212,6 +214,7 @@ export const SimpleEditorContent = memo(({
                   </button>
                   <button
                     type="button"
+                    aria-pressed={simplePromptTab === "negative"}
                     className={`
                       ${segmentedButtonBaseClassName}
                       ${simplePromptTab === "negative" ? `
@@ -274,6 +277,7 @@ export const SimpleEditorContent = memo(({
                   <div className={segmentedControlClassName}>
                     <button
                       type="button"
+                      aria-pressed={simplePromptTab === "prompt"}
                       className={`
                         ${segmentedButtonBaseClassName}
                         ${simplePromptTab === "prompt" ? `
@@ -289,6 +293,7 @@ export const SimpleEditorContent = memo(({
                     </button>
                     <button
                       type="button"
+                      aria-pressed={simplePromptTab === "negative"}
                       className={`
                         ${segmentedButtonBaseClassName}
                         ${simplePromptTab === "negative" ? `
@@ -355,7 +360,8 @@ export const SimpleEditorContent = memo(({
                         hover:border-info
                       "
                       onClick={() => setIsStylePickerOpen(true)}
-                      title="点击继续添加画风"
+                      title={`${preset.title}，点击继续添加画风`}
+                      aria-label={`已选画风 ${preset.title}，点击继续添加画风`}
                     >
                       <div className="
                         w-10 aspect-square rounded-box bg-base-200

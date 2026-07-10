@@ -1,39 +1,7 @@
-import type { StoredSnapshot } from "@/components/chat/infra/doc/document/docSnapshotTypes";
-
-import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
-import { getPersistedDocSnapshot, setPersistedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotPersistence";
-import { buildDocCardCoverReferenceFields } from "@/components/chat/message/docCard/docCardMedia";
-import { createMessageEditorSnapshot } from "@/components/messageEditor/model/messageEditorCodec";
-import { createMessageEditorTextDraft } from "@/components/messageEditor/model/messageEditorTransforms";
-
 import { tuanchat } from "../../../../api/instance";
 
-async function getSnapshotForCopy(docId: string): Promise<StoredSnapshot | null> {
-  const cached = getCachedDocSnapshot(docId);
-  if (cached) {
-    return cached;
-  }
-
-  const persisted = await getPersistedDocSnapshot(docId).catch(() => null);
-  if (persisted) {
-    setCachedDocSnapshot(docId, persisted);
-  }
-  return persisted;
-}
-
-function buildCopiedSnapshot(sourceSnapshot: StoredSnapshot | null): StoredSnapshot {
-  if (sourceSnapshot?.v === 4 && sourceSnapshot.format === "message-stream") {
-    return {
-      ...sourceSnapshot,
-      updatedAt: Date.now(),
-    };
-  }
-
-  return createMessageEditorSnapshot([createMessageEditorTextDraft()]);
-}
-
 /**
- * 复制空间文档实体，并复制当前会话中的 message-stream 快照缓存。
+ * 复制空间文档实体；文档正文统一由远端 message-stream/房间消息流承载。
  */
 export async function copyDocToSpaceDoc(params: {
   spaceId: number;
@@ -46,7 +14,6 @@ export async function copyDocToSpaceDoc(params: {
 }): Promise<{ newDocEntityId: number; newDocId: string; title: string }> {
   const createTitle = (params.title ?? "").trim();
   const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
-  const sourceSnapshot = await getSnapshotForCopy(params.sourceDocId);
 
   let createdDocId: number | null = null;
   try {
@@ -68,21 +35,6 @@ export async function copyDocToSpaceDoc(params: {
   }
 
   const newDocId = String(createdDocId);
-  const snapshot = buildCopiedSnapshot(sourceSnapshot);
-
-  setCachedDocSnapshot(newDocId, snapshot);
-  await setPersistedDocSnapshot(newDocId, snapshot).catch((error) => {
-    console.error("[DocCopy] persist copied space doc snapshot failed", error);
-  });
-
-  const { upsertSpaceDocMetaCacheEntry } = await import("@/components/chat/infra/doc/space/spaceDocMetaPersistence");
-  const coverFields = buildDocCardCoverReferenceFields(params);
-  upsertSpaceDocMetaCacheEntry({
-    spaceId: params.spaceId,
-    docId: newDocId,
-    title,
-    ...coverFields,
-  });
 
   return { newDocEntityId: createdDocId, newDocId, title };
 }

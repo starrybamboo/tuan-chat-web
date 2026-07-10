@@ -3,7 +3,7 @@ import type { ApiResultRoomListResponse } from "@tuanchat/openapi-client/models/
 
 import { describe, expect, it } from "vitest";
 
-import { upsertUserActiveSpacesData, upsertUserRoomData } from "./spaces";
+import { patchExistingUserRoomData, upsertUserActiveSpacesData, upsertUserRoomData } from "./spaces";
 
 describe("space query cache helpers", () => {
   it("创建空间后追加到用户空间缓存，并保留已有字段", () => {
@@ -52,5 +52,29 @@ describe("space query cache helpers", () => {
       success: true,
       data: { spaceId: 1, rooms: [{ roomId: 10, name: "旧名" }] },
     }, 1, { roomId: 10, name: "新名" })?.data?.rooms).toEqual([{ roomId: 10, name: "新名" }]);
+  });
+
+  it("更新房间资料时只 patch 已缓存房间，不新增未知房间", () => {
+    const current: ApiResultRoomListResponse = {
+      success: true,
+      data: {
+        spaceId: 1,
+        rooms: [
+          { roomId: 10, spaceId: 1, name: "旧房间", description: "旧描述" },
+          { roomId: 11, spaceId: 1, name: "其他房间" },
+        ],
+      },
+    };
+
+    expect(patchExistingUserRoomData(current, {
+      roomId: 10,
+      name: "新房间",
+      description: "新描述",
+    })?.data?.rooms).toEqual([
+      { roomId: 10, spaceId: 1, name: "新房间", description: "新描述" },
+      { roomId: 11, spaceId: 1, name: "其他房间" },
+    ]);
+
+    expect(patchExistingUserRoomData(current, { roomId: 99, name: "未知房间" })).toBe(current);
   });
 });

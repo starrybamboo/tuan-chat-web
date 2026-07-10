@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { MessageDraft } from "@/types/messageDraft";
 
@@ -50,7 +50,7 @@ export default function useMaterialMessageComposerSubmit({
 
     setIsSubmitting(true);
     const toastId = `material-composer-submit-${Date.now()}`;
-    toast.loading("正在添加素材...", { id: toastId });
+    appToast.loading("正在添加素材...", { id: toastId });
 
     try {
       const draftResult = await buildMessageDraftUploadResultFromComposerSnapshot({
@@ -71,18 +71,18 @@ export default function useMaterialMessageComposerSubmit({
       const nextMessages = draftResult.drafts;
 
       if (nextMessages.length === 0) {
-        toast.dismiss(toastId);
+        appToast.dismiss(toastId);
         return;
       }
 
       onAppendMessages(nextMessages);
       resetComposer();
       setInputText("");
-      toast.success(`已添加 ${nextMessages.length} 条素材`, { id: toastId });
+      appToast.success(`已添加 ${nextMessages.length} 条素材`, { id: toastId });
     }
     catch (error) {
       const message = error instanceof Error ? error.message : "未知错误";
-      toast.error(`添加素材失败：${message}`, { id: toastId });
+      appToast.error(`添加素材失败：${message}`, { id: toastId });
     }
     finally {
       setIsSubmitting(false);

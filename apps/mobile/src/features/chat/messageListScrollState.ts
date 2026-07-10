@@ -37,3 +37,10 @@ export function resolveVisibleMessageAppendAction(params: {
     shouldScrollToBottom: params.isAtBottom || shouldForceScrollToBottom,
   };
 }
+
+export function shouldAutoScrollOnContentSizeChange(params: {
+  hasPendingScrollToBottom: boolean;
+  isAtBottom: boolean;
+}): boolean {
+  return params.hasPendingScrollToBottom;
+}

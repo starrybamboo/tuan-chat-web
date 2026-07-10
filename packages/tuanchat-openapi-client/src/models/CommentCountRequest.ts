@@ -15,4 +15,3 @@ export type CommentCountRequest = {
      */
     targetType: string;
 };
-

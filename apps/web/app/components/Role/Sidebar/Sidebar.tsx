@@ -1,14 +1,14 @@
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { TrashSimpleIcon } from "@phosphor-icons/react";
 import { useLocation, useRouter } from "@tanstack/react-router";
+import { useDeleteRolesMutation } from "api/hooks/RoleAndAvatarHooks";
+import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
 
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { getRoleRule } from "@/utils/roleRuleStorage";
-import { useDeleteRolesMutation } from "api/hooks/RoleAndAvatarHooks";
-import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
 
 import type { Role } from "../types";
 
@@ -165,7 +165,7 @@ export function Sidebar({
       try {
         const res = await deleteRule(deleteRuleId);
         if (res?.success) {
-          toast.success("规则删除成功");
+          appToast.success("规则删除成功");
           await ruleListQuery.refetch();
           if (activeRuleId === deleteRuleId) {
             router.history.replace("/role?type=rule&mode=entry");
@@ -173,12 +173,12 @@ export function Sidebar({
           onNavigate?.();
         }
         else {
-          toast.error(res?.errMsg || "规则删除失败");
+          appToast.error(res?.errMsg || "规则删除失败");
         }
       }
       catch (error) {
         console.error("删除规则失败:", error);
-        toast.error("规则删除失败");
+        appToast.error("规则删除失败");
       }
       finally {
         setDeletingRuleId(null);
@@ -203,7 +203,7 @@ export function Sidebar({
         }
         catch (error) {
           console.error("删除角色失败:", error);
-          toast.error("角色删除失败");
+          appToast.error("角色删除失败");
         }
       }
       return;
@@ -224,7 +224,7 @@ export function Sidebar({
       }
       catch (error) {
         console.error("批量删除角色失败:", error);
-        toast.error("角色删除失败");
+        appToast.error("角色删除失败");
       }
       return;
     }
@@ -297,6 +297,8 @@ export function Sidebar({
                     `}
                     onClick={handleBatchDelete}
                     title="删除所选角色"
+                    aria-label={`删除所选 ${selectedRoles.size} 个角色`}
+                    aria-disabled={selectedRoles.size === 0}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -318,6 +320,7 @@ export function Sidebar({
                     className="btn btn-ghost btn-square"
                     onClick={toggleSelectionMode}
                     title="退出选择模式"
+                    aria-label="退出选择模式"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -342,6 +345,7 @@ export function Sidebar({
                     className="btn btn-square btn-soft bg-base-200"
                     onClick={toggleSelectionMode}
                     title="进入选择模式"
+                    aria-label="进入选择模式"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -377,6 +381,8 @@ export function Sidebar({
               <div className="mb-2">
                 <button
                   type="button"
+                  aria-controls="role-sidebar-rule-group"
+                  aria-expanded={!isRuleCollapsed}
                   className="
                     flex items-center gap-2 w-full p-2 rounded-lg
                     hover:bg-base-100
@@ -387,7 +393,7 @@ export function Sidebar({
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className={`
-                      size-4 transition-transform
+                      size-4 transition-transform motion-reduce:transition-none
                       ${isRuleCollapsed ? "" : `rotate-90`}
                     `}
                     viewBox="0 0 24 24"
@@ -406,7 +412,7 @@ export function Sidebar({
                   />
                 </button>
                 {!isRuleCollapsed && (
-                  <div className="ml-2">
+                  <div id="role-sidebar-rule-group" className="ml-2">
                     <button
                       type="button"
                       className="
@@ -419,6 +425,7 @@ export function Sidebar({
                         router.history.push("/role?type=rule&mode=entry");
                         onNavigate?.();
                       }}
+                      aria-label="新建规则，创建自定义规则模板"
                       title="新建规则模板"
                     >
                       <div className="avatar shrink-0 px-1">
@@ -500,6 +507,8 @@ export function Sidebar({
                                 router.history.push(`/role?type=rule&mode=edit&ruleId=${currentRuleId}`);
                                 onNavigate?.();
                               }}
+                              aria-label={`编辑规则 ${rule.ruleName || "未命名规则"}，${(rule.ruleDescription || "暂无描述").trim() || "暂无描述"}`}
+                              title={`${rule.ruleName || "未命名规则"} · ${(rule.ruleDescription || "暂无描述").trim() || "暂无描述"}`}
                             >
                               <div className="avatar shrink-0">
                                 <div className="
@@ -556,6 +565,7 @@ export function Sidebar({
                                 void handleDeleteRule(currentRuleId);
                               }}
                               title="删除规则"
+                              aria-label={`删除规则 ${rule.ruleName || "未命名规则"}`}
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
                                 <path
@@ -576,6 +586,8 @@ export function Sidebar({
               <div className="mb-2">
                 <button
                   type="button"
+                  aria-controls="role-sidebar-dice-group"
+                  aria-expanded={!isDiceCollapsed}
                   className="
                     flex items-center gap-2 w-full p-2 rounded-lg
                     hover:bg-base-100
@@ -586,7 +598,7 @@ export function Sidebar({
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className={`
-                      size-4 transition-transform
+                      size-4 transition-transform motion-reduce:transition-none
                       ${isDiceCollapsed ? "" : `rotate-90`}
                     `}
                     viewBox="0 0 24 24"
@@ -605,7 +617,7 @@ export function Sidebar({
                   />
                 </button>
                 {!isDiceCollapsed && (
-                  <div className="ml-2">
+                  <div id="role-sidebar-dice-group" className="ml-2">
                     {/* 创建骰娘入口 */}
                     <button
                       type="button"
@@ -701,6 +713,8 @@ export function Sidebar({
               <div className="mb-2">
                 <button
                   type="button"
+                  aria-controls="role-sidebar-trash-group"
+                  aria-expanded={isTrashExpanded}
                   className={`
                     flex items-center gap-2 w-full p-2 rounded-lg
                     hover:bg-base-100
@@ -712,7 +726,7 @@ export function Sidebar({
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className={`
-                      size-4 transition-transform
+                      size-4 transition-transform motion-reduce:transition-none
                       ${isTrashExpanded ? `rotate-90` : ""}
                     `}
                     viewBox="0 0 24 24"
@@ -731,7 +745,7 @@ export function Sidebar({
                   />
                 </button>
                 {isTrashExpanded && (
-                  <div className="ml-2">
+                  <div id="role-sidebar-trash-group" className="ml-2">
                     <button
                       type="button"
                       className={`
@@ -745,6 +759,7 @@ export function Sidebar({
                         router.history.push("/role?trash=1");
                         onNavigate?.();
                       }}
+                      aria-current={isPersonalTrashActive ? "page" : undefined}
                       title="查看角色与骰娘回收站"
                     >
                       <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-error/10 text-error">

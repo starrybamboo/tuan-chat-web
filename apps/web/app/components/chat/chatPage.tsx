@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Outlet, useLocation } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { SelectRoomOptions } from "@/components/chat/chatPage.types";
 import type { PrivateChatTab } from "@/components/chat/chatPageLayoutContext";
@@ -31,9 +31,7 @@ import useSpaceDocMetaState from "@/components/chat/hooks/useSpaceDocMetaState";
 import useSpaceSidebarTreeActions from "@/components/chat/hooks/useSpaceSidebarTreeActions";
 import { parseSpaceDocId } from "@/components/chat/infra/doc/space/spaceDocId";
 import { extractDocMetasFromSidebarTree } from "@/components/chat/room/sidebarTree";
-import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
-import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { checkIsKpInSpaceMembers, resolveSubWindowDocPermission } from "@/components/chat/utils/subWindowDocPermission";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
@@ -108,11 +106,6 @@ export default function ChatPage() {
     drawerStateKey: CHAT_LEFT_DRAWER_STATE_KEY,
   });
 
-  useEffect(() => {
-    useEntityHeaderOverrideStore.getState().hydrateFromLocalStorage();
-    useDocHeaderOverrideStore.getState().hydrateFromLocalStorage();
-  }, []);
-
   const chatLeftPanelWidth = useDrawerPreferenceStore(state => state.chatLeftPanelWidth);
   const setChatLeftPanelWidth = useDrawerPreferenceStore(state => state.setChatLeftPanelWidth);
   const {
@@ -185,148 +178,12 @@ export default function ChatPage() {
     activeSpaceInfo,
     spaces,
   });
-  const activeDocHeaderOverride = useDocHeaderOverrideStore(state => (activeDocId ? state.headers[activeDocId] : undefined));
-
   const {
     sidebarTree,
     isSidebarTreeReady,
     sidebarTreeRemoteUpdateKey,
     saveSidebarTree: handleSaveSidebarTree,
   } = useChatPageSidebarTree({ activeSpaceId });
-  const sidebarTreeRef = useRef(sidebarTree);
-  const pendingDocFallbackByIdRef = useRef(new Map<string, {
-    title: string;
-    imageUrl: string;
-    imageFileId?: number;
-    originalImageFileId?: number;
-    imageMediaType?: string;
-  }>());
-  const docFallbackPersistTimerRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    sidebarTreeRef.current = sidebarTree;
-  }, [sidebarTree]);
-
-  const flushPendingDocFallbackToSidebarTree = useCallback(() => {
-    const pendingEntries = [...pendingDocFallbackByIdRef.current.entries()];
-    if (pendingEntries.length === 0) {
-      return;
-    }
-
-    const tree = sidebarTreeRef.current;
-    if (!tree) {
-      return;
-    }
-
-    const nextTree = JSON.parse(JSON.stringify(tree));
-    let changed = false;
-    for (const [docId, header] of pendingEntries) {
-      const title = String(header.title ?? "").trim();
-      const imageUrl = String(header.imageUrl ?? "").trim();
-      const imageFileId = typeof header.imageFileId === "number" && header.imageFileId > 0 ? header.imageFileId : undefined;
-      const originalImageFileId = typeof header.originalImageFileId === "number" && header.originalImageFileId > 0 ? header.originalImageFileId : undefined;
-      const imageMediaType = String(header.imageMediaType ?? "").trim();
-      for (const category of nextTree.categories ?? []) {
-        for (const item of category.items ?? []) {
-          if (item?.type !== "doc") {
-            continue;
-          }
-          if (String(item.targetId ?? "") !== docId) {
-            continue;
-          }
-          if (title && String(item.fallbackTitle ?? "") !== title) {
-            item.fallbackTitle = title;
-            changed = true;
-          }
-          if (imageUrl) {
-            if (String(item.fallbackImageUrl ?? "") !== imageUrl) {
-              item.fallbackImageUrl = imageUrl;
-              changed = true;
-            }
-          }
-          else if (item.fallbackImageUrl) {
-            delete item.fallbackImageUrl;
-            changed = true;
-          }
-          if (imageFileId) {
-            if (item.fallbackImageFileId !== imageFileId) {
-              item.fallbackImageFileId = imageFileId;
-              changed = true;
-            }
-          }
-          else if (item.fallbackImageFileId) {
-            delete item.fallbackImageFileId;
-            changed = true;
-          }
-          if (originalImageFileId) {
-            if (item.fallbackOriginalImageFileId !== originalImageFileId) {
-              item.fallbackOriginalImageFileId = originalImageFileId;
-              changed = true;
-            }
-          }
-          else if (item.fallbackOriginalImageFileId) {
-            delete item.fallbackOriginalImageFileId;
-            changed = true;
-          }
-          if (imageMediaType) {
-            if (String(item.fallbackImageMediaType ?? "") !== imageMediaType) {
-              item.fallbackImageMediaType = imageMediaType;
-              changed = true;
-            }
-          }
-          else if (item.fallbackImageMediaType) {
-            delete item.fallbackImageMediaType;
-            changed = true;
-          }
-        }
-      }
-    }
-
-    if (changed) {
-      handleSaveSidebarTree(nextTree);
-    }
-    pendingDocFallbackByIdRef.current.clear();
-  }, [handleSaveSidebarTree]);
-
-  const handleDocHeaderChangeForSidebarFallback = useCallback((payload: {
-    docId: string;
-    title: string;
-    imageUrl: string;
-    imageFileId?: number;
-    originalImageFileId?: number;
-    imageMediaType?: string;
-  }) => {
-    if (!activeSpaceId || activeSpaceId <= 0) {
-      return;
-    }
-    const docId = String(payload.docId ?? "").trim();
-    if (!docId) {
-      return;
-    }
-    pendingDocFallbackByIdRef.current.set(docId, {
-      title: String(payload.title ?? "").trim(),
-      imageUrl: String(payload.imageUrl ?? "").trim(),
-      imageFileId: typeof payload.imageFileId === "number" && payload.imageFileId > 0 ? payload.imageFileId : undefined,
-      originalImageFileId: typeof payload.originalImageFileId === "number" && payload.originalImageFileId > 0 ? payload.originalImageFileId : undefined,
-      imageMediaType: String(payload.imageMediaType ?? "").trim() || undefined,
-    });
-    if (docFallbackPersistTimerRef.current != null) {
-      window.clearTimeout(docFallbackPersistTimerRef.current);
-    }
-    docFallbackPersistTimerRef.current = window.setTimeout(() => {
-      docFallbackPersistTimerRef.current = null;
-      flushPendingDocFallbackToSidebarTree();
-    }, 1000);
-  }, [activeSpaceId, flushPendingDocFallbackToSidebarTree]);
-
-  useEffect(() => {
-    return () => {
-      if (docFallbackPersistTimerRef.current != null) {
-        window.clearTimeout(docFallbackPersistTimerRef.current);
-      }
-      docFallbackPersistTimerRef.current = null;
-    };
-  }, []);
 
   const sidebarTreeFirstRoomId = useMemo(() => {
     if (!sidebarTree) {
@@ -525,8 +382,6 @@ export default function ChatPage() {
     activeSpaceId,
     canViewDocs: canViewSubWindowDoc,
     docMetasFromSidebarTree,
-    isSidebarTreeReady,
-    onDocHeaderChange: handleDocHeaderChangeForSidebarFallback,
   });
   const spaceDocMetasList = spaceDocMetas ?? EMPTY_ARRAY;
   const activeDocTcHeaderFallback = useMemo(() => {
@@ -540,35 +395,20 @@ export default function ChatPage() {
       };
     }
 
-    const overrideTitle = typeof activeDocHeaderOverride?.title === "string" ? activeDocHeaderOverride.title.trim() : "";
-    const overrideImageUrl = typeof activeDocHeaderOverride?.imageUrl === "string" ? activeDocHeaderOverride.imageUrl.trim() : "";
-    const overrideImageFileId = typeof activeDocHeaderOverride?.imageFileId === "number" && activeDocHeaderOverride.imageFileId > 0
-      ? activeDocHeaderOverride.imageFileId
-      : undefined;
-    const overrideOriginalImageFileId = typeof activeDocHeaderOverride?.originalImageFileId === "number" && activeDocHeaderOverride.originalImageFileId > 0
-      ? activeDocHeaderOverride.originalImageFileId
-      : undefined;
-    const overrideImageMediaType = typeof activeDocHeaderOverride?.imageMediaType === "string" ? activeDocHeaderOverride.imageMediaType.trim() : "";
-
     const stateMeta = (spaceDocMetas ?? []).find(meta => meta.id === activeDocId);
     const treeMeta = (docMetasFromSidebarTree ?? []).find(meta => meta.id === activeDocId);
 
-    const title = overrideTitle
-      || stateMeta?.title?.trim()
+    const title = stateMeta?.title?.trim()
       || treeMeta?.title?.trim()
       || "文档";
-    const imageUrl = overrideImageUrl
-      || stateMeta?.imageUrl?.trim()
+    const imageUrl = stateMeta?.imageUrl?.trim()
       || treeMeta?.imageUrl?.trim()
       || "";
-    const imageFileId = overrideImageFileId
-      ?? (typeof stateMeta?.imageFileId === "number" && stateMeta.imageFileId > 0 ? stateMeta.imageFileId : undefined)
+    const imageFileId = (typeof stateMeta?.imageFileId === "number" && stateMeta.imageFileId > 0 ? stateMeta.imageFileId : undefined)
       ?? (typeof treeMeta?.imageFileId === "number" && treeMeta.imageFileId > 0 ? treeMeta.imageFileId : undefined);
-    const originalImageFileId = overrideOriginalImageFileId
-      ?? (typeof stateMeta?.originalImageFileId === "number" && stateMeta.originalImageFileId > 0 ? stateMeta.originalImageFileId : undefined)
+    const originalImageFileId = (typeof stateMeta?.originalImageFileId === "number" && stateMeta.originalImageFileId > 0 ? stateMeta.originalImageFileId : undefined)
       ?? (typeof treeMeta?.originalImageFileId === "number" && treeMeta.originalImageFileId > 0 ? treeMeta.originalImageFileId : undefined);
-    const imageMediaType = overrideImageMediaType
-      || stateMeta?.imageMediaType?.trim()
+    const imageMediaType = stateMeta?.imageMediaType?.trim()
       || treeMeta?.imageMediaType?.trim()
       || undefined;
 
@@ -579,7 +419,7 @@ export default function ChatPage() {
       originalImageFileId,
       imageMediaType,
     };
-  }, [activeDocHeaderOverride, activeDocId, docMetasFromSidebarTree, spaceDocMetas]);
+  }, [activeDocId, docMetasFromSidebarTree, spaceDocMetas]);
   const activeDocTitleForTcHeader = activeDocTcHeaderFallback.title;
   const [cachedDocRoute, setCachedDocRoute] = useState<CachedDocRoute | null>(null);
 

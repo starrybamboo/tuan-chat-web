@@ -19,4 +19,3 @@ export type RoomDndMapTokenResponse = {
      */
     colIndex?: number;
 };
-

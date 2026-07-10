@@ -84,6 +84,36 @@ export function upsertUserRoomData(
   };
 }
 
+export function patchExistingUserRoomData(
+  currentData: ApiResultRoomListResponse | undefined,
+  roomPatch: Room,
+): ApiResultRoomListResponse | undefined {
+  if (typeof roomPatch.roomId !== "number" || !currentData?.data?.rooms) {
+    return currentData;
+  }
+
+  let patched = false;
+  const rooms = currentData.data.rooms.map(room => {
+    if (!isSameRoom(room, roomPatch)) {
+      return room;
+    }
+    patched = true;
+    return { ...room, ...roomPatch };
+  });
+
+  if (!patched) {
+    return currentData;
+  }
+
+  return {
+    ...currentData,
+    data: {
+      ...currentData.data,
+      rooms,
+    },
+  };
+}
+
 export function upsertUserActiveSpaceQueryData(queryClient: QueryClient, space: Space) {
   queryClient.setQueryData<ApiResultListSpace>(
     getUserActiveSpacesQueryKey(),

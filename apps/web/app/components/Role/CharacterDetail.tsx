@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
@@ -24,6 +24,7 @@ import DicerConfigJsonModal from "./rules/DicerConfigJsonModal";
 import ExpansionModule from "./rules/ExpansionModule";
 import RulesSection from "./rules/RulesSection";
 import { getEffectiveAvatarThumbUrl, getEffectiveAvatarUrl, getEffectiveSpriteUrl } from "./sprite/utils";
+
 // import Section from "./Section";
 
 type CharacterDetailProps = {
@@ -226,11 +227,11 @@ function CharacterDetailInner({
 
     updateFieldAbility(payload, {
       onSuccess: () => {
-        toast.success("已还原默认配置");
+        appToast.success("已还原默认配置");
         setIsDicerConfigJsonModalOpen(false);
       },
       onError: () => {
-        toast.error("重置失败");
+        appToast.error("重置失败");
       },
     });
   };
@@ -301,7 +302,7 @@ function CharacterDetailInner({
     const cleanedRole = buildCleanedRole(nextRole);
     updateRole(cleanedRole, {
       onError: (error) => {
-        toast.error(`角色保存失败：${getMutationErrorMessage(error, "请稍后重试")}`);
+        appToast.error(`角色保存失败：${getMutationErrorMessage(error, "请稍后重试")}`);
       },
     });
   };
@@ -615,16 +616,27 @@ function CharacterDetailInner({
           <div className="
             bg-base-100 rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh]
             overflow-auto
-          " onClick={e => e.stopPropagation()}>
+          "
+            role="dialog"
+            aria-modal="true"
+            aria-label="选择规则系统"
+            onClick={e => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setIsRuleModalOpen(false);
+              }
+            }}
+          >
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold">选择规则系统</h3>
                 <button
                   type="button"
                   className="btn btn-sm btn-circle btn-ghost"
+                  aria-label="关闭"
                   onClick={() => setIsRuleModalOpen(false)}
                 >
-                  <CloseIcon className="size-4" />
+                  <CloseIcon className="size-4" aria-hidden="true" />
                 </button>
               </div>
               <RulesSection

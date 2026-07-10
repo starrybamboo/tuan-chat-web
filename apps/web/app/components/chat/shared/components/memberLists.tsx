@@ -1,7 +1,7 @@
 import type { Ref } from "react";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -17,6 +17,7 @@ import { useGlobalUserId } from "@/components/globalContextProvider";
 import type { SpaceMember } from "../../../../../api";
 
 import {
+
   useAddRoomMemberMutation,
   useDeleteRoomMemberMutation,
   useDeleteSpaceMemberMutation,
@@ -116,6 +117,7 @@ export function getSpaceMemberMenuLabels({
 
 function MemberActionMenuItem({
   label,
+  ariaLabel,
   onClick,
   onAfterClick,
   danger = false,
@@ -123,6 +125,7 @@ function MemberActionMenuItem({
   firstItemRef,
 }: {
   label: string;
+  ariaLabel?: string;
   onClick: () => void;
   onAfterClick: () => void;
   danger?: boolean;
@@ -145,6 +148,8 @@ function MemberActionMenuItem({
           onClick();
           onAfterClick();
         }}
+        role="menuitem"
+        aria-label={ariaLabel ?? label}
       >
         {label}
       </button>
@@ -241,6 +246,8 @@ function SpaceMemberActionMenu({
       }
     };
     const handleKey = (e: KeyboardEvent) => {
+      if (e.isComposing)
+        return;
       if (e.key === "Escape") {
         setOpen(false);
         triggerBtnRef.current?.focus();
@@ -288,6 +295,8 @@ function SpaceMemberActionMenu({
     return null;
   }
 
+  const memberName = member.username ?? `用户 ${member.userId ?? ""}`;
+
   return (
     <div className="relative" ref={wrapperRef}>
       <button
@@ -295,7 +304,8 @@ function SpaceMemberActionMenu({
         type="button"
         className="btn btn-ghost btn-xs px-2"
         onClick={() => setOpen(openState => !openState)}
-        aria-label="更多操作"
+        aria-label={`更多 ${memberName} 的成员操作`}
+        aria-expanded={open}
         aria-controls={`member-menu-${member.userId}`}
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -314,6 +324,7 @@ function SpaceMemberActionMenu({
               top-full mt-1 origin-top
             `}
           `}
+          role="menu"
           aria-label="成员操作菜单"
         >
           {menuLabels.includes("退出空间") && (
@@ -321,6 +332,7 @@ function SpaceMemberActionMenu({
               first={true}
               firstItemRef={firstItemRef}
               label="退出空间"
+              ariaLabel={`让 ${memberName} 退出空间`}
               onClick={onRemove}
               onAfterClick={closeMenuAndRefocus}
               danger={true}
@@ -334,12 +346,13 @@ function SpaceMemberActionMenu({
                   first={index === 0 && !canLeaveSpace}
                   firstItemRef={firstItemRef}
                   label={action.label}
+                  ariaLabel={`将 ${memberName} ${action.label}`}
                   onClick={() => onUpdateMemberType(action.memberType)}
                   onAfterClick={closeMenuAndRefocus}
                 />
               ))}
-              <MemberActionMenuItem firstItemRef={firstItemRef} label="转让GM/KP" onClick={onTransfer} onAfterClick={closeMenuAndRefocus} />
-              <MemberActionMenuItem firstItemRef={firstItemRef} label="移出空间" onClick={onRemove} onAfterClick={closeMenuAndRefocus} danger={true} />
+              <MemberActionMenuItem firstItemRef={firstItemRef} label="转让GM/KP" ariaLabel={`将 GM/KP 转让给 ${memberName}`} onClick={onTransfer} onAfterClick={closeMenuAndRefocus} />
+              <MemberActionMenuItem firstItemRef={firstItemRef} label="移出空间" ariaLabel={`将 ${memberName} 移出空间`} onClick={onRemove} onAfterClick={closeMenuAndRefocus} danger={true} />
             </>
           )}
         </ul>
@@ -437,11 +450,11 @@ export default function MemberLists({
           { roomId, userIdList: [member.userId ?? 0] },
           {
             onSuccess: () => {
-              toast.success(isSelf ? "已退出房间" : "已移出房间");
+              appToast.success(isSelf ? "已退出房间" : "已移出房间");
             },
             onError: (error: any) => {
               const actionLabel = isSelf ? "退出房间" : "移出房间";
-              toast.error(error?.message ? `${actionLabel}失败：${error.message}` : `${actionLabel}失败`);
+              appToast.error(error?.message ? `${actionLabel}失败：${error.message}` : `${actionLabel}失败`);
             },
           },
         );
@@ -452,11 +465,11 @@ export default function MemberLists({
         { spaceId, userIdList: [member.userId ?? 0] },
         {
           onSuccess: () => {
-            toast.success(isSelf ? "已退出空间" : "已移出空间");
+            appToast.success(isSelf ? "已退出空间" : "已移出空间");
           },
           onError: (error: any) => {
             const actionLabel = isSelf ? "退出空间" : "移出空间";
-            toast.error(error?.message ? `${actionLabel}失败：${error.message}` : `${actionLabel}失败`);
+            appToast.error(error?.message ? `${actionLabel}失败：${error.message}` : `${actionLabel}失败`);
           },
         },
       );
@@ -470,10 +483,10 @@ export default function MemberLists({
         { roomId, userIdList: [member.userId ?? 0] },
         {
           onSuccess: () => {
-            toast.success("已邀请至房间");
+            appToast.success("已邀请至房间");
           },
           onError: (error: any) => {
-            toast.error(error?.message ? `邀请失败：${error.message}` : "邀请失败");
+            appToast.error(error?.message ? `邀请失败：${error.message}` : "邀请失败");
           },
         },
       );
@@ -491,10 +504,10 @@ export default function MemberLists({
         },
         {
           onSuccess: () => {
-            toast.success(`${nextLabel}成功`);
+            appToast.success(`${nextLabel}成功`);
           },
           onError: (error: any) => {
-            toast.error(error?.message ? `${nextLabel}失败：${error.message}` : `${nextLabel}失败`);
+            appToast.error(error?.message ? `${nextLabel}失败：${error.message}` : `${nextLabel}失败`);
           },
         },
       );
@@ -504,10 +517,10 @@ export default function MemberLists({
       { spaceId, newLeaderId: member.userId ?? 0 },
       {
         onSuccess: () => {
-          toast.success("转让GM/KP成功");
+          appToast.success("转让GM/KP成功");
         },
         onError: (error: any) => {
-          toast.error(error?.message ? `转让GM/KP失败：${error.message}` : "转让GM/KP失败");
+          appToast.error(error?.message ? `转让GM/KP失败：${error.message}` : "转让GM/KP失败");
         },
       },
     );

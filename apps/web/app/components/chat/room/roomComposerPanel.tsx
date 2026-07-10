@@ -2,6 +2,7 @@ import React from "react";
 
 import type { AtMentionHandle } from "@/components/atMentionController";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+import type { CommandInlineCompletion } from "@/components/chat/input/commandInlineCompletion";
 
 import AtMentionController from "@/components/atMentionController";
 import { CHAT_COMPOSER_RESIZE_EVENT } from "@/components/chat/chatFrameEvents";
@@ -17,6 +18,7 @@ import { openMessageAnnotationPicker } from "@/components/chat/message/annotatio
 import ChatAttachmentsPreviewFromStore from "@/components/chat/message/chatAttachmentsPreviewFromStore";
 import RepliedMessage from "@/components/chat/message/preview/repliedMessage";
 import RoomComposerHeader from "@/components/chat/room/roomComposerHeader";
+import { shouldCancelInsertModeWithEscape } from "@/components/chat/room/roomComposerInsertMode";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
@@ -38,6 +40,7 @@ type RoomComposerPanelProps = {
   webSocketUtils: any;
 
   handleSelectCommand: (cmdName: string) => void;
+  commandInlineCompletion: CommandInlineCompletion | null;
   ruleId: number;
 
   handleMessageSubmit: () => Promise<void> | void;
@@ -57,8 +60,8 @@ type RoomComposerPanelProps = {
 
   /** KP（房主）权限标记，用于显示“停止全员BGM” */
   isKP?: boolean;
-  /** 当前空间是否已开启除 KP 外全员禁言 */
-  isSpaceMuted?: boolean;
+  /** 当前空间是否已归档，归档后仅 KP 可发言 */
+  isSpaceArchived?: boolean;
   /** KP：停止全员BGM */
   onStopBgmForAll?: () => void;
 
@@ -95,6 +98,7 @@ function RoomComposerPanelImpl({
   userId,
   webSocketUtils,
   handleSelectCommand,
+  commandInlineCompletion,
   ruleId,
   handleMessageSubmit,
   currentChatStatus,
@@ -107,7 +111,7 @@ function RoomComposerPanelImpl({
   onOpenFullMessageDiff,
   isFullMessageDiffOpen,
   isKP,
-  isSpaceMuted = false,
+  isSpaceArchived = false,
   onStopBgmForAll,
   noRole,
   notMember,
@@ -303,10 +307,29 @@ function RoomComposerPanelImpl({
   const replyMessage = useRoomUiStore(state => state.replyMessage);
   const insertAfterMessageId = useRoomUiStore(state => state.insertAfterMessageId);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
-  const inputDisabled = (isSpaceMuted && !isKP) || (noRole && !isKP && !notMember);
+  React.useEffect(() => {
+    if (!insertAfterMessageId || typeof window === "undefined") {
+      return;
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (!shouldCancelInsertModeWithEscape(event)) {
+        return;
+      }
+      event.preventDefault();
+      setInsertAfterMessageId(undefined);
+    };
+
+    window.addEventListener("keydown", handleEscape, true);
+    return () => {
+      window.removeEventListener("keydown", handleEscape, true);
+    };
+  }, [insertAfterMessageId, setInsertAfterMessageId]);
+
+  const inputDisabled = (isSpaceArchived && !isKP) || (noRole && !isKP && !notMember);
   const placeholderText = React.useMemo(() => {
-    if (isSpaceMuted && !isKP) {
-      return "当前空间已开启全员禁言，仅主持人可发言";
+    if (isSpaceArchived && !isKP) {
+      return "当前空间已归档，仅主持人可发言";
     }
     if (notMember) {
       return "输入消息…（Shift+Enter 换行）";
@@ -324,7 +347,7 @@ function RoomComposerPanelImpl({
       return "插入消息中…（Shift+Enter 换行）";
     }
     return "输入消息…（Shift+Enter 换行）";
-  }, [curAvatarId, insertAfterMessageId, isKP, isSpaceMuted, noRole, notMember]);
+  }, [curAvatarId, insertAfterMessageId, isKP, isSpaceArchived, noRole, notMember]);
   React.useEffect(() => {
     let isActive = true;
     const key = `${roomId}:${curRoleId}`;
@@ -347,7 +370,7 @@ function RoomComposerPanelImpl({
           return;
         }
         if (composerAnnotationsLoadingKeyRef.current === key) {
-          composerAnnotationsLoadingKeyRef.current = null;
+  composerAnnotationsLoadingKeyRef.current = null;
         }
       });
     return () => {
@@ -388,6 +411,8 @@ function RoomComposerPanelImpl({
     statusWebSocketUtils: webSocketUtils,
     statusExcludeSelf: false,
     handleMessageSubmit,
+    isInsertMode: Boolean(insertAfterMessageId),
+    onCancelInsertMode: () => setInsertAfterMessageId(undefined),
     currentChatStatus,
     onChangeChatStatus,
     isSpectator,
@@ -404,7 +429,7 @@ function RoomComposerPanelImpl({
     onOpenFullMessageDiff,
     isFullMessageDiffOpen,
     isKP,
-    isSpaceMuted,
+    isSpaceArchived,
     onStopBgmForAll,
     noRole,
     notMember,
@@ -415,9 +440,10 @@ function RoomComposerPanelImpl({
     autoReplyMode,
     currentChatStatus,
     handleMessageSubmit,
+    insertAfterMessageId,
     isFullMessageDiffOpen,
     isKP,
-    isSpaceMuted,
+    isSpaceArchived,
     isSpectator,
     isSubmitting,
     clueUnreadCount,
@@ -429,6 +455,7 @@ function RoomComposerPanelImpl({
     onOpenFullMessageDiff,
     onSendEffect,
     onStopBgmForAll,
+    setInsertAfterMessageId,
     onToggleRealtimeRender,
     runModeEnabled,
     roomId,
@@ -450,6 +477,7 @@ function RoomComposerPanelImpl({
       showRunControls={true}
     />
   );
+  const shouldShowHeaderToolbar = webgalLinkMode || runModeEnabled;
 
   const shouldShowComposerAnnotations = !isSpectator || composerAnnotations.length > 0;
   const composerAnnotationsBar = shouldShowComposerAnnotations
@@ -461,35 +489,151 @@ function RoomComposerPanelImpl({
           onOpenPicker={handleOpenComposerAnnotations}
           showWhenEmpty={true}
           alwaysShowAddButton={true}
-          showNormalModeAnnotationsOnly={!webgalLinkMode && !runModeEnabled}
+          showNormalModeAnnotationsOnly={false}
           compact={true}
+          compactScroll={false}
           className="mt-0"
         />
       )
     : null;
 
-  const headerToolbar = headerToolbarControls ?? null;
+  const headerToolbar = shouldShowHeaderToolbar ? headerToolbarControls : null;
+  const [commandGhostPosition, setCommandGhostPosition] = React.useState<{
+    left: number;
+    top: number;
+    lineHeight: number;
+    maxWidth: number;
+    font: string;
+    letterSpacing: string;
+  } | null>(null);
+  const inputShellRef = React.useRef<HTMLDivElement | null>(null);
+  const commandGhostRafRef = React.useRef<number | null>(null);
+  const updateCommandGhostPosition = React.useCallback(() => {
+    commandGhostRafRef.current = null;
+    if (!commandInlineCompletion || inputDisabled) {
+      setCommandGhostPosition(null);
+      return;
+    }
+
+    const shell = inputShellRef.current;
+    const editor = chatInputRef.current?.getRawElement();
+    const caretRect = chatInputRef.current?.getCaretClientRect();
+    if (!shell || !editor || !caretRect) {
+      setCommandGhostPosition(null);
+      return;
+    }
+
+    const shellRect = shell.getBoundingClientRect();
+    const editorStyle = window.getComputedStyle(editor);
+    const fontSize = Number.parseFloat(editorStyle.fontSize) || 14;
+    const lineHeight = Number.parseFloat(editorStyle.lineHeight) || fontSize * 1.4;
+    setCommandGhostPosition({
+      left: caretRect.left - shellRect.left,
+      top: caretRect.top - shellRect.top,
+      lineHeight,
+      maxWidth: Math.max(0, shellRect.right - caretRect.left - 8),
+      font: editorStyle.font,
+      letterSpacing: editorStyle.letterSpacing,
+    });
+  }, [chatInputRef, commandInlineCompletion, inputDisabled]);
+  const scheduleCommandGhostPositionUpdate = React.useCallback(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (commandGhostRafRef.current !== null) {
+      return;
+    }
+    commandGhostRafRef.current = window.requestAnimationFrame(updateCommandGhostPosition);
+  }, [updateCommandGhostPosition]);
+  React.useLayoutEffect(() => {
+    updateCommandGhostPosition();
+  }, [updateCommandGhostPosition]);
+  React.useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    document.addEventListener("selectionchange", scheduleCommandGhostPositionUpdate);
+    window.addEventListener("resize", scheduleCommandGhostPositionUpdate);
+    return () => {
+      document.removeEventListener("selectionchange", scheduleCommandGhostPositionUpdate);
+      window.removeEventListener("resize", scheduleCommandGhostPositionUpdate);
+      if (commandGhostRafRef.current !== null) {
+        window.cancelAnimationFrame(commandGhostRafRef.current);
+        commandGhostRafRef.current = null;
+      }
+    };
+  }, [scheduleCommandGhostPositionUpdate]);
+  const handleInputSyncWithGhost = React.useCallback((plainText: string, inputTextWithoutMentions: string, roles: UserRole[]) => {
+    onInputSync(plainText, inputTextWithoutMentions, roles);
+    scheduleCommandGhostPositionUpdate();
+  }, [onInputSync, scheduleCommandGhostPositionUpdate]);
+  const handleKeyUpWithGhost = React.useCallback((event: React.KeyboardEvent) => {
+    onKeyUp(event);
+    scheduleCommandGhostPositionUpdate();
+  }, [onKeyUp, scheduleCommandGhostPositionUpdate]);
+  const handleMouseDownWithGhost = React.useCallback((event: React.MouseEvent) => {
+    onMouseDown(event);
+    scheduleCommandGhostPositionUpdate();
+  }, [onMouseDown, scheduleCommandGhostPositionUpdate]);
+  const handleCompositionEndWithGhost = React.useCallback(() => {
+    onCompositionEnd();
+    scheduleCommandGhostPositionUpdate();
+  }, [onCompositionEnd, scheduleCommandGhostPositionUpdate]);
   const inputArea = (
     <div className="min-w-0 flex-1">
-      <div className="relative">
+      <div
+        ref={inputShellRef}
+        className="relative"
+      >
         <ChatInputArea
           ref={chatInputRef}
           inputScope="composer"
-          onInputSync={onInputSync}
+          onInputSync={handleInputSyncWithGhost}
           onPasteFiles={onPasteFiles}
           onKeyDown={onKeyDown}
-          onKeyUp={onKeyUp}
-          onMouseDown={onMouseDown}
+          onKeyUp={handleKeyUpWithGhost}
+          onMouseDown={handleMouseDownWithGhost}
+          onScroll={scheduleCommandGhostPositionUpdate}
           onCompositionStart={onCompositionStart}
-          onCompositionEnd={onCompositionEnd}
+          onCompositionEnd={handleCompositionEndWithGhost}
           disabled={inputDisabled}
           placeholder={placeholderText}
           className={`
             min-h-10
+            ${insertAfterMessageId ? "chatInputTextarea--insert-mode" : ""}
             ${screenSize === "sm" ? "max-h-[30dvh]" : `max-h-[20dvh]`}
             overflow-y-auto min-w-0 flex-1
           `}
         />
+        {commandInlineCompletion && commandGhostPosition && !inputDisabled
+          ? (
+              <span
+                aria-hidden="true"
+                className="
+                  pointer-events-none absolute z-10 flex items-center gap-1.5
+                  overflow-hidden whitespace-pre text-base-content/35
+                "
+                style={{
+                  font: commandGhostPosition.font,
+                  left: commandGhostPosition.left,
+                  letterSpacing: commandGhostPosition.letterSpacing,
+                  lineHeight: `${commandGhostPosition.lineHeight}px`,
+                  maxWidth: commandGhostPosition.maxWidth,
+                  top: commandGhostPosition.top,
+                }}
+              >
+                <span>{commandInlineCompletion.suffix}</span>
+                <span className="inline-flex shrink-0 items-center gap-1 text-[10px] text-base-content/25">
+                  <span className="rounded border border-base-content/10 bg-base-content/[0.04] px-1 leading-3.5">
+                    Tab
+                  </span>
+                  <span className="rounded border border-base-content/10 bg-base-content/[0.04] px-1 leading-3.5">
+                    →
+                  </span>
+                </span>
+              </span>
+            )
+          : null}
       </div>
     </div>
   );
@@ -542,24 +686,6 @@ function RoomComposerPanelImpl({
             </div>
           )}
 
-          {insertAfterMessageId && (
-            <div className="p-2 pb-1">
-              <div className="
-                flex flex-row gap-2 items-center bg-info/20 border
-                border-info/40 rounded-md shadow-sm text-sm p-2 justify-between
-              ">
-                <span className="text-base-content/90 font-medium">插入消息中</span>
-                <button
-                  type="button"
-                  className="btn btn-xs btn-ghost"
-                  onClick={() => setInsertAfterMessageId(undefined)}
-                >
-                  取消
-                </button>
-              </div>
-            </div>
-          )}
-
           <div className="flex flex-wrap items-end gap-2">
             <div className="flex-1 min-w-0">
               <div className="
@@ -573,7 +699,6 @@ function RoomComposerPanelImpl({
                   curRoleId={curRoleId}
                   curAvatarId={curAvatarId}
                   displayRoleName={displayRoleName}
-                  currentRoleName={currentRole?.roleName}
                   setCurRoleId={setCurRoleId}
                   setCurAvatarId={setCurAvatarId}
                   setDraftCustomRoleNameForRole={setDraftCustomRoleNameForRole}

@@ -66,4 +66,3 @@ export type Room = {
     archived?: boolean;
     docRoom?: boolean;
 };
-

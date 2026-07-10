@@ -233,6 +233,12 @@ export function MessageEditorAtomicBlock({
   const isImageBlock = message.messageType === MESSAGE_TYPE.IMG;
   const isVideoBlock = message.messageType === MESSAGE_TYPE.VIDEO;
   const isResizableMediaBlock = isImageBlock || isVideoBlock;
+  // 删除按钮的可访问名称，按块类型区分图片/视频/文件。
+  const deleteBlockLabel = isImageBlock
+    ? "删除图片块"
+    : isVideoBlock
+      ? "删除视频块"
+      : "删除文件块";
   const isCenteredUploadBlock = message.messageType === MESSAGE_TYPE.IMG
     || message.messageType === MESSAGE_TYPE.SOUND
     || message.messageType === MESSAGE_TYPE.VIDEO;
@@ -474,6 +480,8 @@ export function MessageEditorAtomicBlock({
         )}
         <button
           type="button"
+          aria-label={deleteBlockLabel}
+          title={deleteBlockLabel}
           className="
             rounded-md border border-base-300/70 bg-base-100/92 px-2 py-1
             text-xs text-base-content/75 shadow-sm transition
@@ -495,6 +503,8 @@ export function MessageEditorAtomicBlock({
         {!readOnly && (
           <button
             type="button"
+            aria-label={deleteBlockLabel}
+            title={deleteBlockLabel}
             className="
               rounded-md border border-base-300 px-2 py-1 text-xs
               text-base-content/70 transition

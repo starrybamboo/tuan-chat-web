@@ -19,4 +19,3 @@ export type FeedWithStatsResponse = {
      */
     stats?: Record<string, any>;
 };
-

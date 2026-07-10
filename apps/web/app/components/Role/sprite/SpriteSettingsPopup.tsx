@@ -1,5 +1,3 @@
-import type { RoleAvatar, RoleAvatarVariant, RoleAvatarVariantCompositionConfig } from "api";
-
 import {
   ArrowLeftIcon,
   CaretDownIcon,
@@ -17,23 +15,11 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  useApplyCropAvatarMutation,
-  useApplyCropMutation,
-  useClearDeletedRoleAvatarsMutation,
-  useCreateRoleAvatarVariantMutation,
-  useDeleteRoleAvatarVariantMutation,
-  useGetDeletedRoleAvatarsQuery,
-  useRestoreRoleAvatarMutation,
-  useSetDefaultRoleAvatarMutation,
-  useRoleAvatarVariantsQuery,
-  useUpdateRoleAvatarMutation,
-  useUpdateRoleAvatarVariantMutation,
-  useUploadAvatarMutation,
-} from "api/hooks/RoleAndAvatarHooks";
 import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
 import { Drawer } from "vaul";
+import { appToast } from "@/components/common/appToast/appToast";
+
+import type { RoleAvatar, RoleAvatarVariant, RoleAvatarVariantCompositionConfig } from "api";
 
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { MediaImage } from "@/components/common/mediaImage";
@@ -43,6 +29,20 @@ import { isMobileScreen } from "@/utils/getScreenSize";
 import { canvasPreview, canvasToBlob } from "@/utils/imgCropper";
 import { normalizeImageFileOrNull } from "@/utils/media/mediaMime";
 import { imageOriginalUrlFromUrl } from "@/utils/media/mediaUrl";
+import {
+  useApplyCropAvatarMutation,
+  useApplyCropMutation,
+  useClearDeletedRoleAvatarsMutation,
+  useCreateRoleAvatarVariantMutation,
+  useDeleteRoleAvatarVariantMutation,
+  useGetDeletedRoleAvatarsQuery,
+  useRestoreRoleAvatarMutation,
+  useRoleAvatarVariantsQuery,
+  useSetDefaultRoleAvatarMutation,
+  useUpdateRoleAvatarMutation,
+  useUpdateRoleAvatarVariantMutation,
+  useUploadAvatarMutation,
+} from "api/hooks/RoleAndAvatarHooks";
 
 import type { AvatarUploadFilesContext } from "../RoleInfoCard/AvatarUploadCropper";
 import type { Role } from "../types";
@@ -59,6 +59,7 @@ import {
 import { resolveAvatarUploadName } from "./avatarUploadName";
 import { uploadOriginAndDefaultSpriteMedia } from "./defaultSpriteMedia";
 import { useAvatarDeletion } from "./hooks/useAvatarDeletion";
+import { getVariantFolderClickAction } from "./variantFolderInteraction";
 import {
   AvatarCalibrationPreviewPanel,
   AvatarSettingsTab,
@@ -67,6 +68,7 @@ import {
 import { SpriteCropper } from "./Tabs/SpriteCropper";
 import { SpriteListGrid } from "./Tabs/SpriteListGrid";
 import {
+
   getEffectiveAvatarUrl,
   getEffectiveOriginUrl,
   getEffectiveSpriteOriginalUrl,
@@ -84,6 +86,12 @@ const DEFAULT_VARIANT = "未分组";
 // 头像优先随左栏缩小；缩到下限后再减少列数，避免出现半列空白。
 const AVATAR_LIST_GRID_TEMPLATE_COLUMNS = "repeat(auto-fit, minmax(min(5.75rem, 100%), 1fr))";
 const AVATAR_FOLDER_GRID_TEMPLATE_COLUMNS = "repeat(auto-fill, minmax(min(5.75rem, 100%), 1fr))";
+const AVATAR_FOLDER_STACK_CARD_CLASS_NAMES = [
+  "left-[6%] top-[22%] z-[1] rotate-[-12deg] opacity-70 scale-[0.76]",
+  "right-[5%] top-[15%] z-[2] rotate-[10deg] opacity-80 scale-[0.8]",
+  "left-[18%] bottom-[8%] z-[3] rotate-[6deg] opacity-90 scale-[0.84]",
+  "left-1/2 top-1/2 z-[4] -translate-x-1/2 -translate-y-1/2 rotate-[-1deg] opacity-100 scale-100",
+] as const;
 
 type PendingVariantInitialization = {
   name: string;
@@ -94,6 +102,13 @@ type PendingUploadAvatarWorkflow = {
   avatarIds: number[];
   target: AvatarUploadFilesContext["target"];
   batchKey: string;
+}
+
+type OptimisticUploadAvatar = RoleAvatar & {
+  localAvatarUrl: string;
+  localOriginUrl: string;
+  localSpriteUrl: string;
+  optimisticUploadKey: string;
 }
 
 type PendingVariantRemovalConfirm =
@@ -319,7 +334,7 @@ function VariantNameDialog({
 
   const handleSubmit = useCallback(() => {
     if (!trimmedDraft) {
-      toast.error("请输入立绘组名称");
+      appToast.error("请输入立绘组名称");
       return;
     }
     onConfirm(trimmedDraft);
@@ -346,6 +361,14 @@ function VariantNameDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="variant-name-dialog-title"
+        onKeyDown={(event) => {
+          if (event.key !== "Escape" || event.nativeEvent.isComposing || isComposingRef.current) {
+            return;
+          }
+          event.preventDefault();
+          event.stopPropagation();
+          onCancel();
+        }}
       >
         <h3 id="variant-name-dialog-title" className="text-lg font-bold">新建立绘组</h3>
         <p className="py-3 text-sm text-base-content/60">
@@ -434,7 +457,7 @@ export function SpriteSettingsPopup({
   isOpen,
   onClose,
   defaultTab = "setting",
-  spritesAvatars,
+  spritesAvatars: remoteSpritesAvatars,
   roleAvatars,
   currentSpriteIndex,
   characterName,
@@ -455,6 +478,7 @@ export function SpriteSettingsPopup({
   const [variantNameDraft, setVariantNameDraft] = useState("");
   const [variantCreationIndices, setVariantCreationIndices] = useState<number[]>([]);
   const [pendingVariantSpriteCalibrationIndices, setPendingVariantSpriteCalibrationIndices] = useState<number[] | null>(null);
+  const [optimisticUploadAvatars, setOptimisticUploadAvatars] = useState<OptimisticUploadAvatar[]>([]);
   const [batchVariantCreationPrompt, setBatchVariantCreationPrompt] = useState<{
     indices: number[];
     successCount: number;
@@ -464,6 +488,20 @@ export function SpriteSettingsPopup({
   const [batchTargetVariantId, setBatchTargetVariantId] = useState("");
   const [draggedAvatarIndices, setDraggedAvatarIndices] = useState<number[]>([]);
   const [variantDropTarget, setVariantDropTarget] = useState<string | null>(null);
+  const optimisticAvatarIds = useMemo(() => (
+    new Set(
+      optimisticUploadAvatars
+        .map(avatar => normalizeVariantId(avatar.avatarId))
+        .filter((avatarId): avatarId is number => avatarId != null),
+    )
+  ), [optimisticUploadAvatars]);
+  const spritesAvatars = useMemo(
+    () => [
+      ...optimisticUploadAvatars,
+      ...remoteSpritesAvatars.filter(avatar => !optimisticAvatarIds.has(normalizeVariantId(avatar.avatarId) ?? 0)),
+    ],
+    [optimisticAvatarIds, optimisticUploadAvatars, remoteSpritesAvatars],
+  );
 
   // ========== 内部共享的立绘索引 ==========
   // 使用外部传入的 currentSpriteIndex 作为初始值
@@ -561,17 +599,22 @@ export function SpriteSettingsPopup({
           return null;
         }
         const variantKey = String(variantId);
-        const firstAvatar = spritesAvatars.find(avatar => (
+        const variantAvatars = spritesAvatars.filter(avatar => normalizeVariantId(avatar.variantId) === variantId);
+        const baseAvatar = variantAvatars.find(avatar => (
           normalizeVariantId(avatar.variantId) === variantId
           && normalizeVariantId(avatar.avatarId) === normalizeVariantId(variant.baseAvatarId)
-        )) ?? spritesAvatars.find(avatar => normalizeVariantId(avatar.variantId) === variantId);
+        ));
+        const previewAvatars = [
+          ...variantAvatars.filter(avatar => normalizeVariantId(avatar.avatarId) !== normalizeVariantId(baseAvatar?.avatarId)).slice(0, 3),
+          ...(baseAvatar ? [baseAvatar] : []),
+        ].slice(-AVATAR_FOLDER_STACK_CARD_CLASS_NAMES.length);
         return {
           variant,
           variantId,
           variantKey,
           label: getVariantDisplayName(variant),
           count: variantCountMap.get(variantKey) ?? 0,
-          coverUrl: firstAvatar ? getEffectiveAvatarUrl(firstAvatar) : "",
+          previewUrls: previewAvatars.map(avatar => getEffectiveAvatarUrl(avatar)).filter(Boolean),
         };
       })
       .filter((item): item is {
@@ -580,7 +623,7 @@ export function SpriteSettingsPopup({
         variantKey: string;
         label: string;
         count: number;
-        coverUrl: string;
+        previewUrls: string[];
       } => Boolean(item))
   ), [spritesAvatars, variantCountMap, variantGroups]);
 
@@ -671,9 +714,29 @@ export function SpriteSettingsPopup({
       .filter((avatar): avatar is RoleAvatar => Boolean(avatar)),
     [filteredIndices, spritesAvatars],
   );
-  const spriteCropperSourceIndices = isVariantFolderSelected
-    ? selectedVariantIndices
-    : filteredIndices;
+  // 当前选中的头像数据。校正入口需要在过滤列表之外也能访问当前默认头像。
+  const currentAvatar = useMemo(() => {
+    if (spritesAvatars.length > 0 && internalIndex < spritesAvatars.length) {
+      return spritesAvatars[internalIndex] || null;
+    }
+    return null;
+  }, [spritesAvatars, internalIndex]);
+  const spriteCropperSourceIndices = useMemo(() => {
+    if (isVariantFolderSelected) {
+      return selectedVariantIndices;
+    }
+    if (isVariantGroupView || (isMultiSelectMode && selectedIndices.size > 0)) {
+      return filteredIndices;
+    }
+    return filteredIndices;
+  }, [
+    filteredIndices,
+    isMultiSelectMode,
+    isVariantFolderSelected,
+    isVariantGroupView,
+    selectedIndices.size,
+    selectedVariantIndices,
+  ]);
   const spriteCropperItems = useMemo(() => (
     spriteCropperSourceIndices
       .map(originalIndex => ({
@@ -796,13 +859,6 @@ export function SpriteSettingsPopup({
     }
   }, [filteredIndices, internalIndex, isVariantFolderSelected]);
 
-  // 当前选中的头像数据
-  const currentAvatar = useMemo(() => {
-    if (spritesAvatars.length > 0 && internalIndex < spritesAvatars.length) {
-      return spritesAvatars[internalIndex] || null;
-    }
-    return null;
-  }, [spritesAvatars, internalIndex]);
   const selectedAvatarItems = useMemo(() => (
     Array.from(selectedIndices)
       .sort((a, b) => a - b)
@@ -885,35 +941,178 @@ export function SpriteSettingsPopup({
 
   // ========== 上传和删除功能 ==========
   const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
+  const removeOptimisticUploadAvatar = useCallback((uploadKey: string) => {
+    setOptimisticUploadAvatars((prev) => {
+      const removed = prev.find(item => item.optimisticUploadKey === uploadKey);
+      if (removed) {
+        URL.revokeObjectURL(removed.localOriginUrl);
+      }
+      return prev.filter(item => item.optimisticUploadKey !== uploadKey);
+    });
+  }, []);
+
+  const updateOptimisticUploadAvatar = useCallback((
+    uploadKey: string,
+    uploadedAvatar: RoleAvatar,
+  ) => {
+    setOptimisticUploadAvatars(prev => prev.map((avatar) => {
+      if (avatar.optimisticUploadKey !== uploadKey) {
+        return avatar;
+      }
+      return {
+        ...avatar,
+        ...uploadedAvatar,
+        roleId: uploadedAvatar.roleId ?? avatar.roleId,
+        avatarId: uploadedAvatar.avatarId,
+        localAvatarUrl: avatar.localAvatarUrl,
+        localOriginUrl: avatar.localOriginUrl,
+        localSpriteUrl: avatar.localSpriteUrl,
+        optimisticUploadKey: avatar.optimisticUploadKey,
+      };
+    }));
+  }, []);
+
+  const patchOptimisticUploadAvatars = useCallback((
+    avatars: RoleAvatar[],
+    options: { clearAvatarUrl?: boolean; clearSpriteUrl?: boolean } = {},
+  ) => {
+    const avatarById = new Map<number, RoleAvatar>();
+    avatars.forEach((avatar) => {
+      const avatarId = normalizeVariantId(avatar.avatarId);
+      if (avatarId) {
+        avatarById.set(avatarId, avatar);
+      }
+    });
+    if (avatarById.size === 0) {
+      return;
+    }
+
+    setOptimisticUploadAvatars(prev => prev.map((optimisticAvatar) => {
+      const avatarId = normalizeVariantId(optimisticAvatar.avatarId);
+      const nextAvatar = avatarId ? avatarById.get(avatarId) : undefined;
+      if (!nextAvatar) {
+        return optimisticAvatar;
+      }
+      return {
+        ...optimisticAvatar,
+        ...nextAvatar,
+        roleId: nextAvatar.roleId ?? optimisticAvatar.roleId,
+        avatarId: nextAvatar.avatarId,
+        localAvatarUrl: options.clearAvatarUrl ? "" : optimisticAvatar.localAvatarUrl,
+        localOriginUrl: optimisticAvatar.localOriginUrl,
+        localSpriteUrl: options.clearSpriteUrl ? "" : optimisticAvatar.localSpriteUrl,
+        optimisticUploadKey: optimisticAvatar.optimisticUploadKey,
+      };
+    }));
+  }, []);
+
+  const createOptimisticUploadAvatar = useCallback((
+    file: File,
+    index: number,
+    context: AvatarUploadFilesSelectedContext,
+  ): OptimisticUploadAvatar | null => {
+    if (!role?.id) {
+      return null;
+    }
+
+    const uploadKey = `avatar-upload-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`;
+    const localOriginUrl = URL.createObjectURL(file);
+    return {
+      roleId: role.id,
+      avatarId: -Date.now() - index - 1,
+      avatarTitle: { label: resolveAvatarUploadName(file.name) ?? file.name },
+      ...(context.uploadDefaults?.category ? { category: context.uploadDefaults.category } : {}),
+      ...(context.uploadDefaults?.variantId ? { variantId: context.uploadDefaults.variantId } : {}),
+      localAvatarUrl: localOriginUrl,
+      localOriginUrl,
+      localSpriteUrl: localOriginUrl,
+      optimisticUploadKey: uploadKey,
+      spriteTransform: toSpriteTransformPayload({
+        positionX: 0,
+        positionY: 0,
+        scale: 1,
+        alpha: 1,
+        rotation: 0,
+      }),
+    };
+  }, [role?.id]);
+
+  const enterOptimisticUploadWorkflow = useCallback((
+    avatars: OptimisticUploadAvatar[],
+  ) => {
+    if (avatars.length === 0) {
+      return;
+    }
+
+    setOptimisticUploadAvatars(prev => [...avatars, ...prev]);
+    setVariantFilter(UNGROUPED_VARIANT_KEY);
+    setSelectedIndices(new Set(avatars.map((_, index) => index)));
+    setIsMultiSelectMode(avatars.length > 1);
+    setInternalIndex(0);
+    setPendingUploadAvatarWorkflow(null);
+    setPendingUploadSpriteCalibration(null);
+    setActiveTab("cropper");
+    if (isMobile) {
+      setIsMobileControlDrawerOpen(false);
+    }
+    appToast.info("已进入裁剪流程，图片会在后台继续上传");
+  }, [isMobile]);
+
+  const enterUploadedAvatarWorkflow = useCallback((
+    avatarIds: number[],
+    context: AvatarUploadFilesSelectedContext,
+  ) => {
+    if (avatarIds.length === 0) {
+      return;
+    }
+
+    setPendingUploadAvatarWorkflow({
+      avatarIds,
+      target: context.target,
+      batchKey: context.batchKey,
+    });
+    setVariantFilter(UNGROUPED_VARIANT_KEY);
+    setActiveTab("cropper");
+    if (isMobile) {
+      setIsMobileControlDrawerOpen(false);
+    }
+  }, [isMobile]);
+
   const handleAvatarUploadFilesSelected = useCallback(async (
     files: File[],
     context: AvatarUploadFilesSelectedContext,
   ) => {
     if (!role?.id) {
-      toast.error("角色信息缺失，无法上传头像");
+      appToast.error("角色信息缺失，无法上传头像");
       return;
     }
 
     const imageFiles = (await Promise.all(files.map(async file => await normalizeImageFileOrNull(file))))
       .filter((file): file is File => Boolean(file));
     if (imageFiles.length === 0) {
-      toast.error("请选择图片文件");
+      appToast.error("请选择图片文件");
       return;
     }
 
     const toastId = `avatar-origin-upload-${Date.now()}`;
     const createdAvatarIdsByIndex: Array<number | undefined> = [];
+    const optimisticAvatars = imageFiles
+      .map((file, index) => createOptimisticUploadAvatar(file, index, context))
+      .filter((avatar): avatar is OptimisticUploadAvatar => Boolean(avatar));
+    enterOptimisticUploadWorkflow(optimisticAvatars);
     let completedCount = 0;
     let successCount = 0;
     let failedCount = 0;
 
     try {
-      toast.loading(`正在导入原图：0/${imageFiles.length}`, { id: toastId });
+      appToast.loading(`正在导入原图：0/${imageFiles.length}`, { id: toastId });
       await runWithConcurrencyLimit(imageFiles, 4, async (file, index) => {
+        const optimisticAvatar = optimisticAvatars[index];
         try {
           const defaultSpriteMedia = await uploadOriginAndDefaultSpriteMedia(file, { scene: 3 });
           const uploadRes = await uploadAvatar({
             roleId: role.id,
+            avatarFileId: defaultSpriteMedia.origin.fileId,
             originFileId: defaultSpriteMedia.origin.fileId,
             spriteFileId: defaultSpriteMedia.sprite.fileId,
             spriteCropContext: defaultSpriteMedia.spriteCropContext,
@@ -937,15 +1136,27 @@ export function SpriteSettingsPopup({
           }
 
           createdAvatarIdsByIndex[index] = avatarId;
+          if (optimisticAvatar) {
+            updateOptimisticUploadAvatar(optimisticAvatar.optimisticUploadKey, {
+              ...uploadedAvatar,
+              roleId: uploadedAvatar.roleId ?? role.id,
+              avatarId,
+              ...(context.uploadDefaults?.category ? { category: context.uploadDefaults.category } : {}),
+            } as RoleAvatar);
+          }
+          enterUploadedAvatarWorkflow([avatarId], context);
           successCount += 1;
         }
         catch (error) {
           failedCount += 1;
+          if (optimisticAvatar) {
+            removeOptimisticUploadAvatar(optimisticAvatar.optimisticUploadKey);
+          }
           console.error("上传原图失败:", file.name, error);
         }
         finally {
           completedCount += 1;
-          toast.loading(
+          appToast.loading(
             `正在导入原图：${completedCount}/${imageFiles.length}（成功 ${successCount} 失败 ${failedCount}）`,
             { id: toastId },
           );
@@ -954,16 +1165,12 @@ export function SpriteSettingsPopup({
 
       const createdAvatarIds = createdAvatarIdsByIndex.filter((avatarId): avatarId is number => Boolean(avatarId));
       if (createdAvatarIds.length === 0) {
-        toast.error("导入失败：没有成功创建头像", { id: toastId });
+        appToast.error("导入失败：没有成功创建头像", { id: toastId });
         return;
       }
 
-      setPendingUploadAvatarWorkflow({
-        avatarIds: createdAvatarIds,
-        target: context.target,
-        batchKey: context.batchKey,
-      });
-      toast.success(
+      enterUploadedAvatarWorkflow(createdAvatarIds, context);
+      appToast.success(
         failedCount > 0
           ? `部分导入完成：成功 ${successCount}/${imageFiles.length}，继续校正成功项`
           : `已导入 ${successCount} 个头像，继续校正`,
@@ -972,10 +1179,15 @@ export function SpriteSettingsPopup({
     }
     catch (error) {
       console.error("批量导入头像失败:", error);
-      toast.error(error instanceof Error ? error.message : "导入头像失败", { id: toastId });
+      appToast.error(error instanceof Error ? error.message : "导入头像失败", { id: toastId });
     }
   }, [
+    createOptimisticUploadAvatar,
+    enterUploadedAvatarWorkflow,
+    enterOptimisticUploadWorkflow,
+    removeOptimisticUploadAvatar,
     role?.id,
+    updateOptimisticUploadAvatar,
     updateRoleAvatarMutation,
     uploadAvatar,
   ]);
@@ -992,7 +1204,7 @@ export function SpriteSettingsPopup({
     }
 
     const toastId = `avatar-source-replace-${avatar.avatarId}`;
-    toast.loading("正在替换头像源图...", { id: toastId });
+    appToast.loading("正在替换头像源图...", { id: toastId });
     try {
       const defaultSpriteMedia = await uploadOriginAndDefaultSpriteMedia(imageFile, { scene: 3 });
       const updateRes = await updateRoleAvatarMutation.mutateAsync({
@@ -1001,7 +1213,7 @@ export function SpriteSettingsPopup({
         avatarId: avatar.avatarId,
         originFileId: defaultSpriteMedia.origin.fileId,
         spriteFileId: defaultSpriteMedia.sprite.fileId,
-        avatarFileId: null,
+        avatarFileId: defaultSpriteMedia.origin.fileId,
         spriteCropContext: defaultSpriteMedia.spriteCropContext,
         spriteTransform: toSpriteTransformPayload({
           positionX: 0,
@@ -1034,10 +1246,10 @@ export function SpriteSettingsPopup({
       if (isMobile) {
         setIsMobileControlDrawerOpen(false);
       }
-      toast.success("已替换源图，请继续立绘校正", { id: toastId });
+      appToast.success("已替换源图，请继续立绘校正", { id: toastId });
     }
     catch (error) {
-      toast.error(error instanceof Error ? error.message : "替换头像失败，请稍后重试", { id: toastId });
+      appToast.error(error instanceof Error ? error.message : "替换头像失败，请稍后重试", { id: toastId });
       throw error;
     }
   }, [
@@ -1098,7 +1310,7 @@ export function SpriteSettingsPopup({
 
   const handleSetDefaultAvatar = useCallback(async (avatar: RoleAvatar) => {
     if (!avatar.avatarId || !(avatar.roleId ?? role?.id)) {
-      toast.error("头像信息缺失，无法设为默认头像");
+      appToast.error("头像信息缺失，无法设为默认头像");
       return;
     }
     if (localDefaultAvatarId === avatar.avatarId || setDefaultAvatarMutation.isPending) {
@@ -1108,11 +1320,11 @@ export function SpriteSettingsPopup({
     try {
       const result = await setDefaultAvatarMutation.mutateAsync(avatar);
       handleDefaultAvatarApplied(result.avatar);
-      toast.success("已设为默认头像");
+      appToast.success("已设为默认头像");
     }
     catch (error) {
       console.error("设置默认头像失败:", error);
-      toast.error(error instanceof Error ? error.message : "设置默认头像失败，请稍后重试");
+      appToast.error(error instanceof Error ? error.message : "设置默认头像失败，请稍后重试");
     }
   }, [
     handleDefaultAvatarApplied,
@@ -1150,17 +1362,17 @@ export function SpriteSettingsPopup({
       return;
     }
     if (!avatar.avatarId) {
-      toast.error("头像ID无效，无法恢复");
+      appToast.error("头像ID无效，无法恢复");
       return;
     }
     setRestoringId(avatar.avatarId);
     try {
       await restoreAvatar(avatar.avatarId);
-      toast.success("头像已恢复");
+      appToast.success("头像已恢复");
     }
     catch (error) {
       console.error("恢复头像失败:", error);
-      toast.error("恢复失败，请稍后重试");
+      appToast.error("恢复失败，请稍后重试");
     }
     finally {
       setRestoringId(null);
@@ -1169,7 +1381,7 @@ export function SpriteSettingsPopup({
 
   const handleClearTrash = useCallback(async () => {
     if (!role?.id) {
-      toast.error("角色信息缺失，无法清空回收站");
+      appToast.error("角色信息缺失，无法清空回收站");
       return;
     }
     if (trashItems.length === 0 || isClearingTrash) {
@@ -1177,11 +1389,11 @@ export function SpriteSettingsPopup({
     }
     try {
       await clearDeletedAvatars(role.id);
-      toast.success("回收站已清空");
+      appToast.success("回收站已清空");
     }
     catch (error) {
       console.error("清空回收站失败:", error);
-      toast.error("清空失败，请稍后重试");
+      appToast.error("清空失败，请稍后重试");
     }
   }, [role?.id, trashItems.length, isClearingTrash, clearDeletedAvatars]);
 
@@ -1238,7 +1450,7 @@ export function SpriteSettingsPopup({
     if (selectedIndices.size === 0)
       return;
     if (selectedIndices.size >= spritesAvatars.length) {
-      toast.error("无法删除所有头像，至少需要保留一个");
+      appToast.error("无法删除所有头像，至少需要保留一个");
       return;
     }
     setBatchDeleteConfirmOpen(true);
@@ -1268,7 +1480,7 @@ export function SpriteSettingsPopup({
     }
     catch (error) {
       console.error("批量删除失败:", error);
-      toast.error("批量删除失败，请稍后重试");
+      appToast.error("批量删除失败，请稍后重试");
     }
   }, [selectedIndices, spritesAvatars, handleBatchDelete, internalIndex]);
 
@@ -1296,6 +1508,10 @@ export function SpriteSettingsPopup({
       setPendingVariantInitialization(null);
       setPendingUploadAvatarWorkflow(null);
       setPendingUploadSpriteCalibration(null);
+      setOptimisticUploadAvatars((prev) => {
+        prev.forEach(item => URL.revokeObjectURL(item.localOriginUrl));
+        return [];
+      });
       setPendingVariantSpriteCalibrationIndices(null);
       setBatchVariantCreationPrompt(null);
       setSelectedVariantKey(null);
@@ -1361,9 +1577,18 @@ export function SpriteSettingsPopup({
     }
   }, [spritesAvatars]);
 
+  const handleVariantFolderClick = useCallback((variantKey: string) => {
+    const action = getVariantFolderClickAction(selectedVariantKey, variantKey);
+    if (action === "enter") {
+      handleVariantFilterChange(variantKey);
+      return;
+    }
+    handleSelectVariantFolder(variantKey);
+  }, [handleSelectVariantFolder, handleVariantFilterChange, selectedVariantKey]);
+
   const getVariantCreationIndices = useCallback(() => {
     if (!role?.id) {
-      toast.error("角色信息缺失，无法新建立绘组");
+      appToast.error("角色信息缺失，无法新建立绘组");
       return null;
     }
 
@@ -1383,14 +1608,14 @@ export function SpriteSettingsPopup({
       }
       seen.add(index);
       if (getAvatarVariantKey(avatar) !== UNGROUPED_VARIANT_KEY) {
-        toast.error("所选头像包含已绑定立绘组的头像");
+        appToast.error("所选头像包含已绑定立绘组的头像");
         return null;
       }
       const originUrl = getEffectiveOriginUrl(avatar);
       const spriteCropSourceUrl = getSpriteCropSourceUrl(avatar);
       allHaveOrigin = allHaveOrigin && Boolean(originUrl);
       if (!avatar.avatarId || (!originUrl && !spriteCropSourceUrl)) {
-        toast.error("所选头像需要都有原图或已生成立绘");
+        appToast.error("所选头像需要都有原图或已生成立绘");
         return null;
       }
       const hasSpriteCropContext = Boolean(
@@ -1400,24 +1625,24 @@ export function SpriteSettingsPopup({
       );
       if (!hasSpriteCropContext) {
         if (!originUrl) {
-          toast.error("所选头像缺少原图，无法补齐立绘校正");
+          appToast.error("所选头像缺少原图，无法补齐立绘校正");
           return null;
         }
         needsSpriteCalibration = true;
       }
       if (hasSpriteCropContext && !spriteCropSourceUrl) {
-        toast.error("所选头像缺少已生成立绘，请先完成立绘裁剪");
+        appToast.error("所选头像缺少已生成立绘，请先完成立绘裁剪");
         return null;
       }
       validIndices.push(index);
     }
 
     if (validIndices.length === 0) {
-      toast.error("没有可用于新建立绘组的头像");
+      appToast.error("没有可用于新建立绘组的头像");
       return null;
     }
     if (needsSpriteCalibration && !allHaveOrigin) {
-      toast.error("本批次需要补齐立绘校正，所选头像都必须有原图");
+      appToast.error("本批次需要补齐立绘校正，所选头像都必须有原图");
       return null;
     }
     return {
@@ -1443,7 +1668,7 @@ export function SpriteSettingsPopup({
       if (isMobile) {
         setIsMobileControlDrawerOpen(false);
       }
-      toast("先完成立绘校正，完成后继续创建立绘组");
+      appToast.info("先完成立绘校正，完成后继续创建立绘组");
       return;
     }
 
@@ -1455,17 +1680,17 @@ export function SpriteSettingsPopup({
   const handleConfirmVariantName = useCallback((nextName: string) => {
     const name = nextName.trim();
     if (!name) {
-      toast.error("请输入立绘组名称");
+      appToast.error("请输入立绘组名称");
       return;
     }
     if (variantCreationIndices.length === 0) {
-      toast.error("没有可用于新建立绘组的头像");
+      appToast.error("没有可用于新建立绘组的头像");
       return;
     }
 
     const validIndices = variantCreationIndices.filter(index => Boolean(spritesAvatars[index]));
     if (validIndices.length === 0) {
-      toast.error("没有可用于新建立绘组的头像");
+      appToast.error("没有可用于新建立绘组的头像");
       return;
     }
 
@@ -1500,12 +1725,12 @@ export function SpriteSettingsPopup({
 
   const handleOpenSpriteCropperForSelection = useCallback(() => {
     if (effectiveSelectedAvatarItems.length === 0) {
-      toast.error("请先选择头像");
+      appToast.error("请先选择头像");
       return;
     }
     const firstCropCandidate = effectiveSelectedAvatarItems.find(({ avatar }) => getEffectiveOriginUrl(avatar));
     if (!firstCropCandidate) {
-      toast.error("所选头像缺少可用于立绘校正的原图");
+      appToast.error("所选头像缺少可用于立绘校正的原图");
       return;
     }
     setInternalIndex(firstCropCandidate.index);
@@ -1517,27 +1742,45 @@ export function SpriteSettingsPopup({
 
   const handleOpenSpriteCropperForCurrentAvatar = useCallback(() => {
     if (!currentAvatar) {
-      toast.error("请先选择头像");
+      appToast.error("请先选择头像");
+      return;
+    }
+    const variantKey = getAvatarVariantKey(currentAvatar);
+    if (variantKey !== UNGROUPED_VARIANT_KEY) {
+      const firstCropCandidateIndex = spritesAvatars.findIndex(avatar => (
+        getAvatarVariantKey(avatar) === variantKey && Boolean(getEffectiveOriginUrl(avatar))
+      ));
+      if (firstCropCandidateIndex < 0) {
+        appToast.error("当前立绘组缺少可用于立绘校正的原图");
+        return;
+      }
+      setSelectedVariantKey(null);
+      setVariantFilter(variantKey);
+      setInternalIndex(firstCropCandidateIndex);
+      setActiveTab("cropper");
+      if (isMobile) {
+        setIsMobileControlDrawerOpen(false);
+      }
       return;
     }
     if (!currentAvatarSpriteSourceUrl) {
-      toast.error("当前头像缺少可用于立绘校正的原图");
+      appToast.error("当前头像缺少可用于立绘校正的原图");
       return;
     }
     setActiveTab("cropper");
     if (isMobile) {
       setIsMobileControlDrawerOpen(false);
     }
-  }, [currentAvatar, currentAvatarSpriteSourceUrl, isMobile]);
+  }, [currentAvatar, currentAvatarSpriteSourceUrl, isMobile, spritesAvatars]);
 
   const handleOpenAvatarCropperForSelection = useCallback(() => {
     if (effectiveSelectedAvatarItems.length === 0) {
-      toast.error("请先选择头像");
+      appToast.error("请先选择头像");
       return;
     }
     const firstCropCandidate = effectiveSelectedAvatarItems.find(({ avatar }) => getSpriteCropSourceUrl(avatar));
     if (!firstCropCandidate) {
-      toast.error("所选头像缺少可裁剪的立绘源图");
+      appToast.error("所选头像缺少可裁剪的立绘源图");
       return;
     }
     setInternalIndex(firstCropCandidate.index);
@@ -1549,23 +1792,42 @@ export function SpriteSettingsPopup({
 
   const handleOpenAvatarCropperForCurrentAvatar = useCallback(() => {
     if (!currentAvatar) {
-      toast.error("请先选择头像");
+      appToast.error("请先选择头像");
+      return;
+    }
+    const variantKey = getAvatarVariantKey(currentAvatar);
+    if (variantKey !== UNGROUPED_VARIANT_KEY) {
+      const firstCropCandidateIndex = spritesAvatars.findIndex(avatar => (
+        getAvatarVariantKey(avatar) === variantKey && Boolean(getSpriteCropSourceUrl(avatar))
+      ));
+      if (firstCropCandidateIndex < 0) {
+        appToast.error("当前立绘组缺少可用于头像裁剪的立绘源图");
+        return;
+      }
+      setSelectedVariantKey(null);
+      setVariantFilter(variantKey);
+      setInternalIndex(firstCropCandidateIndex);
+      setActiveTab("avatarCropper");
+      if (isMobile) {
+        setIsMobileControlDrawerOpen(false);
+      }
       return;
     }
     if (!currentAvatarCropperSourceUrl) {
-      toast.error("当前头像缺少可裁剪的立绘源图");
+      appToast.error("当前头像缺少可裁剪的立绘源图");
       return;
     }
     setActiveTab("avatarCropper");
     if (isMobile) {
       setIsMobileControlDrawerOpen(false);
     }
-  }, [currentAvatar, currentAvatarCropperSourceUrl, isMobile]);
+  }, [currentAvatar, currentAvatarCropperSourceUrl, isMobile, spritesAvatars]);
 
   const handleBatchSpriteCropApplied = useCallback((result: BatchSpriteCropApplyResult) => {
     if (result.successCount <= 0) {
       return;
     }
+    patchOptimisticUploadAvatars(result.avatars, { clearSpriteUrl: true });
     const updatedAvatarIds = new Set(
       result.avatars
         .map(avatar => avatar.avatarId)
@@ -1597,7 +1859,7 @@ export function SpriteSettingsPopup({
       if (isMobile) {
         setIsMobileControlDrawerOpen(false);
       }
-      toast("立绘校正完成，请继续头像校正");
+      appToast.info("立绘校正完成，请继续头像校正");
     };
     if (pendingUploadSpriteCalibration) {
       const successfulUploadIds = pendingUploadSpriteCalibration.avatarIds
@@ -1607,7 +1869,7 @@ export function SpriteSettingsPopup({
         .filter(index => index >= 0);
 
       if (uploadIndices.length === 0) {
-        toast.error("没有可继续头像校正的上传头像");
+        appToast.error("没有可继续头像校正的上传头像");
         setPendingUploadSpriteCalibration(null);
         return;
       }
@@ -1635,7 +1897,7 @@ export function SpriteSettingsPopup({
       if (isMobile) {
         setIsMobileControlDrawerOpen(false);
       }
-      toast("立绘校正完成，继续头像校正");
+      appToast.info("立绘校正完成，继续头像校正");
       return;
     }
     if (pendingVariantSpriteCalibrationIndices) {
@@ -1646,7 +1908,7 @@ export function SpriteSettingsPopup({
         .filter(index => calibratedIndexSet.has(index));
       const creationIndices = nextIndices.length > 0 ? nextIndices : fallbackIndices;
       if (creationIndices.length === 0) {
-        toast.error("没有可用于新建立绘组的头像");
+        appToast.error("没有可用于新建立绘组的头像");
         setPendingVariantSpriteCalibrationIndices(null);
         return;
       }
@@ -1672,6 +1934,7 @@ export function SpriteSettingsPopup({
     internalIndex,
     isVariantBatchSelection,
     isMobile,
+    patchOptimisticUploadAvatars,
     pendingUploadSpriteCalibration,
     pendingVariantSpriteCalibrationIndices,
     spritesAvatars,
@@ -1682,6 +1945,7 @@ export function SpriteSettingsPopup({
     if (result.successCount <= 0) {
       return;
     }
+    patchOptimisticUploadAvatars(result.avatars, { clearAvatarUrl: true });
     const updatedAvatarIds = new Set(
       result.avatars
         .map(avatar => avatar.avatarId)
@@ -1702,10 +1966,10 @@ export function SpriteSettingsPopup({
     if (isMobile) {
       setIsMobileControlDrawerOpen(false);
     }
-    toast.success(result.totalCount > 1
+    appToast.success(result.totalCount > 1
       ? `头像校正完成：成功 ${result.successCount}/${result.totalCount}`
       : "头像校正完成");
-  }, [isMobile, isVariantBatchSelection, spritesAvatars]);
+  }, [isMobile, isVariantBatchSelection, patchOptimisticUploadAvatars, spritesAvatars]);
 
   const handleCancelBatchVariantCreation = useCallback(() => {
     setBatchVariantCreationPrompt(null);
@@ -1717,7 +1981,7 @@ export function SpriteSettingsPopup({
     }
     const validIndices = batchVariantCreationPrompt.indices.filter(index => Boolean(spritesAvatars[index]));
     if (validIndices.length === 0) {
-      toast.error("没有可用于新建立绘组的头像");
+      appToast.error("没有可用于新建立绘组的头像");
       setBatchVariantCreationPrompt(null);
       return;
     }
@@ -1726,7 +1990,7 @@ export function SpriteSettingsPopup({
       .map(index => spritesAvatars[index])
       .find(avatar => !avatar || getAvatarVariantKey(avatar) !== UNGROUPED_VARIANT_KEY);
     if (invalidAvatar) {
-      toast.error("所选头像包含已绑定立绘组的头像");
+      appToast.error("所选头像包含已绑定立绘组的头像");
       setBatchVariantCreationPrompt(null);
       return;
     }
@@ -1739,14 +2003,14 @@ export function SpriteSettingsPopup({
 
   const handleRequestVariantRemoval = useCallback(() => {
     if (!role?.id || effectiveSelectedAvatarItems.length === 0) {
-      toast.error("请先选择头像");
+      appToast.error("请先选择头像");
       return;
     }
     const avatarsToUpdate = effectiveSelectedAvatarItems
       .map(({ avatar }) => avatar)
       .filter(avatar => getAvatarVariantKey(avatar) !== UNGROUPED_VARIANT_KEY);
     if (avatarsToUpdate.length === 0) {
-      toast.error("所选头像均未绑定立绘组");
+      appToast.error("所选头像均未绑定立绘组");
       return;
     }
 
@@ -1754,7 +2018,7 @@ export function SpriteSettingsPopup({
       const variantId = isVariantGroupView ? activeVariantId : selectedVariantId;
       const label = (isVariantGroupView ? activeVariantLabel : selectedVariantLabel) || "立绘组";
       if (!variantId) {
-        toast.error("请选择立绘组");
+        appToast.error("请选择立绘组");
         return;
       }
       setVariantRemovalConfirm({
@@ -1786,11 +2050,11 @@ export function SpriteSettingsPopup({
 
   const handleRequestVariantFolderRemoval = useCallback((variantId: number, label: string, avatarCount: number) => {
     if (!role?.id) {
-      toast.error("角色信息缺失，无法解散立绘组");
+      appToast.error("角色信息缺失，无法解散立绘组");
       return;
     }
     if (!variantId) {
-      toast.error("请选择立绘组");
+      appToast.error("请选择立绘组");
       return;
     }
     setVariantRemovalConfirm({
@@ -1806,14 +2070,14 @@ export function SpriteSettingsPopup({
       return;
     }
     if (!role?.id) {
-      toast.error("角色信息缺失，无法移出立绘组");
+      appToast.error("角色信息缺失，无法移出立绘组");
       return;
     }
 
     try {
       if (variantRemovalConfirm.mode === "deleteVariant") {
         await deleteVariantMutation.mutateAsync(variantRemovalConfirm.variantId);
-        toast.success(`已解散 ${variantRemovalConfirm.label}，${variantRemovalConfirm.avatarCount} 个头像已移回未分组`);
+        appToast.success(`已解散 ${variantRemovalConfirm.label}，${variantRemovalConfirm.avatarCount} 个头像已移回未分组`);
       }
       else {
         await Promise.all(variantRemovalConfirm.avatars.map(avatar => updateRoleAvatarMutation.mutateAsync({
@@ -1822,7 +2086,7 @@ export function SpriteSettingsPopup({
           variantId: null,
           variantGroup: undefined,
         } as unknown as RoleAvatar)));
-        toast.success(`已移回未分组 ${variantRemovalConfirm.avatarCount} 个头像`);
+        appToast.success(`已移回未分组 ${variantRemovalConfirm.avatarCount} 个头像`);
       }
       setSelectedIndices(new Set());
       setIsMultiSelectMode(false);
@@ -1832,7 +2096,7 @@ export function SpriteSettingsPopup({
     }
     catch (error) {
       console.error("移出立绘组失败:", error);
-      toast.error("移出失败，请稍后重试");
+      appToast.error("移出失败，请稍后重试");
     }
   }, [deleteVariantMutation, role?.id, updateRoleAvatarMutation, variantRemovalConfirm]);
 
@@ -1843,7 +2107,7 @@ export function SpriteSettingsPopup({
 
     const avatarVariantKey = getAvatarVariantKey(avatar);
     if (avatarVariantKey === UNGROUPED_VARIANT_KEY) {
-      toast.error("当前头像未绑定立绘组");
+      appToast.error("当前头像未绑定立绘组");
       return false;
     }
 
@@ -1875,7 +2139,7 @@ export function SpriteSettingsPopup({
     else if (selectedVariantKey === avatarVariantKey && remainingGroupIndex < 0) {
       setSelectedVariantKey(null);
     }
-    toast.success("已移出立绘组");
+    appToast.success("已移出立绘组");
     return true;
   }, [
     handleInternalIndexChange,
@@ -1897,16 +2161,16 @@ export function SpriteSettingsPopup({
     },
   ) => {
     if (!role?.id || !variantId) {
-      toast.error("请选择要绑定的立绘组");
+      appToast.error("请选择要绑定的立绘组");
       return false;
     }
     const variantGroup = variantGroupById.get(variantId);
     if (!variantGroup?.compositionConfig) {
-      toast.error("该立绘组缺少合成配置，无法绑定");
+      appToast.error("该立绘组缺少合成配置，无法绑定");
       return false;
     }
     if (avatarItems.length === 0) {
-      toast.error("请先选择头像");
+      appToast.error("请先选择头像");
       return false;
     }
 
@@ -1924,11 +2188,11 @@ export function SpriteSettingsPopup({
     if (!options?.allowReassign && uniqueItems.some(({ avatar }) => (
       getAvatarVariantKey(avatar) !== UNGROUPED_VARIANT_KEY
     ))) {
-      toast.error("所选头像包含已绑定立绘组的头像，请先移出原组");
+      appToast.error("所选头像包含已绑定立绘组的头像，请先移出原组");
       return false;
     }
     if (itemsToAssign.length === 0) {
-      toast.success("所选头像已在该立绘组中");
+      appToast.success("所选头像已在该立绘组中");
       if (options?.switchToVariant !== false) {
         setSelectedVariantKey(targetVariantKey);
         setVariantFilter(targetVariantKey);
@@ -1944,7 +2208,7 @@ export function SpriteSettingsPopup({
     let successCount = 0;
     let failedCount = 0;
     try {
-      toast.loading(`正在${actionLabel}：0/${itemsToAssign.length}`, { id: toastId });
+      appToast.loading(`正在${actionLabel}：0/${itemsToAssign.length}`, { id: toastId });
       await runWithConcurrencyLimit(itemsToAssign, 4, async ({ avatar }) => {
         try {
           const roleId = avatar.roleId ?? role.id;
@@ -2009,12 +2273,12 @@ export function SpriteSettingsPopup({
         }
         finally {
           completedCount += 1;
-          toast.loading(`正在${actionLabel}：${completedCount}/${itemsToAssign.length}`, { id: toastId });
+          appToast.loading(`正在${actionLabel}：${completedCount}/${itemsToAssign.length}`, { id: toastId });
         }
       });
 
       if (successCount === 0) {
-        toast.error("绑定失败：所选头像无法应用该立绘组", { id: toastId });
+        appToast.error("绑定失败：所选头像无法应用该立绘组", { id: toastId });
         return false;
       }
 
@@ -2025,16 +2289,16 @@ export function SpriteSettingsPopup({
         setVariantFilter(targetVariantKey);
       }
       if (failedCount > 0) {
-        toast.error(`部分绑定失败：成功 ${successCount} 个，失败 ${failedCount} 个`, { id: toastId });
+        appToast.error(`部分绑定失败：成功 ${successCount} 个，失败 ${failedCount} 个`, { id: toastId });
       }
       else {
-        toast.success(`已绑定 ${successCount} 个头像`, { id: toastId });
+        appToast.success(`已绑定 ${successCount} 个头像`, { id: toastId });
       }
       return true;
     }
     catch (error) {
       console.error("批量绑定立绘组失败:", error);
-      toast.error("绑定失败，请稍后重试", { id: toastId });
+      appToast.error("绑定失败，请稍后重试", { id: toastId });
       return false;
     }
   }, [
@@ -2087,7 +2351,7 @@ export function SpriteSettingsPopup({
     if (isMobile) {
       setIsMobileControlDrawerOpen(false);
     }
-    toast("先完成立绘校正，完成后继续头像校正");
+    appToast.info("先完成立绘校正，完成后继续头像校正");
   }, [
     assignAvatarItemsToVariant,
     isMobile,
@@ -2098,7 +2362,7 @@ export function SpriteSettingsPopup({
   const handleBatchAssignVariant = useCallback(async () => {
     const variantId = normalizeVariantId(batchTargetVariantId);
     if (!variantId) {
-      toast.error("请选择要绑定的立绘组");
+      appToast.error("请选择要绑定的立绘组");
       return;
     }
     const assigned = await assignAvatarItemsToVariant(effectiveSelectedAvatarItems, variantId, {
@@ -2221,7 +2485,7 @@ export function SpriteSettingsPopup({
     setIsMultiSelectMode(false);
     setSelectedIndices(new Set());
     setActiveTab("setting");
-    toast.success(`已初始化立绘组，绑定 ${result.croppedAvatars.length} 个头像`);
+    appToast.success(`已初始化立绘组，绑定 ${result.croppedAvatars.length} 个头像`);
   }, [
     createVariantMutation,
     pendingVariantInitialization,
@@ -2260,16 +2524,23 @@ export function SpriteSettingsPopup({
               <button
                 type="button"
                 className={`
-                  relative aspect-square w-full overflow-hidden rounded-lg border-2
-                  bg-base-200 transition-[border-color,box-shadow,background-color]
+                  group/avatar-folder relative aspect-square w-full overflow-hidden rounded-xl border
+                  bg-base-200/70 shadow-sm transition-[border-color,box-shadow,background-color,transform]
+                  hover:-translate-y-0.5 hover:bg-base-300/70 hover:shadow-md
+                  motion-reduce:transition-none motion-reduce:hover:translate-y-0
                   ${isSelected
-                    ? "border-info shadow-lg ring-2 ring-info/30"
-                    : "border-base-300 hover:border-info/50 hover:bg-base-300"}
+                    ? "border-warning shadow-lg ring-2 ring-warning/30"
+                    : "border-base-300/80 hover:border-info/50"}
                   ${isDropTarget ? "border-info bg-info/10 ring-2 ring-info/40" : ""}
                 `}
-                title={`立绘组 ID：${item.variantId}`}
-                aria-label={`选择立绘组 ${item.label}`}
-                onClick={() => handleSelectVariantFolder(item.variantKey)}
+                title={isSelected
+                  ? `${item.label} · 再次点击进入组内管理`
+                  : `立绘组 ID：${item.variantId}`}
+                aria-label={isSelected
+                  ? `进入立绘组 ${item.label}`
+                  : `选择立绘组 ${item.label}`}
+                aria-pressed={isSelected}
+                onClick={() => handleVariantFolderClick(item.variantKey)}
                 onDragOver={event => handleVariantFolderDragOver(event, item.variantKey)}
                 onDragLeave={() => {
                   if (variantDropTarget === item.variantKey) {
@@ -2278,16 +2549,36 @@ export function SpriteSettingsPopup({
                 }}
                 onDrop={event => handleVariantFolderDrop(event, item.variantId)}
               >
-                {item.coverUrl
-                  ? (
-                      <MediaImage
-                        src={item.coverUrl}
-                        alt={item.label}
-                        className="size-full object-cover"
-                        loading="lazy"
-                        draggable={false}
-                      />
-                    )
+                <span
+                  className="
+                    pointer-events-none absolute inset-0 bg-gradient-to-br
+                    from-base-100/70 via-base-100/15 to-base-content/10
+                  "
+                  aria-hidden="true"
+                />
+                {item.previewUrls.length > 0
+                  ? item.previewUrls.map((previewUrl, previewIndex) => (
+                      <span
+                        key={`${item.variantKey}-${previewUrl}-${previewIndex}`}
+                        className={`
+                          absolute aspect-[3/4] w-[58%] overflow-hidden rounded-lg
+                          border border-base-100/85 bg-base-100 shadow-md
+                          transition-transform duration-200 ease-out
+                          group-hover/avatar-folder:scale-[1.04]
+                          motion-reduce:transition-none motion-reduce:group-hover/avatar-folder:scale-100
+                          ${AVATAR_FOLDER_STACK_CARD_CLASS_NAMES[previewIndex]}
+                        `}
+                        aria-hidden="true"
+                      >
+                        <MediaImage
+                          src={previewUrl}
+                          alt=""
+                          className="size-full object-cover"
+                          loading="lazy"
+                          draggable={false}
+                        />
+                      </span>
+                    ))
                   : (
                       <div className="
                         flex size-full items-center justify-center text-base-content/45
@@ -2295,9 +2586,15 @@ export function SpriteSettingsPopup({
                         <FolderOpenIcon className="size-9" weight="regular" aria-hidden="true" />
                       </div>
                     )}
+                <span className="
+                  absolute bottom-1.5 right-1.5 z-10 rounded-full bg-base-100/95 px-1.5 py-0.5
+                  text-[0.625rem] font-medium leading-none text-base-content/70 shadow-sm
+                ">
+                  {item.count}
+                </span>
                 {isDropTarget && (
                   <span className="
-                    absolute inset-0 flex items-center justify-center
+                    absolute inset-0 z-20 flex items-center justify-center
                     bg-info/15 text-xs font-semibold text-info
                   ">
                     放入
@@ -2310,33 +2607,6 @@ export function SpriteSettingsPopup({
                 opacity-0 transition-opacity duration-200
                 group-hover/variant-folder:opacity-100 group-focus-within/variant-folder:opacity-100
               ">
-                <div className="group/tool relative pointer-events-auto">
-                  <button
-                    type="button"
-                    className="
-                      inline-flex size-7 items-center justify-center rounded-full
-                      border-0 bg-transparent p-0 text-neutral-content
-                      transition-[border-radius,transform] duration-150
-                      hover:scale-105 hover:rounded-lg active:scale-95
-                    "
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleSelectVariantFolder(item.variantKey);
-                      handleVariantFilterChange(item.variantKey);
-                    }}
-                    aria-label={`进入立绘组 ${item.label}`}
-                  >
-                    <FolderOpenIcon className="size-4" aria-hidden="true" />
-                  </button>
-                  <span className="
-                    pointer-events-none absolute bottom-full left-1/2 mb-1 -translate-x-1/2 rounded-md
-                    bg-neutral/95 px-2 py-1 text-xs whitespace-nowrap text-neutral-content
-                    opacity-0 shadow-md ring-1 ring-white/15 transition
-                    group-hover/tool:opacity-100 group-focus-within/tool:opacity-100
-                  ">
-                    进入组内管理
-                  </span>
-                </div>
                 <div className="group/tool relative pointer-events-auto">
                   <button
                     type="button"
@@ -2369,12 +2639,19 @@ export function SpriteSettingsPopup({
               </div>
               <button
                 type="button"
-                className="
-                  mt-1 block w-full truncate text-center text-xs
-                  text-base-content/70 hover:text-base-content
-                "
-                title={`${item.label} · ${item.count}`}
-                onClick={() => handleSelectVariantFolder(item.variantKey)}
+                className={`
+                  mt-1 block w-full truncate text-center text-xs transition-colors
+                  ${isSelected
+                    ? "text-warning"
+                    : "text-base-content/70 hover:text-base-content"}
+                `}
+                title={isSelected
+                  ? `${item.label} · 再次点击进入组内管理`
+                  : `${item.label} · ${item.count}`}
+                aria-label={isSelected
+                  ? `进入立绘组 ${item.label}`
+                  : `选择立绘组 ${item.label}`}
+                onClick={() => handleVariantFolderClick(item.variantKey)}
               >
                 {item.label}
                 <span className="text-base-content/50">
@@ -2422,7 +2699,6 @@ export function SpriteSettingsPopup({
   const canOpenBatchSpriteCropper = effectiveSelectedAvatarItems.some(({ avatar }) => getEffectiveOriginUrl(avatar));
   const canOpenBatchAvatarCropper = effectiveSelectedAvatarItems.some(({ avatar }) => getSpriteCropSourceUrl(avatar));
   const batchHeaderTitle = isVariantBatchSelection ? selectedVariantSummary : "批量设置";
-  const batchHeaderSubtitle = isVariantBatchSelection ? "立绘组" : "已选";
 
   const batchSettingsPanel = (
     <div className="mx-auto flex h-full w-full max-w-7xl flex-col">
@@ -2439,16 +2715,18 @@ export function SpriteSettingsPopup({
           ">
             {batchHeaderTitle}
           </span>
-          <span className="
-            inline-flex max-w-[9rem] shrink-0 truncate rounded-md
-            bg-base-200/60 px-2 py-1 text-xs font-medium text-base-content/70
-          ">
-            {batchHeaderSubtitle}
-            {" "}
-            {effectiveSelectedAvatarCount}
-            {" "}
-            个头像
-          </span>
+          {!isVariantBatchSelection && (
+            <span className="
+              inline-flex max-w-[9rem] shrink-0 truncate rounded-md
+              bg-base-200/60 px-2 py-1 text-xs font-medium text-base-content/70
+            ">
+              已选
+              {" "}
+              {effectiveSelectedAvatarCount}
+              {" "}
+              个头像
+            </span>
+          )}
           {selectedMissingCropContextCount > 0 && (
             <span className="
               inline-flex shrink-0 rounded-md border border-warning/30
@@ -3041,7 +3319,7 @@ export function SpriteSettingsPopup({
 
             {/* 头像设置内容 */}
             {activeTab === "setting" && (
-              isVariantFolderSelected || (isMultiSelectMode && selectedAvatarCount > 0)
+              isVariantBatchSelection || (isMultiSelectMode && selectedAvatarCount > 0)
                 ? batchSettingsPanel
                 : (
                     <AvatarSettingsTab

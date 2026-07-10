@@ -143,6 +143,10 @@ function MaterialTreeNodeRow({
             }
           }}
           draggable={isDraggable}
+          aria-label={`${isFolder ? "打开素材文件夹" : "打开素材"} ${node.label}${node.meta ? `，${node.meta}` : ""}`}
+          title={isDraggable
+            ? `${node.label}（可拖拽发送/移动/移入子窗口）`
+            : (node.meta ? `${node.label} · ${node.meta}` : node.label)}
           onDragStart={(event) => {
             if (!isDraggable) {
               return;
@@ -190,12 +194,12 @@ function MaterialTreeNodeRow({
             ? <FolderSimpleIcon className="mt-0.5 size-4 shrink-0" weight={isExpanded || isActiveNode ? "fill" : "regular"} />
             : <FileIcon className="mt-0.5 size-4 shrink-0" weight={isMaterialGroup || isActiveNode ? "fill" : "regular"} />}
           <div className="min-w-0 flex-1">
-            <div className="truncate text-left">{node.label}</div>
+            <div className="truncate text-left" title={node.label}>{node.label}</div>
             {node.meta && (
               <div className={`
                 truncate text-[11px]
                 ${isActiveNode ? `text-info/75` : `text-base-content/50`}
-              `}>
+              `} title={node.meta}>
                 {node.meta}
               </div>
             )}
@@ -226,6 +230,7 @@ function MaterialTreeNodeRow({
                   hover:bg-base-100/70 hover:text-base-content/88
                 "
                 title="在此文件夹下新建文件夹"
+                aria-label={`在 ${node.label} 下新建文件夹`}
                 onClick={(event) => {
                   event.stopPropagation();
                   onCreateFolderAtNode(materialPathKey);
@@ -243,6 +248,7 @@ function MaterialTreeNodeRow({
                   hover:bg-base-100/70 hover:text-base-content/88
                 "
                 title="在此文件夹下新建素材"
+                aria-label={`在 ${node.label} 下新建素材`}
                 onClick={(event) => {
                   event.stopPropagation();
                   onCreateMaterialAtNode(materialPathKey);

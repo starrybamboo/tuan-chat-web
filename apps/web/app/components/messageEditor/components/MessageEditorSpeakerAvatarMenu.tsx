@@ -1,8 +1,7 @@
 import { X } from "@phosphor-icons/react";
-import { motion } from "motion/react";
 import { useEffect, useMemo, useRef } from "react";
 
-import { floatingListItemMotionProps, floatingPanelMotionProps } from "@/components/common/motion/floatingPanelMotion";
+import { FloatingMotionButton, FloatingMotionPanel } from "@/components/common/motion/FloatingMotionPanel";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 
 import type { MessageEditorSpeakerAvatarMenuItem } from "../model/messageEditorSpeakerAvatar";
@@ -64,25 +63,24 @@ export function MessageEditorSpeakerAvatarMenu({
   }
 
   return (
-    <motion.div
+    <FloatingMotionPanel
       data-me-speaker-avatar-menu="true"
       className="
         w-[min(420px,calc(100vw-2rem))] overflow-hidden rounded-lg border
         border-base-300 bg-base-100 shadow-2xl
       "
-      {...floatingPanelMotionProps}
     >
       <div className="
         flex items-center justify-between gap-3 border-b border-base-300
         bg-base-200 px-3 py-2 text-[11px] text-base-content/55
       ">
-        <span className="min-w-0 truncate">
+        <span className="min-w-0 truncate" title={`${roleLabel} 立绘`}>
           {roleLabel}
           {" "}
           立绘
         </span>
         {query
-          ? <span className="max-w-[45%] shrink-0 truncate font-mono">{query}</span>
+          ? <span className="max-w-[45%] shrink-0 truncate font-mono" title={query}>{query}</span>
           : (
               <span className="shrink-0">
                 {avatarItemCount}
@@ -125,10 +123,11 @@ export function MessageEditorSpeakerAvatarMenu({
                             flex items-center gap-1 px-3 pt-1 text-[11px]
                             font-medium text-base-content/50
                           ">
-                            <span className="truncate">{category}</span>
+                            <span className="truncate" title={category}>{category}</span>
                             <span className="shrink-0">{categoryItems.length}</span>
                           </div>
-                          <motion.button
+                          <FloatingMotionButton
+                            index={currentBaseIndex}
                             ref={(element) => {
                               itemRefs.current[currentBaseIndex] = element;
                             }}
@@ -139,9 +138,10 @@ export function MessageEditorSpeakerAvatarMenu({
                                 ? "bg-base-300 text-base-content"
                                 : "bg-base-100 text-base-content/75 hover:bg-base-200 hover:text-base-content",
                             ].join(" ")}
-                            {...floatingListItemMotionProps(currentBaseIndex)}
                             onMouseDown={event => event.preventDefault()}
                             onClick={() => onSelect(item)}
+                            aria-label={item.avatarTitle}
+                            aria-pressed={item.selected}
                           >
                             <span className="
                               flex size-6 shrink-0 items-center justify-center
@@ -150,9 +150,12 @@ export function MessageEditorSpeakerAvatarMenu({
                               <X className="size-3.5" weight="regular" />
                             </span>
                             <span className="min-w-0 flex-1">
-                              <span className="
-                                block truncate text-sm font-medium
-                              ">{item.avatarTitle}</span>
+                              <span
+                                className="
+                                  block truncate text-sm font-medium
+                                "
+                                title={item.avatarTitle}
+                              >{item.avatarTitle}</span>
                               <span className="
                                 mt-0.5 block truncate text-xs
                                 text-base-content/50
@@ -168,7 +171,7 @@ export function MessageEditorSpeakerAvatarMenu({
                                 当前
                               </span>
                             )}
-                          </motion.button>
+                          </FloatingMotionButton>
                         </div>
                       );
                     }
@@ -191,8 +194,9 @@ export function MessageEditorSpeakerAvatarMenu({
                             }
                             const active = currentBaseIndex + index === selectedIndex;
                             return (
-                              <motion.button
+                              <FloatingMotionButton
                                 key={item.kind === "avatar" ? item.avatarId : `clear-${category}`}
+                                index={currentBaseIndex + index}
                                 ref={(element) => {
                                   itemRefs.current[currentBaseIndex + index] = element;
                                 }}
@@ -203,11 +207,11 @@ export function MessageEditorSpeakerAvatarMenu({
                                     ? "bg-base-300 text-base-content"
                                     : "text-base-content/75 hover:bg-base-200 hover:text-base-content",
                                 ].join(" ")}
-                                {...floatingListItemMotionProps(currentBaseIndex + index)}
                                 onMouseDown={event => event.preventDefault()}
                                 onClick={() => onSelect(item)}
                                 title={item.avatarTitle}
                                 aria-label={item.avatarTitle}
+                                aria-pressed={item.selected}
                               >
                                 <RoleAvatarComponent
                                   avatarId={item.avatarId}
@@ -218,10 +222,13 @@ export function MessageEditorSpeakerAvatarMenu({
                                   stopToastWindow={true}
                                   hoverToScale={false}
                                 />
-                                <span className="
-                                  min-w-0 truncate text-[11px] font-medium
-                                  leading-4
-                                ">
+                                <span
+                                  className="
+                                    min-w-0 truncate text-[11px] font-medium
+                                    leading-4
+                                  "
+                                  title={item.avatarTitle}
+                                >
                                   {item.avatarTitle}
                                 </span>
                                 {item.selected && (
@@ -232,7 +239,7 @@ export function MessageEditorSpeakerAvatarMenu({
                                     当前
                                   </span>
                                 )}
-                              </motion.button>
+                              </FloatingMotionButton>
                             );
                           })}
                         </div>
@@ -242,6 +249,6 @@ export function MessageEditorSpeakerAvatarMenu({
                 })()}
               </div>
             )}
-    </motion.div>
+    </FloatingMotionPanel>
   );
 }

@@ -269,10 +269,24 @@ export function AvatarCropModal({
           <View style={styles.cropFrame} pointerEvents="none" />
 
           <View style={styles.actions}>
-            <Pressable disabled={isProcessing} onPress={handleCancel} style={styles.actionButton}>
+            <Pressable
+              accessibilityHint="放弃裁剪并关闭"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isProcessing }}
+              disabled={isProcessing}
+              onPress={handleCancel}
+              style={styles.actionButton}
+            >
               <ThemedText style={{ color: isProcessing ? "rgba(255,255,255,0.45)" : "#fff" }}>取消</ThemedText>
             </Pressable>
-            <Pressable disabled={isProcessing} onPress={handleConfirm} style={styles.actionButton}>
+            <Pressable
+              accessibilityHint="应用当前裁剪区域并保存头像"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isProcessing, busy: isProcessing }}
+              disabled={isProcessing}
+              onPress={handleConfirm}
+              style={styles.actionButton}
+            >
               <ThemedText style={{ color: isProcessing ? theme.textSecondary : theme.accent }}>
                 {isProcessing ? "处理中…" : "确认"}
               </ThemedText>

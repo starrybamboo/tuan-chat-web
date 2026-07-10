@@ -1,9 +1,10 @@
 import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { useRouter } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import toast from "react-hot-toast";
 
+import { ImeAwareSearchInput } from "@/components/common/imeAwareSearchInput";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { HomeIcon, Search, XMarkICon } from "@/icons";
 import {
@@ -98,15 +99,9 @@ export default function UserSearch() {
     setSearchUserId(-1);
     setSearchUsername(keyword);
   }
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter") {
-      searchInputKeyword();
-    }
-  };
-
-  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setInputKeyword(e.target.value);
-    if (!e.target.value.trim()) {
+  function handleInputChange(value: string) {
+    setInputKeyword(value);
+    if (!value.trim()) {
       setSearching(false);
       setSearchUserId(-1);
       setSearchUsername("");
@@ -120,15 +115,15 @@ export default function UserSearch() {
       <div className="
         w-full px-2 pb-6 flex items-center justify-center relative
       ">
-        <input
+        <ImeAwareSearchInput
           type="text"
           autoComplete="off"
           aria-label="搜索用户"
           className="input input-md w-full"
           placeholder="输入用户ID或用户名，按 Enter 或搜索按钮"
           value={inputKeyword}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
+          onSubmit={searchInputKeyword}
+          onValueChange={handleInputChange}
         />
         <button
           type="button"
@@ -328,10 +323,10 @@ export default function UserSearch() {
                                     },
                                     {
                                       onSuccess: () => {
-                                        toast.success("发送成功");
+                                        appToast.success("发送成功");
                                       },
                                       onError: (err) => {
-                                        toast.error(getErrorMessage(err));
+                                        appToast.error(getErrorMessage(err));
                                       },
                                     },
                                   );

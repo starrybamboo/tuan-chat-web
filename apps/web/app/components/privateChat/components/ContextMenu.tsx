@@ -1,16 +1,17 @@
 import React, { useLayoutEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
-import type { MessageDirectRecallRequest } from "api";
+import type { MessageDirectRecallRequest, MessageDirectResponse } from "api";
 
 type PrivateContextMenuState = { messageId: number } | null;
 
 type ContextMenuProps = {
-  allMessages: any[];
+  allMessages: MessageDirectResponse[];
   userId: number;
   contextMenu: PrivateContextMenuState;
   setContextMenu: (context: PrivateContextMenuState) => void;
   handleRevokeMessage: (messageId: MessageDirectRecallRequest) => void;
+  handleReplyMessage: (message: MessageDirectResponse) => void;
 }
 
 const MENU_GAP = 8;
@@ -24,6 +25,7 @@ export default function ContextMenu({
   contextMenu,
   setContextMenu,
   handleRevokeMessage,
+  handleReplyMessage,
 }: ContextMenuProps) {
   const [menuPosition, setMenuPosition] = useState<{ left: number; top: number } | null>(null);
 
@@ -88,6 +90,8 @@ export default function ContextMenu({
     <div
       className="fixed z-50 rounded-md bg-base-100 shadow-lg"
       style={{ top: menuPosition.top, left: menuPosition.left }}
+      onContextMenu={event => event.stopPropagation()}
+      onPointerDown={event => event.stopPropagation()}
     >
       <ul className="menu w-40 p-2">
         {message?.senderId === userId && (
@@ -103,16 +107,19 @@ export default function ContextMenu({
             </button>
           </li>
         )}
-        <li>
-          <button
-            type="button"
-            onClick={() => {
-              setContextMenu(null);
-            }}
-          >
-            回复
-          </button>
-        </li>
+        {message && message.status !== 1 && (
+          <li>
+            <button
+              type="button"
+              onClick={() => {
+                handleReplyMessage(message);
+                setContextMenu(null);
+              }}
+            >
+              回复
+            </button>
+          </li>
+        )}
       </ul>
     </div>,
     document.body,

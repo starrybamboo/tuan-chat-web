@@ -1,11 +1,13 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
 import { useRouter } from "@tanstack/react-router";
-import toast from "react-hot-toast";
+
+import { appToast } from "@/components/common/appToast/appToast";
+import { normalizeNotificationTargetPath } from "@/components/notification/notificationNavigation";
 
 import type { DirectMessageEvent } from "./wsModels";
+
 import { MessageType } from "./wsModels";
-import { normalizeNotificationTargetPath } from "@/components/notification/notificationNavigation";
 
 export function FriendRequestToastContent({
   toastId,
@@ -26,13 +28,13 @@ export function FriendRequestToastContent({
       role="button"
       tabIndex={0}
       onClick={() => {
-        toast.dismiss(toastId);
+        appToast.dismiss(toastId);
         router.history.push("/chat/private?tab=pending");
       }}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          toast.dismiss(toastId);
+          appToast.dismiss(toastId);
           router.history.push("/chat/private?tab=pending");
         }
       }}
@@ -76,7 +78,7 @@ export function DirectMessageToastContent({
   const router = useRouter();
 
   const jumpToPrivateChat = () => {
-    toast.dismiss(toastId);
+    appToast.dismiss(toastId);
     router.history.push(`/chat/private/${senderId}`);
   };
 
@@ -132,7 +134,7 @@ export function GroupMessageToastContent({
   const router = useRouter();
 
   const jumpToGroupChat = () => {
-    toast.dismiss(toastId);
+    appToast.dismiss(toastId);
     if (targetPath) {
       router.history.push(targetPath);
     }
@@ -187,7 +189,7 @@ export function NotificationToastContent({
   const router = useRouter();
 
   const jumpToNotificationTarget = () => {
-    toast.dismiss(toastId);
+    appToast.dismiss(toastId);
     if (targetPath) {
       router.history.push(targetPath);
     }

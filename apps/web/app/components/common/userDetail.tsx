@@ -95,6 +95,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                         hover:underline
                         cursor-pointer truncate max-w-xs
                       "
+                      title={user?.username || "未知用户"}
                     >
                       {user?.username || "未知用户"}
                     </a>
@@ -113,7 +114,10 @@ export function UserDetail({ userId }: UserDetailProps) {
                   )
                 : (
                     <div>
-                      <p className="break-words mr-2 line-clamp-2">
+                      <p
+                        className="break-words mr-2 line-clamp-2"
+                        title={user?.description ?? "这个人就是个杂鱼，什么也不愿意写喵~"}
+                      >
                         {user?.description ?? "这个人就是个杂鱼，什么也不愿意写喵~"}
                       </p>
                     </div>
@@ -193,8 +197,9 @@ export function UserDetail({ userId }: UserDetailProps) {
                   hover:border-info/40 hover:bg-base-200 hover:text-info
                 "
                 onClick={() => router.history.push(`/chat/private/${userId}`)}
+                aria-label={`给 ${user?.username || `用户 #${userId}`} 发私信`}
               >
-                <svg aria-label="私信" width="12" height="12" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="
+                <svg aria-hidden="true" width="12" height="12" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="
                   flex-shrink-0
                 ">
                   <g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor">

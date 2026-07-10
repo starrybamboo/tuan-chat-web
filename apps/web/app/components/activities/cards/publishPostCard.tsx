@@ -207,12 +207,15 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
   const canPublish = content.trim() && currentLength <= maxLength && !isPublishing;
 
   return (
-    <div className="
+    <div
+      aria-busy={isPublishing}
+      className="
       bg-base-100 rounded-xl shadow-sm border border-base-300 p-4
       sm:p-6
       mb-4
       sm:mb-6
-    ">
+    "
+    >
       <div className="flex items-start space-x-4">
         <div className="pointer-events-none relative flex-shrink-0">
           <UserAvatarByUser
@@ -245,11 +248,12 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
 
             {/* 发布中的加载状态 */}
             {isPublishing && (
-              <div className="
+              <div aria-live="polite" className="
                 absolute inset-0 bg-base-100/80 rounded-lg flex items-center
                 justify-center
               ">
                 <div className="loading loading-spinner loading-sm text-info"></div>
+                <span className="sr-only">正在发布动态</span>
               </div>
             )}
           </div>
@@ -305,7 +309,7 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
                         rounded-full w-6 h-6 flex items-center justify-center
                         text-sm duration-300
                       "
-                      aria-label="删除图片"
+                      aria-label={`删除第 ${idx + 1} 张图片`}
                     >
                       <XMarkICon />
                     </button>
@@ -344,6 +348,9 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
                 "
                 type="button"
                 title="添加表情"
+                aria-controls="publish-post-sticker-window"
+                aria-expanded={showStickerWindow}
+                aria-label="添加表情"
                 disabled={isPublishing}
                 onClick={() => setShowStickerWindow(v => !v)}
               >
@@ -405,20 +412,22 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
                 }
                 `}
                 disabled={!canPublish}
+                aria-busy={isPublishing}
+                aria-disabled={!canPublish}
                 onClick={handlePublish}
                 type="button"
               >
                 {isPublishing && (
                   <div className="loading loading-spinner loading-xs"></div>
                 )}
-                <span>发布</span>
+                <span>{isPublishing ? "发布中..." : "发布"}</span>
               </button>
             </div>
           </div>
 
           {/* 表情包弹窗 */}
           {showStickerWindow && (
-            <div className="
+            <div id="publish-post-sticker-window" className="
               mt-2 border border-base-300 rounded-lg bg-base-100 shadow-lg p-2
             ">
               <StickerWindow onChoose={handleEmojiChoose} />

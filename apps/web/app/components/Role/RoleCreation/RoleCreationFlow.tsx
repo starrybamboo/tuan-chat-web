@@ -1,6 +1,6 @@
 import { Plus } from "@phosphor-icons/react";
 import { lazy, Suspense, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { Role } from "../types";
 import type { CharacterData } from "./types";
@@ -58,11 +58,11 @@ export default function RoleCreationFlow({
       return;
     }
     if (isDescriptionTooLong) {
-      toast.error(ROLE_DESCRIPTION_TOO_LONG_MESSAGE, { position: "top-center" });
+      appToast.error(ROLE_DESCRIPTION_TOO_LONG_MESSAGE, { position: "top-center" });
       return;
     }
     if (!hideRuleSelection && !hasRule) {
-      toast.error("请先选择规则", { position: "top-center" });
+      appToast.error("请先选择规则", { position: "top-center" });
       return;
     }
 
@@ -129,10 +129,12 @@ export default function RoleCreationFlow({
               btn btn-sm
               md:btn-lg
               rounded-lg btn-primary
-              ${isSaving ? `scale-95` : ""}
+              ${isSaving ? `scale-95 motion-reduce:scale-100` : ""}
             `}
             onClick={handleComplete}
             disabled={!canCreate || isSaving}
+            aria-busy={isSaving}
+            title={!canCreate ? "请先填写创建角色所需信息" : undefined}
           >
             {isSaving
               ? <span className="loading loading-spinner loading-xs"></span>

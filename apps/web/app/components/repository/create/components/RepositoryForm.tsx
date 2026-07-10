@@ -16,7 +16,7 @@ export default function RepositoryForm({ register, errors }: {
           type="text"
           autoComplete="off"
           aria-label="作者"
-          placeholder=""
+          placeholder="你的署名"
           {...register("authorName", {
             required: "仓库作者是必填项",
             maxLength: { value: 255, message: "作者名不能超过255个字符" },
@@ -36,7 +36,7 @@ export default function RepositoryForm({ register, errors }: {
           type="text"
           autoComplete="off"
           aria-label="仓库名"
-          placeholder=""
+          placeholder="仅字母数字与连字符"
           {...register("repositoryName", {
             required: "仓库名称是必填项",
             maxLength: { value: 255, message: "仓库名不能超过255个字符" },
@@ -53,7 +53,7 @@ export default function RepositoryForm({ register, errors }: {
             dark:border-base-content/20
             focus:outline-none focus:border-info focus:ring-2 focus:ring-info/20
           "
-          placeholder=""
+          placeholder="一句话介绍仓库内容"
           autoComplete="off"
           aria-label="仓库描述"
           {...register("description", {

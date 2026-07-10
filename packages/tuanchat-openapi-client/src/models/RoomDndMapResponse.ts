@@ -36,4 +36,3 @@ export type RoomDndMapResponse = {
      */
     updatedAt?: number;
 };
-

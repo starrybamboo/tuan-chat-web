@@ -1,8 +1,8 @@
 import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/MaterialPackageContent";
 import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { useMemo } from "react";
-import toast from "react-hot-toast";
 
 import MaterialPackageEditor from "@/components/material/components/materialPackageEditor";
 import MaterialPackageEditorInlinePage from "@/components/material/components/materialPackageEditorInlinePage";
@@ -11,6 +11,7 @@ import { buildSpaceMaterialPackageEditorValueKey } from "@/components/material/c
 import { imageMediumUrl, imageOriginalUrl } from "@/utils/media/mediaUrl";
 
 import {
+
   useDeleteSpaceMaterialPackageMutation,
   useSpaceMaterialPackagesQuery,
   useUpdateSpaceMaterialPackageMutation,
@@ -86,7 +87,7 @@ export default function SpaceMaterialSubWindow({
       spaceId,
       spacePackageId: selectedPackage.spacePackageId,
     });
-    toast.success("局内素材包已删除");
+    appToast.success("局内素材包已删除");
     onClearSelection();
   };
 
@@ -122,7 +123,7 @@ export default function SpaceMaterialSubWindow({
         dragPackageId={selectedPackage.spacePackageId}
         sidebarActionScope="subwindow"
         showStructureSidebar={false}
-        title="编辑局内素材包"
+        title={`编辑局内素材包：${selectedPackage.name ?? "未命名局内素材包"}`}
         subtitle={selectedPackage.sourcePackageId
           ? `来源局外素材包：${selectedPackage.sourcePackageId} · 当前空间维护的是独立副本`
           : "这是当前空间直接创建的本地素材包"}

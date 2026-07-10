@@ -1,23 +1,23 @@
 import type { ReactNode } from "react";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { UserCircle } from "@phosphor-icons/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { RoleAvatar, RoleAvatarVariant } from "api";
 
-import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { Button } from "@/components/common/Button";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
-import { MediaImage } from "@/components/common/mediaImage";
-import { DisplayChatBubble } from "@/components/Role/Preview/displayChatBubble";
+import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
 import { canvasPreview, createFullImageCrop } from "@/utils/imgCropper";
 import { useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 
 import type { Transform } from "../TransformControl";
 
+import { loadPreviewSpriteImage, preloadPreviewSpriteImages } from "../previewSpriteImageCache";
 import {
+
   getEffectiveAvatarUrl,
   getEffectiveOriginUrl,
   getEffectiveSpriteOriginalUrl,
@@ -100,7 +100,6 @@ export type AvatarCalibrationPreviewPanelProps = {
   onOpenAvatarCropper?: () => void;
 }
 
-const AVATAR_PREVIEW_MESSAGES = ["这是使用新头像的\n聊天消息！"];
 const PREVIEW_GROUP_CLASS_NAME = "w-full max-w-[43rem]";
 const WEBGAL_STAGE_CLASS_NAME = "w-full overflow-hidden";
 const DEFAULT_CATEGORY = "默认";
@@ -256,7 +255,10 @@ function isCalibrationStepReady(progress: AvatarCalibrationStepProgress) {
 }
 
 /**
- * 立绘 → 头像 的树形连接线：单条 SVG 圆角路径避免转角分段显隐。
+ * 立绘 → 头像 的树形连接线：一条「连续」SVG 路径，末端自然收成 ► 箭头头。
+ * 整条线 + 箭头是同一个连续笔画（除起点外没有 M 跳笔），
+ * 这样配合绘制动画（stroke-dasharray / pathLength）时箭头会随线一起从头画到尾，
+ * 不会因拆成独立子路径而提前整段出现。状态颜色沿用：就绪绿 / 未就绪红。
  */
 function TreeConnector({ hasAvatar, drawKey }: { hasAvatar: boolean; drawKey: string }) {
   const lineColor = hasAvatar ? "text-success/80" : "text-error/80";
@@ -270,7 +272,7 @@ function TreeConnector({ hasAvatar, drawKey }: { hasAvatar: boolean; drawKey: st
       viewBox="0 0 100 100"
     >
       <path
-        d="M2 0 V68 Q2 94 28 94 H100"
+        d="M2 0 V68 Q2 94 28 94 H100 L84 86 L100 94 L84 102"
         fill="none"
         pathLength={1}
         stroke="currentColor"
@@ -285,9 +287,19 @@ function TreeConnector({ hasAvatar, drawKey }: { hasAvatar: boolean; drawKey: st
 
 function WebgalSpritePreview({ characterName, imageUrl, transform }: SpritePreviewProps) {
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const sourceImageRef = useRef<HTMLImageElement | null>(null);
+  const pendingImageRef = useRef<HTMLImageElement | null>(null);
+  const pendingBitmapRef = useRef<ImageBitmap | null>(null);
+  const pendingImageUrlRef = useRef<string | null>(null);
+  const [drawVersion, setDrawVersion] = useState(0);
+  const [renderedImageUrl, setRenderedImageUrl] = useState<string | null>(imageUrl || null);
+  const [renderTransform, setRenderTransform] = useState<Transform>(() => transform);
+  const [isImageLoading, setIsImageLoading] = useState(false);
+  const displayTransform = renderedImageUrl === imageUrl ? transform : renderTransform;
 
-  const drawSourceToPreview = useCallback(async (image: HTMLImageElement) => {
+  const drawSourceToPreview = useCallback(async (
+    image: HTMLImageElement,
+    bitmap: ImageBitmap | null,
+  ) => {
     const canvas = previewCanvasRef.current;
     if (!canvas) {
       return;
@@ -300,25 +312,74 @@ function WebgalSpritePreview({ characterName, imageUrl, transform }: SpritePrevi
     }
     const { pixelCrop } = createFullImageCrop(width, height);
     await canvasPreview(image, canvas, pixelCrop, 1, 0, { previewMode: true });
+    if (bitmap) {
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      }
+    }
   }, []);
 
   useEffect(() => {
-    const image = sourceImageRef.current;
-    if (!imageUrl || !image?.complete || !image.naturalWidth) {
+    if (!imageUrl) {
+      pendingImageRef.current = null;
+      pendingBitmapRef.current = null;
+      pendingImageUrlRef.current = null;
+      setIsImageLoading(false);
       return;
     }
 
     let cancelled = false;
-    requestAnimationFrame(() => {
-      if (!cancelled) {
-        void drawSourceToPreview(image);
-      }
-    });
+    const targetTransform = transform;
+    setIsImageLoading(imageUrl !== renderedImageUrl);
+    loadPreviewSpriteImage(imageUrl)
+      .then(({ image, bitmap }) => {
+        if (cancelled) {
+          return;
+        }
+        pendingImageRef.current = image;
+        pendingBitmapRef.current = bitmap;
+        pendingImageUrlRef.current = imageUrl;
+        setRenderTransform(targetTransform);
+        setDrawVersion(version => version + 1);
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        setIsImageLoading(false);
+        console.error("加载立绘预览失败:", error, imageUrl);
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [drawSourceToPreview, imageUrl]);
+  }, [imageUrl, renderedImageUrl, transform]);
+
+  useLayoutEffect(() => {
+    const pendingUrl = pendingImageUrlRef.current;
+    const image = pendingImageRef.current;
+    if (!pendingUrl || !image || pendingUrl !== imageUrl) {
+      return;
+    }
+
+    let active = true;
+    void drawSourceToPreview(image, pendingBitmapRef.current).then(() => {
+      if (!active || pendingUrl !== imageUrl) {
+        return;
+      }
+      setRenderedImageUrl(pendingUrl);
+      setIsImageLoading(false);
+      pendingImageRef.current = null;
+      pendingBitmapRef.current = null;
+      pendingImageUrlRef.current = null;
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [drawSourceToPreview, drawVersion, imageUrl]);
 
   return (
     <section
@@ -328,23 +389,21 @@ function WebgalSpritePreview({ characterName, imageUrl, transform }: SpritePrevi
       {imageUrl
         ? (
             <div className={`${WEBGAL_STAGE_CLASS_NAME} relative`}>
-              <MediaImage
-                ref={sourceImageRef}
-                src={imageUrl}
-                alt=""
-                aria-hidden="true"
-                className="pointer-events-none absolute size-px opacity-0"
-                loadTransition={false}
-                onLoad={(event) => {
-                  void drawSourceToPreview(event.currentTarget);
-                }}
-              />
               <RenderPreview
                 previewCanvasRef={previewCanvasRef}
-                transform={transform}
+                transform={displayTransform}
                 characterName={characterName}
-                dialogContent="这是一段示例对话内容。"
+                dialogContent="点击进行立绘矫正"
               />
+              {isImageLoading && (
+                <div className="
+                  absolute inset-0 rounded-md bg-base-300/20
+                  backdrop-blur-[1px] flex items-center justify-center
+                  text-base-content/70
+                ">
+                  <span className="loading loading-spinner loading-sm" aria-label="正在加载预览" />
+                </div>
+              )}
             </div>
           )
         : (
@@ -357,7 +416,7 @@ function WebgalSpritePreview({ characterName, imageUrl, transform }: SpritePrevi
 }
 
 function ChatAvatarPreview({ characterName, imageUrl }: PreviewProps) {
-  const useChatBubbleStyle = useRoomPreferenceStore(state => state.useChatBubbleStyle);
+  const hasAvatar = Boolean(imageUrl);
 
   return (
     <section
@@ -368,11 +427,11 @@ function ChatAvatarPreview({ characterName, imageUrl }: PreviewProps) {
         min-w-0 overflow-hidden rounded-md border
         border-base-300/70 bg-black py-3 pl-4 pr-3 shadow-sm
       ">
-        <DisplayChatBubble
-          roleName={characterName}
-          avatarUrl={imageUrl}
-          content={AVATAR_PREVIEW_MESSAGES[0]}
-          useChatBubbleStyle={useChatBubbleStyle}
+        <AvatarPreview
+          characterName={characterName}
+          currentAvatarUrl={imageUrl}
+          isAvatarMissing={!hasAvatar}
+          mode="chat"
         />
       </div>
     </section>
@@ -579,12 +638,12 @@ export function AvatarSettingsTab({
         }
       }
       if (!handledVariantChangeExternally) {
-        toast.success("头像设置已保存");
+        appToast.success("头像设置已保存");
       }
     }
     catch (error) {
       console.error("更新头像设置失败:", error);
-      toast.error("保存失败，请稍后重试");
+      appToast.error("保存失败，请稍后重试");
     }
   }, [
     currentAvatar,
@@ -614,6 +673,23 @@ export function AvatarSettingsTab({
   const workflowProgress = useMemo(() => (
     buildAvatarCalibrationWorkflowProgress(currentAvatar ? [currentAvatar] : [])
   ), [currentAvatar]);
+
+  useEffect(() => {
+    if (spritesAvatars.length === 0) {
+      return;
+    }
+
+    const preloadWindow = [
+      spritesAvatars[selectedIndex - 2],
+      spritesAvatars[selectedIndex - 1],
+      spritesAvatars[selectedIndex],
+      spritesAvatars[selectedIndex + 1],
+      spritesAvatars[selectedIndex + 2],
+    ];
+    preloadPreviewSpriteImages(preloadWindow.map(avatar => (
+      avatar ? getEffectiveSpriteOriginalUrl(avatar) || getEffectiveSpriteUrl(avatar) : null
+    )));
+  }, [selectedIndex, spritesAvatars]);
   const canUnassignVariant = Boolean(
     showUnassignVariantAction
     && onUnassignVariant
@@ -623,7 +699,7 @@ export function AvatarSettingsTab({
 
   const handleUnassignVariant = useCallback(async () => {
     if (!currentAvatar?.avatarId || !onUnassignVariant || !currentVariantId) {
-      toast.error("当前头像未绑定立绘组");
+      appToast.error("当前头像未绑定立绘组");
       return;
     }
     if (isUnassigningVariant) {
@@ -636,7 +712,7 @@ export function AvatarSettingsTab({
     }
     catch (error) {
       console.error("移出立绘组失败:", error);
-      toast.error(error instanceof Error ? error.message : "移出立绘组失败，请稍后重试");
+      appToast.error(error instanceof Error ? error.message : "移出立绘组失败，请稍后重试");
     }
     finally {
       setIsUnassigningVariant(false);

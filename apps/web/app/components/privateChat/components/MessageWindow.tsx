@@ -1,9 +1,13 @@
+import { findDirectReplyMessage } from "@tuanchat/domain/direct-message";
+
+import type { MessageDirectResponse } from "../../../../api";
+
 import { useScroll } from "../hooks/useScroll";
 import { buildPrivateChatTimelineEntries } from "../utils/privateChatTimeline";
 import MessageBubble from "./MessageBubble";
 import UserSearch from "./UserSearch";
 
-function isSameSender(previousMessage: any | undefined, message: any) {
+function isSameSender(previousMessage: MessageDirectResponse | undefined, message: MessageDirectResponse) {
   return previousMessage?.senderId != null && previousMessage.senderId === message.senderId;
 }
 
@@ -13,7 +17,7 @@ export default function MessageWindow({
   userId,
 }: {
   currentContactUserId: number | null;
-  allMessages: any[];
+  allMessages: MessageDirectResponse[];
   userId: number;
 }) {
   // 消息列表滚动hook（消息）
@@ -55,10 +59,12 @@ export default function MessageWindow({
                 }
 
                 const groupedWithPrevious = isSameSender(allMessages[entry.messageIndex - 1], entry.message);
+                const replyMessage = findDirectReplyMessage(allMessages, entry.message.replyMessageId);
                 return (
                   <MessageBubble
                     key={entry.message.messageId}
                     message={entry.message}
+                    replyMessage={replyMessage}
                     isOwn={entry.message.senderId === userId}
                     groupedWithPrevious={groupedWithPrevious}
                   />

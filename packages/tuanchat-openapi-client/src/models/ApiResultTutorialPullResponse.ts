@@ -21,4 +21,3 @@ export type ApiResultTutorialPullResponse = {
     errMsg?: string;
     data?: TutorialPullResponse;
 };
-

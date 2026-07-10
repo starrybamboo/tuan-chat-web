@@ -1,7 +1,7 @@
 import type { KeyboardEvent, MouseEvent, RefObject } from "react";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { useCallback, useRef } from "react";
-import { toast } from "react-hot-toast";
 
 import type { AtMentionHandle } from "@/components/atMentionController";
 
@@ -14,6 +14,7 @@ type UseChatInputHandlersParams = {
   atMentionRef: RefObject<AtMentionHandle | null>;
   handleMessageSubmit: () => void;
   roomId: number;
+  acceptCommandCompletion?: () => boolean;
 };
 
 type UseChatInputHandlersResult = {
@@ -26,7 +27,12 @@ type UseChatInputHandlersResult = {
   requestMessageSubmit: () => void;
 };
 
+function isKeyboardComposing(event: KeyboardEvent, compositionActive: boolean): boolean {
+  return compositionActive || event.nativeEvent.isComposing;
+}
+
 export default function useChatInputHandlers({
+  acceptCommandCompletion,
   atMentionRef,
   handleMessageSubmit,
   roomId,
@@ -69,7 +75,7 @@ export default function useChatInputHandlers({
 
     const hasSupportedFiles = imageFiles.length > 0 || videoFiles.length > 0 || audioFiles.length > 0;
     if (otherFiles.length > 0) {
-      toast.error(
+      appToast.error(
         hasSupportedFiles
           ? `已忽略${otherFiles.length}个文件，当前仅支持图片、视频、音频`
           : "暂不支持发送文件",
@@ -98,7 +104,7 @@ export default function useChatInputHandlers({
       store.setAudioFile(audioFiles[0]);
       applyRoomMediaAnnotationPreferenceToComposer(roomId, "audio");
       if (audioFiles.length > 1) {
-        toast.error("仅支持粘贴 1 个音频，已取第一个");
+        appToast.error("仅支持粘贴 1 个音频，已取第一个");
       }
     }
 
@@ -110,6 +116,7 @@ export default function useChatInputHandlers({
   }, [roomId]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    const isComposing = isKeyboardComposing(e, isComposingRef.current);
     const isAtOpen = atMentionRef.current?.isDialogOpen() ?? false;
     if (isAtOpen) {
       const handled = atMentionRef.current?.onKeyDown(e) ?? false;
@@ -118,11 +125,25 @@ export default function useChatInputHandlers({
       }
     }
 
-    if (e.key === "Enter" && !e.shiftKey && !isComposingRef.current) {
+    if (
+      (e.key === "Tab" || e.key === "ArrowRight")
+      && !e.shiftKey
+      && !e.ctrlKey
+      && !e.metaKey
+      && !e.altKey
+      && !isComposing
+      && acceptCommandCompletion?.()
+    ) {
+      e.preventDefault();
+      return;
+    }
+
+    if (e.key === "Enter" && !e.shiftKey && !isComposing) {
       e.preventDefault();
       requestMessageSubmit();
     }
   }, [
+    acceptCommandCompletion,
     atMentionRef,
     requestMessageSubmit,
   ]);

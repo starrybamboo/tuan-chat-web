@@ -8,6 +8,7 @@ import {
   resolveMessageAvatarFileId,
   resolveMessageAvatarId,
   resolveMessageAvatarUrl,
+  resolveRoleDefaultAvatarFileId,
 } from "./chat-avatar-utils";
 
 function message(overrides: Partial<Message>): Message {
@@ -34,6 +35,15 @@ describe("chat-avatar-utils", () => {
     ]);
 
     expect(resolveMessageAvatarFileId(message({ roleId: 8 }), roomRolesById)).toBe(21);
+  });
+
+  it("消息有头像 ID 时不直接使用角色默认头像文件", () => {
+    const roomRolesById = rolesById([
+      { roleId: 8, avatarFileId: 21 } as UserRole & { roleId: number },
+    ]);
+
+    expect(resolveMessageAvatarFileId(message({ avatarId: 12, roleId: 8 }), roomRolesById)).toBeNull();
+    expect(resolveRoleDefaultAvatarFileId(message({ avatarId: 12, roleId: 8 }), roomRolesById)).toBe(21);
   });
 
   it("消息头像 ID 优先于角色默认头像 ID", () => {

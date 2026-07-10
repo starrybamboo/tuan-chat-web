@@ -70,7 +70,7 @@ jobs:
           $outputDir = "release_ci/windows-${{ github.run_id }}-${{ github.run_attempt }}"
 
           pnpm --filter @tuanchat/desktop run build:app
-          pnpm --dir apps/desktop exec electron-builder build --config electron-builder.config.cjs --win nsis --config.directories.output="../../$outputDir"
+          pnpm exec electron-builder build --config apps/desktop/electron-builder.config.cjs --win nsis --config.directories.output="$outputDir"
 
           "ELECTRON_OUTPUT_DIR=$outputDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 

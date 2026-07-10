@@ -1,18 +1,18 @@
 import type { Space } from "@tuanchat/openapi-client/models/Space";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { ArrowClockwiseIcon, TrashSimpleIcon } from "@phosphor-icons/react";
 import { useLocation, useRouter } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
-
-import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGetUserActiveSpacesQuery } from "api/hooks/chatQueryHooks";
 import {
   useClearRoleTrashMutation,
   useClearSpaceNpcRoleTrashMutation,
   useHardDeleteRolesMutation,
 } from "api/hooks/RoleAndAvatarHooks";
+import { useEffect, useMemo, useState } from "react";
+
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import RoleAvatarComponent from "@/components/common/roleAvatar";
 
 import type { Role } from "./types";
 
@@ -38,6 +38,10 @@ function RoleTrashItem({
   onHardDelete: (role: Role) => void;
   isDeleting: boolean;
 }) {
+  const displayName = role.name || "未命名项目";
+  const typeLabel = roleTypeLabel(role);
+  const roleSummary = `${displayName}，${typeLabel}，ID ${role.id}`;
+
   return (
     <div className="
       flex items-center gap-3 rounded-lg border border-base-content/10 bg-base-100
@@ -57,10 +61,10 @@ function RoleTrashItem({
       />
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-2">
-          <h3 className="truncate font-medium">{role.name || "未命名项目"}</h3>
-          <span className="badge badge-ghost shrink-0 text-xs">{roleTypeLabel(role)}</span>
+          <h3 className="truncate font-medium" title={roleSummary}>{displayName}</h3>
+          <span className="badge badge-ghost shrink-0 text-xs">{typeLabel}</span>
         </div>
-        <p className="mt-1 truncate text-xs text-base-content/60">
+        <p className="mt-1 truncate text-xs text-base-content/60" title={`#${role.id} · ${role.description || "暂无描述"}`}>
           #
           {role.id}
           {" · "}
@@ -72,6 +76,8 @@ function RoleTrashItem({
         className="btn btn-error btn-sm shrink-0"
         disabled={isDeleting}
         onClick={() => onHardDelete(role)}
+        aria-label={`永久删除 ${roleSummary}`}
+        aria-busy={isDeleting}
       >
         <TrashSimpleIcon size={16} weight="regular" />
         硬删除
@@ -133,13 +139,13 @@ export default function RoleTrashPage() {
 
     try {
       await hardDeleteMutation.mutateAsync([pendingHardDeleteRole.id]);
-      toast.success("项目已硬删除");
+      appToast.success("项目已硬删除");
       setPendingHardDeleteRole(null);
       await trashModel.refetch();
     }
     catch (error) {
       console.error("硬删除项目失败:", error);
-      toast.error(error instanceof Error ? error.message : "硬删除项目失败");
+      appToast.error(error instanceof Error ? error.message : "硬删除项目失败");
     }
   };
 
@@ -147,7 +153,7 @@ export default function RoleTrashPage() {
     try {
       if (isSpaceNpcTrash) {
         if (effectiveSpaceId <= 0) {
-          toast.error("请选择空间");
+          appToast.error("请选择空间");
           return;
         }
         await clearSpaceNpcTrashMutation.mutateAsync(effectiveSpaceId);
@@ -155,13 +161,13 @@ export default function RoleTrashPage() {
       else {
         await clearTrashMutation.mutateAsync();
       }
-      toast.success("回收站已清空");
+      appToast.success("回收站已清空");
       setClearConfirmOpen(false);
       await trashModel.refetch();
     }
     catch (error) {
       console.error("清空回收站失败:", error);
-      toast.error(error instanceof Error ? error.message : "清空回收站失败");
+      appToast.error(error instanceof Error ? error.message : "清空回收站失败");
     }
   };
 
@@ -229,11 +235,13 @@ export default function RoleTrashPage() {
             className="btn btn-ghost btn-sm"
             onClick={() => void trashModel.refetch()}
             disabled={trashModel.isFetching}
+            aria-busy={trashModel.isFetching}
+            title={trashModel.isFetching ? "正在刷新回收站" : "刷新回收站"}
           >
             <ArrowClockwiseIcon
               size={16}
               weight="regular"
-              className={trashModel.isFetching ? "animate-spin" : ""}
+              className={trashModel.isFetching ? "animate-spin motion-reduce:animate-none" : ""}
             />
             刷新
           </button>

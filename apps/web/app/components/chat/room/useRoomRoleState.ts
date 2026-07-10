@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { SpaceContextType } from "@/components/chat/core/spaceContext";
 
@@ -260,7 +260,7 @@ export default function useRoomRoleState({
       return;
     }
     if (roleId < 0 && !isSpaceOwner) {
-      toast.error("只有主持人可以使用旁白");
+      appToast.error("只有主持人可以使用旁白");
       return;
     }
     setCurRoleIdForRoom(roomId, roleId);

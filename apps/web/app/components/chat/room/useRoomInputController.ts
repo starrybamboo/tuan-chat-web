@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 
 import type { AtMentionHandle } from "@/components/atMentionController";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
@@ -20,6 +20,33 @@ type UseRoomInputControllerResult = {
   handleSelectCommand: (cmdName: string) => void;
 };
 
+type RoomInputSnapshot = {
+  plainText: string;
+  textWithoutMentions: string;
+  mentionedRoles: UserRole[];
+};
+
+type RoomInputDraft = {
+  editorHtml: string;
+  snapshot: RoomInputSnapshot;
+};
+
+const roomInputDrafts = new Map<number, RoomInputDraft>();
+
+function isEmptyInputSnapshot(snapshot: RoomInputSnapshot): boolean {
+  return snapshot.plainText === ""
+    && snapshot.textWithoutMentions === ""
+    && snapshot.mentionedRoles.length === 0;
+}
+
+function saveRoomInputDraft(roomId: number, draft: RoomInputDraft): void {
+  if (draft.editorHtml === "" && isEmptyInputSnapshot(draft.snapshot)) {
+    roomInputDrafts.delete(roomId);
+    return;
+  }
+  roomInputDrafts.set(roomId, draft);
+}
+
 export default function useRoomInputController({
   roomId,
 }: UseRoomInputControllerParams): UseRoomInputControllerResult {
@@ -30,27 +57,43 @@ export default function useRoomInputController({
   const resetChatComposer = useChatComposerStore(state => state.reset);
 
   const handleInputAreaChange = useCallback((plainText: string, inputTextWithoutMentions: string, roles: UserRole[]) => {
-    useChatInputUiStore.getState().setSnapshot({
+    const snapshot = {
       plainText,
       textWithoutMentions: inputTextWithoutMentions,
       mentionedRoles: roles,
+    };
+    useChatInputUiStore.getState().setSnapshot(snapshot);
+    saveRoomInputDraft(roomId, {
+      editorHtml: chatInputRef.current?.getRawElement()?.innerHTML ?? "",
+      snapshot,
     });
     atMentionRef.current?.onInput();
-  }, []);
+  }, [roomId]);
 
   const setInputText = useCallback((text: string) => {
     chatInputRef.current?.setContent(text);
     chatInputRef.current?.triggerSync();
   }, []);
 
-  useEffect(() => {
-    resetChatInputUi();
+  useLayoutEffect(() => {
     resetChatComposer();
+    const draft = roomInputDrafts.get(roomId);
+    if (draft) {
+      chatInputRef.current?.setContent(draft.editorHtml, { moveCursorToEnd: false });
+      useChatInputUiStore.getState().setSnapshot(draft.snapshot);
+    }
+    else {
+      resetChatInputUi();
+      chatInputRef.current?.setContent("", { moveCursorToEnd: false });
+    }
+  }, [resetChatComposer, resetChatInputUi, roomId]);
+
+  useEffect(() => {
     return () => {
       resetChatInputUi();
       resetChatComposer();
     };
-  }, [resetChatComposer, resetChatInputUi, roomId]);
+  }, [resetChatComposer, resetChatInputUi]);
 
   const handleSelectCommand = useCallback((cmdName: string) => {
     const prefixChar = useChatInputUiStore.getState().plainText[0] || ".";

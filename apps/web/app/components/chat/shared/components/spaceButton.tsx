@@ -8,11 +8,11 @@ import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/media/mediaUrl";
 
 import type { Space } from "../../../../../api";
 
+import { getChatSidebarActiveButtonClass, type ChatSidebarActiveTone } from "./chatSidebarActiveTone";
 import { resolveEntityImageUrl } from "./entityImageUrl";
 import SidebarActiveCursor from "./sidebarActiveCursor";
 
-const sidebarIconButtonBaseClass = "w-10 btn btn-square border border-transparent relative";
-const sidebarIconButtonActiveClass = "border-info/40 text-info";
+const sidebarIconButtonBaseClass = "w-10 btn btn-square border border-transparent relative transition-colors";
 const collapsedButtonAnimation = {
   scale: [1, 0.9, 1.12, 0.98, 1],
   rotate: [0, -4, 4, -2, 0],
@@ -23,13 +23,13 @@ const collapsedButtonAnimationOptions = {
   ease: "easeOut",
 } as const;
 
-export default function SpaceButton({ space, unreadMessageNumber, onclick, onPreload, isActive, isLeftDrawerCollapsed, isCollapseToggleClick, collapseAnimationKey }: {
+export default function SpaceButton({ space, unreadMessageNumber, onclick, onPreload, isActive, activeTone = "default", isCollapseToggleClick, collapseAnimationKey }: {
   space: Space;
   unreadMessageNumber: number | undefined;
   onclick: () => void;
   onPreload?: () => void;
   isActive: boolean;
-  isLeftDrawerCollapsed?: boolean;
+  activeTone?: ChatSidebarActiveTone;
   isCollapseToggleClick?: boolean;
   collapseAnimationKey?: string;
 }) {
@@ -65,12 +65,12 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, onPre
       "
       key={space.spaceId}
     >
-      <SidebarActiveCursor isActive={isActive} tone={isLeftDrawerCollapsed ? "collapsed" : "default"} />
+      <SidebarActiveCursor isActive={isActive} tone={activeTone} />
       <PortalTooltip label={displayName} placement="right">
         <motion.button
           className={`
             ${sidebarIconButtonBaseClass}
-            ${isActive ? sidebarIconButtonActiveClass : ""}
+            ${isActive ? getChatSidebarActiveButtonClass(activeTone) : ""}
           `}
           ref={buttonScope}
           type="button"

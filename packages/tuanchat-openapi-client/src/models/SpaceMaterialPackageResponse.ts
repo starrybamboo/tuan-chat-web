@@ -65,4 +65,3 @@ export type SpaceMaterialPackageResponse = {
      */
     updateTime?: string;
 };
-

@@ -1,16 +1,17 @@
-import { createFileRoute, useParams } from "@tanstack/react-router";
 import type { ApiResultSpace } from "@tuanchat/openapi-client/models/ApiResultSpace";
+
+import { createFileRoute, useParams } from "@tanstack/react-router";
 
 import type { RouteMetaArgs } from "@/routes/routeTypes";
 
 import SpaceMaterialLibraryPage from "@/components/material/pages/spaceMaterialLibraryPage";
+import { queryClient } from "@/queryClient";
+import { createSeoMeta } from "@/utils/seo";
+import { fetchSpaceInfoWithCache } from "api/hooks/chatQueryHooks";
 import {
   fetchSpaceMaterialPackagesFirstPageWithCache,
   MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
 } from "api/hooks/materialPackageQueryHooks";
-import { fetchSpaceInfoWithCache } from "api/hooks/chatQueryHooks";
-import { queryClient } from "@/queryClient";
-import { createSeoMeta } from "@/utils/seo";
 
 type SpaceMaterialRouteLoaderData = {
   spaceInfo: ApiResultSpace | null;

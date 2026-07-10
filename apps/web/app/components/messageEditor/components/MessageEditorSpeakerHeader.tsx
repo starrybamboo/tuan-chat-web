@@ -49,6 +49,7 @@ const narratorAvatarIconClassName = [
 const speakerHeaderClassName = [
   "inline-flex h-8 w-16 min-w-[4rem] items-center justify-start gap-1 rounded-full p-0.5",
   "text-sm text-base-content/70 transition-colors hover:bg-base-100/35 hover:text-base-content/90",
+  "motion-reduce:transition-none",
 ].join(" ");
 
 const speakerAvatarSlotClassName = "inline-flex size-7 shrink-0 items-center justify-center";

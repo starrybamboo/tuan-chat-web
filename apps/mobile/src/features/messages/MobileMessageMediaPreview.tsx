@@ -177,11 +177,13 @@ function EmbeddedVideoCard({ compact, content, fileName, meta, url }: EmbeddedVi
         style={styles.videoPlayer}
       />
       <View style={{ gap: 2, paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md }}>
-        <ThemedText type="smallBold" numberOfLines={1}>{fileName?.trim() || content?.trim() || "视频消息"}</ThemedText>
+        <ThemedText type="smallBold" numberOfLines={1} accessibilityLabel={fileName?.trim() || content?.trim() || "视频消息"}>{fileName?.trim() || content?.trim() || "视频消息"}</ThemedText>
         <ThemedText type="caption" themeColor="textSecondary">
           {hasFirstFrame ? meta || "可内嵌播放" : meta || "视频加载中"}
         </ThemedText>
         <Pressable
+          accessibilityLabel={`打开媒体文件 ${fileName?.trim() || content?.trim() || "视频消息"}`}
+          accessibilityRole="button"
           onPress={() => void openMediaUrl(url, { fileName })}
           style={({ pressed }) => [
             styles.mediaFallbackButton,
@@ -251,7 +253,7 @@ function EmbeddedAudioCard({ compact, content, fileName, meta, purpose, url }: E
           : <PlayCircle size={compact ? 24 : 30} color={theme.accent} weight="fill" />}
       </Pressable>
       <View style={styles.textBlock}>
-        <ThemedText type="smallBold" numberOfLines={1}>{fileName?.trim() || content?.trim() || purposeLabel}</ThemedText>
+        <ThemedText type="smallBold" numberOfLines={1} accessibilityLabel={fileName?.trim() || content?.trim() || purposeLabel}>{fileName?.trim() || content?.trim() || purposeLabel}</ThemedText>
         <ThemedText type="caption" themeColor="textSecondary">
           {[purposeLabel, progressText || meta || "可内嵌播放"].filter(Boolean).join(" · ")}
         </ThemedText>
@@ -345,7 +347,11 @@ export function MobileMessageMediaPreview({
 
     return (
       <>
-        <Pressable onPress={() => setPreviewImageUrl(fullSizeUrl)}>
+        <Pressable
+          accessibilityLabel={`查看图片 ${content?.trim() || "图片消息"}`}
+          accessibilityRole="button"
+          onPress={() => setPreviewImageUrl(fullSizeUrl)}
+        >
           <View style={[styles.imageFrame, { height, width }]}>
             <CachedImage
               uri={thumbUrl}
@@ -367,7 +373,12 @@ export function MobileMessageMediaPreview({
           visible={previewImageUrl !== null}
           onRequestClose={() => setPreviewImageUrl(null)}
         >
-          <Pressable style={styles.modalOverlay} onPress={() => setPreviewImageUrl(null)}>
+          <Pressable
+            accessibilityLabel="关闭图片预览"
+            accessibilityRole="button"
+            style={styles.modalOverlay}
+            onPress={() => setPreviewImageUrl(null)}
+          >
             {previewImageUrl
               ? (
                   <CachedImage uri={previewImageUrl} style={styles.modalImage} contentFit="contain" />
@@ -446,6 +457,8 @@ export function MobileMessageMediaPreview({
 
     return (
       <Pressable
+        accessibilityLabel={`打开文件 ${file.fileName?.trim() || content?.trim() || "文件"}`}
+        accessibilityRole="button"
         onPress={() => void openMediaUrl(fileUrl, { fileName: file.fileName })}
         style={[styles.fileCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
       >

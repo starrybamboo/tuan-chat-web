@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { useCallback, useRef } from "react";
-import { toast } from "react-hot-toast";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
@@ -18,6 +18,7 @@ import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceS
 import { buildMessageDraftUploadResultFromComposerSnapshot } from "@/components/chat/utils/messageDraftBuilder";
 import { buildOutOfCharacterSpeechContent } from "@/components/chat/utils/outOfCharacterSpeech";
 import { isRoomJumpCommandText, parseRoomJumpCommand } from "@/components/chat/utils/roomJump";
+
 import { isCommand } from "@/components/common/dicer/cmdPre";
 import { buildDiceTurnMessageExtra } from "@/components/common/dicer/diceTurnMessageExtra";
 import { buildRoleScopedStateDiceReply } from "@/components/common/dicer/stateDiceFeedback";
@@ -48,7 +49,7 @@ type UseChatMessageSubmitParams = {
   roomId: number;
   spaceId: number;
   isSpaceOwner: boolean;
-  isSpaceMuted?: boolean;
+  isSpaceArchived?: boolean;
   curRoleId: number;
   ruleId?: number;
   notMember: boolean;
@@ -358,7 +359,7 @@ export default function useChatMessageSubmit({
   roomId,
   spaceId,
   isSpaceOwner,
-  isSpaceMuted = false,
+  isSpaceArchived = false,
   curRoleId,
   ruleId = -1,
   notMember,
@@ -409,8 +410,15 @@ export default function useChatMessageSubmit({
     const isKP = isSpaceOwner;
     const isNarrator = noRole;
     const isSpectator = notMember;
-    if (isSpaceMuted && !isKP) {
-      toast.error("当前空间已开启全员禁言，仅主持人可发言");
+    if (isSpaceArchived && !isKP) {
+      appToast.error({
+        title: "当前空间已归档",
+        description: "归档后仅主持人可继续发言。你可以联系主持人解除归档，或由主持人代为发送。",
+        terms: [{
+          label: "归档",
+          description: "用于结束或冻结空间内容的状态，普通成员不能继续新增消息。",
+        }],
+      });
       return;
     }
     const senderRoleId = isSpectator ? -1 : curRoleId;
@@ -428,23 +436,30 @@ export default function useChatMessageSubmit({
 
     if (disableSendMessage) {
       if (isNarrator && !isKP)
-        toast.error("旁白仅主持可用，请先选择/拉入你的角色");
+        appToast.error({
+          title: "无法发送旁白",
+          description: "旁白只能由主持人发送。请选择你的角色，或让主持人代为发送。",
+          terms: [{
+            label: "旁白",
+            description: "不绑定具体角色、用于描述场景或推进剧情的主持人消息。",
+          }],
+        });
       return;
     }
     if (inputText.length > 1024) {
-      toast.error("消息长度不能超过 1024 字（含富文本标记）");
+      appToast.error("消息长度不能超过 1024 字（含富文本标记）");
       return;
     }
     if (!isSpectator && inputText.length === 0 && !hasPendingAttachmentPayload) {
-      toast.error("消息不能为无");
+      appToast.error("消息不能为无");
       return;
     }
     if (isSpectator && !spectatorTextContent && !hasPendingAttachmentPayload) {
-      toast.error("观战发言不能为空");
+      appToast.error("观战发言不能为空");
       return;
     }
     if (spectatorTextContent && spectatorTextContent.length > 1024) {
-      toast.error("观战发言长度不能超过 1022 字");
+      appToast.error("观战发言长度不能超过 1022 字");
       return;
     }
 
@@ -497,11 +512,18 @@ export default function useChatMessageSubmit({
       const roomJumpTargetSpaceId = roomJumpCommandPayload?.spaceId ?? (spaceId > 0 ? spaceId : undefined);
 
       if (isRoomJumpCommand && !roomJumpCommandPayload) {
-        toast.error("群聊跳转格式错误：/roomjump <roomId> [标题] 或 /roomjump <spaceId> <roomId> [标题]");
+        appToast.error({
+          title: "群聊跳转格式错误",
+          description: "请使用 /roomjump <roomId> [标题] 或 /roomjump <spaceId> <roomId> [标题]。",
+          terms: [{
+            label: "群聊跳转",
+            description: "发送一个可点击入口，让成员从当前群聊跳到指定空间或群聊。",
+          }],
+        });
         return;
       }
       if (roomJumpCommandPayload && !roomJumpTargetSpaceId) {
-        toast.error("当前不在空间群聊，请使用 /roomjump <spaceId> <roomId> [标题]");
+        appToast.error("当前不在空间群聊，请使用 /roomjump <spaceId> <roomId> [标题]");
         return;
       }
 
@@ -549,7 +571,7 @@ export default function useChatMessageSubmit({
         }
         catch (error) {
           console.error("写入角色卡失败", error);
-          toast.error(error instanceof Error && error.message ? error.message : "写入角色卡失败");
+          appToast.error(error instanceof Error && error.message ? error.message : "写入角色卡失败");
           return;
         }
 
@@ -608,7 +630,14 @@ export default function useChatMessageSubmit({
         if (!createdStateEventMessage) {
           return;
         }
-        toast.success("状态已更新", { id: "state-event-sent" });
+        appToast.success({
+          title: "状态已更新",
+          description: "角色卡数值已经写入，并已发送状态变更消息。",
+          terms: [{
+            label: "状态",
+            description: "角色卡上的能力、生命值或其他可被指令更新的数值。",
+          }],
+        }, { id: "state-event-sent" });
         hasCommittedOutboundMessage = true;
         hasConsumedFirstMessage = true;
         regularInputText = "";
@@ -794,7 +823,7 @@ export default function useChatMessageSubmit({
           setAudioFile(failedComposerSnapshot.audioFile);
           setTempAnnotations(failedComposerSnapshot.tempAnnotations);
         }
-        toast.error(
+        appToast.error(
           buildPartialAttachmentFailureMessage(countMediaDrafts(regularDrafts), regularDraftResult.failedAttachments.length),
           { duration: 3000 },
         );
@@ -844,7 +873,7 @@ export default function useChatMessageSubmit({
       }
       console.error("发送消息失败", error);
       const message = error instanceof Error ? error.message : "发送消息失败";
-      toast.error(message, { duration: 3000 });
+      appToast.error(message, { duration: 3000 });
     }
     finally {
       if (!hasCommittedOutboundMessage) {
@@ -883,7 +912,7 @@ export default function useChatMessageSubmit({
     ensureRuntimeAvatarIdForRole,
     extractFirstCommandText,
     insertLocalOptimisticMessages,
-    isSpaceMuted,
+    isSpaceArchived,
     isSpaceOwner,
     noRole,
     notMember,

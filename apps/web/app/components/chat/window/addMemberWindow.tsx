@@ -5,6 +5,8 @@ import { use, useMemo, useState } from "react";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { appToast } from "@/components/common/appToast/appToast";
+import { ImeAwareSearchInput, useImeSearchValue } from "@/components/common/imeAwareSearchInput";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { CheckIcon, CopyIcon, InfoIcon, Link } from "@/icons";
 
@@ -56,11 +58,12 @@ export default function AddMemberWindow({
   const [copied, setCopied] = useState<boolean>(false);
   const [isEditingInvite, setIsEditingInvite] = useState<boolean>(false);
   const [editDurationDays, setEditDurationDays] = useState<number>(7);
-  const [searchKeyword, setSearchKeyword] = useState<string>("");
+  const { committedValue: searchKeyword, inputProps: searchInputProps } = useImeSearchValue();
 
   const invite = useSpaceInviteCodeQuery(spaceContext.spaceId ?? -1, inviteCodeType, duration);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const currentInviteLink = invite.data?.data ? `${origin}/invite/${invite.data.data}` : "生成中...";
+  const isInviteLinkPending = !invite.data?.data;
+  const currentInviteLink = invite.data?.data ? `${origin}/invite/${invite.data.data}` : "";
   const defaultTitle = targetType === "space" ? "邀请空间成员" : "邀请成员";
 
   const friendListQuery = useGetFriendListQuery({ pageNo: 1, pageSize: 100 });
@@ -84,7 +87,8 @@ export default function AddMemberWindow({
   };
 
   const copyToClipboard = async () => {
-    if (!currentInviteLink || currentInviteLink === "生成中...") {
+    if (isInviteLinkPending || !currentInviteLink) {
+      appToast.info("邀请链接生成中，请稍后复制");
       return;
     }
 
@@ -105,10 +109,12 @@ export default function AddMemberWindow({
         }
       }
       setCopied(true);
+      appToast.success("邀请链接已复制");
       window.setTimeout(() => setCopied(false), 2000);
     }
     catch (err) {
       console.error("复制失败:", err);
+      appToast.error("复制邀请链接失败，请手动复制输入框内容");
     }
   };
 
@@ -121,7 +127,7 @@ export default function AddMemberWindow({
         <label className="mb-2 block text-xs font-medium text-base-content/60" htmlFor="invite-link-input">
           链接
         </label>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2" aria-busy={isInviteLinkPending}>
           <input
             id="invite-link-input"
             type="text"
@@ -129,7 +135,7 @@ export default function AddMemberWindow({
             aria-label="邀请链接"
             value={currentInviteLink}
             readOnly={true}
-            placeholder="生成中..."
+            placeholder="邀请链接生成中…"
           />
           <button
             type="button"
@@ -140,7 +146,7 @@ export default function AddMemberWindow({
             onClick={() => {
               void copyToClipboard();
             }}
-            disabled={currentInviteLink === "生成中..."}
+            disabled={isInviteLinkPending}
           >
             {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="
               size-4
@@ -221,16 +227,13 @@ export default function AddMemberWindow({
               pointer-events-none absolute left-3 top-1/2 size-4
               -translate-y-1/2 text-base-content/45
             " />
-            <input
-              type="search"
+            <ImeAwareSearchInput
+              type="text"
               autoComplete="off"
               className="input input-bordered w-full bg-base-100 pl-9"
               placeholder="搜索好友"
               aria-label="搜索好友"
-              value={searchKeyword}
-              onChange={(event) => {
-                setSearchKeyword(event.currentTarget.value);
-              }}
+              {...searchInputProps}
             />
           </div>
 
@@ -378,6 +381,8 @@ function MemberRow({
   onClickAddMember: () => void;
   user: MemberLike;
 }) {
+  const displayName = user.username || user.userId || "该用户";
+
   return (
     <div className="
       flex items-center justify-between gap-3 border-b border-base-300/60 px-3
@@ -388,12 +393,23 @@ function MemberRow({
       <MemberIdentity user={user} />
       {isAdded
         ? (
-            <button className="btn btn-ghost btn-sm min-w-20" type="button" disabled={true}>
+            <button
+              className="btn btn-ghost btn-sm min-w-20"
+              type="button"
+              aria-label={`${displayName} 已添加到房间`}
+              title="已在房间中"
+              disabled={true}
+            >
               已添加
             </button>
           )
         : (
-            <button className="btn btn-primary btn-sm min-w-20" type="button" onClick={onClickAddMember}>
+            <button
+              className="btn btn-primary btn-sm min-w-20"
+              type="button"
+              aria-label={`${actionText} ${displayName}`}
+              onClick={onClickAddMember}
+            >
               {actionText}
             </button>
           )}

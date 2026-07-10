@@ -1,11 +1,10 @@
 import type { Dispatch, SetStateAction } from "react";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { useCallback } from "react";
-import toast from "react-hot-toast";
 
 import type { MinimalDocMeta, SidebarLeafNode, SidebarTree } from "@/components/chat/room/sidebarTree";
 
-import { upsertSpaceDocMetaCacheEntry } from "@/components/chat/infra/doc/space/spaceDocMetaPersistence";
 import { appendSidebarNodeToCategory, buildDefaultSidebarTree } from "@/components/chat/room/sidebarTree";
 import { tuanchat } from "api/instance";
 
@@ -109,7 +108,7 @@ export default function useSpaceSidebarTreeActions({
     }
 
     if (!createdDocId) {
-      toast.error("创建文档失败，请重试");
+      appToast.error("创建文档失败，请重试");
       return;
     }
 
@@ -124,7 +123,6 @@ export default function useSpaceSidebarTreeActions({
       ? baseDocMetas
       : [...baseDocMetas, { id: docId, title }];
 
-    upsertSpaceDocMetaCacheEntry({ spaceId: activeSpaceId, docId, title });
     setSpaceDocMetas(nextDocMetas);
 
     const base = buildTreeBaseForWrite(nextDocMetas);

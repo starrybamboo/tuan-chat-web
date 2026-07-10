@@ -231,7 +231,7 @@ export default function UserAvatarComponent({
     >
       <Avatar
         src={resolvedAvatar}
-        alt="Avatar"
+        alt={resolvedUsername ? `${resolvedUsername} 的头像` : "用户头像"}
         size={width}
         rounded={isRounded}
         fallbackSrc="/favicon.ico"

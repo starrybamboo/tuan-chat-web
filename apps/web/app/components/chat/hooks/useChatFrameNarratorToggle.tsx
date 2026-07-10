@@ -1,7 +1,7 @@
 import type { UseMutationResult } from "@tanstack/react-query";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { useCallback } from "react";
-import toast from "react-hot-toast";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { SpaceContextType } from "@/components/chat/core/spaceContext";
@@ -47,7 +47,7 @@ export default function useChatFrameNarratorToggle({
 
   const handleToggleNarrator = useCallback((messageId: number) => {
     if (!spaceContext.isSpaceOwner) {
-      toast.error(NARRATOR_PERMISSION_TOAST);
+      appToast.error(NARRATOR_PERMISSION_TOAST);
       return;
     }
 

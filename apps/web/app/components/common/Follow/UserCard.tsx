@@ -48,7 +48,7 @@ export function UserCard({ user }: UserCardProps) {
           </div>
         </div>
         <div className="ml-4 flex flex-col min-w-0">
-          <h3 className="text-lg font-semibold truncate">
+          <h3 className="text-lg font-semibold truncate" title={resolvedUser.isLoading ? undefined : displayName}>
             {resolvedUser.isLoading
               ? (
                   <div className="skeleton h-4 w-20"></div>

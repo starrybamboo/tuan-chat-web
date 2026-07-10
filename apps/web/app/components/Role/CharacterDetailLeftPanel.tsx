@@ -104,8 +104,10 @@ export default function CharacterDetailLeftPanel({
             onBaseRoleSave={onBaseRoleSave}
             align="center"
             nameClassName="truncate text-xl font-bold"
+            nameTitle={localRole.name || undefined}
             descriptionEditorClassName="pt-6"
             descriptionDisplayClassName="w-full text-base wrap-break-words max-w-full line-clamp-6 overflow-hidden text-ellipsis"
+            descriptionTitle={localRole.description || undefined}
             descriptionButtonClassName="py-3"
           />
         </div>

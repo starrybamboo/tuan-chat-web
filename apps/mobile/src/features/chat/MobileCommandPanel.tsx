@@ -2,12 +2,13 @@ import type { CommandInfo } from "@tuanchat/domain/command-request";
 
 import { filterCommandCatalog, getCommandCatalog } from "@tuanchat/domain/command-catalog";
 import { memo, useCallback, useMemo } from "react";
-import { FlatList, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
+import { resolveCommandPanelMaxHeight } from "./mobileCommandPanelLayout";
 import { getCommandQuery } from "./mobileCommandQuery";
 
 const styles = StyleSheet.create({
@@ -24,45 +25,45 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   listContent: {
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
   },
   item: {
-    borderRadius: Radius.md,
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.lg,
+    borderRadius: Radius.sm,
+    gap: 2,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
   },
   itemHeader: {
     alignItems: "center",
     flexDirection: "row",
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   cmdName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
   },
   cmdDesc: {
-    fontSize: 12,
+    fontSize: 11,
   },
   cmdUsage: {
-    fontSize: 11,
+    fontSize: 10,
   },
   examples: {
-    fontSize: 11,
+    fontSize: 10,
   },
 });
 
 type MobileCommandPanelProps = {
   draftMessage: string;
+  maxHeight?: number;
   onSelectCommand: (command: CommandInfo) => void;
   ruleId: number | null;
 };
 
 const commandKeyExtractor = (item: CommandInfo) => item.name;
 
-function MobileCommandPanelInner({ draftMessage, onSelectCommand, ruleId }: MobileCommandPanelProps) {
+function MobileCommandPanelInner({ draftMessage, maxHeight, onSelectCommand, ruleId }: MobileCommandPanelProps) {
   const theme = useTheme();
-  const { height } = useWindowDimensions();
   const query = getCommandQuery(draftMessage);
 
   const commands = useMemo(() => {
@@ -76,6 +77,8 @@ function MobileCommandPanelInner({ draftMessage, onSelectCommand, ruleId }: Mobi
 
   const renderCommandItem = useCallback(({ item }: { item: CommandInfo }) => (
     <Pressable
+      accessibilityLabel={item.description ? `${item.name}，${item.description}` : item.name}
+      accessibilityRole="button"
       onPress={() => onSelectCommand(item)}
       style={({ pressed }) => [
         styles.item,
@@ -111,7 +114,7 @@ function MobileCommandPanelInner({ draftMessage, onSelectCommand, ruleId }: Mobi
   if (query === null || commands.length === 0)
     return null;
 
-  const panelHeight = Math.max(260, height - 180);
+  const panelMaxHeight = resolveCommandPanelMaxHeight(maxHeight);
 
   return (
     <FlatList
@@ -124,7 +127,7 @@ function MobileCommandPanelInner({ draftMessage, onSelectCommand, ruleId }: Mobi
         {
           backgroundColor: theme.surface,
           borderColor: theme.border,
-          height: panelHeight,
+          maxHeight: panelMaxHeight,
         },
       ]}
       renderItem={renderCommandItem}

@@ -1,5 +1,5 @@
-import type { ClueFolderScope } from "@tuanchat/domain/clue-folder";
 import type { QueryClient } from "@tanstack/react-query";
+import type { ClueFolderScope } from "@tuanchat/domain/clue-folder";
 import type { ApiResultRoomListResponse } from "@tuanchat/openapi-client/models/ApiResultRoomListResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
@@ -51,6 +51,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 import type { DrawerMode } from "@/features/drawer/LeftDrawer";
 import type { MemberPreviewItem } from "@/features/members/memberUtils";
+import type { MobileChatStatusType } from "@/features/messages/mobileChatStatus";
 import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
 import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
 
@@ -73,22 +74,22 @@ import { useDmInboxQuery } from "@/features/friends/useDmInboxQuery";
 import {
   findCurrentMember,
   hasHostMemberType,
-
   mergeRoomMembersWithSpaceMembers,
 } from "@/features/members/memberUtils";
 import { useRoomMembersQuery } from "@/features/members/useRoomMembersQuery";
 import { useSpaceMembersQuery } from "@/features/members/useSpaceMembersQuery";
+import { sendMobileChatStatus, useMobileChatStatus, useMobileChatStatusEntries } from "@/features/messages/mobileChatStatus";
 import { executeMobileDicerCommand } from "@/features/messages/mobileDiceCommandExecutor";
 import {
   mergePickedMessageAttachments,
   pickMobileMessageAttachments,
 } from "@/features/messages/mobileMessageAttachment";
-import { uploadMobileMessageAttachments } from "@/features/messages/mobileMessageAttachmentUpload";
 import {
   alignOptimisticMessagesToMediaDrafts,
   buildOptimisticAttachmentRequests,
   filterOptimisticMessagesForUploadedAttachments,
 } from "@/features/messages/mobileMessageAttachmentOptimistic";
+import { uploadMobileMessageAttachments } from "@/features/messages/mobileMessageAttachmentUpload";
 import {
   canMobileMessageModeUseAttachments,
   MOBILE_MESSAGE_MODE,
@@ -133,6 +134,11 @@ import { buildExpressionDraftAsset } from "./expressionSticker";
 import { MapSheet } from "./MapSheet";
 import { MessageActionMenu } from "./MessageActionMenu";
 import { getErrorMessage } from "./mobileChatUtils";
+import {
+  readMobileRoomRoleSelection,
+  resolveMobileRoomRoleSelection,
+  writeMobileRoomRoleSelection,
+} from "./mobileRoomRoleSelection";
 import {
   getMobileNavigableRooms,
   getMobileVisibleClueRooms,
@@ -315,6 +321,7 @@ export default function ChatShell() {
   const messageSendInFlightRef = useRef(false);
   const [messageSendInFlight, setMessageSendInFlight] = useState(false);
   const [messageAttachments, setMessageAttachments] = useState<MobileMessageAttachment[]>([]);
+  const [roomContentHeight, setRoomContentHeight] = useState<number | undefined>(undefined);
   const draftMessageRef = useRef(draftMessage);
   const draftRoleIdInputRef = useRef(draftRoleIdInput);
   const messageAnchorIdRef = useRef(messageAnchorId);
@@ -342,6 +349,11 @@ export default function ChatShell() {
   const [profileSheetState, setProfileSheetState] = useState<ProfileSheetState | null>(null);
   const [stShowCardModel, setStShowCardModel] = useState<StShowCardModel | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const roomComposerDraftsRef = useRef(new Map<number, string>());
+  const selectedRoomDraftRestoreRef = useRef<{ roomId: number | null; version: number }>({
+    roomId: null,
+    version: 0,
+  });
 
   useEffect(() => {
     setActiveDirectContactId(currentContactId);
@@ -384,6 +396,12 @@ export default function ChatShell() {
     messageAttachmentsRef.current = messageAttachments;
   }, [draftMessage, draftRoleIdInput, messageAnchorId, messageAttachments]);
 
+  const clearCurrentRoomComposerDraft = useCallback(() => {
+    if (selectedRoomId != null) {
+      roomComposerDraftsRef.current.delete(selectedRoomId);
+    }
+  }, [selectedRoomId]);
+
   const pendingTargetContactId = useMemo(() => parsePositiveIntegerSearchParam(searchParams.contactId as string | string[] | undefined), [searchParams.contactId]);
   const pendingTargetSpaceId = useMemo(() => parsePositiveIntegerSearchParam(searchParams.spaceId as string | string[] | undefined), [searchParams.spaceId]);
   const pendingTargetRoomId = useMemo(() => parsePositiveIntegerSearchParam(searchParams.roomId as string | string[] | undefined), [searchParams.roomId]);
@@ -425,6 +443,56 @@ export default function ChatShell() {
   const currentRoomMember = useMemo(() => findCurrentMember(roomMembers, currentUserId), [currentUserId, roomMembers]);
   const isSpaceOwner = hasHostMemberType(currentSpaceMember?.memberType);
   const isSpectator = !currentRoomMember && !isSpaceOwner;
+  const myChatStatus = useMobileChatStatus(selectedRoomId, currentUserId);
+  const roomChatStatusEntries = useMobileChatStatusEntries(selectedRoomId);
+  const otherChatStatuses = useMemo(() => {
+    return roomChatStatusEntries
+      .flatMap((entry) => {
+        if (entry.userId === currentUserId || entry.status === "idle") {
+          return [];
+        }
+
+        const member = roomMembers.find(candidate => candidate.userId === entry.userId)
+          ?? spaceMembers.find(candidate => candidate.userId === entry.userId);
+        return [{
+          label: member?.username?.trim() || `用户 #${entry.userId}`,
+          status: entry.status,
+          userId: entry.userId,
+        }];
+      });
+  }, [currentUserId, roomChatStatusEntries, roomMembers, spaceMembers]);
+  const handleChangeChatStatus = useCallback((status: MobileChatStatusType) => {
+    if (!selectedRoomId || !currentUserId || isSpectator) {
+      return;
+    }
+
+    sendMobileChatStatus({
+      roomId: selectedRoomId,
+      status,
+      userId: currentUserId,
+    });
+  }, [currentUserId, isSpectator, selectedRoomId]);
+  const saveCurrentRoomComposerDraft = useCallback((nextMessage: string) => {
+    if (selectedRoomId == null) {
+      return;
+    }
+
+    if (nextMessage.length === 0) {
+      roomComposerDraftsRef.current.delete(selectedRoomId);
+      return;
+    }
+    roomComposerDraftsRef.current.set(selectedRoomId, nextMessage);
+  }, [selectedRoomId]);
+
+  const handleChangeDraftMessage = useCallback((nextMessage: string) => {
+    setDraftMessage(nextMessage);
+    saveCurrentRoomComposerDraft(nextMessage);
+
+    const nextStatus: MobileChatStatusType = nextMessage.trim().length > 0 ? "input" : "idle";
+    if (nextStatus !== myChatStatus) {
+      handleChangeChatStatus(nextStatus);
+    }
+  }, [handleChangeChatStatus, myChatStatus, saveCurrentRoomComposerDraft]);
   const canAddRoomRole = canManageRoomRoles(currentSpaceMember?.memberType)
     && typeof selectedRoomId === "number"
     && selectedRoomId > 0
@@ -466,11 +534,14 @@ export default function ChatShell() {
       return roomRoles.filter(role => role.state !== 1);
     return roomRoles.filter(role => role.userId === currentUserId && role.state !== 1);
   }, [currentUserId, isSpaceOwner, isSpectator, roomRoles]);
+  const fallbackSelectableRoleId = selectableRoomRoles[0]?.roleId;
   const currentRole = useMemo(() => {
-    if (!selectedRoleId)
+    const roleId = selectedRoleId ?? fallbackSelectableRoleId;
+    if (!roleId || roleId <= 0)
       return null;
-    return roomRoles.find(r => r.roleId === selectedRoleId) ?? null;
-  }, [roomRoles, selectedRoleId]);
+    return roomRoles.find(r => r.roleId === roleId) ?? null;
+  }, [fallbackSelectableRoleId, roomRoles, selectedRoleId]);
+  const canValidateSelectedRoleId = roomRolesQuery.isSuccess && myRolesQuery.isSuccess;
 
   const handleAddRoomRole = useCallback(async (role: UserRole) => {
     if (!canAddRoomRole || !selectedRoomId || addRoomRoleMutation.isPending) {
@@ -486,12 +557,19 @@ export default function ChatShell() {
       setSelectedRoleId(role.roleId);
       setSelectedAvatarId(undefined);
       setSelectedAvatarFileId(undefined);
+      void writeMobileRoomRoleSelection({
+        avatarFileId: role.avatarFileId,
+        avatarId: role.avatarId,
+        roleId: role.roleId,
+        roomId: selectedRoomId,
+        userId: currentUserId,
+      });
       setRoleSwitchVisible(false);
     }
     catch (error) {
       Alert.alert("添加角色失败", getErrorMessage(error, "请稍后重试"));
     }
-  }, [addRoomRoleMutation, canAddRoomRole, roomRolesQuery, selectedRoomId]);
+  }, [addRoomRoleMutation, canAddRoomRole, currentUserId, roomRolesQuery, selectedRoomId]);
 
   const handleOpenCreateRoomRole = useCallback(() => {
     if (!canAddRoomRole || !selectedRoomId) {
@@ -512,17 +590,17 @@ export default function ChatShell() {
     unreadMessagesNumber: roomUnreadCounts,
   }), [allAvailableRooms, currentUserId, roomUnreadCounts, selectedSpaceId]);
   const draftRoleId = useMemo(() => {
-    if (selectedRoleId)
+    if (selectedRoleId !== undefined)
       return selectedRoleId;
     const n = Number.parseInt(draftRoleIdInput, 10);
-    return Number.isFinite(n) && n > 0 ? n : undefined;
-  }, [draftRoleIdInput, selectedRoleId]);
+    return Number.isFinite(n) && n > 0 ? n : fallbackSelectableRoleId;
+  }, [draftRoleIdInput, fallbackSelectableRoleId, selectedRoleId]);
 
-  const effectiveCurrentRoleId = draftRoleId ?? selectableRoomRoles[0]?.roleId ?? 0;
+  const effectiveCurrentRoleId = draftRoleId ?? (isSpaceOwner ? -1 : 0);
   const noRole = effectiveCurrentRoleId <= 0 && !isSpaceOwner;
 
   const handleExecuteCommandFromRequest = useCallback(async (command: string, replyMessageId: number) => {
-    const effectiveRoleId = draftRoleId ?? selectableRoomRoles[0]?.roleId ?? (isSpaceOwner ? -1 : 0);
+    const effectiveRoleId = draftRoleId ?? (isSpaceOwner ? -1 : 0);
     const effectiveRole = effectiveRoleId > 0
       ? roomRoles.find(role => role.roleId === effectiveRoleId)
       : null;
@@ -552,7 +630,7 @@ export default function ChatShell() {
       sendRoomMessageMutation,
       space: selectedSpace,
     });
-  }, [currentRole, draftCustomRoleName, draftRoleId, isSpaceOwner, isSpectator, queryClient, roomMessageModels, roomRoles, selectableRoomRoles, selectedAvatarId, selectedRoomId, selectedRuleId, selectedSpace, sendRoomMessageMutation]);
+  }, [currentRole, draftCustomRoleName, draftRoleId, isSpaceOwner, isSpectator, queryClient, roomMessageModels, roomRoles, selectedAvatarId, selectedRoomId, selectedRuleId, selectedSpace, sendRoomMessageMutation]);
 
   const commandRequests = useMobileCommandRequests({
     roomId: selectedRoomId ?? 0,
@@ -662,24 +740,93 @@ export default function ChatShell() {
     };
   }, [selectedRoomId, selectedSpaceId, setWorkspaceSelection]);
 
-  // Reset state on room change
+  // 切换房间时恢复该房间的本地输入草稿，保留角色/头像选择的独立恢复逻辑。
   useEffect(() => {
+    const restoreVersion = selectedRoomDraftRestoreRef.current.version + 1;
+    selectedRoomDraftRestoreRef.current = {
+      roomId: selectedRoomId,
+      version: restoreVersion,
+    };
     const timer = setTimeout(() => {
-      setDraftMessage("");
+      const restoreState = selectedRoomDraftRestoreRef.current;
+      if (restoreState.roomId !== selectedRoomId || restoreState.version !== restoreVersion) {
+        return;
+      }
+
+      const restoredDraftMessage = selectedRoomId == null
+        ? ""
+        : roomComposerDraftsRef.current.get(selectedRoomId) ?? "";
+      setDraftMessage(restoredDraftMessage);
       setDraftRoleIdInput("");
       setMessageAnchorId(null);
       setMessageAttachments([]);
-      setMessageError(null);
       setMessageMode(MOBILE_MESSAGE_MODE.TEXT);
-      setSelectedRoleId(undefined);
-      setSelectedAvatarId(undefined);
-      setSelectedAvatarFileId(undefined);
+      draftMessageRef.current = restoredDraftMessage;
+      draftRoleIdInputRef.current = "";
+      messageAnchorIdRef.current = null;
+      messageAttachmentsRef.current = [];
+      setMessageError(null);
       setDraftCustomRoleName("");
       setMapSheetVisible(false);
       setStShowCardModel(null);
     }, 0);
     return () => clearTimeout(timer);
   }, [selectedRoomId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!selectedRoomId) {
+      queueMicrotask(() => {
+        if (cancelled) {
+          return;
+        }
+        setSelectedRoleId(undefined);
+        setSelectedAvatarId(undefined);
+        setSelectedAvatarFileId(undefined);
+        setDraftCustomRoleName("");
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void readMobileRoomRoleSelection(selectedRoomId, currentUserId).then((snapshot) => {
+      if (cancelled) {
+        return;
+      }
+      const restored = resolveMobileRoomRoleSelection({
+        canSelectNarrator: isSpaceOwner,
+        canValidateRoleId: canValidateSelectedRoleId,
+        fallbackRoleId: fallbackSelectableRoleId,
+        isSpectator,
+        roles: selectableRoomRoles,
+        snapshot,
+      });
+      if (!restored) {
+        setSelectedRoleId(fallbackSelectableRoleId);
+        setSelectedAvatarId(undefined);
+        setSelectedAvatarFileId(undefined);
+        setDraftCustomRoleName("");
+        return;
+      }
+      setSelectedRoleId(restored.roleId);
+      setSelectedAvatarId(restored.avatarId);
+      setSelectedAvatarFileId(restored.avatarFileId);
+      setDraftCustomRoleName(restored.customRoleName ?? "");
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    canValidateSelectedRoleId,
+    currentUserId,
+    fallbackSelectableRoleId,
+    isSpaceOwner,
+    isSpectator,
+    selectableRoomRoles,
+    selectedRoomId,
+  ]);
 
   useEffect(() => {
     if (!messageAnchorId || selectedAnchorMessage) {
@@ -924,10 +1071,12 @@ export default function ChatShell() {
     messageSendInFlightRef.current = true;
     setMessageSendInFlight(true);
     setMessageError(null);
+    handleChangeChatStatus("idle");
     draftMessageRef.current = "";
     draftRoleIdInputRef.current = "";
     messageAnchorIdRef.current = null;
     messageAttachmentsRef.current = [];
+    clearCurrentRoomComposerDraft();
     setDraftMessage("");
     setDraftRoleIdInput("");
     setMessageAnchorId(null);
@@ -946,7 +1095,7 @@ export default function ChatShell() {
         return;
       }
 
-      const effectiveRoleId = draftRoleId ?? selectableRoomRoles[0]?.roleId ?? (isSpaceOwner ? -1 : 0);
+      const effectiveRoleId = draftRoleId ?? (isSpaceOwner ? -1 : 0);
       const effectiveRole = effectiveRoleId > 0
         ? roomRoles.find(role => role.roleId === effectiveRoleId)
         : null;
@@ -1066,6 +1215,7 @@ export default function ChatShell() {
         draftRoleIdInputRef.current = submittedDraftRoleIdInput;
         messageAnchorIdRef.current = submittedMessageAnchorId;
         messageAttachmentsRef.current = submittedMessageAttachments;
+        saveCurrentRoomComposerDraft(submittedDraftMessage);
         setDraftMessage(submittedDraftMessage);
         setDraftRoleIdInput(submittedDraftRoleIdInput);
         setMessageAnchorId(submittedMessageAnchorId);
@@ -1077,6 +1227,7 @@ export default function ChatShell() {
       setMessageSendInFlight(false);
     }
   }, [
+    clearCurrentRoomComposerDraft,
     currentRole,
     draftCustomRoleName,
     draftMessage,
@@ -1089,14 +1240,15 @@ export default function ChatShell() {
     messageAnchorId,
     messageAttachments,
     messageMode,
+    handleChangeChatStatus,
     queryClient,
     roomMessageModels,
     roomRoles,
-    selectableRoomRoles,
     selectedAvatarId,
     selectedRoomId,
     selectedRuleId,
     selectedSpace,
+    saveCurrentRoomComposerDraft,
     sendRoomMessageMutation,
   ]);
 
@@ -1247,7 +1399,7 @@ export default function ChatShell() {
         throw new Error("表情包文件无效。");
       }
       const currentDraftMessage = draftMessageRef.current;
-      const effectiveRoleId = draftRoleId ?? selectableRoomRoles[0]?.roleId ?? (isSpaceOwner ? -1 : 0);
+      const effectiveRoleId = draftRoleId ?? (isSpaceOwner ? -1 : 0);
       const effectiveRole = effectiveRoleId > 0
         ? roomRoles.find(role => role.roleId === effectiveRoleId)
         : null;
@@ -1272,6 +1424,7 @@ export default function ChatShell() {
         replayMessageId: selectedAnchorMessage?.messageId,
         roleId: sendIdentity.roleId,
       });
+      clearCurrentRoomComposerDraft();
       setDraftMessage("");
       setMessageAnchorId(null);
       setExpressionPickerVisible(false);
@@ -1280,13 +1433,13 @@ export default function ChatShell() {
       setMessageError(getErrorMessage(error, "发送表情失败。"));
     }
   }, [
+    clearCurrentRoomComposerDraft,
     currentRole,
     draftCustomRoleName,
     draftRoleId,
     isSpaceOwner,
     isSpectator,
     roomRoles,
-    selectableRoomRoles,
     selectedAnchorMessage,
     selectedAvatarId,
     sendRoomMessageMutation,
@@ -1297,7 +1450,7 @@ export default function ChatShell() {
     try {
       await copyMessageToClueFolderMutation.mutateAsync({
         currentUserId,
-        fallbackRoleId: draftRoleId ?? selectableRoomRoles[0]?.roleId ?? null,
+        fallbackRoleId: draftRoleId ?? null,
         hasHostPrivileges: isSpaceOwner,
         scope,
         sourceMessage: message,
@@ -1317,7 +1470,6 @@ export default function ChatShell() {
     currentUserId,
     draftRoleId,
     isSpaceOwner,
-    selectableRoomRoles,
     selectedSpaceId,
     spaceMembers,
   ]);
@@ -1371,6 +1523,12 @@ export default function ChatShell() {
     deleteMessage,
     handleSelectMessageAnchor,
   ]);
+
+  const handleCancelEditMessage = useCallback(() => {
+    setEditingMessage(null);
+    setDraftMessage("");
+    clearCurrentRoomComposerDraft();
+  }, [clearCurrentRoomComposerDraft]);
 
   const handleOpenSearch = useCallback(() => {
     setSearchPageVisible(true);
@@ -1495,9 +1653,44 @@ export default function ChatShell() {
   }, [handleAddRoomRole]);
 
   const handleSelectRoleAvatar = useCallback((avatarId: number | undefined, avatarFileId: number | undefined) => {
+    const roleId = selectedRoleId ?? fallbackSelectableRoleId;
+    setSelectedRoleId(roleId);
     setSelectedAvatarId(avatarId);
     setSelectedAvatarFileId(avatarFileId);
-  }, []);
+    void writeMobileRoomRoleSelection({
+      avatarFileId,
+      avatarId,
+      customRoleName: draftCustomRoleName,
+      roleId,
+      roomId: selectedRoomId,
+      userId: currentUserId,
+    });
+  }, [currentUserId, draftCustomRoleName, fallbackSelectableRoleId, selectedRoleId, selectedRoomId]);
+
+  const handleSelectRole = useCallback((roleId: number | undefined) => {
+    const nextRoleId = roleId ?? -1;
+    setSelectedRoleId(nextRoleId);
+    setSelectedAvatarId(undefined);
+    setSelectedAvatarFileId(undefined);
+    void writeMobileRoomRoleSelection({
+      customRoleName: draftCustomRoleName,
+      roleId: nextRoleId,
+      roomId: selectedRoomId,
+      userId: currentUserId,
+    });
+  }, [currentUserId, draftCustomRoleName, selectedRoomId]);
+
+  const handleChangeCustomRoleName = useCallback((name: string) => {
+    setDraftCustomRoleName(name);
+    void writeMobileRoomRoleSelection({
+      avatarFileId: selectedAvatarFileId,
+      avatarId: selectedAvatarId,
+      customRoleName: name,
+      roleId: selectedRoleId ?? fallbackSelectableRoleId ?? -1,
+      roomId: selectedRoomId,
+      userId: currentUserId,
+    });
+  }, [currentUserId, fallbackSelectableRoleId, selectedAvatarFileId, selectedAvatarId, selectedRoleId, selectedRoomId]);
 
   const handleCloseExpressionPicker = useCallback(() => {
     setExpressionPickerVisible(false);
@@ -1571,12 +1764,18 @@ export default function ChatShell() {
     setStShowCardModel(null);
   }, []);
 
-  const keyboardBehavior = Platform.select<"height" | "padding" | "position" | undefined>({ android: "height", ios: "padding" });
+  const handleRoomContentLayout = useCallback((event: { nativeEvent: { layout: { height: number } } }) => {
+    const nextHeight = Math.floor(event.nativeEvent.layout.height);
+    setRoomContentHeight(prev => (prev === nextHeight ? prev : nextHeight));
+  }, []);
+
+  const keyboardAvoidingEnabled = Platform.OS === "ios";
+  const keyboardBehavior = Platform.select<"height" | "padding" | "position" | undefined>({ ios: "padding" });
 
   return (
     <ThemedView style={styles.shell}>
       <SafeAreaView edges={["top"]} style={styles.safeArea}>
-        <KeyboardAvoidingView behavior={keyboardBehavior} style={styles.kav}>
+        <KeyboardAvoidingView behavior={keyboardBehavior} enabled={keyboardAvoidingEnabled} style={styles.kav}>
           {isRoutePage
             ? (
                 <View style={styles.panelContainer}>
@@ -1614,7 +1813,11 @@ export default function ChatShell() {
                   <Animated.View style={[styles.center, centerStyle]}>
                     {selectedRoomId != null
                       ? (
-                          <View style={styles.contentLayer} pointerEvents={currentContactId && !dmOverlayHidden ? "none" : "auto"}>
+                          <View
+                            onLayout={handleRoomContentLayout}
+                            style={styles.contentLayer}
+                            pointerEvents={currentContactId && !dmOverlayHidden ? "none" : "auto"}
+                          >
                             {!searchPageVisible && (
                               <ChatHeader
                                 roomName={selectedRoom?.name ?? null}
@@ -1690,16 +1893,23 @@ export default function ChatShell() {
                                             availableRoles={selectableRoomRoles}
                                             canUseAttachments={canMobileMessageModeUseAttachments(messageMode)}
                                             canUseExpressionPicker
+                                            commandPanelMaxHeight={roomContentHeight}
                                             currentRole={currentRole}
+                                            currentRoleId={effectiveCurrentRoleId}
                                             currentAvatarFileId={selectedAvatarFileId}
-                                            draftMessage={draftMessage}
-                                            errorMessage={messageError}
-                                            isSubmitting={messageSendInFlight}
-                                            messageAttachments={messageAttachments}
-                                            messageMode={messageMode}
-                                            onChangeDraftMessage={setDraftMessage}
-                                            onClearAnchor={handleClearAnchor}
-                                            onClearAttachments={handleClearAttachments}
+                                              draftMessage={draftMessage}
+                                              editingMessage={editingMessage}
+                                              errorMessage={messageError}
+                                              isSubmitting={messageSendInFlight}
+                                              messageAttachments={messageAttachments}
+                                              messageMode={messageMode}
+                                               myChatStatus={myChatStatus}
+                                               otherChatStatuses={otherChatStatuses}
+                                               onChangeDraftMessage={handleChangeDraftMessage}
+                                              onChangeChatStatus={isSpectator ? undefined : handleChangeChatStatus}
+                                              onCancelEdit={handleCancelEditMessage}
+                                              onClearAnchor={handleClearAnchor}
+                                              onClearAttachments={handleClearAttachments}
                                             onOpenExpressionPicker={handleOpenExpressionPicker}
                                             onOpenRoleSwitch={handleOpenRoleSwitch}
                                             onPickAttachment={handlePickComposerAttachment}
@@ -1745,7 +1955,7 @@ export default function ChatShell() {
                       pointerEvents={isOverlayInteractive ? "auto" : "none"}
                       style={[styles.overlay, overlayStyle]}
                     >
-                      <Pressable style={{ flex: 1 }} onPress={close} />
+                      <Pressable accessibilityLabel="关闭右侧面板" accessibilityRole="button" style={{ flex: 1 }} onPress={close} />
                     </Animated.View>
                   </Animated.View>
 
@@ -1833,16 +2043,16 @@ export default function ChatShell() {
               addableRoles={addableRoomRoles}
               canAddRole={canAddRoomRole}
               currentAvatarId={selectedAvatarId}
-              currentRoleId={selectedRoleId}
+              currentRoleId={selectedRoleId ?? fallbackSelectableRoleId}
               customRoleName={draftCustomRoleName}
               canSelectNarrator={isSpaceOwner}
               isAddingRole={addRoomRoleMutation.isPending}
               onAddRole={handleAddRolePress}
-              onChangeCustomRoleName={setDraftCustomRoleName}
+              onChangeCustomRoleName={handleChangeCustomRoleName}
               onClose={handleCloseRoleSwitch}
               onCreateRole={handleOpenCreateRoomRole}
               onSelectAvatar={handleSelectRoleAvatar}
-              onSelectRole={setSelectedRoleId}
+              onSelectRole={handleSelectRole}
               roles={selectableRoomRoles}
               visible
             />

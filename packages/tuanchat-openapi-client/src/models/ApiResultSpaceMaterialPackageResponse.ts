@@ -21,4 +21,3 @@ export type ApiResultSpaceMaterialPackageResponse = {
     errMsg?: string;
     data?: SpaceMaterialPackageResponse;
 };
-

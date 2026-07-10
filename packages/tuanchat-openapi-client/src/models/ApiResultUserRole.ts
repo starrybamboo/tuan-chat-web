@@ -21,4 +21,3 @@ export type ApiResultUserRole = {
     errMsg?: string;
     data?: UserRole;
 };
-

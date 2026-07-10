@@ -19,4 +19,3 @@ export type FeedbackIssueCreateRequest = {
      */
     issueType: string;
 };
-

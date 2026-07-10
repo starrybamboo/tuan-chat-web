@@ -48,6 +48,7 @@ export type GeneratedMediaUploadFiles = {
   hasNovelAiMetadata: boolean;
   metadata: Record<string, unknown>;
   filesByQuality: Partial<Record<MediaQuality, File>>;
+  deferredFilesByQuality?: Partial<Record<MediaQuality, () => Promise<File | undefined>>>;
 };
 
 export type UploadedMediaFile = {
@@ -62,6 +63,7 @@ export type UploadedMediaFile = {
 };
 
 export type UploadMediaFileOptions = {
+  completeAfterPrimaryQuality?: boolean;
   retryPolicy?: Partial<UploadTargetRetryPolicy>;
   scene?: number;
   signal?: AbortSignal;
@@ -450,6 +452,40 @@ async function generateImageUploadFiles(file: File): Promise<GeneratedMediaUploa
   };
 }
 
+export async function generateOriginalFirstImageUploadFiles(file: File, _scene?: number): Promise<GeneratedMediaUploadFiles> {
+  const normalizedFile = await normalizeFileMimeType(file, { expectedMediaType: "image" });
+
+  const imageMetadataPromise = extractImageMetadata(normalizedFile);
+  const originalPromise = (async () => {
+    const result = await buildImageOriginalFile(normalizedFile);
+    assertMaxBytes(result, IMAGE_ORIGINAL_MAX_BYTES, "图片 original");
+    return result;
+  })();
+  const [original, imageMetadata] = await Promise.all([originalPromise, imageMetadataPromise]);
+  const deferredFilesByQuality: GeneratedMediaUploadFiles["deferredFilesByQuality"] = {};
+  if (original.size > MEDIA_COMPRESSION_PROFILES.image.low.maxSizeKB * 1024) {
+    deferredFilesByQuality.low = async () => await buildImageVariantFile(original, "low", MEDIA_COMPRESSION_PROFILES.image.low);
+  }
+  if (original.size > MEDIA_COMPRESSION_PROFILES.image.medium.maxSizeKB * 1024) {
+    deferredFilesByQuality.medium = async () => await buildImageVariantFile(original, "medium", MEDIA_COMPRESSION_PROFILES.image.medium);
+  }
+  const uploadedQualities = ["original", ...Object.keys(deferredFilesByQuality)];
+
+  return {
+    original,
+    mediaType: "image",
+    hasNovelAiMetadata: imageMetadata.hasNovelAiMetadata,
+    metadata: {
+      ...imageMetadata.metadata,
+      uploadedQualities,
+    },
+    filesByQuality: {
+      original,
+    },
+    deferredFilesByQuality,
+  };
+}
+
 async function generateAudioUploadFiles(file: File, scene?: number): Promise<GeneratedMediaUploadFiles> {
   const normalizedFile = await normalizeFileMimeType(file, { expectedMediaType: "audio" });
   const isChatroom = isChatroomUploadScene(scene);
@@ -637,6 +673,37 @@ export async function uploadGeneratedMediaFiles(payload: GeneratedMediaUploadFil
   await putMediaTargetWithRetry(primaryTarget, primaryFile, primaryQuality, options.signal, retryPolicy);
   availableQualities.push(primaryQuality);
 
+  if (options.completeAfterPrimaryQuality) {
+    const derivativeEntries = targetEntries.filter(([quality]) => quality !== primaryQuality);
+    const derivativeQualities = derivativeEntries.map(([quality]) => quality);
+    const primaryCompleteRequest: MediaCompleteUploadRequest = {
+      availableQualities,
+      pendingQualities: derivativeQualities,
+      failedQualities: [],
+      degraded: derivativeQualities.length > 0,
+      failedTargets: [],
+    };
+    const completeResponse = await completeMediaUpload(prepared.sessionId, primaryCompleteRequest, options.signal);
+    uploadDerivativeTargetsInBackground({
+      availableQualities: [...availableQualities],
+      completeSessionId: prepared.sessionId,
+      entries: derivativeEntries,
+      payload,
+      retryPolicy,
+    });
+
+    return {
+      fileId: prepared.fileId!,
+      mediaType: prepared.mediaType!,
+      uploadRequired: true,
+      availableQualities: completeResponse.availableQualities ?? primaryCompleteRequest.availableQualities,
+      pendingQualities: completeResponse.pendingQualities ?? primaryCompleteRequest.pendingQualities,
+      failedQualities: completeResponse.failedQualities ?? primaryCompleteRequest.failedQualities,
+      degraded: completeResponse.degraded ?? primaryCompleteRequest.degraded,
+      failedTargets: [],
+    };
+  }
+
   const derivativeResults = await Promise.all(targetEntries
     .filter(([quality]) => quality !== primaryQuality)
     .map(async ([quality, target]) => uploadDerivativeTarget({
@@ -684,6 +751,92 @@ export async function uploadGeneratedMediaFiles(payload: GeneratedMediaUploadFil
     degraded: completeResponse.degraded ?? completeRequest.degraded,
     failedTargets,
   };
+}
+
+function uploadDerivativeTargetsInBackground({
+  availableQualities,
+  completeSessionId,
+  entries,
+  payload,
+  retryPolicy,
+}: {
+  availableQualities: string[];
+  completeSessionId: number;
+  entries: Array<[string, MediaUploadTarget]>;
+  payload: GeneratedMediaUploadFiles;
+  retryPolicy: UploadTargetRetryPolicy;
+}) {
+  if (entries.length === 0) {
+    return;
+  }
+
+  void (async () => {
+    const derivativeResults = await Promise.all(entries.map(async ([quality, target]) => {
+      try {
+        return await uploadDerivativeTarget({
+          file: await resolveDerivativeUploadFile(payload, quality as MediaQuality),
+          quality,
+          retryPolicy,
+          target,
+        });
+      }
+      catch (error) {
+        const uploadError = normalizeUploadTargetError(error);
+        return {
+          status: "failed" as const,
+          quality,
+          failedTarget: {
+            quality,
+            error: uploadError.message,
+            retryable: uploadError.retryable,
+            credentialExpired: uploadError.credentialExpired || undefined,
+          },
+        };
+      }
+    }));
+    const nextAvailableQualities = [...availableQualities];
+    const pendingQualities: string[] = [];
+    const failedQualities: string[] = [];
+    const failedTargets: FailedUploadTarget[] = [];
+
+    for (const result of derivativeResults) {
+      if (result.status === "succeeded") {
+        nextAvailableQualities.push(result.quality);
+        continue;
+      }
+      if (result.status === "skipped") {
+        continue;
+      }
+      failedTargets.push(result.failedTarget);
+      if (result.failedTarget.retryable || result.failedTarget.credentialExpired) {
+        pendingQualities.push(result.quality);
+      }
+      else {
+        failedQualities.push(result.quality);
+      }
+    }
+
+    await completeMediaUpload(completeSessionId, {
+      availableQualities: nextAvailableQualities,
+      pendingQualities,
+      failedQualities,
+      degraded: pendingQualities.length > 0 || failedQualities.length > 0,
+      failedTargets,
+    });
+  })().catch((error) => {
+    console.warn("[媒体上传] 派生文件后台上传失败", error);
+  });
+}
+
+async function resolveDerivativeUploadFile(
+  payload: GeneratedMediaUploadFiles,
+  quality: MediaQuality,
+): Promise<File | undefined> {
+  const file = payload.filesByQuality[quality];
+  if (file) {
+    return file;
+  }
+  return await payload.deferredFilesByQuality?.[quality]?.();
 }
 
 async function uploadDerivativeTarget({

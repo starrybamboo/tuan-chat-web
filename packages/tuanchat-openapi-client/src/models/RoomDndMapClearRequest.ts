@@ -8,4 +8,3 @@ export type RoomDndMapClearRequest = {
      */
     roomId: number;
 };
-

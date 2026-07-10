@@ -52,7 +52,8 @@ export const AiImageWorkspace = memo(({
             <button
               type="button"
               className="absolute inset-0 z-[5] bg-black/36 transition-opacity"
-              aria-label="Close pinned preview scrim"
+              aria-label="关闭固定预览遮罩"
+              title="关闭固定预览遮罩"
               onClick={() => setIsPinnedDrawerOpen(false)}
             />
           )
@@ -85,8 +86,8 @@ export const AiImageWorkspace = memo(({
                       rounded-none text-base-content/72 transition-colors
                       hover:bg-base-200/35 hover:text-base-content
                     "
-                    aria-label="Unpin preview"
-                    title="Unpin preview"
+                    aria-label="取消固定预览"
+                    title="取消固定预览"
                     onClick={onClearPinnedPreview}
                   >
                     <TrashSimpleIcon className="size-[18px]" weight="regular" />
@@ -98,8 +99,8 @@ export const AiImageWorkspace = memo(({
                       rounded-none text-base-content/72 transition-colors
                       hover:bg-base-200/35 hover:text-base-content
                     "
-                    aria-label="Jump to pinned image"
-                    title="Jump to pinned image"
+                    aria-label="跳转到固定图片"
+                    title="跳转到固定图片"
                     onClick={() => {
                       onJumpToPinnedPreview();
                       setIsPinnedDrawerOpen(false);
@@ -114,8 +115,8 @@ export const AiImageWorkspace = memo(({
                       rounded-none text-base-content/72 transition-colors
                       hover:bg-base-200/35 hover:text-base-content
                     "
-                    aria-label="Apply pinned seed"
-                    title="Apply pinned seed"
+                    aria-label="应用固定图片的 seed"
+                    title="应用固定图片的 seed"
                     onClick={onApplyPinnedPreviewSeed}
                   >
                     <PlantIcon className="size-[18px]" weight="regular" />
@@ -128,6 +129,8 @@ export const AiImageWorkspace = memo(({
                     bg-transparent shadow-xl
                   "
                   aria-label={isPinnedDrawerOpen ? "Collapse pinned preview" : "Expand pinned preview"}
+                  aria-expanded={isPinnedDrawerOpen}
+                  aria-controls="ai-image-pinned-preview"
                   onClick={() => {
                     if (isPinnedDrawerOpen) {
                       setIsPinnedDrawerOpen(false);
@@ -137,6 +140,7 @@ export const AiImageWorkspace = memo(({
                   }}
                 >
                   <img
+                    id="ai-image-pinned-preview"
                     src={pinnedPreviewResult.dataUrl}
                     className="
                       block max-h-[min(74vh,640px)] w-auto rounded-none

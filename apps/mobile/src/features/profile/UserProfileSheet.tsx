@@ -94,7 +94,13 @@ export function UserProfileSheet({ avatarFileId, onClose, userId, username, visi
               )
             : null}
         </View>
-        <Pressable onPress={onClose} style={[styles.closeBtn, { backgroundColor: theme.backgroundElement }]}>
+        <Pressable
+          accessibilityLabel="关闭用户资料"
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={onClose}
+          style={[styles.closeBtn, { backgroundColor: theme.backgroundElement }]}
+        >
           <ThemedText>关闭</ThemedText>
         </Pressable>
       </BottomSheetModal>

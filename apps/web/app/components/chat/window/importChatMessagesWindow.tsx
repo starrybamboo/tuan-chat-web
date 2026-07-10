@@ -11,7 +11,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { ImportChatRequestMessage } from "@/components/chat/utils/importChatMessageRequestBuilder";
 import type { RglImportResolverSources } from "@/components/chat/utils/importRglResolvers";
@@ -210,11 +210,11 @@ export default function ImportChatMessagesWindow({
       const text = await file.text();
       setFileName(file.name);
       setRawText(text);
-      toast.success(`已读取 ${file.name}`);
+      appToast.success(`已读取 ${file.name}`);
     }
     catch (e: any) {
       console.error("读取文件失败", e);
-      toast.error("读取文件失败");
+      appToast.error("读取文件失败");
     }
   };
 
@@ -254,11 +254,11 @@ export default function ImportChatMessagesWindow({
       if (result.role) {
         details.push(`角色新建 ${result.role.roleCreate}，角色素材新建 ${result.role.create}，更新 ${result.role.update}`);
       }
-      toast.success(details.length > 0 ? `本地素材已导入：${details.join("；")}` : "本地素材已导入");
+      appToast.success(details.length > 0 ? `本地素材已导入：${details.join("；")}` : "本地素材已导入");
     }
     catch (e: any) {
       console.error("导入 RGL 本地素材失败", e);
-      toast.error(e?.message ? `导入本地素材失败：${e.message}` : "导入本地素材失败");
+      appToast.error(e?.message ? `导入本地素材失败：${e.message}` : "导入本地素材失败");
     }
     finally {
       setIsImportingRglLocalAssets(false);
@@ -277,11 +277,11 @@ export default function ImportChatMessagesWindow({
     setIsImportingRglMaterialAssets(true);
     try {
       const result = await onImportRglMaterialAssets(file);
-      toast.success(`${result.action === "update" ? "已重写" : "已创建"}通用素材包：${result.name}（${result.materialCount} 个素材）`);
+      appToast.success(`${result.action === "update" ? "已重写" : "已创建"}通用素材包：${result.name}（${result.materialCount} 个素材）`);
     }
     catch (e: any) {
       console.error("导入 RGL 通用素材失败", e);
-      toast.error(e?.message ? `导入通用素材失败：${e.message}` : "导入通用素材失败");
+      appToast.error(e?.message ? `导入通用素材失败：${e.message}` : "导入通用素材失败");
     }
     finally {
       setIsImportingRglMaterialAssets(false);
@@ -300,11 +300,11 @@ export default function ImportChatMessagesWindow({
     setIsImportingRglRoleAssets(true);
     try {
       const result = await onImportRglRoleAssets(file);
-      toast.success(`角色素材已导入：角色新建 ${result.roleCreate}，差分新建 ${result.create}，更新 ${result.update}`);
+      appToast.success(`角色素材已导入：角色新建 ${result.roleCreate}，差分新建 ${result.create}，更新 ${result.update}`);
     }
     catch (e: any) {
       console.error("导入 RGL 角色素材失败", e);
-      toast.error(e?.message ? `导入角色素材失败：${e.message}` : "导入角色素材失败");
+      appToast.error(e?.message ? `导入角色素材失败：${e.message}` : "导入角色素材失败");
     }
     finally {
       setIsImportingRglRoleAssets(false);
@@ -335,24 +335,24 @@ export default function ImportChatMessagesWindow({
 
   const handleImport = async () => {
     if (isImportBusy) {
-      toast.error(isImportingRglAssets ? "素材导入中，请等待完成" : "正在导入消息");
+      appToast.error(isImportingRglAssets ? "素材导入中，请等待完成" : "正在导入消息");
       return;
     }
     if (activeMessageCount === 0) {
-      toast.error("没有可导入的有效消息");
+      appToast.error("没有可导入的有效消息");
       return;
     }
     if (importMode === "plain" && missingSpeakers.length > 0) {
-      toast.error("请先为所有角色名指定对应角色");
+      appToast.error("请先为所有角色名指定对应角色");
       return;
     }
     if (importMode === "rgl" && activeInvalidLines.length > 0) {
       const firstInvalid = rglParsed.invalidLines[0];
-      toast.error(firstInvalid ? `第 ${firstInvalid.lineNumber} 行：${firstInvalid.reason}` : "请先修正 RGL 解析错误");
+      appToast.error(firstInvalid ? `第 ${firstInvalid.lineNumber} 行：${firstInvalid.reason}` : "请先修正 RGL 解析错误");
       return;
     }
     if (importMode === "rgl" && !loadRglImportSources) {
-      toast.error("当前入口暂不支持 RGL 素材解析");
+      appToast.error("当前入口暂不支持 RGL 素材解析");
       return;
     }
 
@@ -380,12 +380,12 @@ export default function ImportChatMessagesWindow({
       }
 
       await onImport(resolved, (sent, total) => setProgress({ sent, total }));
-      toast.success(successMessage);
+      appToast.success(successMessage);
       onClose();
     }
     catch (e: any) {
       console.error("导入失败", e);
-      toast.error(e?.message ? `导入失败：${e.message}` : "导入失败");
+      appToast.error(e?.message ? `导入失败：${e.message}` : "导入失败");
     }
     finally {
       setIsImporting(false);
@@ -394,7 +394,7 @@ export default function ImportChatMessagesWindow({
 
   const handleQuickCreateRole = () => {
     if (!onOpenRoleAddWindow) {
-      toast.error("当前页面无法打开创建角色入口");
+      appToast.error("当前页面无法打开创建角色入口");
       return;
     }
     onClose();
@@ -403,7 +403,7 @@ export default function ImportChatMessagesWindow({
 
   const handleQuickCreateNpc = () => {
     if (!onOpenNpcAddWindow) {
-      toast.error("当前页面无法打开创建NPC入口");
+      appToast.error("当前页面无法打开创建NPC入口");
       return;
     }
     onClose();
@@ -437,9 +437,11 @@ export default function ImportChatMessagesWindow({
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <h2 className="text-lg/6 font-semibold">导入对话</h2>
               {supportsRglImport && (
-                <div className="join">
+                <div className="join" role="group" aria-label="导入模式">
                   <button
                     type="button"
+                    aria-label="切换到普通导入模式"
+                    aria-pressed={importMode === "plain"}
                     className={`join-item btn btn-xs ${importMode === "plain" ? "border-info/40 bg-base-300 text-info shadow-sm" : "btn-ghost"}`}
                     onClick={() => setImportMode("plain")}
                     disabled={isImportBusy}
@@ -448,6 +450,8 @@ export default function ImportChatMessagesWindow({
                   </button>
                   <button
                     type="button"
+                    aria-label="切换到 RGL 导入模式"
+                    aria-pressed={importMode === "rgl"}
                     className={`join-item btn btn-xs ${importMode === "rgl" ? "border-info/40 bg-base-300 text-info shadow-sm" : "btn-ghost"}`}
                     onClick={() => setImportMode("rgl")}
                     disabled={isImportBusy}
@@ -465,6 +469,7 @@ export default function ImportChatMessagesWindow({
             onClick={onClose}
             disabled={isImportBusy}
             title="关闭"
+            aria-label="关闭导入窗口"
           >
             <X size={20} />
           </button>
@@ -493,6 +498,7 @@ export default function ImportChatMessagesWindow({
               onClick={handleClear}
               disabled={isImportBusy || (!rawText && !fileName)}
               title="清空内容"
+              aria-label="清空导入内容"
             >
               <Broom size={14} />
               清空
@@ -513,6 +519,7 @@ export default function ImportChatMessagesWindow({
                 onChange={e => handlePickFile(e.target.files)}
                 disabled={isImportBusy}
                 title="选择文本文件"
+                aria-label="上传聊天记录文件"
               />
               <div
                 className={`
@@ -565,8 +572,8 @@ export default function ImportChatMessagesWindow({
               autoComplete="off"
               aria-label="导入消息文本"
               placeholder={importMode === "rgl"
-                ? "<sys:bg>:永远亭夜晚\n\n[烈.震惊]<figure.pos.left-center><figure.anim.enter>:这是一句台词。\n[师匠=八意永琳.默认]<figure.pos.right-center>:先喝茶。\n\n[旁白]<dialog.next>:夜色渐深。\n\n<dice>:\ndicer: 海豹一号机\ncmd: 【1d10：】\n1. 继续观察\n2. 直接行动\n=> 【1d10:2】；2 直接行动"
-                : "[KP]：欢迎来到这里\n<张三>：这是哪里？\n\n或\n\n木落(303451945) 2022/03/21 19:06:53\n房前有两棵树"}
+                ? "粘贴 RGL 内容，例如 [角色.表情]:台词"
+                : "粘贴聊天记录，例如 [KP]：台词 或 昵称 时间 内容"}
               value={rawText}
               onChange={e => setRawText(e.target.value)}
               disabled={isImportBusy}

@@ -1,7 +1,7 @@
 import type { DragEvent } from "react";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { useCallback, useState } from "react";
-import toast from "react-hot-toast";
 
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 
@@ -48,21 +48,21 @@ export default function useRoomSidebarDocCopy({
 
   const handleDropDocRefToCategory = useCallback(async ({ categoryId, docRef }: DocCopyDropParams) => {
     if (!activeSpaceId || activeSpaceId <= 0) {
-      toast.error("未选择空间");
+      appToast.error("未选择空间");
       return;
     }
     if (!isSpaceOwner) {
-      toast.error("仅主持可复制到空间侧边栏");
+      appToast.error("仅主持可复制到空间侧边栏");
       return;
     }
 
     const sourceDocRoomId = docRef.roomId ?? Number(docRef.docId);
     if (!Number.isFinite(sourceDocRoomId) || sourceDocRoomId <= 0) {
-      toast.error("仅支持复制空间文档");
+      appToast.error("仅支持复制空间文档");
       return;
     }
 
-    const toastId = toast.loading("正在复制到空间侧边栏…");
+    const toastId = appToast.loading("正在复制到空间侧边栏…");
     try {
       const cleanDocRef = buildDocCardReferencePayload({
         docId: String(sourceDocRoomId),
@@ -95,7 +95,7 @@ export default function useRoomSidebarDocCopy({
       const nextTree = JSON.parse(JSON.stringify(baseTree)) as SidebarTree;
       const cat = nextTree.categories.find(c => c.categoryId === categoryId) ?? nextTree.categories[0];
       if (!cat) {
-        toast.error("侧边栏分类不存在", { id: toastId });
+        appToast.error("侧边栏分类不存在", { id: toastId });
         return;
       }
       cat.items = Array.isArray(cat.items) ? cat.items : [];
@@ -152,11 +152,11 @@ export default function useRoomSidebarDocCopy({
       })();
 
       normalizeAndSet(nextTree, true, { docMetasOverride });
-      toast.success("已复制到空间侧边栏", { id: toastId });
+      appToast.success("已复制到空间侧边栏", { id: toastId });
     }
     catch (err) {
       console.error("[DocCopy] drop copy failed", err);
-      toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
+      appToast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
     }
   }, [activeSpaceId, appendExtraDocMeta, isSpaceOwner, normalizeAndSet, treeToRender, visibleDocMetas]);
 
@@ -192,7 +192,7 @@ export default function useRoomSidebarDocCopy({
 
     const docRef = getDocRefDragData(e.dataTransfer);
     if (!docRef) {
-      toast.error("未识别到文档拖拽数据，请从文档卡片空白处重新拖拽");
+      appToast.error("未识别到文档拖拽数据，请从文档卡片空白处重新拖拽");
       return;
     }
 
@@ -237,7 +237,7 @@ export default function useRoomSidebarDocCopy({
     const docRef = getDocRefDragData(e.dataTransfer);
     if (!docRef) {
       if (isDocRefDrag(e.dataTransfer)) {
-        toast.error("未识别到文档拖拽数据，请从文档卡片空白处重新拖拽");
+        appToast.error("未识别到文档拖拽数据，请从文档卡片空白处重新拖拽");
       }
       return;
     }

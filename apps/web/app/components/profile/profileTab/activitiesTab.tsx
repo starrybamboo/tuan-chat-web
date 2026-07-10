@@ -226,6 +226,7 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                           onClick={() => window.location.reload()}
                           className="btn btn-primary"
                           type="button"
+                          title="刷新整个页面"
                         >
                           重新加载
                         </button>

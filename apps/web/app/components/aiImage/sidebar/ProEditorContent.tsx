@@ -197,6 +197,7 @@ export const ProEditorContent = memo(({
           <div className={segmentedControlClassName}>
             <button
               type="button"
+              aria-pressed={proPromptTab === "prompt"}
               className={`
                 ${segmentedButtonBaseClassName}
                 ${proPromptTab === "prompt" ? `
@@ -212,6 +213,7 @@ export const ProEditorContent = memo(({
             </button>
             <button
               type="button"
+              aria-pressed={proPromptTab === "negative"}
               className={`
                 ${segmentedButtonBaseClassName}
                 ${proPromptTab === "negative" ? `
@@ -248,6 +250,7 @@ export const ProEditorContent = memo(({
               }
               `}
               aria-label="打开输入设置"
+              aria-haspopup="menu"
               aria-expanded={isProPromptSettingsOpen}
               aria-controls="ai-image-pro-prompt-settings"
               onClick={() => setIsProPromptSettingsOpen((prev: boolean) => !prev)}
@@ -275,6 +278,12 @@ export const ProEditorContent = memo(({
               style={{
                 top: `${proPromptSettingsPosition.top}px`,
                 left: `${proPromptSettingsPosition.left}px`,
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Escape" && isProPromptSettingsOpen) {
+                  setIsProPromptSettingsOpen(false);
+                  proPromptSettingsButtonRef.current?.focus();
+                }
               }}
             >
               <div className="
@@ -534,6 +543,8 @@ export const ProEditorContent = memo(({
                             type="button"
                             className={baseImageActionButtonClassName}
                             disabled={isBusy}
+                            aria-disabled={isBusy}
+                            title={isBusy ? "正在处理，请稍候" : undefined}
                             onClick={() => void handleOpenBaseImageInpaint()}
                           >
                             <SelectionPlusIcon className="size-5" weight="regular" />

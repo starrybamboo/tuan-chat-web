@@ -21,4 +21,3 @@ export type ApiResultPageBaseRespFollowResponse = {
     errMsg?: string;
     data?: PageBaseRespFollowResponse;
 };
-

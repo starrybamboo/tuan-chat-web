@@ -159,10 +159,17 @@ export function shouldWriteMobileQuerySnapshot<T>(
   return Boolean(enabled && query.isSuccess && query.data !== undefined);
 }
 
+// 该 hook 只提供 query 的冷启动/离线恢复快照；业务判断必须优先看网络 query 状态。
 export function useMobileQuerySnapshot<T, Q extends SnapshotBackedQuery<T>>(
   query: Q,
   options: MobileQuerySnapshotOptions<T>,
-): Q & { data: T | undefined; isLoading: boolean; isPending: boolean; isRestoredFromSnapshot: boolean } {
+): Q & {
+  data: T | undefined;
+  isLoading: boolean;
+  isPending: boolean;
+  isRestoredFromSnapshot: boolean;
+  snapshotData: T | undefined;
+} {
   const {
     key,
     preparePayload,
@@ -211,6 +218,9 @@ export function useMobileQuerySnapshot<T, Q extends SnapshotBackedQuery<T>>(
     () => getSnapshotHydratedData(query.data, activeHydrationState, key, networkDataAvailable),
     [activeHydrationState, key, networkDataAvailable, query.data],
   );
+  const snapshotData = activeHydrationState?.key === key
+    ? activeHydrationState.entry?.payload
+    : undefined;
 
   useEffect(() => {
     if (!enabled || !query.isSuccess || query.data === undefined) {
@@ -266,5 +276,6 @@ export function useMobileQuerySnapshot<T, Q extends SnapshotBackedQuery<T>>(
     isLoading: isSnapshotBackedLoading(query, hydratedData),
     isPending: isSnapshotBackedPending(query, hydratedData),
     isRestoredFromSnapshot: isRestoredFromMobileSnapshot(query.data, hydratedData, networkDataAvailable),
+    snapshotData,
   };
 }

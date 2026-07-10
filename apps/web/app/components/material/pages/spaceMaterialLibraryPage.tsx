@@ -1,9 +1,9 @@
 import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/MaterialPackageContent";
 import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
 
 import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
 
@@ -201,7 +201,7 @@ export default function SpaceMaterialLibraryPage({
       coverFileId: draft.coverFileId,
       content: draft.content,
     });
-    toast.success("局内素材包已创建");
+    appToast.success("局内素材包已创建");
     setIsCreating(false);
     updateSelectedLocation(result.data?.spacePackageId ?? null);
   };
@@ -238,7 +238,7 @@ export default function SpaceMaterialLibraryPage({
       spaceId,
       spacePackageId: selectedPackage.spacePackageId,
     });
-    toast.success("局内素材包已删除");
+    appToast.success("局内素材包已删除");
     setIsCreating(false);
     updateSelectedLocation(null);
   };
@@ -318,14 +318,14 @@ export default function SpaceMaterialLibraryPage({
       });
 
       const savedId = result.spacePackageId ?? null;
-      toast.success(`${result.action === "update" ? "已重写" : "已创建"} Replay 导入素材包：${result.name}（${result.materialCount} 个素材）`);
+      appToast.success(`${result.action === "update" ? "已重写" : "已创建"} Replay 导入素材包：${result.name}（${result.materialCount} 个素材）`);
       setKeyword("");
       setIsCreating(false);
       updateSelectedLocation(savedId);
     }
     catch (error) {
       const message = error instanceof Error ? error.message : "未知错误";
-      toast.error(`导入本地 Replay 素材失败：${message}`);
+      appToast.error(`导入本地 Replay 素材失败：${message}`);
     }
     finally {
       setIsImportingReplayLocalAssets(false);
@@ -352,14 +352,14 @@ export default function SpaceMaterialLibraryPage({
       });
 
       const savedId = result.spacePackageId ?? null;
-      toast.success(`${result.action === "update" ? "已重写" : "已创建"} Replay 导入素材包：${result.name}（${result.materialCount} 个素材）`);
+      appToast.success(`${result.action === "update" ? "已重写" : "已创建"} Replay 导入素材包：${result.name}（${result.materialCount} 个素材）`);
       setKeyword("");
       setIsCreating(false);
       updateSelectedLocation(savedId);
     }
     catch (error) {
       const message = error instanceof Error ? error.message : "未知错误";
-      toast.error(`导入 asset-manifest.json 失败：${message}`);
+      appToast.error(`导入 asset-manifest.json 失败：${message}`);
     }
     finally {
       setIsImportingReplayManifest(false);
@@ -433,7 +433,7 @@ export default function SpaceMaterialLibraryPage({
 
   const workspaceNode = (
     <MaterialPackageLibraryWorkspace
-      upperLabel="Space Library"
+      upperLabel="空间素材库"
       title="局内素材包"
       description="当前空间的局内素材包会像本地仓库一样管理素材副本，编辑体验与局外素材包保持一致。"
       searchPlaceholder="搜索当前空间的素材包、导入副本或章节内容..."
@@ -509,7 +509,7 @@ export default function SpaceMaterialLibraryPage({
             dragPackageId={selectedPackage.spacePackageId}
             sidebarActionScope="detail"
             showStructureSidebar={showEmbeddedStructureSidebar}
-            title="编辑局内素材包"
+            title={`编辑局内素材包：${selectedPackage.name ?? "未命名局内素材包"}`}
             subtitle={selectedPackage.sourcePackageId
               ? `来源局外素材包：${selectedPackage.sourcePackageId} · 当前空间维护的是独立副本`
               : "这是当前空间直接创建的本地素材包"}

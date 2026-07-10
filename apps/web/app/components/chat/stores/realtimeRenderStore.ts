@@ -13,7 +13,7 @@ import { mergeRealtimeRenderRuntimeState } from "@/components/chat/stores/realti
 import { getDefaultTerrePort, setTerrePortOverride as setTerrePortOverrideInConfig } from "@/webGAL/terreConfig";
 
 export type RealtimeWebgalDefaultLanguage = "" | "zh_CN" | "zh_TW" | "en" | "ja" | "fr" | "de";
-export type RealtimeWebgalBaseTemplate = "none" | "black" | "tuanchat";
+export type RealtimeWebgalBaseTemplate = "black" | "tuanchat";
 const DEFAULT_TYPING_SOUND_INTERVAL = 1.5;
 const DEFAULT_TYPING_SOUND_PUNCTUATION_PAUSE = 100;
 const DEFAULT_FIGURE_ENTER_TRANSITION_DURATION = 0;
@@ -54,7 +54,7 @@ export type RealtimeWebgalGameConfig = {
   description: string;
   /** WebGAL 游戏包名（Package_name） */
   packageName: string;
-  /** WebGAL 底层模板（tuanchat=团剧共创, black=黑色模板, none=历史默认别名） */
+  /** WebGAL 底层模板（tuanchat=团剧共创, black=黑色模板） */
   baseTemplate: RealtimeWebgalBaseTemplate;
   /** 是否启用紧急回避（Show_panic） */
   showPanicEnabled: boolean;

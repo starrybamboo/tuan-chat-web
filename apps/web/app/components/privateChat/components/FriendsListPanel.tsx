@@ -1,9 +1,10 @@
 import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
 
 import { motion } from "motion/react";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
+import { ImeAwareSearchInput, useImeSearchValue } from "@/components/common/imeAwareSearchInput";
 import { privateChatListItemMotionProps } from "@/components/common/motion/privateChatMotion";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { SearchFilled, XMarkICon } from "@/icons";
@@ -11,7 +12,7 @@ import { useGetFriendListQuery } from "api/hooks/friendQueryHooks";
 
 export default function FriendsListPanel() {
   const { setActiveRoomId, setPrivateChatTab } = useChatPageLayoutContext();
-  const [keyword, setKeyword] = useState("");
+  const { clear: clearKeyword, committedValue: keyword, inputProps, inputValue } = useImeSearchValue();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const friendListQuery = useGetFriendListQuery({ pageNo: 1, pageSize: 100 });
@@ -50,10 +51,10 @@ export default function FriendsListPanel() {
           focus-within:ring-info/20
         ">
           <div className="flex h-full items-center flex-1 px-2.5">
-            <input
+            <ImeAwareSearchInput
               id="private-friend-search"
               ref={searchInputRef}
-              type="search"
+              type="text"
               name="privateFriendSearch"
               autoComplete="off"
               placeholder="搜索好友…"
@@ -61,17 +62,13 @@ export default function FriendsListPanel() {
                 bg-transparent border-none outline-none flex-1 text-sm
                 placeholder:text-base-content/50
               "
-              value={keyword}
-              onChange={e => setKeyword(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape")
-                  setKeyword("");
-              }}
+              {...inputProps}
+              onEscape={clearKeyword}
             />
-            {keyword && (
+            {inputValue && (
               <button
                 type="button"
-                onClick={() => setKeyword("")}
+                onClick={clearKeyword}
                 className="
                   flex items-center justify-center text-base-content/50
                   hover:text-base-content
@@ -91,8 +88,8 @@ export default function FriendsListPanel() {
               hover:text-info hover:bg-base-300/60
               transition-colors
             "
-            disabled={!keyword.trim()}
-            aria-label="搜索"
+            aria-label="聚焦好友搜索框"
+            title="聚焦好友搜索框"
             onClick={() => searchInputRef.current?.focus()}
           >
             <SearchFilled className="size-3.5" />
@@ -145,6 +142,7 @@ export default function FriendsListPanel() {
                           rounded-lg px-2 py-1.5 cursor-pointer
                           transition-colors duration-150
                         "
+                        aria-label={`打开与 ${friend?.username || `用户${friend?.userId}`}（ID ${friend?.userId ?? "未知"}）的私聊`}
                         onClick={() => friend?.userId && handleClickFriend(friend.userId)}
                       >
                         <div className="w-9 h-9 flex-shrink-0">

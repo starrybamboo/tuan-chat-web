@@ -47,6 +47,10 @@ export function getChatFrameMessageItemClassName(params: {
   ].filter(Boolean).join(" ");
 }
 
+export function getNextInsertAfterMessageId(currentTargetId: number | undefined, messageId: number): number | undefined {
+  return currentTargetId === messageId ? undefined : messageId;
+}
+
 type ChatFrameMessageItemProps = {
   chatMessageResponse: ChatMessageResponse;
   isSelected: boolean;
@@ -102,8 +106,9 @@ export default function ChatFrameMessageItem({
   webgalModeEntryAnimationOffsetPx,
 }: ChatFrameMessageItemProps) {
   const useChatBubbleStyle = useRoomPreferenceStore(state => state.useChatBubbleStyle);
+  const insertAfterMessageId = useRoomUiStore(state => state.insertAfterMessageId);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
-  const isInsertTarget = useRoomUiStore(state => state.insertAfterMessageId === chatMessageResponse.message.messageId);
+  const isInsertTarget = insertAfterMessageId === chatMessageResponse.message.messageId;
   const showDragHandle = movable && chatMessageResponse.message.messageType !== MESSAGE_TYPE.STATE_EVENT;
   const isOptimisticMessage = isOptimisticRoomMessage(chatMessageResponse.message);
   const messageSendStateClass = isOptimisticMessage
@@ -120,8 +125,8 @@ export default function ChatFrameMessageItem({
   const handleInsertAfterClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    setInsertAfterMessageId(chatMessageResponse.message.messageId);
-  }, [chatMessageResponse.message.messageId, setInsertAfterMessageId]);
+    setInsertAfterMessageId(getNextInsertAfterMessageId(insertAfterMessageId, chatMessageResponse.message.messageId));
+  }, [chatMessageResponse.message.messageId, insertAfterMessageId, setInsertAfterMessageId]);
 
   return (
     <div
@@ -154,8 +159,8 @@ export default function ChatFrameMessageItem({
           draggable={movable}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
-          title="拖动消息，可拖到 AI 对话作为上下文"
-          aria-label="拖动消息"
+          title="可拖拽移动消息，拖到 AI 对话作为上下文"
+          aria-label="移动消息"
           data-message-drag-handle="true"
         >
           <DraggableIcon className="size-4" />
@@ -175,7 +180,7 @@ export default function ChatFrameMessageItem({
       {!disableInsertAction && (
         <div
           className={`
-            relative h-4 select-none
+            relative h-2.5 select-none sm:h-3
             ${isSelecting ? `pointer-events-none` : `group/insert`}
           `}
           data-message-insert-action="true"
@@ -184,7 +189,10 @@ export default function ChatFrameMessageItem({
           {!isSelecting && !isOptimisticMessage && (
             <button
               type="button"
-              className="absolute inset-x-0 inset-y-0 z-20 cursor-pointer"
+              className="
+                absolute inset-x-0 top-1/2 z-20 h-7
+                -translate-y-1/2 cursor-pointer
+              "
               title="插入消息"
               aria-label="插入消息"
               onClick={handleInsertAfterClick}
@@ -192,7 +200,7 @@ export default function ChatFrameMessageItem({
           )}
           <div
             className={`
-              pointer-events-none absolute left-0 right-0 top-0
+              pointer-events-none absolute left-0 right-0 top-1/2
               -translate-y-1/2 h-[2px] transition-colors duration-200
               ${
               isSelecting || isOptimisticMessage

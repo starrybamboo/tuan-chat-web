@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { Button } from "@/components/common/Button";
 import { IconButton } from "@/components/common/IconButton";
@@ -38,6 +38,20 @@ function getErrorMessage(error: unknown, fallback: string): string {
     return error.message.trim();
   }
   return fallback;
+}
+
+/** 发送验证码结果的无障碍宣告（视觉隐藏，供屏幕阅读器播报）。 */
+function renderSendCodeStatus(isPending: boolean, isCoolingDown: boolean, email: string) {
+  const target = email.trim() || "邮箱";
+  return (
+    <span role="status" aria-live="polite" className="sr-only">
+      {isPending
+        ? "正在发送验证码"
+        : isCoolingDown
+          ? `验证码已发送到 ${target}`
+          : ""}
+    </span>
+  );
 }
 
 export function AccountSecurityModal({
@@ -89,10 +103,10 @@ export function AccountSecurityModal({
       }),
     onSuccess: () => {
       passwordCooldown.startCooldown();
-      toast.success("验证码已发送，请查收邮箱");
+      appToast.success("验证码已发送，请查收邮箱");
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error, "验证码发送失败，请重试"));
+      appToast.error(getErrorMessage(error, "验证码发送失败，请重试"));
     },
   });
 
@@ -107,10 +121,10 @@ export function AccountSecurityModal({
       setPasswordCode("");
       setNewPassword("");
       setConfirmNewPassword("");
-      toast.success("密码修改成功");
+      appToast.success("密码修改成功");
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error, "密码修改失败，请重试"));
+      appToast.error(getErrorMessage(error, "密码修改失败，请重试"));
     },
   });
 
@@ -123,10 +137,10 @@ export function AccountSecurityModal({
       }),
     onSuccess: () => {
       bindCooldown.startCooldown();
-      toast.success("验证码已发送，请查收邮箱");
+      appToast.success("验证码已发送，请查收邮箱");
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error, "验证码发送失败，请重试"));
+      appToast.error(getErrorMessage(error, "验证码发送失败，请重试"));
     },
   });
 
@@ -140,10 +154,10 @@ export function AccountSecurityModal({
       setBindCode("");
       queryClient.invalidateQueries({ queryKey: ["getMyUserInfo"] });
       queryClient.invalidateQueries({ queryKey: ["getUserProfileInfo"] });
-      toast.success("邮箱绑定成功");
+      appToast.success("邮箱绑定成功");
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error, "邮箱绑定失败，请重试"));
+      appToast.error(getErrorMessage(error, "邮箱绑定失败，请重试"));
     },
   });
 
@@ -156,10 +170,10 @@ export function AccountSecurityModal({
       }),
     onSuccess: () => {
       oldEmailCooldown.startCooldown();
-      toast.success("旧邮箱验证码已发送");
+      appToast.success("旧邮箱验证码已发送");
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error, "验证码发送失败，请重试"));
+      appToast.error(getErrorMessage(error, "验证码发送失败，请重试"));
     },
   });
 
@@ -172,10 +186,10 @@ export function AccountSecurityModal({
       }),
     onSuccess: () => {
       newEmailCooldown.startCooldown();
-      toast.success("新邮箱验证码已发送");
+      appToast.success("新邮箱验证码已发送");
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error, "验证码发送失败，请重试"));
+      appToast.error(getErrorMessage(error, "验证码发送失败，请重试"));
     },
   });
 
@@ -193,28 +207,28 @@ export function AccountSecurityModal({
       setNewEmailCode("");
       queryClient.invalidateQueries({ queryKey: ["getMyUserInfo"] });
       queryClient.invalidateQueries({ queryKey: ["getUserProfileInfo"] });
-      toast.success("邮箱换绑成功");
+      appToast.success("邮箱换绑成功");
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error, "邮箱换绑失败，请重试"));
+      appToast.error(getErrorMessage(error, "邮箱换绑失败，请重试"));
     },
   });
 
   const handleChangePassword = () => {
     if (!hasBoundEmail) {
-      toast.error("请先绑定邮箱后再修改密码");
+      appToast.error("请先绑定邮箱后再修改密码");
       return;
     }
     if (!passwordCode.trim()) {
-      toast.error("请输入邮箱验证码");
+      appToast.error("请输入邮箱验证码");
       return;
     }
     if (!newPassword) {
-      toast.error("请输入新密码");
+      appToast.error("请输入新密码");
       return;
     }
     if (newPassword !== confirmNewPassword) {
-      toast.error("两次输入的密码不一致");
+      appToast.error("两次输入的密码不一致");
       return;
     }
     changePasswordMutation.mutate();
@@ -222,11 +236,11 @@ export function AccountSecurityModal({
 
   const handleBindEmail = () => {
     if (!isEmailLike(bindEmail)) {
-      toast.error("请输入正确的邮箱地址");
+      appToast.error("请输入正确的邮箱地址");
       return;
     }
     if (!bindCode.trim()) {
-      toast.error("请输入邮箱验证码");
+      appToast.error("请输入邮箱验证码");
       return;
     }
     bindEmailMutation.mutate();
@@ -234,23 +248,23 @@ export function AccountSecurityModal({
 
   const handleChangeEmail = () => {
     if (!hasBoundEmail) {
-      toast.error("当前账号尚未绑定邮箱");
+      appToast.error("当前账号尚未绑定邮箱");
       return;
     }
     if (!oldEmailCode.trim()) {
-      toast.error("请输入旧邮箱验证码");
+      appToast.error("请输入旧邮箱验证码");
       return;
     }
     if (!isEmailLike(newEmail)) {
-      toast.error("请输入正确的新邮箱地址");
+      appToast.error("请输入正确的新邮箱地址");
       return;
     }
     if (newEmail.trim() === currentEmail) {
-      toast.error("新邮箱不能与旧邮箱相同");
+      appToast.error("新邮箱不能与旧邮箱相同");
       return;
     }
     if (!newEmailCode.trim()) {
-      toast.error("请输入新邮箱验证码");
+      appToast.error("请输入新邮箱验证码");
       return;
     }
     changeEmailMutation.mutate();
@@ -300,9 +314,11 @@ export function AccountSecurityModal({
 
         <h3 className="text-xl font-semibold mb-4">账号安全</h3>
 
-        <div className="tabs tabs-boxed mb-4">
+        <div className="tabs tabs-boxed mb-4" role="tablist" aria-label="账号安全操作">
           <button
             type="button"
+            role="tab"
+            aria-selected={activeTab === "password"}
             className={`
               tab
               ${activeTab === "password" ? "tab-active" : ""}
@@ -313,6 +329,8 @@ export function AccountSecurityModal({
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={activeTab === "email"}
             className={`
               tab
               ${activeTab === "email" ? "tab-active" : ""}
@@ -368,11 +386,13 @@ export function AccountSecurityModal({
                                   placeholder="请输入验证码"
                                   value={passwordCode}
                                   onChange={e => setPasswordCode(e.target.value)}
+                                  aria-label="修改密码验证码"
                                 />
                                 <Button
                                   variant="outline"
                                   className="whitespace-nowrap"
                                   onClick={() => sendPasswordCodeMutation.mutate()}
+                                  aria-busy={sendPasswordCodeMutation.isPending}
                                   disabled={
                                     sendPasswordCodeMutation.isPending
                                     || passwordCooldown.isCoolingDown
@@ -384,6 +404,7 @@ export function AccountSecurityModal({
                                       ? `${passwordCooldown.remainingSeconds}s`
                                       : "发送验证码"}
                                 </Button>
+                                {renderSendCodeStatus(sendPasswordCodeMutation.isPending, passwordCooldown.isCoolingDown, currentEmail)}
                               </div>
                             </div>
 
@@ -471,7 +492,7 @@ export function AccountSecurityModal({
                                   className="whitespace-nowrap"
                                   onClick={() => {
                                     if (!isEmailLike(bindEmail)) {
-                                      toast.error("请输入正确的邮箱地址");
+                                      appToast.error("请输入正确的邮箱地址");
                                       return;
                                     }
                                     sendBindCodeMutation.mutate();
@@ -487,6 +508,7 @@ export function AccountSecurityModal({
                                       ? `${bindCooldown.remainingSeconds}s`
                                       : "发送验证码"}
                                 </Button>
+                                {renderSendCodeStatus(sendBindCodeMutation.isPending, bindCooldown.isCoolingDown, bindEmail)}
                               </div>
                             </div>
 
@@ -545,6 +567,7 @@ export function AccountSecurityModal({
                                       ? `${oldEmailCooldown.remainingSeconds}s`
                                       : "发送验证码"}
                                 </Button>
+                                {renderSendCodeStatus(sendOldEmailCodeMutation.isPending, oldEmailCooldown.isCoolingDown, currentEmail)}
                               </div>
                             </div>
 
@@ -584,7 +607,7 @@ export function AccountSecurityModal({
                                   className="whitespace-nowrap"
                                   onClick={() => {
                                     if (!isEmailLike(newEmail)) {
-                                      toast.error("请输入正确的新邮箱地址");
+                                      appToast.error("请输入正确的新邮箱地址");
                                       return;
                                     }
                                     sendNewEmailCodeMutation.mutate();
@@ -600,6 +623,7 @@ export function AccountSecurityModal({
                                       ? `${newEmailCooldown.remainingSeconds}s`
                                       : "发送验证码"}
                                 </Button>
+                                {renderSendCodeStatus(sendNewEmailCodeMutation.isPending, newEmailCooldown.isCoolingDown, newEmail)}
                               </div>
                             </div>
 

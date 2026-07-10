@@ -153,7 +153,7 @@ function SceneNode({ data, selected }: SceneNodeProps) {
             type="button"
             className="absolute inset-0 z-10"
             onClick={handleNodeClick}
-            aria-label={`查看场景${data.label}`}
+            aria-label={`查看场景 ${data.label}`}
           />
         </div>
         {/* 连接点... */}

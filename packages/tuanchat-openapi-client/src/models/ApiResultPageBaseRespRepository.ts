@@ -21,4 +21,3 @@ export type ApiResultPageBaseRespRepository = {
     errMsg?: string;
     data?: PageBaseRespRepository;
 };
-

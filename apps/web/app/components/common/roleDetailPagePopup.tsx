@@ -1,5 +1,5 @@
 import { use, useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { Role } from "@/components/Role/types";
 
@@ -114,18 +114,18 @@ export function RoleDetailPagePopup({
 
   const handleRemoveRole = () => {
     if (!roomId || roomId <= 0) {
-      toast.error("房间信息异常，无法踢出角色");
+      appToast.error("房间信息异常，无法踢出角色");
       return;
     }
     deleteRoleMutation.mutate(
       { roomId, roleIdList: [roleId] },
       {
         onSuccess: () => {
-          toast.success("已将角色从房间移除");
+          appToast.success("已将角色从房间移除");
         },
         onError: (e: any) => {
           console.error("踢出角色失败", e);
-          toast.error(e?.message ? `踢出角色失败：${e.message}` : "踢出角色失败");
+          appToast.error(e?.message ? `踢出角色失败：${e.message}` : "踢出角色失败");
         },
         onSettled: () => {
           setIsKickConfirmOpen(false);
@@ -134,6 +134,10 @@ export function RoleDetailPagePopup({
       },
     );
   };
+
+  // 用于踢出确认文案的角色与房间显示
+  const roleDisplayName = role?.name || `角色 ${roleId}`;
+  const roomDisplayName = roomId > 0 ? `房间 ${roomId}` : "当前房间";
 
   if (!role && !isRoleMissing) {
     return (
@@ -172,6 +176,7 @@ export function RoleDetailPagePopup({
                     sm:btn-sm
                   "
                   onClick={() => setIsKickConfirmOpen(true)}
+                  aria-label={`踢出角色 ID ${roleId}（${roomDisplayName}）`}
                 >
                   踢出角色
                 </button>
@@ -187,7 +192,7 @@ export function RoleDetailPagePopup({
           open={isKickConfirmOpen}
           onOpenChange={() => setIsKickConfirmOpen(false)}
           title="确认踢出角色"
-          description="确定要将该角色从当前房间移除吗？此操作将解除该角色与房间的关联。"
+          description={`确定要将角色 ID ${roleId}从${roomDisplayName}移除吗？此操作会解除该角色与${roomDisplayName}的关联，房间内基于该角色的内容将不再生效。`}
           onConfirm={handleRemoveRole}
           confirmLabel="确认踢出"
           cancelLabel="取消"
@@ -217,7 +222,7 @@ export function RoleDetailPagePopup({
         open={isKickConfirmOpen}
         onOpenChange={() => setIsKickConfirmOpen(false)}
         title="确认踢出角色"
-        description="确定要将该角色从当前房间移除吗？此操作将解除该角色与房间的关联。"
+        description={`确定要将角色「${roleDisplayName}」从${roomDisplayName}移除吗？此操作会解除该角色与${roomDisplayName}的关联，房间内基于该角色的内容将不再生效。`}
         onConfirm={handleRemoveRole}
         confirmLabel="确认踢出"
         cancelLabel="取消"

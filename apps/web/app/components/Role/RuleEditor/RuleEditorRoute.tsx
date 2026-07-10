@@ -1,6 +1,6 @@
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { ApiError } from "api";
 import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
@@ -85,10 +85,10 @@ export default function RuleEditorRoute({ onBack }: RuleEditorRouteProps) {
       didFallbackRef.current = true;
 
       if (parsed.reason === "missing") {
-        toast.error("缺少 ruleId 参数，无法编辑规则");
+        appToast.error("缺少 ruleId 参数，无法编辑规则");
       }
       else {
-        toast.error(`无效的 ruleId 参数：${parsed.invalidParam}`);
+        appToast.error(`无效的 ruleId 参数：${parsed.invalidParam}`);
       }
 
       router.history.replace("/role?type=rule&mode=entry");
@@ -97,7 +97,7 @@ export default function RuleEditorRoute({ onBack }: RuleEditorRouteProps) {
 
     if (parsed.view === "invalid-mode") {
       didFallbackRef.current = true;
-      toast.error(`无效的 mode 参数：${parsed.invalidMode}`);
+      appToast.error(`无效的 mode 参数：${parsed.invalidMode}`);
       router.history.replace("/role?type=rule&mode=entry");
     }
   }, [parsed, router]);
@@ -117,11 +117,11 @@ export default function RuleEditorRoute({ onBack }: RuleEditorRouteProps) {
       const error = ruleDetailQuery.error;
       if (error instanceof ApiError) {
         const msg = error.body?.errMsg || error.message || "获取规则失败";
-        toast.error(`获取规则失败（${error.status}）：${msg}`);
+        appToast.error(`获取规则失败（${error.status}）：${msg}`);
       }
       else {
         const msg = error instanceof Error ? error.message : "获取规则失败";
-        toast.error(`获取规则失败：${msg}`);
+        appToast.error(`获取规则失败：${msg}`);
       }
 
       router.history.replace("/role?type=rule&mode=entry");
@@ -137,7 +137,7 @@ export default function RuleEditorRoute({ onBack }: RuleEditorRouteProps) {
 
         const code = typeof res?.errCode === "number" ? res.errCode : 200;
         const msg = res?.errMsg || "找不到对应的规则";
-        toast.error(`找不到规则（${code}）：${msg}`);
+        appToast.error(`找不到规则（${code}）：${msg}`);
         router.history.replace("/role?type=rule&mode=entry");
       }
     }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { SecurityTab } from "@/components/profile/profileTab/components/AccountSecurityModal";
 
@@ -75,7 +75,7 @@ export default function SettingsPage() {
     writeFeedbackDesktopEnabledToLocalStorage(nextSettings.feedbackDesktopEnabled);
 
     if (!isLoggedIn) {
-      toast("设置已保存在当前设备");
+      appToast.info("设置已保存在当前设备");
       return;
     }
 
@@ -89,10 +89,10 @@ export default function SettingsPage() {
         userId: userInfo.userId,
         extra: buildUserExtraWithNotificationSettings(userInfo.extra, nextSettings),
       });
-      toast.success("通知设置已保存");
+      appToast.success("通知设置已保存");
     }
     catch {
-      toast.error("通知设置保存失败，已保留本地设置");
+      appToast.error("通知设置保存失败，已保留本地设置");
     }
   };
 
@@ -122,7 +122,7 @@ export default function SettingsPage() {
 
   const openAccountSecurity = (tab: SecurityTab) => {
     if (!isLoggedIn) {
-      toast.error("请先登录后再进行账号安全设置");
+      appToast.error("请先登录后再进行账号安全设置");
       return;
     }
     setAccountSecurityState({

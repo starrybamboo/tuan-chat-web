@@ -37,7 +37,7 @@ removeDirIfExists(legacyCacheDir);
 if (args.includes("--force"))
   removeDirIfExists(isolatedCacheDir);
 
-const child = spawn("corepack", ["pnpm", "exec", "vite", ...finalArgs], {
+const child = spawn("pnpm", ["exec", "vite", ...finalArgs], {
   stdio: "inherit",
   shell: useWindowsShell,
   windowsHide: useWindowsShell,

@@ -15,4 +15,3 @@ export type EmailBindRequest = {
      */
     code: string;
 };
-

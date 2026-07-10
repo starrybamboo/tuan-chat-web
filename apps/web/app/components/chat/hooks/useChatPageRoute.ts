@@ -1,6 +1,6 @@
 import { useLocation, useMatchRoute, useParams, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
 
@@ -65,7 +65,7 @@ export default function useChatPageRoute(): ChatPageRouteState {
     if (!docRouteInfo.isInvalidSpaceDocId)
       return;
 
-    toast.error("文档链接无效，已返回空间主页");
+    appToast.error("文档链接无效，已返回空间主页");
     navigate(`/chat/${activeSpaceId}`);
   }, [activeSpaceId, docRouteInfo.isInvalidSpaceDocId, isDocRoute, navigate]);
 

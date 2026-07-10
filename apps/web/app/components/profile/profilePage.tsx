@@ -63,6 +63,7 @@ function ProfilePage() {
       {/* 导航栏 */}
       <div
         role="tablist"
+        aria-label="个人资料导航"
         ref={navRef}
         className="
           relative flex border-base-300 border-y bg-base-200
@@ -75,6 +76,7 @@ function ProfilePage() {
           className="
             absolute bottom-0 h-1.5 bg-info rounded-t-full transition-all
             duration-300 ease-out
+            motion-reduce:transition-none
           "
           style={{
             left: `${underline.left}px`,
@@ -88,9 +90,13 @@ function ProfilePage() {
             to={tab.to}
             onClick={scrollToTop}
             activeOptions={{ exact: tab.id === "home" }}
+            role="tab"
+            aria-selected={location.pathname === tab.to}
+            tabIndex={0}
             className="
               px-4 py-3 font-semibold transition-all duration-300 ease-out
               cursor-pointer flex items-center gap-2 no-underline
+              motion-reduce:transition-none
             "
             activeProps={{ className: "text-info" }}
             inactiveProps={{ className: "text-base-content" }}

@@ -1,13 +1,13 @@
 import type { ReactNode } from "react";
 
 import { useRouter } from "@tanstack/react-router";
+import { useRepositoryListQuery } from "api/hooks/repositoryQueryHooks";
+import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 
 import { MediaImage } from "@/components/common/mediaImage";
 import Pagination from "@/components/common/pagination";
 import { imageMediumUrl } from "@/utils/media/mediaUrl";
-import { useRepositoryListQuery } from "api/hooks/repositoryQueryHooks";
-import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 
 const EMPTY_STRING_LIST: string[] = [];
 
@@ -133,6 +133,8 @@ export function ContentCard({
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (!onClick)
+      return;
+    if (event.nativeEvent.isComposing)
       return;
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -536,6 +538,9 @@ export default function RepositoryHome() {
                     md:hidden
                     p-2 text-base-content/60 transition-colors
                   "
+                  aria-controls="repository-mobile-filter"
+                  aria-expanded={showMobileFilter}
+                  aria-label={showMobileFilter ? "收起筛选" : "展开筛选"}
                   onClick={() => setShowMobileFilter(!showMobileFilter)}
                 >
                   <svg className="h-[1.2em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -555,13 +560,16 @@ export default function RepositoryHome() {
 
             <div className="divider"></div>
             {/* 规则列表展示 */}
-            <div className={`
+            <div
+              id="repository-mobile-filter"
+              className={`
               flex flex-col gap-6 max-w-6xl mx-auto
               ${showMobileFilter ? `block` : `
                 hidden
                 md:flex
               `}
-            `}>
+            `}
+            >
               <div className="flex-1">
                 <h2 className="
                   text-lg
@@ -583,6 +591,7 @@ export default function RepositoryHome() {
                           bg-info text-info-content
                         ` : `bg-info/10`}
                       `}
+                      aria-pressed={selectedRuleId === (rule.ruleId ?? null)}
                       onClick={() => {
                         setSelectedRuleId(selectedRuleId === rule.ruleId ? null : rule.ruleId ?? null);
                         setCurrentPage(1);

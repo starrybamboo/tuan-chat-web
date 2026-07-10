@@ -577,6 +577,9 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
                           gridColor={resolvedGridColor}
                         />
                         <Pressable
+                          accessibilityHint="先选中一个角色，再点按地图进行落位"
+                          accessibilityLabel="点击地图放置角色"
+                          accessibilityRole="button"
                           onPress={handleImageGridPress}
                           style={[StyleSheet.absoluteFill, { zIndex: 1 }]}
                         />
@@ -605,7 +608,12 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
                   </>
                 )
               : (
-                  <Pressable onPress={() => void handleUploadMap()} style={{ flex: 1 }}>
+                  <Pressable
+                    accessibilityLabel="上传地图"
+                    accessibilityRole="button"
+                    onPress={() => void handleUploadMap()}
+                    style={{ flex: 1 }}
+                  >
                     <View style={{ alignItems: "center", borderColor: theme.border, borderRadius: Radius.md, borderStyle: "dashed", borderWidth: 1.5, flex: 1, justifyContent: "center", margin: Spacing.lg }}>
                       <ThemedText themeColor="textSecondary" type="smallBold">+ 上传地图</ThemedText>
                     </View>
@@ -634,12 +642,23 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
           {mapImageUrl
             ? (
                 <View style={styles.buttonRow}>
-                  <Pressable onPress={() => void handleUploadMap()} style={[styles.button, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+                  <Pressable
+                    accessibilityHint="选择新图片替换当前地图"
+                    accessibilityLabel="更换地图"
+                    accessibilityRole="button"
+                    accessibilityState={{ busy: upsertMapMutation.isPending }}
+                    onPress={() => void handleUploadMap()}
+                    style={[styles.button, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+                  >
                     <ThemedText type="smallBold">更换地图</ThemedText>
                   </Pressable>
                   <Pressable
+                    accessibilityHint="将移除所有角色的落位并清空地图"
+                    accessibilityLabel="清空地图"
+                    accessibilityRole="button"
+                    accessibilityState={{ busy: clearMapMutation.isPending }}
                     onPress={() => {
-                      Alert.alert("清空地图", "确定清空当前地图和所有角色落位吗？", [
+                      Alert.alert("清空地图", "将清空地图，所有角色的落位都会被移除，确定吗？", [
                         { text: "取消", style: "cancel" },
                         {
                           text: "清空",
@@ -669,6 +688,7 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
           {isKP && (
             <View style={styles.gridSettings}>
               <TextInput
+                accessibilityLabel="地图网格行数"
                 ref={gridRowsRef}
                 keyboardType="number-pad"
                 onBlur={handleGridRowsBlur}
@@ -680,6 +700,7 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
               />
               <ThemedText themeColor="textSecondary" type="caption">x</ThemedText>
               <TextInput
+                accessibilityLabel="地图网格列数"
                 ref={gridColsRef}
                 keyboardType="number-pad"
                 onBlur={handleGridColsBlur}
@@ -699,6 +720,10 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
               {unplacedRoles.map(role => (
                 <Pressable
                   key={role.roleId}
+                  accessibilityHint="点按选中后点地图落位"
+                  accessibilityLabel={`${role.roleName?.trim() || `角色 ${role.roleId}`}，未落位${selectedRoleId === role.roleId ? "，已选中" : ""}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: selectedRoleId === role.roleId }}
                   onPress={() => handleUnplacedRolePress(role.roleId)}
                 >
                   <View style={{
@@ -727,6 +752,10 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
                 return (
                   <Pressable
                     key={token.roleId}
+                    accessibilityHint="点按选中，长按可移除落位"
+                    accessibilityLabel={`${role?.roleName?.trim() || `角色 ${token.roleId}`}，已落位${selectedRoleId === token.roleId ? "，已选中" : ""}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: selectedRoleId === token.roleId }}
                     onLongPress={() => handleTokenLongPress(token.roleId)}
                     onPress={() => handleTokenPress(token.roleId)}
                   >
@@ -814,6 +843,9 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
                           gridColor={resolvedGridColor}
                         />
                         <Pressable
+                          accessibilityHint="先选中一个角色，再点按地图进行落位"
+                          accessibilityLabel="点击地图放置角色"
+                          accessibilityRole="button"
                           onPress={(event) => {
                             handleGridPress(
                               event.nativeEvent.locationX,
@@ -858,7 +890,14 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
               ? (
                   <View style={styles.fullscreenRoleRow}>
                     {unplacedRoles.map(role => (
-                      <Pressable key={role.roleId} onPress={() => handleUnplacedRolePress(role.roleId)}>
+                      <Pressable
+                        key={role.roleId}
+                        accessibilityHint="点按选中后点地图落位"
+                        accessibilityLabel={`${role.roleName?.trim() || `角色 ${role.roleId}`}，未落位${selectedRoleId === role.roleId ? "，已选中" : ""}`}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: selectedRoleId === role.roleId }}
+                        onPress={() => handleUnplacedRolePress(role.roleId)}
+                      >
                         <View
                           style={{
                             borderColor: selectedRoleId === role.roleId ? theme.accent : theme.border,

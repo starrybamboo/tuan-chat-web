@@ -21,4 +21,3 @@ export type ApiResultRoomListResponse = {
     errMsg?: string;
     data?: RoomListResponse;
 };
-

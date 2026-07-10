@@ -169,9 +169,22 @@ export function DoubleClickEditableText<T = string>({
       startEditing();
     }
   };
+
+  const handleDisplayKeyDown = (event: React.KeyboardEvent<HTMLSpanElement>) => {
+    displayProps?.onKeyDown?.(event);
+    if (event.defaultPrevented || disabled)
+      return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      startEditing();
+    }
+  };
+
   const { className: displayPropsClassName, ...restDisplayProps } = displayProps ?? {};
   const { className: inputPropsClassName, ...restInputProps } = inputProps ?? {};
-  const baseDisplayClassName = disabled ? "" : "transition-colors duration-150 hover:text-info";
+  const baseDisplayClassName = disabled
+    ? ""
+    : "transition-colors duration-150 hover:text-info focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30";
   const mergedDisplayClassName = [baseDisplayClassName, displayPropsClassName, displayClassName].filter(Boolean).join(" ");
   const baseInputClassName = "transition focus:outline-none focus:ring-2 focus:ring-info/20 focus:border-info";
   const mergedInputClassName = [inputPropsClassName, inputClassName, baseInputClassName].filter(Boolean).join(" ");
@@ -198,6 +211,8 @@ export function DoubleClickEditableText<T = string>({
           value={draft}
           onChange={event => setDraft(event.target.value)}
           onKeyDown={(event) => {
+            if (event.nativeEvent.isComposing)
+              return;
             if (event.key === "Enter" && commitOnEnter) {
               event.preventDefault();
               commit("enter");
@@ -239,6 +254,9 @@ export function DoubleClickEditableText<T = string>({
         {...restDisplayProps}
         onDoubleClick={handleDisplayDoubleClick}
         onClick={handleDisplayClick}
+        onKeyDown={handleDisplayKeyDown}
+        role={disabled ? undefined : "button"}
+        tabIndex={disabled ? undefined : 0}
         className={mergedDisplayClassName}
       >
         {content}

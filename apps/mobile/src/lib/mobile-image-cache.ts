@@ -5,6 +5,7 @@ import { Platform } from "react-native";
 const CACHE_DIR_NAME = "mobile-image-cache";
 const DERIVATIVE_STATUS_FILE_NAME = "derived-status-v1.json";
 const WEB_CACHE_NAME = "tuanchat-mobile-image-cache-v1";
+const WEB_MEDIA_PROXY_PATH = "/__tuanchat_mobile_media_proxy__";
 const FAILURE_BACKOFF_MS = 30_000;
 const DEFAULT_PREFETCH_CONCURRENCY = 4;
 
@@ -30,10 +31,15 @@ type NativeImageDownloadResult = {
   uri: string | null;
 };
 
+type WebImageFetchResult = {
+  permanentMissing: boolean;
+  uri: string | null;
+};
+
 const webPrefetchedKeys = new Set<string>();
 const failedKeys = new Map<string, number>();
 const nativeInflightRequests = new Map<string, Promise<NativeImageDownloadResult>>();
-const webInflightRequests = new Map<string, Promise<string | null>>();
+const webInflightRequests = new Map<string, Promise<WebImageFetchResult>>();
 const webObjectUrls = new Map<string, string>();
 const nativeDerivativeStatusRecords = new Map<number, MediaImageDerivativeRecord>();
 
@@ -223,20 +229,43 @@ function resolveNativeDisplayUrl(url: string): string {
 
 function getWebCacheRequest(url: string): Request {
   const key = encodeURIComponent(normalizeCacheKey(url));
-  return new Request(`/__tuanchat_mobile_image_cache__/${key}`);
+  return new Request(new URL(`/__tuanchat_mobile_image_cache__/${key}`, globalThis.location?.origin ?? "http://localhost").toString());
 }
 
 function getWebCacheStorage(): CacheStorage | null {
   return typeof caches === "undefined" ? null : caches;
 }
 
+function getWebMediaProxyUrl(url: string): string {
+  return `${WEB_MEDIA_PROXY_PATH}?url=${encodeURIComponent(url)}`;
+}
+
+function resolveWebFallbackImageUri(url: string): string {
+  return getWebMediaProxyUrl(url);
+}
+
 async function resolveWebCachedImageUri(url: string): Promise<string | null> {
+  const result = await fetchWebCachedImageUri(url);
+  if (result.permanentMissing) {
+    const originalUrl = resolveOriginalFallbackUrl(url);
+    if (originalUrl) {
+      return (await fetchWebCachedImageUri(originalUrl)).uri;
+    }
+  }
+  if (result.uri) {
+    return result.uri;
+  }
+
+  return null;
+}
+
+async function fetchWebCachedImageUri(url: string): Promise<WebImageFetchResult> {
   const key = normalizeCacheKey(url);
   const objectUrl = webObjectUrls.get(key);
   if (objectUrl)
-    return objectUrl;
+    return { permanentMissing: false, uri: objectUrl };
   if (isBackedOff(url))
-    return null;
+    return { permanentMissing: false, uri: null };
 
   const inflight = webInflightRequests.get(key);
   if (inflight)
@@ -245,7 +274,7 @@ async function resolveWebCachedImageUri(url: string): Promise<string | null> {
   const request = (async () => {
     const cacheStorage = getWebCacheStorage();
     if (!cacheStorage) {
-      return url;
+      return { permanentMissing: false, uri: resolveWebFallbackImageUri(url) };
     }
 
     try {
@@ -254,10 +283,13 @@ async function resolveWebCachedImageUri(url: string): Promise<string | null> {
       let response = await cache.match(cacheRequest);
 
       if (!response) {
-        const fetched = await fetch(url, { cache: "force-cache", mode: "cors" });
+        const fetched = await fetch(getWebMediaProxyUrl(url), { cache: "force-cache" });
         if (!fetched.ok) {
           failedKeys.set(key, Date.now());
-          return url;
+          return {
+            permanentMissing: fetched.status === 404 || fetched.status === 410,
+            uri: resolveWebFallbackImageUri(url),
+          };
         }
         await cache.put(cacheRequest, fetched.clone());
         response = fetched;
@@ -268,11 +300,11 @@ async function resolveWebCachedImageUri(url: string): Promise<string | null> {
       webObjectUrls.set(key, cachedObjectUrl);
       webPrefetchedKeys.add(key);
       failedKeys.delete(key);
-      return cachedObjectUrl;
+      return { permanentMissing: false, uri: cachedObjectUrl };
     }
     catch {
       failedKeys.set(key, Date.now());
-      return url;
+      return { permanentMissing: false, uri: resolveWebFallbackImageUri(url) };
     }
     finally {
       webInflightRequests.delete(key);

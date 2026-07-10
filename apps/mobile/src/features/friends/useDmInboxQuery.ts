@@ -38,6 +38,7 @@ export function useDmInboxQuery(currentUserId: number | null) {
   });
   const queryKey = useMemo(() => ["dmInbox", currentUserId ?? null] as const, [currentUserId]);
 
+  // direct_messages 是 dmInbox 的恢复 read model；query 已成功后不得再被旧磁盘快照覆盖。
   useEffect(() => {
     if (typeof currentUserId !== "number" || currentUserId <= 0) {
       return;

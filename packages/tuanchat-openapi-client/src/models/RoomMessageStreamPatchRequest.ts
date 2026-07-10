@@ -18,4 +18,3 @@ export type RoomMessageStreamPatchRequest = {
     operations: Array<RoomMessageStreamPatchOperation>;
     mutationMeta: RoomMessageMutationMeta;
 };
-

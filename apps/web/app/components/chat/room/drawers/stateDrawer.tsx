@@ -1,7 +1,6 @@
 import { Broom } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import React from "react";
-import { toast } from "react-hot-toast";
 
 import type { ActiveStateInstance } from "@/components/chat/state/stateRuntime";
 import type { StateRuntimeContextValue } from "@/components/chat/state/stateRuntimeContext";
@@ -14,6 +13,7 @@ import { mergeRoleVarOpSnapshotsIntoEvents, writeRoleVarOpsThroughAbilities } fr
 import { NEXT_TURN_CONTENT } from "@/components/chat/state/stateCommandParser";
 import { getFallbackRoleAbilityValue } from "@/components/chat/state/stateRuntime";
 import { useStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
+import { appToast } from "@/components/common/appToast/appToast";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { useGlobalUserId } from "@/components/globalContextProvider";
@@ -51,6 +51,7 @@ import {
   buildImportRoleInitiativeEvents,
 } from "./initiativeListEvents";
 import {
+
   buildCombatRecordValueRow,
   buildNextCopiedInitiativeRoleName,
   buildRoleAbilityFieldDeletePatch,
@@ -320,6 +321,7 @@ function EditableStatPill({
   editingKey,
   editingValue,
   initialValue,
+  label,
   onCommit,
   setEditingValue,
   startEditing,
@@ -328,6 +330,7 @@ function EditableStatPill({
   className,
 }: {
   className?: string;
+  label?: string;
   editKey: string;
   editingKey: string | null;
   editingValue: string;
@@ -347,6 +350,7 @@ function EditableStatPill({
           input input-xs h-6 min-h-6 w-20 rounded-full border-base-300
           bg-base-100 px-2 text-right text-[11px] tabular-nums
         "
+        aria-label={label ?? `编辑 ${text}`}
         value={editingValue}
         onChange={event => setEditingValue(event.target.value)}
         onBlur={() => {
@@ -357,6 +361,8 @@ function EditableStatPill({
           stopEditing();
         }}
         onKeyDown={(event) => {
+          if (event.nativeEvent.isComposing)
+            return;
           if (event.key === "Enter") {
             event.preventDefault();
             const parsed = parseFiniteRoleValue(editingValue);
@@ -383,7 +389,8 @@ function EditableStatPill({
         hover:border-info/40 hover:bg-info/8
         ${className ?? `border-base-300/70 bg-base-100/75 text-base-content/70`}
       `}
-      title="点击编辑"
+      aria-label={label ?? `编辑 ${text}，当前值 ${initialValue}`}
+      title={label ?? `编辑 ${text}，当前值 ${initialValue}`}
       onClick={() => startEditing(editKey, String(initialValue))}
     >
       {text}
@@ -442,7 +449,7 @@ function CompactRoleRow({
         />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="truncate text-sm font-semibold text-base-content">
+            <span className="truncate text-sm font-semibold text-base-content" title={row.roleName}>
               {row.roleName}
             </span>
             {row.isCurrent && (
@@ -458,6 +465,7 @@ function CompactRoleRow({
               editingKey={editingKey}
               editingValue={editingValue}
               initialValue={row.initiative ?? 0}
+              label={`编辑 ${row.roleName} 的先攻值，当前值 ${row.initiative ?? 0}`}
               onCommit={value => onCommitRoleValue(row.roleId, "initiative", value)}
               setEditingValue={setEditingValue}
               startEditing={(_, value) => startValueEditing("initiative", value)}
@@ -477,6 +485,7 @@ function CompactRoleRow({
                   editingKey={editingKey}
                   editingValue={editingValue}
                   initialValue={item.row.displayValue}
+                  label={`编辑 ${row.roleName} 的 ${item.config.label}，当前值 ${item.row.displayValue}`}
                   onCommit={value => onCommitRoleValue(row.roleId, item.row.key, value)}
                   setEditingValue={setEditingValue}
                   startEditing={(_, value) => startValueEditing(item.row.key, value)}
@@ -492,6 +501,7 @@ function CompactRoleRow({
                   editingKey={editingKey}
                   editingValue={editingValue}
                   initialValue={item.displayValue}
+                  label={`编辑 ${row.roleName} 的 ${formatStateKeyLabel(item.key)}，当前值 ${item.displayValue}`}
                   onCommit={value => onCommitRoleValue(row.roleId, item.key, value)}
                   setEditingValue={setEditingValue}
                   startEditing={(_, value) => startValueEditing(item.key, value)}
@@ -621,7 +631,7 @@ export default function StateDrawer() {
 
   const sendCombatEvents = React.useCallback(async (events: StateEventAtom[], content = ".combat") => {
     if (!roomContext.sendMessageWithInsert || !roomContext.roomId) {
-      toast.error("当前房间暂不能写入先攻事件");
+      appToast.error("当前房间暂不能写入先攻事件");
       return false;
     }
 
@@ -645,14 +655,14 @@ export default function StateDrawer() {
         extra: toApiMessageExtraWithStateEvent(buildCommandStateEventExtra("combat", eventsForMessage)),
       });
       if (!createdMessage) {
-        toast.error("写入先攻事件失败");
+        appToast.error("写入先攻事件失败");
         return false;
       }
       return true;
     }
     catch (error) {
       console.error("写入先攻事件失败", error);
-      toast.error("写入先攻事件失败");
+      appToast.error("写入先攻事件失败");
       return false;
     }
   }, [queryClient, roomContext, spaceContext.ruleId]);
@@ -666,7 +676,7 @@ export default function StateDrawer() {
     if (res?.success && Array.isArray(res.data) && spaceContext.ruleId) {
       const hasMatchingRule = res.data.some(item => item.ruleId === spaceContext.ruleId);
       if (!hasMatchingRule && res.data.length > 0) {
-        toast.error("导入失败：请检查角色卡规则与空间设置的规则是否一致");
+        appToast.error("导入失败：请检查角色卡规则与空间设置的规则是否一致");
         return;
       }
     }
@@ -703,14 +713,14 @@ export default function StateDrawer() {
     }
     const targetSpaceId = roomContext.spaceId ?? spaceContext.spaceId;
     if (!roomContext.roomId || !targetSpaceId) {
-      toast.error("当前房间暂不能加入复制角色");
+      appToast.error("当前房间暂不能加入复制角色");
       return;
     }
 
     const idx = importableRoles.findIndex(role => role.roleId === duplicateImportRole.roleId);
     const sourceRole = importableRoles[idx];
     if (!sourceRole) {
-      toast.error("未找到要复制的角色");
+      appToast.error("未找到要复制的角色");
       setDuplicateImportRole(null);
       return;
     }
@@ -739,11 +749,11 @@ export default function StateDrawer() {
       await importRoleIntoInitiative(copiedRole.id, copiedRole.name || copiedName, abilityQueries[idx]);
       setDuplicateImportRole(null);
       setIsImportPopupOpen(false);
-      toast.success(`已复制 ${copiedName} 并导入先攻`);
+      appToast.success(`已复制 ${copiedName} 并导入先攻`);
     }
     catch (error) {
       console.error("复制角色并导入先攻失败", error);
-      toast.error(error instanceof Error && error.message ? error.message : "复制角色并导入先攻失败");
+      appToast.error(error instanceof Error && error.message ? error.message : "复制角色并导入先攻失败");
     }
   }, [
     abilityQueries,
@@ -763,7 +773,7 @@ export default function StateDrawer() {
       return;
     }
     if (!roomContext.executeCommand) {
-      toast.error("当前房间暂不能投掷全员先攻");
+      appToast.error("当前房间暂不能投掷全员先攻");
       return;
     }
 
@@ -772,11 +782,11 @@ export default function StateDrawer() {
         executeCommand: roomContext.executeCommand,
         roles: rollableRoles,
       });
-      toast.success("已投掷全员先攻");
+      appToast.success("已投掷全员先攻");
     }
     catch (error) {
       console.error("投掷全员先攻失败", error);
-      toast.error(error instanceof Error && error.message ? error.message : "投掷全员先攻失败");
+      appToast.error(error instanceof Error && error.message ? error.message : "投掷全员先攻失败");
     }
   }, [rollableRoles, roomContext, spaceOwner]);
 
@@ -785,11 +795,11 @@ export default function StateDrawer() {
       return;
     }
     if (!canEndCombat) {
-      toast.error("当前没有进行中的战斗");
+      appToast.error("当前没有进行中的战斗");
       return;
     }
     if (!roomContext.sendMessageWithInsert || !roomContext.roomId) {
-      toast.error("当前房间暂不能结束战斗");
+      appToast.error("当前房间暂不能结束战斗");
       return;
     }
 
@@ -801,14 +811,14 @@ export default function StateDrawer() {
         avatarId: roomContext.curAvatarId ?? -1,
       }));
       if (!createdMessage) {
-        toast.error("结束战斗失败");
+        appToast.error("结束战斗失败");
         return;
       }
-      toast.success("已结束战斗");
+      appToast.success("已结束战斗");
     }
     catch (error) {
       console.error("结束战斗失败", error);
-      toast.error(error instanceof Error && error.message ? error.message : "结束战斗失败");
+      appToast.error(error instanceof Error && error.message ? error.message : "结束战斗失败");
     }
     finally {
       setIsEndingCombat(false);
@@ -820,11 +830,11 @@ export default function StateDrawer() {
       return;
     }
     if (!canStartCombat) {
-      toast.error("当前战斗已经开始");
+      appToast.error("当前战斗已经开始");
       return;
     }
     if (!roomContext.sendMessageWithInsert || !roomContext.roomId) {
-      toast.error("当前房间暂不能开始战斗");
+      appToast.error("当前房间暂不能开始战斗");
       return;
     }
 
@@ -836,14 +846,14 @@ export default function StateDrawer() {
         avatarId: roomContext.curAvatarId ?? -1,
       }));
       if (!createdMessage) {
-        toast.error("开始战斗失败");
+        appToast.error("开始战斗失败");
         return;
       }
-      toast.success("已开始战斗");
+      appToast.success("已开始战斗");
     }
     catch (error) {
       console.error("开始战斗失败", error);
-      toast.error(error instanceof Error && error.message ? error.message : "开始战斗失败");
+      appToast.error(error instanceof Error && error.message ? error.message : "开始战斗失败");
     }
     finally {
       setIsStartingCombat(false);
@@ -872,7 +882,7 @@ export default function StateDrawer() {
       return;
     }
     if (!canAdvanceTurn) {
-      toast.error("请先开始战斗");
+      appToast.error("请先开始战斗");
       return;
     }
 
@@ -888,12 +898,12 @@ export default function StateDrawer() {
       });
 
       if (!createdMessage) {
-        toast.error("推进回合失败");
+        appToast.error("推进回合失败");
       }
     }
     catch (error) {
       console.error("推进回合失败", error);
-      toast.error("推进回合失败");
+      appToast.error("推进回合失败");
     }
     finally {
       setIsAdvancingTurn(false);
@@ -912,7 +922,7 @@ export default function StateDrawer() {
     if (!messageId) {
       const ruleId = spaceContext.ruleId ?? -1;
       if (!Number.isFinite(ruleId) || ruleId <= 0) {
-        toast.error("当前空间没有有效规则，无法删除先攻字段");
+        appToast.error("当前空间没有有效规则，无法删除先攻字段");
         return;
       }
       try {
@@ -920,7 +930,7 @@ export default function StateDrawer() {
         const patch = buildRoleAbilityFieldDeletePatch(cachedAbility, "initiative")
           ?? buildRoleAbilityFieldDeletePatch(await loadRoleAbilityByRule(row.roleId, ruleId), "initiative");
         if (!patch) {
-          toast.error("未找到可删除的先攻字段");
+          appToast.error("未找到可删除的先攻字段");
           return;
         }
         await updateKeyFieldByRoleIdMutation.mutateAsync({
@@ -928,11 +938,11 @@ export default function StateDrawer() {
           ruleId,
           ...patch,
         });
-        toast.success("已删除先攻记录");
+        appToast.success("已删除先攻记录");
       }
       catch (error) {
         console.error("删除先攻字段失败", error);
-        toast.error("删除先攻记录失败");
+        appToast.error("删除先攻记录失败");
       }
       return;
     }
@@ -958,14 +968,14 @@ export default function StateDrawer() {
           },
         } as any);
       }
-      toast.success("已删除先攻记录");
+      appToast.success("已删除先攻记录");
     }
     catch (error) {
       console.error("删除先攻记录失败", error);
       if (targetMessage) {
         await roomContext.chatHistory?.addOrUpdateMessage(targetMessage);
       }
-      toast.error("删除先攻记录失败");
+      appToast.error("删除先攻记录失败");
     }
   }, [deleteMessageMutation, roomContext.chatHistory, runtime.fallbackRoleAbilitiesByRoleId, spaceContext.ruleId, updateKeyFieldByRoleIdMutation]);
 

@@ -1,6 +1,6 @@
 import * as htmltoimage from "html-to-image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { ChatBubble } from "@/components/chat/message/chatBubble";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
@@ -140,7 +140,7 @@ export default function ExportImageWindow({
 
   const handleExport = useCallback(async () => {
     if (!contentRef.current) {
-      toast.error("未找到内容区域");
+      appToast.error("未找到内容区域");
       return;
     }
 
@@ -269,12 +269,12 @@ export default function ExportImageWindow({
       link.download = `chat-export-${Date.now()}.png`;
       link.click();
 
-      toast.success("图片导出成功！");
+      appToast.success("图片导出成功！");
       onClose();
     }
     catch (error) {
       console.error("导出图片失败:", error);
-      toast.error("导出图片失败，请重试");
+      appToast.error("导出图片失败，请重试");
     }
     finally {
       setIsExporting(false);
@@ -289,6 +289,7 @@ export default function ExportImageWindow({
           type="button"
           className="btn btn-sm btn-ghost btn-circle"
           onClick={onClose}
+          aria-label="关闭导出聊天图片弹窗"
         >
           ✕
         </button>
@@ -326,9 +327,13 @@ export default function ExportImageWindow({
       </div>
 
       {/* 预览区域 */}
-      <div className="
-        overflow-auto max-h-[50vh] border border-base-300 rounded-lg bg-base-100
-      ">
+      <div
+        className="
+          overflow-auto max-h-[50vh] border border-base-300 rounded-lg bg-base-100
+        "
+        role="region"
+        aria-label="聊天图片导出预览"
+      >
         <div ref={contentRef} className="p-4 bg-base-100 text-base-content">
           {hasHeader && (
             <div className="mb-3 pb-3 border-b border-base-300">
@@ -385,6 +390,8 @@ export default function ExportImageWindow({
           className="btn btn-primary"
           onClick={handleExport}
           disabled={isExporting || sortedMessages.length === 0}
+          aria-busy={isExporting}
+          title={sortedMessages.length === 0 ? "请选择至少一条消息" : undefined}
         >
           {isExporting
             ? (

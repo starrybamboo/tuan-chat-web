@@ -84,9 +84,10 @@ export default function MaterialPackageLibrarySidebar({
               <div
                 key={item.key}
                 className={className}
+                aria-current={item.active ? "page" : undefined}
               >
                 <SidebarItemIcon icon={item.icon} active={item.active} />
-                <span className="truncate">{item.label}</span>
+                <span className="truncate" title={item.label}>{item.label}</span>
               </div>
             );
           }
@@ -96,12 +97,14 @@ export default function MaterialPackageLibrarySidebar({
               key={item.key}
               type="button"
               className={className}
+              aria-label={item.label}
+              aria-current={item.active ? "page" : undefined}
               onClick={item.onClick}
               onFocus={item.onPreload}
               onPointerEnter={item.onPreload}
             >
               <SidebarItemIcon icon={item.icon} active={item.active} />
-              <span className="truncate">{item.label}</span>
+              <span className="truncate" title={item.label}>{item.label}</span>
             </button>
           );
         })}

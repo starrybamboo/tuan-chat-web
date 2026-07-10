@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getChatFrameMessageItemClassName } from "./chatFrameMessageItem";
+import { getChatFrameMessageItemClassName, getNextInsertAfterMessageId } from "./chatFrameMessageItem";
 
 describe("getChatFrameMessageItemClassName", () => {
   it("选中消息可跳转 WebGAL 时 hover 不覆盖选中态", () => {
@@ -30,5 +30,16 @@ describe("getChatFrameMessageItemClassName", () => {
 
     expect(className).toContain("cursor-pointer");
     expect(className).toContain("hover:bg-base-200/50");
+  });
+});
+
+describe("getNextInsertAfterMessageId", () => {
+  it("再次点击当前插入线会取消插入模式", () => {
+    expect(getNextInsertAfterMessageId(12, 12)).toBeUndefined();
+  });
+
+  it("点击其他插入线会切换插入目标", () => {
+    expect(getNextInsertAfterMessageId(12, 34)).toBe(34);
+    expect(getNextInsertAfterMessageId(undefined, 34)).toBe(34);
   });
 });

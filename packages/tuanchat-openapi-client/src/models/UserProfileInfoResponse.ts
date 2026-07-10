@@ -32,4 +32,3 @@ export type UserProfileInfoResponse = {
      */
     gender?: string;
 };
-

@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { toast } from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import {
   getMaxRenderedMessagePosition,
@@ -130,11 +130,11 @@ export default function RealtimeRenderOrchestrator({
   const realtimeStatus = realtimeRender.status;
   const stopRealtimeRender = realtimeRender.stop;
   const dismissRealtimeRenderToasts = useCallback(() => {
-    toast.dismiss("webgal-init");
-    toast.dismiss("webgal-history");
-    toast.dismiss("webgal-rerender-history");
-    toast.dismiss(MESSAGE_SYNC_TOAST_ID);
-    toast.dismiss("webgal-error");
+    appToast.dismiss("webgal-init");
+    appToast.dismiss("webgal-history");
+    appToast.dismiss("webgal-rerender-history");
+    appToast.dismiss(MESSAGE_SYNC_TOAST_ID);
+    appToast.dismiss("webgal-error");
   }, []);
 
   const lastRenderedMessageIdRef = useRef<number | null>(null);
@@ -210,7 +210,7 @@ export default function RealtimeRenderOrchestrator({
     let toastVisible = false;
     const timer = setTimeout(() => {
       toastVisible = true;
-      toast.loading(loadingMessage, { id: MESSAGE_SYNC_TOAST_ID });
+      appToast.loading(loadingMessage, { id: MESSAGE_SYNC_TOAST_ID });
     }, MESSAGE_SYNC_TOAST_DELAY_MS);
     try {
       return await action();
@@ -218,7 +218,7 @@ export default function RealtimeRenderOrchestrator({
     finally {
       clearTimeout(timer);
       if (toastVisible) {
-        toast.dismiss(MESSAGE_SYNC_TOAST_ID);
+        appToast.dismiss(MESSAGE_SYNC_TOAST_ID);
       }
     }
   }, []);
@@ -231,7 +231,7 @@ export default function RealtimeRenderOrchestrator({
     if (!realtimeRender.isActive) {
       return false;
     }
-    return realtimeRender.jumpToMessage(messageId, roomId, { forceReload: true });
+    return realtimeRender.jumpToMessage(messageId, roomId);
   }, [realtimeRender, roomId]);
   const renderHistoryMessages = useCallback(async () => {
     const sessionId = roomSessionRef.current;
@@ -242,27 +242,27 @@ export default function RealtimeRenderOrchestrator({
     isRenderingHistoryRef.current = true;
     try {
       debugRealtimeRender(`[RealtimeRender] 开始渲染历史消息, 共 ${orderedHistoryMessages.length} 条`);
-      toast.loading(`正在渲染历史消息...`, { id: "webgal-history" });
+      appToast.loading(`正在渲染历史消息...`, { id: "webgal-history" });
 
       const messagesToRender = orderedHistoryMessages;
 
       await realtimeRender.renderHistory(messagesToRender, roomId);
       if (sessionId !== roomSessionRef.current) {
-        toast.dismiss("webgal-history");
+        appToast.dismiss("webgal-history");
         return;
       }
 
       commitRenderedHistoryState(messagesToRender);
-      toast.success(`历史消息渲染完成`, { id: "webgal-history" });
+      appToast.success(`历史消息渲染完成`, { id: "webgal-history" });
       debugRealtimeRender(`[RealtimeRender] 历史消息渲染完成`);
     }
     catch (error) {
       if (sessionId !== roomSessionRef.current) {
-        toast.dismiss("webgal-history");
+        appToast.dismiss("webgal-history");
         return;
       }
       console.error(`[RealtimeRender] 渲染历史消息失败:`, error);
-      toast.error(`渲染历史消息失败`, { id: "webgal-history" });
+      appToast.error(`渲染历史消息失败`, { id: "webgal-history" });
     }
     finally {
       isRenderingHistoryRef.current = false;
@@ -365,12 +365,12 @@ export default function RealtimeRenderOrchestrator({
       }
       const electronEnv = launchResult.runtime === "electron";
       if (electronEnv && !launchResult.ok) {
-        toast.error(appendWebgalLaunchHints(launchResult.error || "WebGAL 启动失败"), { id: "webgal-init" });
+        appToast.error(appendWebgalLaunchHints(launchResult.error || "WebGAL 启动失败"), { id: "webgal-init" });
         setIsRealtimeRenderEnabled(false);
         return;
       }
 
-      toast.loading("正在启动 WebGAL...", { id: "webgal-init" });
+      appToast.loading("正在启动 WebGAL...", { id: "webgal-init" });
       try {
         if (!electronEnv) {
           await pollPort(
@@ -384,7 +384,7 @@ export default function RealtimeRenderOrchestrator({
           }
         }
 
-        toast.loading("正在初始化实时渲染...", { id: "webgal-init" });
+        appToast.loading("正在初始化实时渲染...", { id: "webgal-init" });
         const success = await realtimeRender.start();
         if (sessionId !== roomSessionRef.current) {
           if (success) {
@@ -394,12 +394,12 @@ export default function RealtimeRenderOrchestrator({
           return;
         }
         if (success) {
-          toast.success("实时渲染已开启", { id: "webgal-init" });
+          appToast.success("实时渲染已开启", { id: "webgal-init" });
           setIsRealtimeRenderEnabled(true);
           await renderHistoryMessages();
         }
         else {
-          toast.error(appendWebgalLaunchHints("实时渲染启动失败"), { id: "webgal-init" });
+          appToast.error(appendWebgalLaunchHints("实时渲染启动失败"), { id: "webgal-init" });
           setIsRealtimeRenderEnabled(false);
         }
       }
@@ -413,7 +413,7 @@ export default function RealtimeRenderOrchestrator({
             ? `WebGAL 启动失败：${error.message}`
             : "WebGAL 启动超时",
         );
-        toast.error(message, { id: "webgal-init" });
+        appToast.error(message, { id: "webgal-init" });
         setIsRealtimeRenderEnabled(false);
       }
     }
@@ -427,7 +427,7 @@ export default function RealtimeRenderOrchestrator({
       dismissRealtimeRenderToasts();
       realtimeRender.stop();
       setIsRealtimeRenderEnabled(false);
-      toast.success("已关闭实时渲染");
+      appToast.success("已关闭实时渲染");
       return;
     }
     await startRealtimeRender();
@@ -437,7 +437,7 @@ export default function RealtimeRenderOrchestrator({
     if (realtimeRender.initProgress && realtimeRender.status === "initializing") {
       const { phase, message } = realtimeRender.initProgress;
       if (phase !== "ready" && phase !== "idle") {
-        toast.loading(message, { id: "webgal-init" });
+        appToast.loading(message, { id: "webgal-init" });
       }
     }
   }, [realtimeRender.initProgress, realtimeRender.status]);
@@ -447,7 +447,7 @@ export default function RealtimeRenderOrchestrator({
       return;
     }
 
-    toast.error(appendWebgalLaunchHints("实时渲染连接失败，请确认 WebGAL 已启动"), { id: "webgal-error" });
+    appToast.error(appendWebgalLaunchHints("实时渲染连接失败，请确认 WebGAL 已启动"), { id: "webgal-error" });
     stopRealtimeRender();
     setIsRealtimeRenderEnabled(false);
     hasRenderedHistoryRef.current = false;
@@ -483,7 +483,7 @@ export default function RealtimeRenderOrchestrator({
 
     isRenderingHistoryRef.current = true;
     try {
-      toast.loading("正在同步 WebGAL 顺序...", { id: "webgal-rerender-history" });
+      appToast.loading("正在同步 WebGAL 顺序...", { id: "webgal-rerender-history" });
 
       hasRenderedHistoryRef.current = false;
       lastRenderedMessageIdRef.current = null;
@@ -493,12 +493,12 @@ export default function RealtimeRenderOrchestrator({
       await realtimeRender.renderHistory(messagesToRender, roomId);
 
       commitRenderedHistoryState(messagesToRender);
-      toast.success("WebGAL 顺序已同步", { id: "webgal-rerender-history" });
+      appToast.success("WebGAL 顺序已同步", { id: "webgal-rerender-history" });
       return true;
     }
     catch (error) {
       console.error("[RealtimeRender] 同步 WebGAL 顺序失败:", error);
-      toast.error("WebGAL 顺序同步失败", { id: "webgal-rerender-history" });
+      appToast.error("WebGAL 顺序同步失败", { id: "webgal-rerender-history" });
       return false;
     }
     finally {

@@ -54,6 +54,8 @@ export function ImgUploader({
           tabIndex={0}
           onClick={openFilePicker}
           onKeyDown={(event) => {
+            if (event.nativeEvent.isComposing)
+              return;
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
               openFilePicker();

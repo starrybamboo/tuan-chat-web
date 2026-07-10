@@ -78,6 +78,8 @@ export default function PerformanceField({
                     setEditingFieldKey(null);
                   }}
                   onKeyDown={(e) => {
+                    if (e.nativeEvent.isComposing)
+                      return;
                     if (e.key === "Enter") {
                       if (tempFieldKey.trim() && tempFieldKey !== fieldKey) {
                         handleRename(tempFieldKey);
@@ -97,10 +99,13 @@ export default function PerformanceField({
               </label>
             )
           : (
-              <span
+              <button
+                type="button"
                 className={`
-                  label-text min-w-0 flex-1 cursor-pointer truncate font-semibold
+                  label-text min-w-0 flex-1 cursor-pointer truncate bg-transparent p-0
+                  text-left font-semibold
                   text-base-content/90 hover:text-info
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30
                   ${
                   isCompact ? "text-xs" : "text-base"
                 }
@@ -109,13 +114,14 @@ export default function PerformanceField({
                   setEditingFieldKey(fieldKey);
                   setTempFieldKey(fieldKey);
                 }}
-                title="点击编辑字段名"
+                title={`点击编辑字段名：${fieldKey}`}
               >
                 {fieldKey}
-              </span>
+              </button>
             )}
         <button
           type="button"
+          aria-label={`删除字段 ${fieldKey}`}
           onClick={() => onDelete(fieldKey)}
           className="
             btn btn-ghost btn-xs size-6 min-h-6 shrink-0 rounded-md p-0

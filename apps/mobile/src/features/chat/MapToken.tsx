@@ -31,6 +31,8 @@ export const MapToken = memo(({
     <Pressable
       accessibilityHint={statusText}
       accessibilityLabel={statusText ? `${name}，${statusText}` : name}
+      accessibilityRole="button"
+      accessibilityState={{ selected: isSelected }}
       onLongPress={onLongPress}
       onPress={onPress}
     >

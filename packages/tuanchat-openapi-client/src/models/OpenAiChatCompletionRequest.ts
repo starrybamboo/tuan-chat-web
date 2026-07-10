@@ -45,4 +45,3 @@ export type OpenAiChatCompletionRequest = {
      */
     extra_body?: Record<string, Record<string, any>>;
 };
-

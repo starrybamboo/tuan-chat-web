@@ -6,6 +6,7 @@ import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage
 type Theme = "light" | "dark" | "system";
 
 const THEME_KEY = "theme";
+const DEFAULT_THEME: Theme = "dark";
 const THEME_SWITCHING_CLASS_NAME = "theme-switching";
 
 function getSystemDark(): boolean {
@@ -14,6 +15,10 @@ function getSystemDark(): boolean {
 
 function resolveIsDark(theme: Theme): boolean {
   return theme === "dark" || (theme === "system" && getSystemDark());
+}
+
+function normalizeTheme(theme: unknown): Theme {
+  return theme === "light" || theme === "dark" || theme === "system" ? theme : DEFAULT_THEME;
 }
 
 function applyTheme(isDark: boolean) {
@@ -41,11 +46,18 @@ const THEME_OPTIONS = [
 
 export default function ThemeSwitch() {
   // 首屏 data-theme 已由 index.html 内联脚本设置；这里仅同步用户后续切换。
-  const [theme, setTheme] = useLocalStorage<Theme>(THEME_KEY, "system");
+  const [storedTheme, setTheme] = useLocalStorage<Theme>(THEME_KEY, DEFAULT_THEME);
+  const theme = normalizeTheme(storedTheme);
 
   useLayoutEffect(() => {
     applyTheme(resolveIsDark(theme));
   }, [theme]);
+
+  useEffect(() => {
+    if (storedTheme !== theme) {
+      setTheme(theme);
+    }
+  }, [setTheme, storedTheme, theme]);
 
   // system 模式下跟随系统主题实时变化。
   useEffect(() => {

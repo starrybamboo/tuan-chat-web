@@ -1,8 +1,9 @@
-import { use, useEffect, useMemo, useState } from "react";
-import { toast } from "react-hot-toast";
+import { use, useMemo, useState } from "react";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { ImeAwareSearchInput, useImeSearchValue } from "@/components/common/imeAwareSearchInput";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { AddRingLight } from "@/icons";
@@ -55,24 +56,14 @@ export function AddRoleWindow({
   const [isCreatingRole, setIsCreatingRole] = useState(false);
   const [isCreatingNpc, setIsCreatingNpc] = useState(false);
   const [activeTab, setActiveTab] = useState<"my" | "space">("my");
-  const [searchKeyword, setSearchKeyword] = useState("");
-  const [debouncedKeyword, setDebouncedKeyword] = useState("");
+  const { committedValue: searchKeyword, inputProps: searchInputProps } = useImeSearchValue();
   const [forceRoleIdInput, setForceRoleIdInput] = useState("");
 
   const availableRoles = useMemo(() => {
     return userRoles.filter(role => role.type !== 2 && !roleIdInRoomSet.has(role.roleId));
   }, [roleIdInRoomSet, userRoles]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedKeyword(searchKeyword);
-    }, 300);
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [searchKeyword]);
-
-  const normalizedSearch = useMemo(() => debouncedKeyword.trim().toLowerCase(), [debouncedKeyword]);
+  const normalizedSearch = useMemo(() => searchKeyword.trim().toLowerCase(), [searchKeyword]);
   const hasSearch = normalizedSearch.length > 0;
 
   const filteredAvailableRoles = useMemo(() => {
@@ -115,7 +106,7 @@ export function AddRoleWindow({
   const canForceAddRole = Number.isFinite(forceRoleId) && forceRoleId > 0;
   const handleForceAddRoleById = () => {
     if (!canForceAddRole) {
-      toast.error("请输入有效的角色ID");
+      appToast.error("请输入有效的角色ID");
       return;
     }
     if (isRoomScope) {
@@ -133,24 +124,28 @@ export function AddRoleWindow({
         导入角色
       </p>
 
-      <div role="tablist" className="tabs tabs-boxed mb-4 mx-auto w-fit">
+      <div role="tablist" aria-label="角色来源" className="tabs tabs-boxed mb-4 mx-auto w-fit">
         <button
           type="button"
+          aria-selected={activeTab === "my"}
           className={`
             tab
             ${activeTab === "my" ? "tab-active" : ""}
           `}
           onClick={() => setActiveTab("my")}
+          role="tab"
         >
           我的角色
         </button>
         <button
           type="button"
+          aria-selected={activeTab === "space"}
           className={`
             tab
             ${activeTab === "space" ? "tab-active" : ""}
           `}
           onClick={() => setActiveTab("space")}
+          role="tab"
         >
           空间角色
         </button>
@@ -158,16 +153,13 @@ export function AddRoleWindow({
 
       <div className="bg-base-100 rounded-box p-6">
         <div className="form-control mb-4">
-          <input
-            type="search"
+          <ImeAwareSearchInput
+            type="text"
             autoComplete="off"
             className="input input-bordered w-full"
             placeholder={activeTab === "my" ? "搜索我的角色（名称/ID）" : "搜索空间角色（名称/ID）"}
             aria-label={activeTab === "my" ? "搜索我的角色" : "搜索空间角色"}
-            value={searchKeyword}
-            onChange={(e) => {
-              setSearchKeyword(e.currentTarget.value);
-            }}
+            {...searchInputProps}
           />
         </div>
         {activeTab === "space" && (
@@ -188,6 +180,8 @@ export function AddRoleWindow({
                   setForceRoleIdInput(event.currentTarget.value.replace(/\D/g, ""));
                 }}
                 onKeyDown={(event) => {
+                  if (event.nativeEvent.isComposing)
+                    return;
                   if (event.key === "Enter") {
                     event.preventDefault();
                     handleForceAddRoleById();
@@ -231,7 +225,11 @@ export function AddRoleWindow({
                           transition-shadow cursor-pointer
                         " key={`search-${role.roleId}`}>
                           <div className="flex flex-col items-center p-3">
-                            <button type="button" onClick={() => handleAddRole(role.roleId)}>
+                            <button
+                              type="button"
+                              aria-label={`添加角色 ${role.roleName}`}
+                              onClick={() => handleAddRole(role.roleId)}
+                            >
                               <RoleAvatarByRole
                                 role={role}
                                 width={24}
@@ -258,7 +256,11 @@ export function AddRoleWindow({
                       transition-shadow cursor-pointer
                     " key={role.roleId}>
                       <div className="flex flex-col items-center p-3">
-                        <button type="button" onClick={() => handleAddRole(role.roleId)}>
+                        <button
+                          type="button"
+                          aria-label={`添加角色 ${role.roleName}`}
+                          onClick={() => handleAddRole(role.roleId)}
+                        >
                           <RoleAvatarByRole
                             role={role}
                             width={24}
@@ -283,6 +285,9 @@ export function AddRoleWindow({
                     <div className="flex flex-col items-center p-3">
                       <AddRingLight className="size-24 jump_icon" />
                       <p className="text-center block">创建角色</p>
+                      <p className="text-center block text-xs text-base-content/60">
+                        {isRoomScope ? "创建并加入当前房间" : "创建并加入当前空间"}
+                      </p>
                     </div>
                   </button>
                 </div>
@@ -308,7 +313,11 @@ export function AddRoleWindow({
                           transition-shadow cursor-pointer
                         " key={`search-${role.roleId}`}>
                           <div className="flex flex-col items-center p-3">
-                            <button type="button" onClick={() => handleImportSpaceRole(role.roleId)}>
+                            <button
+                              type="button"
+                              aria-label={`导入空间角色 ${role.roleName}`}
+                              onClick={() => handleImportSpaceRole(role.roleId)}
+                            >
                               <RoleAvatarByRole
                                 role={role}
                                 width={24}
@@ -335,7 +344,11 @@ export function AddRoleWindow({
                       transition-shadow cursor-pointer
                     " key={role.roleId}>
                       <div className="flex flex-col items-center p-3">
-                        <button type="button" onClick={() => handleImportSpaceRole(role.roleId)}>
+                        <button
+                          type="button"
+                          aria-label={`导入空间角色 ${role.roleName}`}
+                          onClick={() => handleImportSpaceRole(role.roleId)}
+                        >
                           <RoleAvatarByRole
                             role={role}
                             width={24}
@@ -360,6 +373,9 @@ export function AddRoleWindow({
                     <div className="flex flex-col items-center p-3">
                       <AddRingLight className="size-24 jump_icon" />
                       <p className="text-center block">创建NPC</p>
+                      <p className="text-center block text-xs text-base-content/60">
+                        {isRoomScope ? "创建并加入当前房间" : "创建并加入当前空间"}
+                      </p>
                     </div>
                   </button>
                 </div>

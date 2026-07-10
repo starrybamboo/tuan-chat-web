@@ -1,12 +1,12 @@
 import { useRouter } from "@tanstack/react-router";
 import React, { useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { getSpaceArchiveActionDisabledReason } from "@/components/chat/space/spaceArchiveActionPolicy";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 
-import { useDissolveSpaceMutation, useExitSpaceMutation, useRecoverSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../../api/hooks/chatQueryHooks";
+import { useDissolveSpaceMutation, useExitSpaceMutation, useGetSpaceInfoQuery, useRecoverSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../../api/hooks/chatQueryHooks";
 
 export type SpaceContextMenuProps = {
   contextMenu: { x: number; y: number; spaceId: number } | null;
@@ -39,6 +39,14 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
   const [archiveTargetSpaceId, setArchiveTargetSpaceId] = useState<number | null>(null);
 
+  // 取目标空间名称，用于解散/退出菜单项与确认弹窗的文案（菜单打开时用 contextMenu，确认弹窗打开时用暂存的目标 ID）
+  const displaySpaceId = contextMenu?.spaceId ?? dissolveTargetSpaceId ?? -1;
+  const displaySpaceInfoQuery = useGetSpaceInfoQuery(displaySpaceId);
+  const displaySpaceName = displaySpaceInfoQuery.data?.data?.name;
+  const displaySpaceLabel = displaySpaceName
+    ? `「${displaySpaceName}」（空间 ID ${displaySpaceId}）`
+    : `空间 ID ${displaySpaceId}`;
+
   if (!contextMenu && !isDissolveConfirmOpen && !isArchiveConfirmOpen)
     return null;
 
@@ -67,7 +75,7 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
       return;
     }
     const toastId = `space-archive-${spaceId}`;
-    toast.loading(nextArchived ? "正在归档空间..." : "正在恢复编辑...", { id: toastId });
+    appToast.loading(nextArchived ? "正在归档空间..." : "正在恢复编辑...", { id: toastId });
     try {
       if (nextArchived) {
         const { prepareSpaceDocsForArchive } = await import("@/components/chat/infra/doc/space/prepareSpaceDocsForArchive");
@@ -77,11 +85,11 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
       else {
         await recoverSpace.mutateAsync({ spaceId });
       }
-      toast.success(nextArchived ? "归档完成" : "已恢复编辑", { id: toastId });
+      appToast.success(nextArchived ? "归档完成" : "已恢复编辑", { id: toastId });
       onClose();
     }
     catch {
-      toast.error(nextArchived ? "归档失败，请重试" : "恢复编辑失败，请重试", { id: toastId });
+      appToast.error(nextArchived ? "归档失败，请重试" : "恢复编辑失败，请重试", { id: toastId });
     }
   };
 
@@ -134,28 +142,32 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
                         <span>{archiveActionLabel}</span>
                       </div>
                     </li>
-                    <li
-                      className="relative group text-error"
-                      onClick={() => {
-                        handleDissolve();
-                      }}
-                    >
-                      <div className="flex justify-between items-center w-full">
+                    <li className="relative group text-error">
+                      <button
+                        type="button"
+                        className="flex justify-between items-center w-full text-error"
+                        aria-label={`解散空间 ${displaySpaceLabel}`}
+                        onClick={() => {
+                          handleDissolve();
+                        }}
+                      >
                         <span>解散空间</span>
-                      </div>
+                      </button>
                     </li>
                   </>
                 )
               : (
-                  <li
-                    className="relative group"
-                    onClick={() => {
-                      handleExit(contextMenu.spaceId);
-                    }}
-                  >
-                    <div className="flex justify-between items-center w-full">
+                  <li className="relative group">
+                    <button
+                      type="button"
+                      className="flex justify-between items-center w-full"
+                      aria-label={`退出空间 ${displaySpaceLabel}`}
+                      onClick={() => {
+                        handleExit(contextMenu.spaceId);
+                      }}
+                    >
                       <span>退出空间</span>
-                    </div>
+                    </button>
                   </li>
                 )}
           </ul>
@@ -169,7 +181,7 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
           setDissolveTargetSpaceId(null);
         }}
         title="确认解散空间"
-        description="是否确定要解散该空间？此操作不可逆。"
+        description={`是否确定要解散${displaySpaceLabel}？此操作不可逆，空间内的所有房间、成员与内容将无法恢复。`}
         onConfirm={() => {
           if (dissolveTargetSpaceId == null)
             return;

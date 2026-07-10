@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  applySidebarDocFallbackCache,
   buildDefaultSidebarTree,
   collectExistingDocIds,
   findSidebarCategoryIdForTarget,
@@ -203,41 +202,6 @@ describe("sidebarTree", () => {
 
     expect(extractDocMetasFromSidebarTree(tree)).toEqual([]);
     expect(collectExistingDocIds(tree)).toEqual(new Set());
-  });
-
-  it("applySidebarDocFallbackCache 有 fileId override 时删除旧 fallbackImageUrl", () => {
-    const tree = applySidebarDocFallbackCache({
-      tree: {
-        schemaVersion: 2,
-        categories: [{
-          categoryId: "cat:docs",
-          name: "文档",
-          items: [{
-            nodeId: "doc:22",
-            type: "doc",
-            targetId: "22",
-            fallbackTitle: "旧标题",
-            fallbackImageUrl: "https://legacy.example.com/cover.png",
-          }],
-        }],
-      },
-      docMetaMap: new Map(),
-      docHeaderOverrides: {
-        22: {
-          imageFileId: 99,
-          imageMediaType: "image",
-          imageUrl: "https://legacy.example.com/new-cover.png",
-          title: "新标题",
-        },
-      },
-    });
-
-    expect(tree.categories[0]?.items[0]).toMatchObject({
-      fallbackTitle: "新标题",
-      fallbackImageFileId: 99,
-      fallbackImageMediaType: "image",
-    });
-    expect(tree.categories[0]?.items[0]).not.toHaveProperty("fallbackImageUrl");
   });
 
   it("findSidebarCategoryIdForTarget 可以定位 room 和 doc 所在分类", () => {

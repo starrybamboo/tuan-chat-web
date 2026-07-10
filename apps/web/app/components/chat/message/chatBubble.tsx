@@ -1,11 +1,12 @@
 import { getClueCardRenderData, getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { normalizeInlineRoleName, useInlineTextEditor } from "@/components/chat/hooks/useInlineTextEditor";
 import { getNextSyncedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
 import { ExpressionChooser } from "@/components/chat/input/expressionChooser";
 import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
@@ -16,6 +17,7 @@ import { buildMessageTextDiff } from "@/components/chat/message/diff/messageText
 import MessageTextDiffPreview from "@/components/chat/message/diff/MessageTextDiffPreview";
 import EditableMessageContent from "@/components/chat/message/editableMessageContent";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
+import StateMessageCard from "@/components/chat/state/stateMessageCard";
 import ForwardMessage from "@/components/chat/message/preview/forwardMessage";
 import { MessagePreviewContent } from "@/components/chat/message/preview/messagePreviewContent";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
@@ -28,6 +30,7 @@ import { isObserverLike } from "@/components/chat/utils/memberPermissions";
 import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
+import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { UserAvatarByUser } from "@/components/common/userAccess";
@@ -51,9 +54,9 @@ import type { ChatMessageResponse, Message, UserRole } from "../../../../api";
 
 import { useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
-import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
 import DocCardMessage from "./docCard/docCardMessage";
 import {
+
   CHAT_MESSAGE_ANNOTATIONS_CLASS,
   CHAT_MESSAGE_BUBBLE_BASE_CLASS,
   CHAT_MESSAGE_ROW_CLASS,
@@ -159,6 +162,9 @@ const narratorAvatarIconClassName = "transition-transform duration-150 ease-out 
 const messageTimeInlineClassName = "shrink-0 whitespace-nowrap text-xs text-base-content/50 transition-opacity duration-200 opacity-0 group-hover:opacity-100";
 const bubbleMessageTimeClassName = `hidden sm:inline-flex ${messageTimeInlineClassName}`;
 const plainMessageTimeClassName = `inline-flex pt-0.5 ${messageTimeInlineClassName}`;
+const bubbleMessageNamePlaceholderClassName = "block min-w-10 max-w-full truncate pb-0.5 text-sm sm:pb-1 sm:text-sm invisible";
+const plainMessageNamePlaceholderClassName = "min-w-10 max-w-full text-sm/5 sm:text-base/6 invisible";
+const roleNameHitTargetClassName = "relative after:absolute after:-inset-x-2 after:-inset-y-1.5 after:content-['']";
 
 function parseMessageTimeToMs(time?: string | number | null): number | undefined {
   if (time == null) {
@@ -218,8 +224,23 @@ function ClueCardReadonlyModal({
   message: Message;
   onClose: () => void;
 }) {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+
+  useEscapeToClose({
+    enabled: true,
+    onClose,
+    containerRef: dialogRef,
+  });
+
   return (
-    <div className="modal modal-open z-9999">
+    <div
+      ref={dialogRef}
+      data-modal-layer="true"
+      role="dialog"
+      aria-modal="true"
+      aria-label="查看线索"
+      className="modal modal-open z-9999"
+    >
       <div className="modal-box max-w-2xl">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="text-base font-semibold">查看线索</h3>
@@ -402,9 +423,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
 
   const isMobile = getScreenSize() === "sm";
 
-  // 角色名编辑状态
-  const [isEditingRoleName, setIsEditingRoleName] = useState(false);
-  const [editingRoleName, setEditingRoleName] = useState("");
   const [isEditingContent, setIsEditingContent] = useState(false);
   const editInputRef = useRef<ChatInputAreaHandle | null>(null);
 
@@ -430,28 +448,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   const isOutOfCharacterTextMessage = message.messageType === MESSAGE_TYPE.TEXT
     && isOutOfCharacterSpeech(message.content);
   const shouldUseUserAvatar = isOutOfCharacterTextMessage;
-  const outOfCharacterUserQuery = useGetUserInfoQuery(message.userId, {
-    enabled: isOutOfCharacterTextMessage && message.userId > 0,
-  });
-  const outOfCharacterUser = outOfCharacterUserQuery.data?.data;
-  const speakerDisplayName = isOutOfCharacterTextMessage
-    ? (outOfCharacterUser?.username?.trim() || `用户${message.userId}`)
-    : displayRoleName;
-  const showRoleNameEditor = !isIntroText && !isStateEventMessage && !isOutOfCharacterTextMessage && isEditingRoleName;
+  const speakerDisplayName = displayRoleName;
   const chatMessageMetaRowClass = isOutOfCharacterTextMessage
     ? "flex items-center gap-2 w-full min-w-0 relative"
     : getChatMessageMetaRowClass();
-  const outOfCharacterBadge = isOutOfCharacterTextMessage
-    ? (
-        <span className="
-          inline-flex shrink-0 items-center whitespace-nowrap rounded-full
-          bg-base-content/8 px-2 py-0.5 text-[10px] leading-none font-medium
-          text-base-content/50
-        ">
-          场外
-        </span>
-      )
-    : null;
   const versionDiff = useMemo(() => {
     if (!baseVersionMessage) {
       return showFullMessageDiff && showAddedMessageDiff ? buildMessageTextDiff("", message.content ?? "") : null;
@@ -470,6 +470,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     ? <div className="mt-2 flex justify-end">{messageAction}</div>
     : null;
   const shouldHideOriginalContentInFullDiff = Boolean(versionDiffPreview);
+  const canEdit = userId === message.userId || spaceContext.isSpaceOwner;
 
   // 更新消息并同步到本地缓存
   const updateMessageAndSync = useCallback((newMessage: Message) => {
@@ -513,10 +514,26 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
         if (roomContext.updateAndRerenderMessageInWebGAL) {
           roomContext.updateAndRerenderMessageInWebGAL(optimisticResponse, chatMessageResponse, false);
         }
-        toast.error("更新消息失败，已恢复原内容");
+        appToast.error("更新消息失败，已恢复原内容");
       },
     });
   }, [chatMessageResponse, roomContext, roomUiStoreApi, updateMessageMutation]);
+
+  const roleNameEditor = useInlineTextEditor<HTMLSpanElement>({
+    enabled: canEdit,
+    initialValue: customRoleName || role?.roleName || "",
+    normalize: normalizeInlineRoleName,
+    onCommit: (trimmedName) => {
+      updateMessageAndSync({
+        ...message,
+        customRoleName: trimmedName || undefined, // 空字符串时清除自定义名称
+      } as Message);
+    },
+  });
+  const showRoleNameEditor = !isIntroText
+    && !isStateEventMessage
+    && !isOutOfCharacterTextMessage
+    && roleNameEditor.isEditing;
 
   function handleExpressionChange(avatarId: number) {
     const newMessage: Message = {
@@ -534,8 +551,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     };
     updateMessageAndSync(newMessage);
   }
-
-  const canEdit = userId === message.userId || spaceContext.isSpaceOwner;
 
   const handleUpdateAnnotations = useCallback((next: string[]) => {
     const nextAnnotations = normalizeAnnotations(next);
@@ -608,25 +623,29 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     });
   }, [annotations, handleUpdateAnnotations, message.messageType]);
 
-  const renderAnnotationsBar = (className?: string) => (
-    <MessageAnnotationsBar
-      annotations={annotations}
-      canEdit={canEdit}
-      onToggle={handleToggleAnnotation}
-      onOpenPicker={handleOpenAnnotations}
-      showWhenEmpty={webgalLinkMode}
-      alwaysShowAddButton={webgalLinkMode}
-      showAddButton={webgalLinkMode}
-      showNormalModeAnnotationsOnly={!webgalLinkMode && !runModeEnabled}
-      compact={isMobile}
-      className={className}
-    />
-  );
+  const shouldShowMessageAnnotations = webgalLinkMode || runModeEnabled;
+  const renderAnnotationsBar = (className?: string) => shouldShowMessageAnnotations
+    ? (
+        <MessageAnnotationsBar
+          annotations={annotations}
+          canEdit={canEdit}
+          onToggle={handleToggleAnnotation}
+          onOpenPicker={handleOpenAnnotations}
+          showWhenEmpty={webgalLinkMode}
+          alwaysShowAddButton={webgalLinkMode}
+          showAddButton={webgalLinkMode}
+          showNormalModeAnnotationsOnly={false}
+          compact={isMobile}
+          className={className}
+        />
+      )
+    : null;
 
   const isEditableContentMessage = message.messageType === MESSAGE_TYPE.TEXT
     || message.messageType === MESSAGE_TYPE.INTRO_TEXT
     || message.messageType === MESSAGE_TYPE.IMG
-    || message.messageType === MESSAGE_TYPE.SOUND;
+    || message.messageType === MESSAGE_TYPE.SOUND
+    || message.messageType === MESSAGE_TYPE.STATE_EVENT;
   const canEditContent = canEdit && isEditableContentMessage;
   const canShowTextStyleToolbar = isEditingContent
     && canEdit
@@ -786,19 +805,19 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     const targetRoleId = message.roleId ?? 0;
     const targetAvatarId = message.avatarId ?? -1;
     if (roomId <= 0) {
-      toast.error("未找到房间，无法取样");
+      appToast.error("未找到房间，无法取样");
       return;
     }
     if (targetRoleId === 0 || targetAvatarId <= 0) {
-      toast.error("该消息没有可取样的头像");
+      appToast.error("该消息没有可取样的头像");
       return;
     }
     if (targetRoleId <= 0 && !spaceContext.isSpaceOwner) {
-      toast.error("只有主持人可以取样旁白头像");
+      appToast.error("只有主持人可以取样旁白头像");
       return;
     }
     if (targetRoleId > 0 && !roomContext.roomRolesThatUserOwn.some(role => role.roleId === targetRoleId)) {
-      toast.error("该角色不可用");
+      appToast.error("该角色不可用");
       return;
     }
     setCurRoleIdForRoom(roomId, targetRoleId);
@@ -905,39 +924,33 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   }, [message, updateMessageAndSync]);
 
   // 处理角色名编辑
-  function handleRoleNameClick() {
+  function handleRoleNameClick(event: React.SyntheticEvent<HTMLElement>) {
     if (canEdit) {
-      // 无需联动模式：点击角色名直接进入自定义名字编辑
-      setEditingRoleName(customRoleName || role?.roleName || "");
-      setIsEditingRoleName(true);
+      event.preventDefault();
+      event.stopPropagation();
+      return;
     }
-    else {
-      // 不可编辑时，@角色
-      const roleName = role?.roleName?.trim() || "Undefined";
-      const inputElement = document.querySelector(".chatInputTextarea") as HTMLTextAreaElement;
-      if (inputElement) {
-        const currentText = inputElement.value;
-        const atText = `@${roleName} `;
-        if (!currentText.includes(atText)) {
-          inputElement.value = currentText + atText;
-          inputElement.focus();
-          const event = new Event("input", { bubbles: true });
-          inputElement.dispatchEvent(event);
-        }
+
+    // 不可编辑时，@角色
+    const roleName = role?.roleName?.trim() || "Undefined";
+    const inputElement = document.querySelector(".chatInputTextarea") as HTMLTextAreaElement;
+    if (inputElement) {
+      const currentText = inputElement.value;
+      const atText = `@${roleName} `;
+      if (!currentText.includes(atText)) {
+        inputElement.value = currentText + atText;
+        inputElement.focus();
+        const event = new Event("input", { bubbles: true });
+        inputElement.dispatchEvent(event);
       }
     }
   }
 
-  // 保存自定义角色名
-  function handleRoleNameSave() {
-    const trimmedName = editingRoleName.trim();
-    const newMessage = {
-      ...message,
-      customRoleName: trimmedName || undefined, // 空字符串时清除自定义名称
-    } as Message;
-
-    updateMessageAndSync(newMessage);
-    setIsEditingRoleName(false);
+  function handleRoleNameDoubleClick(event: React.MouseEvent<HTMLElement>) {
+    if (!canEdit) {
+      return;
+    }
+    roleNameEditor.startEditing(event);
   }
 
   const handleReplyPreviewClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
@@ -1025,7 +1038,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
           event.preventDefault();
           event.stopPropagation();
           if (disableReason) {
-            toast.error(disableReason);
+            appToast.error(disableReason);
             return;
           }
           onExecuteCommandRequest?.({
@@ -1155,6 +1168,17 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                 />
               )}
             </div>
+          );
+        case MESSAGE_TYPE.STATE_EVENT:
+          return (
+            <StateMessageCard
+              message={message}
+              canEditContent={canEditContent}
+              onContentCommit={handleContentUpdate}
+              onContentEditingChange={setIsEditingContent}
+              editInputRef={editInputRef}
+              shouldIgnoreContentBlur={shouldIgnoreEditBlur}
+            />
           );
         case MESSAGE_TYPE.FORWARD:
           return <ForwardMessage messageResponse={chatMessageResponse} />;
@@ -1331,34 +1355,22 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                   <div className={chatMessageMetaRowClass}>
                     {showRoleNameEditor
                       ? (
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="text"
-                              autoComplete="off"
-                              aria-label="角色名"
-                              className="
-                                input input-xs input-bordered w-32 bg-base-200
-                                border-base-300 px-2 shadow-sm
-                                focus:outline-none focus:border-info
-                              "
-                              value={editingRoleName}
-                              onChange={e => setEditingRoleName(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter")
-                                  handleRoleNameSave();
-                                if (e.key === "Escape")
-                                  setIsEditingRoleName(false);
-                              }}
-                              placeholder="输入角色名"
-
-                            />
-                            <button type="button" className="
-                              btn btn-xs btn-primary
-                            " onClick={handleRoleNameSave}>✓</button>
-                            <button type="button" className="
-                              btn btn-xs btn-ghost
-                            " onClick={() => setIsEditingRoleName(false)}>✕</button>
-                          </div>
+                          <span
+                            ref={roleNameEditor.editorRef as React.RefObject<HTMLSpanElement>}
+                            className="
+                              block min-w-10 max-w-full truncate pb-0.5
+                              text-sm font-medium text-base-content/85
+                              sm:pb-1 sm:text-sm
+                              rounded bg-base-content/6 cursor-text
+                              focus:outline-none focus:ring-0
+                            "
+                            contentEditable
+                            suppressContentEditableWarning
+                            aria-label="角色名"
+                            onInput={roleNameEditor.syncDraft}
+                            onKeyDown={roleNameEditor.handleKeyDown}
+                            onBlur={roleNameEditor.commit}
+                          />
                         )
                       : (
                           !isIntroText && speakerDisplayName
@@ -1367,10 +1379,23 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                   relative flex min-w-0 max-w-full items-center
                                   gap-2
                                 ">
-                                  {outOfCharacterBadge}
                                   <span
+                                    onMouseDown={isOutOfCharacterTextMessage ? undefined : roleNameEditor.preventMultiClickSelection}
                                     onClick={isOutOfCharacterTextMessage ? undefined : handleRoleNameClick}
+                                    onDoubleClick={isOutOfCharacterTextMessage ? undefined : handleRoleNameDoubleClick}
+                                    role={!isOutOfCharacterTextMessage ? "button" : undefined}
+                                    tabIndex={!isOutOfCharacterTextMessage ? 0 : undefined}
+                                    title={speakerDisplayName}
+                                    onKeyDown={!isOutOfCharacterTextMessage
+                                      ? (e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                          e.preventDefault();
+                                          handleRoleNameClick(e);
+                                        }
+                                      }
+                                      : undefined}
                                     className={`
+                                      ${roleNameHitTargetClassName}
                                       block min-w-10 max-w-full truncate pb-0.5
                                       text-sm transition-colors duration-200
                                       sm:pb-1 sm:text-sm
@@ -1382,14 +1407,13 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                         `
                                         : `
                                           font-medium text-base-content/85
-                                          cursor-pointer
-                                          hover:text-info
-                                          ${canEdit ? `hover:underline` : ""}
+                                          ${canEdit ? "cursor-text" : "cursor-pointer"}
+                                          hover:text-base-content
                                         `
                                     }
                                     `}
                                   >
-                                    {speakerDisplayName}
+                                    {`【${speakerDisplayName}】`}
                                   </span>
                                   {formattedTime && (
                                     <span className={bubbleMessageTimeClassName}>
@@ -1413,29 +1437,35 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                 </div>
                               )
                             : (
-                                effectPreviewVisible && effectIconUrl
-                                  ? (
-                                      <img
-                                        src={`${effectIconUrl}?t=${effectPreviewToken}`}
-                                        alt=""
-                                        className="
-                                          pointer-events-none absolute left-2
-                                          -top-2
-                                          sm:-top-3
-                                          size-16
-                                          sm:size-20
-                                          object-contain scale-150 origin-left
-                                        "
-                                      />
-                                    )
-                                  : null
+                                <div className="
+                                  relative flex min-w-0 max-w-full items-center
+                                  gap-2
+                                ">
+                                  <span className={bubbleMessageNamePlaceholderClassName} aria-hidden="true">
+                                    占位
+                                  </span>
+                                  {formattedTime && (
+                                    <span className={bubbleMessageTimeClassName}>
+                                      {formattedTime}
+                                    </span>
+                                  )}
+                                  {effectPreviewVisible && effectIconUrl && (
+                                    <img
+                                      src={`${effectIconUrl}?t=${effectPreviewToken}`}
+                                      alt=""
+                                      className="
+                                        pointer-events-none absolute left-full
+                                        -top-2
+                                        sm:-top-3
+                                        ml-2 size-16
+                                        sm:size-20
+                                        object-contain scale-150 origin-left
+                                      "
+                                    />
+                                  )}
+                                </div>
                               )
                         )}
-                    {(!speakerDisplayName || isIntroText) && formattedTime && (
-                      <span className={bubbleMessageTimeClassName}>
-                        {formattedTime}
-                      </span>
-                    )}
                   </div>
                   {!shouldHideOriginalContentInFullDiff && (
                     <div
@@ -1549,33 +1579,30 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                   ">
                     {showRoleNameEditor
                       ? (
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="text"
-                              autoComplete="off"
-                              aria-label="角色名"
+                          <div
+                            className="
+                              inline-flex min-w-10 max-w-full items-baseline
+                              text-sm/5 font-semibold
+                              transition-colors duration-200 sm:text-base/6
+                              cursor-text
+                            "
+                            aria-label="角色名"
+                          >
+                            <span aria-hidden="true">【</span>
+                            <span
+                              ref={roleNameEditor.editorRef as React.RefObject<HTMLSpanElement>}
                               className="
-                                input input-sm input-bordered w-40 bg-base-200
-                                border-base-300 px-3 shadow-sm
-                                focus:outline-none focus:border-info
+                                min-w-4 max-w-full truncate rounded
+                                bg-base-content/6
+                                focus:outline-none focus:ring-0
                               "
-                              value={editingRoleName}
-                              onChange={e => setEditingRoleName(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter")
-                                  handleRoleNameSave();
-                                if (e.key === "Escape")
-                                  setIsEditingRoleName(false);
-                              }}
-                              placeholder="输入角色名"
-
+                              contentEditable
+                              suppressContentEditableWarning
+                              onInput={roleNameEditor.syncDraft}
+                              onKeyDown={roleNameEditor.handleKeyDown}
+                              onBlur={roleNameEditor.commit}
                             />
-                            <button type="button" className="
-                              btn btn-sm btn-primary
-                            " onClick={handleRoleNameSave}>✓</button>
-                            <button type="button" className="
-                              btn btn-sm btn-ghost
-                            " onClick={() => setIsEditingRoleName(false)}>✕</button>
+                            <span aria-hidden="true">】</span>
                           </div>
                         )
                       : (
@@ -1585,9 +1612,9 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                   relative flex min-w-0 max-w-full items-center
                                   gap-2
                                 ">
-                                  {outOfCharacterBadge}
                                   <div
                                     className={`
+                                      ${roleNameHitTargetClassName}
                                       min-w-10 max-w-full text-sm/5
                                       transition-colors duration-200
                                       sm:text-base/6
@@ -1598,18 +1625,29 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                           cursor-default
                                         `
                                         : `
-                                          font-semibold cursor-pointer
-                                          hover:text-info
-                                          ${userId === message.userId ? `
-                                            hover:underline
-                                          ` : ""}
+                                          font-semibold
+                                          ${userId === message.userId ? "cursor-text" : "cursor-pointer"}
+                                          hover:text-base-content
                                         `
                                     }
                                     `}
+                                    onMouseDown={isOutOfCharacterTextMessage ? undefined : roleNameEditor.preventMultiClickSelection}
                                     onClick={isOutOfCharacterTextMessage ? undefined : handleRoleNameClick}
+                                    onDoubleClick={isOutOfCharacterTextMessage ? undefined : handleRoleNameDoubleClick}
+                                    role={!isOutOfCharacterTextMessage ? "button" : undefined}
+                                    tabIndex={!isOutOfCharacterTextMessage ? 0 : undefined}
+                                    title={speakerDisplayName}
+                                    onKeyDown={!isOutOfCharacterTextMessage
+                                      ? (e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                          e.preventDefault();
+                                          handleRoleNameClick(e);
+                                        }
+                                      }
+                                      : undefined}
                                   >
                                     <div className="block min-w-0 truncate">
-                                      {isOutOfCharacterTextMessage ? speakerDisplayName : `【${speakerDisplayName}】`}
+                                      {`【${speakerDisplayName}】`}
                                     </div>
                                   </div>
                                   {formattedTime && (
@@ -1634,29 +1672,35 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                 </div>
                               )
                             : (
-                                effectPreviewVisible && effectIconUrl
-                                  ? (
-                                      <img
-                                        src={`${effectIconUrl}?t=${effectPreviewToken}`}
-                                        alt=""
-                                        className="
-                                          pointer-events-none absolute left-2
-                                          -top-2
-                                          sm:-top-3
-                                          size-16
-                                          sm:size-20
-                                          object-contain scale-150 origin-left
-                                        "
-                                      />
-                                    )
-                                  : null
+                                <div className="
+                                  relative flex min-w-0 max-w-full items-center
+                                  gap-2
+                                ">
+                                  <div className={plainMessageNamePlaceholderClassName} aria-hidden="true">
+                                    <div className="block min-w-0 truncate">【占位】</div>
+                                  </div>
+                                  {formattedTime && (
+                                    <span className={plainMessageTimeClassName}>
+                                      {formattedTime}
+                                    </span>
+                                  )}
+                                  {effectPreviewVisible && effectIconUrl && (
+                                    <img
+                                      src={`${effectIconUrl}?t=${effectPreviewToken}`}
+                                      alt=""
+                                      className="
+                                        pointer-events-none absolute left-full
+                                        -top-2
+                                        sm:-top-3
+                                        ml-2 size-16
+                                        sm:size-20
+                                        object-contain scale-150 origin-left
+                                      "
+                                    />
+                                  )}
+                                </div>
                               )
                         )}
-                    {(!speakerDisplayName || isIntroText) && formattedTime && (
-                      <span className={plainMessageTimeClassName}>
-                        {formattedTime}
-                      </span>
-                    )}
                   </div>
                   {!shouldHideOriginalContentInFullDiff && (
                     <div

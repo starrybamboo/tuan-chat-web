@@ -1,7 +1,7 @@
 import { ArrowRightIcon } from "@phosphor-icons/react";
 import { useLocation, useRouter } from "@tanstack/react-router";
 import React, { use, useCallback, useMemo } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
@@ -136,16 +136,16 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
     event.stopPropagation();
 
     if (!targetSpaceId) {
-      toast.error(disabledReason || "缺少目标空间信息");
+      appToast.error(disabledReason || "缺少目标空间信息");
       return;
     }
     if (!resolvedTarget.roomId) {
-      toast.error(resolvedTarget.reason || "未找到目标群聊");
+      appToast.error(resolvedTarget.reason || "未找到目标群聊");
       return;
     }
 
     if (currentSpaceId === targetSpaceId && currentRoomId === resolvedTarget.roomId) {
-      toast("已在目标群聊", { icon: "ℹ️" });
+      appToast.info("已在目标群聊", { icon: "ℹ️" });
       return;
     }
 
@@ -218,19 +218,19 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
           <div className="
             flex items-center gap-1.5 text-[11px] text-base-content/60
           ">
-            <span className="truncate">{displaySpaceName}</span>
+            <span className="truncate" title={displaySpaceName}>{displaySpaceName}</span>
             {categoryLabel && (
               <>
                 <span>·</span>
-                <span className="truncate">{categoryLabel}</span>
+                <span className="truncate" title={categoryLabel}>{categoryLabel}</span>
               </>
             )}
           </div>
-          <div className="truncate text-[14px] font-medium text-base-content/90">
+          <div className="truncate text-[14px] font-medium text-base-content/90" title={title}>
             {title}
           </div>
           {titleDiffersFromRoomName && (
-            <div className="truncate text-[11px] text-base-content/50">
+            <div className="truncate text-[11px] text-base-content/50" title={`群聊: ${displayRoomName}`}>
               群聊:
               {" "}
               {displayRoomName}

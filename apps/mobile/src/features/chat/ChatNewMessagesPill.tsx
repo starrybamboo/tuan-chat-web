@@ -48,7 +48,12 @@ export function ChatNewMessagesPill({ count, onPress, visible }: ChatNewMessages
 
   return (
     <Animated.View style={[styles.fab, { backgroundColor: theme.backgroundElement }, animatedStyle]} pointerEvents={visible ? "auto" : "none"}>
-      <Pressable onPress={onPress} style={{ flex: 1, alignItems: "center", justifyContent: "center", width: "100%" }}>
+      <Pressable
+        accessibilityLabel={count > 0 ? `跳到最新消息，${count} 条未读` : "跳到最新消息"}
+        accessibilityRole="button"
+        onPress={onPress}
+        style={{ flex: 1, alignItems: "center", justifyContent: "center", width: "100%" }}
+      >
         <ArrowDown size={18} color={theme.text} weight="bold" />
       </Pressable>
       {count > 0

@@ -1,12 +1,12 @@
 import type { Ref } from "react";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { UserPlusIcon } from "@phosphor-icons/react";
+import { useCheckFriendQuery, useSendFriendRequestMutation } from "api/hooks/friendQueryHooks";
 import { useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import toast from "react-hot-toast";
 
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { useCheckFriendQuery, useSendFriendRequestMutation } from "api/hooks/friendQueryHooks";
 
 type FriendRequestButtonVariant = "button" | "menu-item";
 
@@ -131,12 +131,12 @@ export function FriendRequestButton({
         targetUserId: validTargetUserId,
         verifyMsg: trimmedVerifyMsg,
       });
-      toast.success("好友申请已发送");
+      appToast.success("好友申请已发送");
       setIsDialogOpen(false);
       onAfterClick?.();
     }
     catch (error) {
-      toast.error(getErrorMessage(error));
+      appToast.error(getErrorMessage(error));
     }
   }
 
@@ -161,6 +161,8 @@ export function FriendRequestButton({
             }
           }}
           onKeyDown={(event) => {
+            if (event.nativeEvent.isComposing)
+              return;
             if (event.key === "Escape" && !sendFriendRequestMutation.isPending) {
               setIsDialogOpen(false);
             }

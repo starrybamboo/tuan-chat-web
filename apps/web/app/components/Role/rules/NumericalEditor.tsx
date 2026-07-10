@@ -1,7 +1,7 @@
 import type { FocusEvent, KeyboardEvent } from "react";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { useEffect, useReducer, useRef } from "react";
-import toast from "react-hot-toast";
 
 import {
   useUpdateKeyFieldByRoleIdMutation,
@@ -167,13 +167,13 @@ export default function NumericalEditor({
 
   const handleFieldSaveSuccess = (updatedData: NumericalData, reason: SaveReason = "batch") => {
     onChange(updatedData);
-    toast.success(reason === "batch" ? "能力已批量更新" : "能力已更新");
+    appToast.success(reason === "batch" ? "能力已批量更新" : "能力已更新");
   };
 
   const handleFieldSaveError = (error: unknown, fallbackData: NumericalData) => {
     dispatch({ type: "SYNC_PROPS", payload: fallbackData });
     onChange(fallbackData);
-    toast.error(`能力更新失败：${getErrorMessage(error)}`);
+    appToast.error(`能力更新失败：${getErrorMessage(error)}`);
   };
 
   // 处理字段值更新

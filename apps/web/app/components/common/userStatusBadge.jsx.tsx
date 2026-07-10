@@ -26,6 +26,7 @@ const UserStatusDot: React.FC<UserStatusDotProps> = ({
 
   // 最终使用的状态
   const finalStatus = getValidStatus(status);
+  const statusLabel = finalStatus === 1 ? "在线" : "离线";
 
   // 尺寸映射
   const sizeMap = {
@@ -52,7 +53,9 @@ const UserStatusDot: React.FC<UserStatusDotProps> = ({
         editable ? "cursor-pointer" : "",
         className,
       ].filter(Boolean).join(" ")}
-      title={`当前状态: ${finalStatus}`}
+      role="img"
+      aria-label={`当前状态：${statusLabel}`}
+      title={`当前状态：${statusLabel}`}
     />
   );
 };

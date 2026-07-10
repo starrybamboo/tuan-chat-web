@@ -21,4 +21,3 @@ export type ApiResultSpace = {
     errMsg?: string;
     data?: Space;
 };
-

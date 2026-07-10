@@ -1,7 +1,11 @@
 import { buildClueFolderExtraValue, CLUE_FOLDER_EXTRA_KEY } from "@tuanchat/domain/clue-folder";
 import { describe, expect, it } from "vitest";
 
-import { formatUnreadBadgeCount, getVisibleClueFolderUnreadCount } from "./clueUnread";
+import {
+  formatClueUnreadAccessibilityLabel,
+  formatUnreadBadgeCount,
+  getVisibleClueFolderUnreadCount,
+} from "./clueUnread";
 
 function clueExtra(params: Parameters<typeof buildClueFolderExtraValue>[0]) {
   return {
@@ -14,6 +18,13 @@ describe("mobile clueUnread", () => {
     expect(formatUnreadBadgeCount(0)).toBe("0");
     expect(formatUnreadBadgeCount(8)).toBe("8");
     expect(formatUnreadBadgeCount(128)).toBe("99+");
+  });
+
+  it("格式化线索 tab 未读读屏文案", () => {
+    expect(formatClueUnreadAccessibilityLabel(0)).toBe("线索，暂无未读");
+    expect(formatClueUnreadAccessibilityLabel(1)).toBe("线索，1 条未读");
+    expect(formatClueUnreadAccessibilityLabel(99)).toBe("线索，99 条未读");
+    expect(formatClueUnreadAccessibilityLabel(128)).toBe("线索，99 条以上未读");
   });
 
   it("只统计当前空间内可见线索房间的未读", () => {

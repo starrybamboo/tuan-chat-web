@@ -21,4 +21,3 @@ export type ApiResultFeedbackIssueDetailResponse = {
     errMsg?: string;
     data?: FeedbackIssueDetailResponse;
 };
-

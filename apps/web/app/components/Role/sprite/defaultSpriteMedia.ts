@@ -1,7 +1,7 @@
 import type { GeneratedMediaUploadFiles, UploadedMediaFile, UploadMediaFileOptions } from "@/utils/media/mediaUpload";
 import type { SpriteCropContext } from "api";
 
-import { generateMediaUploadFiles, uploadGeneratedMediaFiles } from "@/utils/media/mediaUpload";
+import { generateOriginalFirstImageUploadFiles, uploadGeneratedMediaFiles } from "@/utils/media/mediaUpload";
 
 type ImageDimensions = {
   width: number;
@@ -9,7 +9,7 @@ type ImageDimensions = {
 };
 
 type DefaultSpriteMediaUploadDeps = {
-  generateMediaUploadFiles?: typeof generateMediaUploadFiles;
+  generateOriginalFirstImageUploadFiles?: typeof generateOriginalFirstImageUploadFiles;
   readImageFileDimensions?: (file: File) => Promise<ImageDimensions>;
   uploadGeneratedMediaFiles?: (payload: GeneratedMediaUploadFiles, options?: UploadMediaFileOptions) => Promise<UploadedMediaFile>;
 };
@@ -87,7 +87,7 @@ export async function uploadOriginAndDefaultSpriteMedia(
   options: UploadMediaFileOptions = {},
   deps: DefaultSpriteMediaUploadDeps = {},
 ): Promise<DefaultSpriteMediaUploadResult> {
-  const generate = deps.generateMediaUploadFiles ?? generateMediaUploadFiles;
+  const generate = deps.generateOriginalFirstImageUploadFiles ?? generateOriginalFirstImageUploadFiles;
   const upload = deps.uploadGeneratedMediaFiles ?? uploadGeneratedMediaFiles;
   const readDimensions = deps.readImageFileDimensions ?? readImageFileDimensions;
 
@@ -97,12 +97,14 @@ export async function uploadOriginAndDefaultSpriteMedia(
   }
 
   const dimensions = await readDimensions(payload.original);
-  const origin = await upload(payload, options);
-  const sprite = await upload(payload, options);
+  const origin = await upload(payload, {
+    ...options,
+    completeAfterPrimaryQuality: true,
+  });
 
   return {
     origin,
-    sprite,
+    sprite: origin,
     spriteCropContext: createFullSpriteCropContext(dimensions, origin.fileId),
   };
 }

@@ -21,4 +21,3 @@ export type ApiResultOssResp = {
     errMsg?: string;
     data?: OssResp;
 };
-

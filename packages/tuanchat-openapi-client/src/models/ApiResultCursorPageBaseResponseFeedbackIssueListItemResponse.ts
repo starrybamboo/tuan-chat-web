@@ -21,4 +21,3 @@ export type ApiResultCursorPageBaseResponseFeedbackIssueListItemResponse = {
     errMsg?: string;
     data?: CursorPageBaseResponseFeedbackIssueListItemResponse;
 };
-

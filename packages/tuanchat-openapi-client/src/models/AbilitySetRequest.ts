@@ -35,4 +35,3 @@ export type AbilitySetRequest = {
      */
     extra?: Record<string, string>;
 };
-

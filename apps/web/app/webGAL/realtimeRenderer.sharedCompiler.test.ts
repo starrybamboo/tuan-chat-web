@@ -6,6 +6,7 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import type { ChatMessageResponse, Room, UserRole } from "../../api";
 
 import { RealtimeRenderer } from "./realtimeRenderer";
+import type { PreviewSyncScenePayload } from "./editorPreviewSyncClient";
 import { hashString } from "./realtimeRendererFileNames";
 
 const manageGameControllerEditTextFile = vi.fn(async () => ({}));
@@ -91,6 +92,17 @@ function message(overrides: Partial<ChatMessageResponse["message"]>): ChatMessag
   };
 }
 
+function stubPreviewSyncClient(renderer: RealtimeRenderer) {
+  const sendSyncScene = vi.fn((_payload: PreviewSyncScenePayload) => true);
+  (renderer as any).previewSyncClient = {
+    connect: vi.fn(),
+    dispose: vi.fn(),
+    isReady: vi.fn(() => true),
+    sendSyncScene,
+  };
+  return sendSyncScene;
+}
+
 describe("realtimeRenderer shared compiler full render", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -151,18 +163,15 @@ describe("realtimeRenderer shared compiler full render", () => {
       }),
     ], 10);
 
-    const send = vi.fn();
-    const close = vi.fn();
-    vi.stubGlobal("WebSocket", { OPEN: 1 });
-    (renderer as any).isConnected = true;
-    (renderer as any).syncSocket = { readyState: 1, send, close };
+    const sendSyncScene = stubPreviewSyncClient(renderer);
 
     expect(renderer.jumpToMessage(2, 10)).toBe(true);
-    const payload = JSON.parse(send.mock.calls[0]?.[0] ?? "{}");
+    const payload = sendSyncScene.mock.calls[0]?.[0] as PreviewSyncScenePayload;
     const range = (renderer as any).messageLineMap.get("10_2");
     const sceneText = (renderer as any).sceneContextMap.get(10)?.text ?? "";
-    const sentence = payload.data.sceneMsg.sentence;
+    const sentence = payload.sentenceId;
 
+    expect(payload.sceneName).toMatch(/\.txt$/);
     expect(sentence).toBe(range.startLine);
     expect(sentence).toBeGreaterThan(1);
     expect(sceneText.split("\n")[sentence - 1]).toBe("明日香: 第二句;");
@@ -193,11 +202,7 @@ describe("realtimeRenderer shared compiler full render", () => {
       }),
     ], 10);
 
-    const send = vi.fn();
-    const close = vi.fn();
-    vi.stubGlobal("WebSocket", { OPEN: 1 });
-    (renderer as any).isConnected = true;
-    (renderer as any).syncSocket = { readyState: 1, send, close };
+    const sendSyncScene = stubPreviewSyncClient(renderer);
 
     await expect(renderer.updateAndRerenderMessage(message({
       messageId: 2,
@@ -210,10 +215,10 @@ describe("realtimeRenderer shared compiler full render", () => {
     const range = (renderer as any).messageLineMap.get("10_2");
     const sceneText = (renderer as any).sceneContextMap.get(10)?.text ?? "";
     const sceneLines = sceneText.split("\n");
-    const payload = JSON.parse(send.mock.calls.at(-1)?.[0] ?? "{}");
-    const sentence = payload.data.sceneMsg.sentence;
+    const payload = sendSyncScene.mock.calls.at(-1)?.[0] as PreviewSyncScenePayload;
+    const sentence = payload.sentenceId;
 
-    expect(payload.data.message).toBe("Sync");
+    expect(payload.sceneName).toMatch(/\.txt$/);
     expect(sentence).toBe(range.startLine);
     expect(range.endLine).toBe(range.startLine);
     expect(sceneLines[sentence - 1]).toBe("明日香: 第二句|补充一行;");
@@ -245,9 +250,7 @@ describe("realtimeRenderer shared compiler full render", () => {
       }),
     ], 10);
 
-    vi.stubGlobal("WebSocket", { OPEN: 1 });
-    (renderer as any).isConnected = true;
-    (renderer as any).syncSocket = { readyState: 1, send: vi.fn(), close: vi.fn() };
+    stubPreviewSyncClient(renderer);
 
     await expect(renderer.updateAndRerenderMessage(message({
       messageId: 2,
@@ -263,7 +266,7 @@ describe("realtimeRenderer shared compiler full render", () => {
     expect(sceneText).not.toContain("明日香: 第二句;");
   });
 
-  it("WebSocket 暂未连接时会保留最后一次跳转请求", async () => {
+  it("V1 预览同步会接收最后一次跳转请求", async () => {
     const renderer = RealtimeRenderer.getInstance(42);
     renderer.setRooms([room(10, "序章")]);
     renderer.setRoleCache([role(1, "明日香")]);
@@ -288,17 +291,14 @@ describe("realtimeRenderer shared compiler full render", () => {
       }),
     ], 10);
 
-    vi.stubGlobal("WebSocket", { OPEN: 1 });
-    (renderer as any).isConnected = false;
-    (renderer as any).syncSocket = null;
+    const sendSyncScene = stubPreviewSyncClient(renderer);
 
     expect(renderer.jumpToMessage(1, 10)).toBe(true);
     expect(renderer.jumpToMessage(2, 10)).toBe(true);
 
-    const queuedMessages = (renderer as any).messageQueue as string[];
-    expect(queuedMessages).toHaveLength(1);
-    const payload = JSON.parse(queuedMessages[0] ?? "{}");
-    expect(payload.data.sceneMsg.sentence).toBe((renderer as any).messageLineMap.get("10_2").startLine);
+    expect(sendSyncScene).toHaveBeenCalledTimes(2);
+    const payload = sendSyncScene.mock.calls.at(-1)?.[0] as PreviewSyncScenePayload;
+    expect(payload.sentenceId).toBe((renderer as any).messageLineMap.get("10_2").startLine);
   });
 
   it("脚本片段包含真实换行时会按物理行数维护场景行号", async () => {

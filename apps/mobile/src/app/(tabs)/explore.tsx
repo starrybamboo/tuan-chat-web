@@ -181,7 +181,13 @@ export default function ProfileScreen() {
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           {/* Profile Header */}
           <View style={[styles.profileHeader]}>
-            <Pressable onPress={() => avatarThumbSrc && setAvatarPreviewVisible(true)}>
+            <Pressable
+              accessibilityLabel="查看头像预览"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !avatarThumbSrc }}
+              disabled={!avatarThumbSrc}
+              onPress={() => avatarThumbSrc && setAvatarPreviewVisible(true)}
+            >
               {avatarThumbSrc
                 ? (
                     <CachedImage uri={avatarThumbSrc} style={styles.avatar} />
@@ -250,6 +256,7 @@ export default function ProfileScreen() {
                     <View style={styles.fieldRow}>
                       <ThemedText themeColor="textSecondary" style={styles.fieldLabel}>用户名</ThemedText>
                       <TextInput
+                        accessibilityLabel="用户名"
                         value={editUsername}
                         onChangeText={setEditUsername}
                         style={[styles.fieldInput, { borderColor: theme.border, color: theme.text, backgroundColor: theme.background }]}
@@ -260,6 +267,7 @@ export default function ProfileScreen() {
                     <View style={styles.fieldRow}>
                       <ThemedText themeColor="textSecondary" style={styles.fieldLabel}>个人简介</ThemedText>
                       <TextInput
+                        accessibilityLabel="个人简介"
                         value={editDescription}
                         onChangeText={setEditDescription}
                         style={[styles.fieldInput, { borderColor: theme.border, color: theme.text, backgroundColor: theme.background, minHeight: 60 }]}
@@ -269,10 +277,22 @@ export default function ProfileScreen() {
                       />
                     </View>
                     <View style={{ flexDirection: "row", gap: Spacing.md }}>
-                      <Pressable onPress={() => setEditing(false)} style={[styles.saveButton, { flex: 1, backgroundColor: theme.backgroundSelected }]}>
+                      <Pressable
+                        accessibilityLabel="取消编辑个人信息"
+                        accessibilityRole="button"
+                        onPress={() => setEditing(false)}
+                        style={[styles.saveButton, { flex: 1, backgroundColor: theme.backgroundSelected }]}
+                      >
                         <ThemedText>取消</ThemedText>
                       </Pressable>
-                      <Pressable onPress={() => void handleSave()} disabled={updateMutation.isPending} style={[styles.saveButton, { flex: 1, backgroundColor: theme.accent }]}>
+                      <Pressable
+                        accessibilityLabel="保存个人信息"
+                        accessibilityRole="button"
+                        accessibilityState={{ busy: updateMutation.isPending, disabled: updateMutation.isPending }}
+                        onPress={() => void handleSave()}
+                        disabled={updateMutation.isPending}
+                        style={[styles.saveButton, { flex: 1, backgroundColor: theme.accent }]}
+                      >
                         <ThemedText style={{ color: "#fff", fontWeight: "600" }}>
                           {updateMutation.isPending ? "保存中…" : "保存"}
                         </ThemedText>
@@ -286,7 +306,10 @@ export default function ProfileScreen() {
                       <ThemedText themeColor="textSecondary">用户名</ThemedText>
                       <ThemedText>{user?.username ?? "-"}</ThemedText>
                     </View>
-                    <View style={[styles.saveButton, { backgroundColor: theme.backgroundSelected, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }]}>
+                    <View
+                      style={[styles.saveButton, { backgroundColor: theme.backgroundSelected, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }]}
+                      accessibilityLabel={`简介：${user?.description || "未填写"}`}
+                    >
                       <ThemedText themeColor="textSecondary">简介</ThemedText>
                       <ThemedText numberOfLines={1} style={{ flex: 1, textAlign: "right", marginLeft: Spacing.md }}>{user?.description || "未填写"}</ThemedText>
                     </View>
@@ -358,15 +381,24 @@ export default function ProfileScreen() {
           onRequestClose={() => setAvatarPreviewVisible(false)}
         >
           <Pressable
+            accessibilityLabel="关闭头像预览"
+            accessibilityRole="button"
             style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.9)", alignItems: "center", justifyContent: "center" }}
             onPress={() => setAvatarPreviewVisible(false)}
           >
             {avatarPreviewSrc
               ? (
-                  <CachedImage uri={avatarPreviewSrc} style={{ width: 280, height: 280, borderRadius: Radius.lg }} contentFit="cover" />
+                  <CachedImage
+                    accessibilityLabel="当前头像预览"
+                    uri={avatarPreviewSrc}
+                    style={{ width: 280, height: 280, borderRadius: Radius.lg }}
+                    contentFit="cover"
+                  />
                 )
               : null}
             <Pressable
+              accessibilityLabel="更换头像"
+              accessibilityRole="button"
               onPress={() => { setAvatarPreviewVisible(false); void handlePickAvatar(); }}
               style={[styles.saveButton, { borderWidth: 1, borderColor: "rgba(255,255,255,0.5)", backgroundColor: "transparent", marginTop: Spacing.xxl, paddingHorizontal: Spacing.xxl }]}
             >

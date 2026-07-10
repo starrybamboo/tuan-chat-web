@@ -1,8 +1,8 @@
 import type { VirtuosoHandle } from "react-virtuoso";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { patchInsertMessages } from "@tuanchat/query/chat";
 import React, { memo, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
 
 import type { ClueFolderScope } from "@/components/chat/clues/clueRooms";
 import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
@@ -45,6 +45,7 @@ import { tuanchat } from "api/instance";
 import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../api";
 
 import {
+
   useDeleteMessageMutation,
   usePatchMessagesMutation,
   useUpdateMessageMutation,
@@ -58,7 +59,6 @@ import {
 type ChatFrameProps = {
   virtuosoRef: React.RefObject<VirtuosoHandle | null>;
   messagesOverride?: ChatMessageResponse[];
-  enableWsSync?: boolean;
   enableEffects?: boolean;
   enableUnreadIndicator?: boolean;
   isMessageMovable?: (message: Message) => boolean;
@@ -83,7 +83,6 @@ function ChatFrame(props: ChatFrameProps) {
   const {
     virtuosoRef,
     messagesOverride,
-    enableWsSync = true,
     enableEffects = true,
     enableUnreadIndicator = true,
     isMessageMovable,
@@ -198,17 +197,13 @@ function ChatFrame(props: ChatFrameProps) {
   const chatHistory = roomContext.chatHistory;
   const {
     send,
-    receivedMessages,
     unreadMessagesNumber,
     updateLastReadSyncId,
   } = useChatFrameWebSocket(roomId);
 
   const { historyMessages } = useChatFrameMessages({
     messagesOverride,
-    enableWsSync,
-    roomId,
     chatHistory,
-    receivedMessages,
     currentUserId: roomContext.curMember?.userId,
     currentMemberType: roomContext.curMember?.memberType,
   });
@@ -299,16 +294,16 @@ function ChatFrame(props: ChatFrameProps) {
   const openWebgalChooseEditor = useCallback((messageId: number) => {
     const target = historyMessages.find(message => message.message.messageId === messageId);
     if (!target) {
-      toast.error("未找到要编辑的消息");
+      appToast.error("未找到要编辑的消息");
       return;
     }
     if (target.message.messageType !== MESSAGE_TYPE.WEBGAL_CHOOSE) {
-      toast.error("该消息不是选择类型");
+      appToast.error("该消息不是选择类型");
       return;
     }
     const payload = extractWebgalChoosePayload(target.message.extra);
     if (!payload) {
-      toast.error("未找到选择内容");
+      appToast.error("未找到选择内容");
       return;
     }
     const nextOptions = payload.options.map(option => createWebgalChooseOptionDraft({
@@ -546,7 +541,7 @@ function ChatFrame(props: ChatFrameProps) {
 
   const handleExportFile = useCallback(() => {
     if (selectedMessages.length === 0) {
-      toast.error("请选择要导出的消息");
+      appToast.error("请选择要导出的消息");
       return;
     }
     setIsExportFileWindowOpen(true);
@@ -556,7 +551,7 @@ function ChatFrame(props: ChatFrameProps) {
     if (!onExportPremiere)
       return;
     if (selectedMessages.length === 0) {
-      toast.error("请选择要生成 PR 文件的消息");
+      appToast.error("请选择要生成 PR 文件的消息");
       return;
     }
     void onExportPremiere(selectedMessages);

@@ -31,4 +31,3 @@ export type UserUpdateInfoRequest = {
      */
     extra?: Record<string, Record<string, any>>;
 };
-

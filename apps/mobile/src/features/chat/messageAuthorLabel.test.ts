@@ -36,7 +36,19 @@ describe("messageAuthorLabel", () => {
 
     expect(isOutOfCharacterMessage(oocMessage)).toBe(true);
     expect(isNarratorMessage(oocMessage)).toBe(false);
-    expect(getMobileMessageAuthorLabel(oocMessage)).toBe("用户 #7");
+    expect(getMobileMessageAuthorLabel(oocMessage)).toBe("角色 #-1");
+  });
+
+  it("场外发言优先显示房间角色名", () => {
+    const roomRolesById = rolesById([{ roleId: 32, roleName: "角色名" } as UserRole]);
+    const oocMessage = message({
+      content: "（我就看看）",
+      messageType: MESSAGE_TYPE.TEXT,
+      roleId: 32,
+      userId: 7,
+    });
+
+    expect(getMobileMessageAuthorLabel(oocMessage, roomRolesById)).toBe("角色名");
   });
 
   it("有角色消息优先显示房间角色名", () => {

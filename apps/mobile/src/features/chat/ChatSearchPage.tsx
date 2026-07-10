@@ -30,7 +30,9 @@ type MessageItem = {
 
 function getSearchAuthorLabel(message: Message, roomRolesById?: RoomRolesById): string {
   const fallbackLabel = isNarratorMessage(message) ? undefined : getMessageAuthorLabel(message);
-  return getMobileMessageAuthorLabel(message, roomRolesById, { unknownRoleLabel: fallbackLabel });
+  return getMobileMessageAuthorLabel(message, roomRolesById, {
+    unknownRoleLabel: fallbackLabel,
+  });
 }
 
 type ChatSearchPageProps = {
@@ -68,47 +70,13 @@ export function ChatSearchPage({ messages, onClose, onScrollToMessage, roomRoles
 
   const renderItem = useCallback(({ item }: { item: MessageItem }) => {
     const msg = item.message;
-    const authorLabel = getSearchAuthorLabel(msg, roomRolesById);
-    const preview = getMessagePreviewText(msg);
-    const time = msg.createTime ? formatMessageDateTime(msg.createTime) : "";
-
     return (
-      <Pressable
-        onPress={() => msg.messageId && handleSelect(msg.messageId)}
-        style={({ pressed }) => [
-          styles.resultItem,
-          { borderBottomColor: theme.border },
-          pressed && { backgroundColor: theme.surface },
-        ]}
-      >
-        <MessageAvatar
-          avatarFileId={msg.avatarFileId}
-          avatarId={msg.avatarId}
-          displayName={authorLabel}
-          preferUserAvatar={isOutOfCharacterMessage(msg)}
-          roleId={msg.roleId}
-          roomRolesById={roomRolesById}
-          size={36}
-          userId={msg.userId}
-        />
-        <View style={styles.resultContent}>
-          <View style={styles.resultHeader}>
-            <ThemedText numberOfLines={1} style={[styles.authorText, { color: theme.text }]}>
-              {authorLabel}
-            </ThemedText>
-            {time
-              ? (
-                  <ThemedText style={[styles.timeText, { color: theme.textSecondary }]}>
-                    {time}
-                  </ThemedText>
-                )
-              : null}
-          </View>
-          <ThemedText numberOfLines={2} style={[styles.previewText, { color: theme.textSecondary }]}>
-            {preview}
-          </ThemedText>
-        </View>
-      </Pressable>
+      <ChatSearchResultItem
+        message={msg}
+        onSelect={handleSelect}
+        roomRolesById={roomRolesById}
+        theme={theme}
+      />
     );
   }, [handleSelect, roomRolesById, theme]);
 
@@ -117,7 +85,7 @@ export function ChatSearchPage({ messages, onClose, onScrollToMessage, roomRoles
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <Pressable onPress={handleClose} style={styles.backButton} accessibilityLabel="返回">
+        <Pressable onPress={handleClose} style={styles.backButton} accessibilityLabel="关闭聊天搜索" accessibilityRole="button">
           <ArrowLeft size={22} color={theme.text} weight="bold" />
         </Pressable>
         <View style={[styles.searchInputContainer, { backgroundColor: theme.surface }]}>
@@ -130,6 +98,8 @@ export function ChatSearchPage({ messages, onClose, onScrollToMessage, roomRoles
             placeholderTextColor={theme.textSecondary}
             style={[styles.searchInput, { color: theme.text }]}
             returnKeyType="search"
+            accessibilityLabel="搜索聊天记录"
+            accessibilityRole="search"
           />
           {query.length > 0
             ? (
@@ -188,6 +158,59 @@ export function ChatSearchPage({ messages, onClose, onScrollToMessage, roomRoles
             </View>
           )}
     </View>
+  );
+}
+
+type ChatSearchResultItemProps = {
+  message: Message;
+  onSelect: (messageId: number) => void;
+  roomRolesById?: RoomRolesById;
+  theme: ReturnType<typeof useTheme>;
+};
+
+function ChatSearchResultItem({ message: msg, onSelect, roomRolesById, theme }: ChatSearchResultItemProps) {
+  const isOOC = isOutOfCharacterMessage(msg);
+  const authorLabel = getSearchAuthorLabel(msg, roomRolesById);
+  const preview = getMessagePreviewText(msg);
+  const time = msg.createTime ? formatMessageDateTime(msg.createTime) : "";
+
+  return (
+    <Pressable
+      onPress={() => msg.messageId && onSelect(msg.messageId)}
+      style={({ pressed }) => [
+        styles.resultItem,
+        { borderBottomColor: theme.border },
+        pressed && { backgroundColor: theme.surface },
+      ]}
+    >
+      <MessageAvatar
+        avatarFileId={msg.avatarFileId}
+        avatarId={msg.avatarId}
+        displayName={authorLabel}
+        preferUserAvatar={isOOC}
+        roleId={msg.roleId}
+        roomRolesById={roomRolesById}
+        size={36}
+        userId={msg.userId}
+      />
+      <View style={styles.resultContent}>
+        <View style={styles.resultHeader}>
+          <ThemedText numberOfLines={1} style={[styles.authorText, { color: theme.text }]}>
+            {authorLabel}
+          </ThemedText>
+          {time
+            ? (
+                <ThemedText style={[styles.timeText, { color: theme.textSecondary }]}>
+                  {time}
+                </ThemedText>
+              )
+            : null}
+        </View>
+        <ThemedText numberOfLines={2} style={[styles.previewText, { color: theme.textSecondary }]}>
+          {preview}
+        </ThemedText>
+      </View>
+    </Pressable>
   );
 }
 

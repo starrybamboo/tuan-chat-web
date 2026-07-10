@@ -53,6 +53,11 @@ export function SpaceWebgalRenderWindowHeader({
       : publishStatus?.status === "failed"
         ? "发布失败"
         : "";
+  const renderToggleDisabledReason = realtimeStatus === "initializing"
+    ? "正在初始化渲染器，暂不可操作"
+    : isBatchRendering
+      ? "正在批量渲染，暂不可操作"
+      : "";
 
   return (
     <div className="rounded-lg border border-base-300 bg-base-100 p-4">
@@ -78,12 +83,14 @@ export function SpaceWebgalRenderWindowHeader({
             "
             title={renderPortExpanded ? "收起渲染端口设置" : "展开渲染端口设置"}
             aria-label={renderPortExpanded ? "收起渲染端口设置" : "展开渲染端口设置"}
+            aria-expanded={renderPortExpanded}
+            aria-controls="space-webgal-render-port-settings"
             onClick={onToggleRenderPortExpanded}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className={`
-                size-4 transition-transform duration-200
+                size-4 transition-transform duration-200 motion-reduce:transition-none
                 ${renderPortExpanded ? `rotate-180` : ""}
               `}
               fill="none"
@@ -105,6 +112,8 @@ export function SpaceWebgalRenderWindowHeader({
           `}
           disabled={realtimeStatus === "initializing" || isBatchRendering}
           onClick={onToggleRealtimeRender}
+          aria-busy={realtimeStatus === "initializing" || isBatchRendering}
+          title={renderToggleDisabledReason || undefined}
         >
           {isRealtimeActive ? "停止渲染器" : "启动并渲染全部房间"}
         </button>
@@ -122,6 +131,7 @@ export function SpaceWebgalRenderWindowHeader({
           className="btn btn-sm btn-outline"
           disabled={isPublishing}
           onClick={onPublish}
+          aria-busy={isPublishing}
         >
           {isPublishing ? "发布中..." : "发布到 Pages"}
         </button>
@@ -149,7 +159,7 @@ export function SpaceWebgalRenderWindowHeader({
         </div>
       )}
       {renderPortExpanded && (
-        <div className="mt-3 rounded-md border border-base-300 px-3 py-2">
+        <div id="space-webgal-render-port-settings" className="mt-3 rounded-md border border-base-300 px-3 py-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="text-sm">{`Terre 端口（当前：${terrePort}）`}</div>
             <div className="flex items-center gap-2">
@@ -161,6 +171,8 @@ export function SpaceWebgalRenderWindowHeader({
                 value={terrePortInput}
                 onChange={event => onTerrePortInputChange(event.target.value)}
                 onKeyDown={(event) => {
+                  if (event.nativeEvent.isComposing)
+                    return;
                   if (event.key === "Enter") {
                     onSaveTerrePort();
                   }

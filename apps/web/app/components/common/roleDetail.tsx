@@ -56,6 +56,10 @@ export function RoleDetail({
   const userRole = useGetUserRolesQuery(userId);
   const [isKickConfirmOpen, setIsKickConfirmOpen] = useState(false);
 
+  // 用于踢出确认文案的角色与房间显示
+  const roleDisplayName = role?.roleName || `角色 ${roleId}`;
+  const roomDisplayName = roomId ? `房间 ${roomId}` : "当前房间";
+
   const handleRemoveRole = async () => {
     if (!roomId || roleId <= 0)
       return;
@@ -199,6 +203,7 @@ export function RoleDetail({
                               sm:btn-sm
                             "
                             onClick={() => setIsKickConfirmOpen(true)}
+                            aria-label={`踢出角色「${roleDisplayName}」（${roomDisplayName}）`}
                           >
                             踢出角色
                           </button>
@@ -238,7 +243,7 @@ export function RoleDetail({
         open={isKickConfirmOpen}
         onOpenChange={() => setIsKickConfirmOpen(false)}
         title="确认踢出角色"
-        description="确定要将该角色从当前房间移除吗？此操作将解除该角色与房间的关联。"
+        description={`确定要将角色「${roleDisplayName}」从${roomDisplayName}移除吗？此操作会解除该角色与${roomDisplayName}的关联，房间内基于该角色的内容将不再生效。`}
         onConfirm={handleRemoveRole}
         confirmLabel="确认踢出"
         cancelLabel="取消"

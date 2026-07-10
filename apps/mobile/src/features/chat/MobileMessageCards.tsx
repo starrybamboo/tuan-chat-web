@@ -186,7 +186,7 @@ export function ForwardMessageCard({ extra }: Pick<MessageCardProps, "extra">) {
             )
           : null}
         <Pressable
-          accessibilityLabel="查看转发详情"
+          accessibilityLabel="查看全部转发消息"
           accessibilityRole="button"
           onPress={() => setDetailVisible(true)}
           style={({ pressed }) => [
@@ -236,6 +236,7 @@ export function ForwardMessageCard({ extra }: Pick<MessageCardProps, "extra">) {
             : detailData.previewMessages.map((item, index) => (
                 <View
                   key={`${item.message.messageId ?? index}:forward-detail`}
+                  accessibilityLabel={`${item.message.customRoleName?.trim() || `消息 ${index + 1}`}：${getMessagePreview(item.message)}`}
                   style={[styles.forwardedMessageRow, { backgroundColor: theme.backgroundElement }]}
                 >
                   <ThemedText type="caption" themeColor="textSecondary" numberOfLines={1}>
@@ -368,7 +369,7 @@ export function DocCard({ content, extra }: MessageCardProps) {
       <View style={[styles.cardHeader, { borderBottomColor: theme.border }]}>
         <View style={styles.cardTitleRow}>
           <FileText color={theme.accent} size={16} />
-          <ThemedText type="smallBold" numberOfLines={1}>{data.title}</ThemedText>
+          <ThemedText accessibilityLabel={data.title} type="smallBold" numberOfLines={1}>{data.title}</ThemedText>
         </View>
       </View>
       {data.excerpt ? <ThemedText style={{ fontSize: 12, lineHeight: 18 }} numberOfLines={3}>{data.excerpt}</ThemedText> : null}
@@ -393,7 +394,7 @@ export function ClueCard({ content, extra }: MessageCardProps) {
   return (
     <>
       <Pressable
-        accessibilityLabel="查看线索"
+        accessibilityLabel={previewText ? `查看线索：${previewText}` : "查看线索"}
         accessibilityRole="button"
         onPress={() => {
           setDetailVisible(true);
@@ -464,7 +465,7 @@ export function RoomJumpCard({ content, extra }: MessageCardProps) {
       <View style={styles.cardTitleRow}>
         <MapPinLine color={theme.accent} size={16} />
         <View style={{ flex: 1 }}>
-          <ThemedText style={{ color: theme.accent, fontSize: 13, fontWeight: "700" }} numberOfLines={1}>{data.label}</ThemedText>
+          <ThemedText accessibilityLabel={data.label} style={{ color: theme.accent, fontSize: 13, fontWeight: "700" }} numberOfLines={1}>{data.label}</ThemedText>
           <ThemedText type="caption" themeColor="textSecondary">{meta || "群聊跳转"}</ThemedText>
         </View>
       </View>

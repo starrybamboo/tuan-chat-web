@@ -31,4 +31,3 @@ export type CommentPageRequest = {
      */
     maxLevel?: number;
 };
-

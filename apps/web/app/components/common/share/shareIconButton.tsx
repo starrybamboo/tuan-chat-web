@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { IconButton } from "@/components/common/IconButton";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
@@ -32,7 +32,7 @@ export default function ShareIconButton({
 
   const openShareWindow = () => {
     if (blockedReason) {
-      toast(blockedReason, { icon: "ℹ️" });
+      appToast.info(blockedReason, { icon: "ℹ️" });
       return;
     }
 

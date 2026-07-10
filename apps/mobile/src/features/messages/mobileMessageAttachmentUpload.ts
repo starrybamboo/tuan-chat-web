@@ -493,10 +493,10 @@ async function uploadAttachmentBinaryWithRetry(
     catch (error) {
       const uploadError = normalizeTargetUploadError(error);
       lastError = uploadError;
-      const canRetryOldUrl = uploadError.retryable
+      const canRetryUploadTarget = uploadError.retryable
         && !uploadError.credentialExpired
         && attempt < retryPolicy.maxAttempts;
-      if (!canRetryOldUrl) {
+      if (!canRetryUploadTarget) {
         throw uploadError;
       }
       await sleepRetryDelay(resolveRetryDelayMs(attempt, retryPolicy));

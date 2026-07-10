@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 
 import type { RoleAvatar } from "api";
 
@@ -61,6 +61,19 @@ export default function CharacterAvatar({
           ${avatarSizeClassName}
           ${editable ? `cursor-pointer group` : `cursor-default`}
         `}
+        {...(editable
+          ? {
+              role: "button" as const,
+              tabIndex: 0,
+              "aria-label": "更换角色头像",
+              onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setChangeAvatarConfirmOpen(true);
+                }
+              },
+            }
+          : {})}
         onClick={() => {
           if (!editable) {
             return;
@@ -84,7 +97,7 @@ export default function CharacterAvatar({
           />
           <MediaImage
             src={selectedAvatarUrl || ROLE_DEFAULT_AVATAR_URL}
-            alt="Character Avatar"
+            alt={role.name ? `${role.name}头像` : "角色头像"}
             className={`
               size-full object-contain transition-transform duration-300
               ${editable ? `group-hover:scale-105` : ""}

@@ -119,7 +119,7 @@ function DmConversationListInner({
       <Pressable
         onPress={() => onSelectRef.current(conv.contactId)}
         style={[styles.row, active ? { backgroundColor: theme.backgroundSelected } : null]}
-        accessibilityLabel={`与 ${conv.contactName} 的对话${conv.unreadCount > 0 ? `，${conv.unreadCount} 条未读` : ""}`}
+        accessibilityLabel={`与 ${conv.contactName} 的对话${conv.lastMessage.content ? `：${conv.lastMessage.content}` : ""}${conv.unreadCount > 0 ? `，${conv.unreadCount} 条未读` : ""}`}
         accessibilityRole="button"
       >
         <ContactListAvatar

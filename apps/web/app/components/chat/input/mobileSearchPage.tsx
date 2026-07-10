@@ -6,6 +6,7 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import SearchedMessage from "@/components/chat/message/preview/searchedMessage";
 import useGetRoleSmartly from "@/components/chat/shared/components/useGetRoleName";
 import { filterVisibleChatMessages } from "@/components/chat/utils/hiddenDiceVisibility";
+import { ImeAwareSearchInput } from "@/components/common/imeAwareSearchInput";
 import { BaselineArrowBackIosNew, SearchFilled, XMarkICon } from "@/icons";
 
 import type { UserRole } from "../../../../api";
@@ -172,9 +173,9 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
             border-base-300
           ">
             <SearchFilled className="size-4 text-base-content/60 mr-2 shrink-0" />
-            <input
+            <ImeAwareSearchInput
               ref={inputRef}
-              type="search"
+              type="text"
               autoComplete="off"
               aria-label="搜索聊天记录"
               placeholder="搜索聊天记录..."
@@ -183,7 +184,7 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
                 placeholder:text-base-content/60
               "
               value={searchText}
-              onChange={e => setSearchText(e.target.value)}
+              onValueChange={setSearchText}
             />
             {searchText && (
               <button

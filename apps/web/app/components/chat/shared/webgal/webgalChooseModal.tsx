@@ -11,6 +11,8 @@ type WebgalChooseModalProps = {
   options: WebgalChooseOptionDraft[];
   error?: string | null;
   submitLabel?: string;
+  /** 提交进行中：用于禁用按钮并宣告 busy 状态。 */
+  isSubmitting?: boolean;
   onChangeOption: (index: number, key: keyof WebgalChooseOptionDraft, value: string) => void;
   onAddOption: () => void;
   onRemoveOption: (index: number) => void;
@@ -25,6 +27,7 @@ export default function WebgalChooseModal({
   options,
   error,
   submitLabel = "确认",
+  isSubmitting = false,
   onChangeOption,
   onAddOption,
   onRemoveOption,
@@ -39,7 +42,17 @@ export default function WebgalChooseModal({
 
   return createPortal(
     <div className="modal modal-open z-9999">
-      <div className="modal-box max-w-2xl">
+      <div
+        className="modal-box max-w-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-label="WebGAL 选项设置"
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            onClose();
+          }
+        }}
+      >
         <h3 className="font-bold text-lg">{title}</h3>
         <div className="py-4 space-y-3">
           {description && (
@@ -58,6 +71,7 @@ export default function WebgalChooseModal({
                   <button
                     type="button"
                     className="btn btn-ghost btn-xs"
+                    aria-label={`删除第 ${index + 1} 个选项`}
                     onClick={() => onRemoveOption(index)}
                     disabled={options.length <= 1}
                   >
@@ -84,6 +98,9 @@ export default function WebgalChooseModal({
                     value={option.code}
                     onChange={e => onChangeOption(index, "code", e.target.value)}
                   />
+                  <p className="text-xs text-base-content/60">
+                    留空则该选项仅展示文本；填写后将作为该选项的自定义脚本代码。
+                  </p>
                 </div>
               </div>
             ))}
@@ -92,12 +109,12 @@ export default function WebgalChooseModal({
             添加选项
           </button>
           {error && (
-            <div className="text-error text-sm">{error}</div>
+            <div className="text-error text-sm" role="alert">{error}</div>
           )}
         </div>
         <div className="modal-action">
           <button type="button" className="btn" onClick={onClose}>取消</button>
-          <button type="button" className="btn btn-primary" onClick={onSubmit}>{submitLabel}</button>
+          <button type="button" className="btn btn-primary" onClick={onSubmit} disabled={isSubmitting} aria-busy={isSubmitting ? "true" : "false"}>{submitLabel}</button>
         </div>
       </div>
       <button type="button" className="modal-backdrop" onClick={onClose} aria-label="关闭 WebGAL 选项弹窗" />

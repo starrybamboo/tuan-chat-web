@@ -242,7 +242,7 @@ function CombatPanelContent({
                               <ThemedText type="caption">{(role.roleName ?? "#").charAt(0)}</ThemedText>
                             </View>
                           )}
-                      <ThemedText type="smallBold" numberOfLines={1} style={{ flex: 1 }}>{role.roleName?.trim() || `角色 #${role.roleId}`}</ThemedText>
+                      <ThemedText accessibilityLabel={role.roleName?.trim() || `角色 #${role.roleId}`} type="smallBold" numberOfLines={1} style={{ flex: 1 }}>{role.roleName?.trim() || `角色 #${role.roleId}`}</ThemedText>
                       <View style={[styles.pill, { backgroundColor: theme.surface }]}>
                         <ThemedText type="caption">
                           先攻
@@ -262,7 +262,11 @@ function CombatPanelContent({
                         const base = runtime.baseDisplayValues.rolesByRoleId[role.roleId]?.[key] ?? 0;
                         const derived = runtime.derivedDisplayValues.rolesByRoleId[role.roleId]?.[key] ?? 0;
                         return (
-                          <View key={`${role.roleId}-${key}`} style={[styles.pill, { backgroundColor: color?.bg ?? theme.surface }]}>
+                          <View
+                            key={`${role.roleId}-${key}`}
+                            accessibilityLabel={base === derived ? `${formatStateKeyLabel(key)} ${derived}` : `${formatStateKeyLabel(key)} 当前 ${derived}，基础 ${base}`}
+                            style={[styles.pill, { backgroundColor: color?.bg ?? theme.surface }]}
+                          >
                             <ThemedText type="caption" style={{ color: color?.text ?? theme.text }}>
                               {formatStateKeyLabel(key)}
                               {" "}
@@ -275,7 +279,11 @@ function CombatPanelContent({
                         const base = runtime.baseDisplayValues.rolesByRoleId[role.roleId]?.[key] ?? 0;
                         const derived = runtime.derivedDisplayValues.rolesByRoleId[role.roleId]?.[key] ?? 0;
                         return (
-                          <View key={`${role.roleId}-${key}`} style={[styles.pill, { backgroundColor: theme.surface }]}>
+                          <View
+                            key={`${role.roleId}-${key}`}
+                            accessibilityLabel={base === derived ? `${formatStateKeyLabel(key)} ${derived}` : `${formatStateKeyLabel(key)} 当前 ${derived}，基础 ${base}`}
+                            style={[styles.pill, { backgroundColor: theme.surface }]}
+                          >
                             <ThemedText type="caption">
                               {formatStateKeyLabel(key)}
                               {" "}

@@ -29,7 +29,8 @@ export default function WorkflowEndNode({ data }: WorkflowEndNodeProps) {
         className="
           absolute -right-2 -top-2 z-10 flex size-5 items-center justify-center
           rounded-full border border-error bg-base-100 text-[11px] font-bold
-          text-error shadow-sm transition-colors
+          text-error shadow-sm transition-colors motion-reduce:transition-none
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error/35
           hover:bg-error hover:text-error-content
         "
         title="删除结束节点"

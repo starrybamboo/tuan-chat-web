@@ -6,7 +6,7 @@ import { useGoToWorkSpace } from "./hooks/useGoToWorkSpace";
 import { useRepositoryForm } from "./hooks/useRepositoryForm";
 
 export default function RepositoryCreateMain() {
-  const { register, handleSubmit, control, setValue, errors, submit, modalOpen, setModalOpen, ruleId } = useRepositoryForm();
+  const { register, handleSubmit, control, setValue, errors, submit, modalOpen, setModalOpen, createdRepositoryName, ruleId } = useRepositoryForm();
   const { goToWorkSpace } = useGoToWorkSpace();
 
   return (
@@ -24,11 +24,11 @@ export default function RepositoryCreateMain() {
           text-lg mt-4
         ">
           为你的故事设定规则，填写基础信息。想添加更多细节？随时可以前往
-          <a onClick={() => goToWorkSpace()} className="
-            cursor-pointer font-semibold text-info
+          <button type="button" onClick={() => goToWorkSpace()} className="
+            cursor-pointer font-semibold text-info align-baseline
             hover:text-info
             transition
-          ">创作工作台</a>
+          ">创作工作台</button>
           进行丰富。
         </p>
       </header>
@@ -71,6 +71,7 @@ export default function RepositoryCreateMain() {
         modalOpen={modalOpen}
         setModalOpen={setModalOpen}
         goToWorkSpace={goToWorkSpace}
+        repositoryName={createdRepositoryName}
       />
     </div>
   );

@@ -21,4 +21,3 @@ export type ApiResultChatMessageResponse = {
     errMsg?: string;
     data?: ChatMessageResponse;
 };
-

@@ -23,4 +23,3 @@ export type FriendCheckResponse = {
      */
     canSendMessage?: boolean;
 };
-

@@ -52,6 +52,8 @@ export default function CommentInputBox({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.nativeEvent.isComposing)
+      return;
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
       e.preventDefault();
       handleAddComment();
@@ -61,7 +63,7 @@ export default function CommentInputBox({
   return (
     <div className={`
       rounded-xl border border-base-300 bg-base-100 p-3 shadow-sm transition-all
-      duration-200
+      duration-200 motion-reduce:transition-none
       ${isFocused ? `border-info/40 shadow-[0_0_0_3px] shadow-info/10` : `
         hover:border-info/20
       `}
@@ -106,6 +108,7 @@ export default function CommentInputBox({
                 type="button"
                 onClick={onCancel}
                 disabled={addCommentMutation.isPending}
+                title={addCommentMutation.isPending ? "正在发布评论" : "取消评论"}
               >
                 <CloseIcon className="h-4 w-4" />
                 取消
@@ -114,12 +117,14 @@ export default function CommentInputBox({
             <button
               className={`
                 btn btn-sm h-9 min-h-9 rounded-full px-4 transition-all
-                duration-200
+                duration-200 motion-reduce:transition-none
                 ${canSubmit ? `btn-primary` : `btn-disabled`}
               `}
               type="button"
               onClick={handleAddComment}
               disabled={!canSubmit}
+              aria-busy={addCommentMutation.isPending}
+              title={addCommentMutation.isPending ? "正在发布评论" : canSubmit ? "发布评论" : "请输入评论内容"}
             >
               {addCommentMutation.isPending
                 ? (

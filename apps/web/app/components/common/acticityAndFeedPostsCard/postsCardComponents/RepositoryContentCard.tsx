@@ -32,6 +32,7 @@ const RepositoryContentCard: React.FC<RepositoryContentCardProps> = ({
         hover:border-info/30 hover:shadow-md
       "
       onClick={onClick}
+      title="查看仓库详情"
     >
       <div className="flex gap-4">
         {/* 左侧仓库图片 */}
@@ -66,18 +67,24 @@ const RepositoryContentCard: React.FC<RepositoryContentCardProps> = ({
         {/* 右侧内容 */}
         <div className="flex-1 min-w-0">
           {/* 仓库名称 */}
-          <h4 className="
+          <h4
+            className="
             font-semibold text-base text-base-content
             group-hover:text-info
             transition-colors line-clamp-2 mb-2
-          ">
+          "
+            title={name || "未命名仓库"}
+          >
             {name || "未命名仓库"}
           </h4>
 
           {/* 仓库描述 */}
-          <p className="
+          <p
+            className="
             text-sm text-base-content/70 line-clamp-3 leading-relaxed
-          ">
+          "
+            title={description || "暂无描述"}
+          >
             {description || "暂无描述"}
           </p>
         </div>

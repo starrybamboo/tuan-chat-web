@@ -1,14 +1,15 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { PatchMessagesRequest } from "@tuanchat/query/chat";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { useCallback } from "react";
-import { toast } from "react-hot-toast";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 
 import { useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 
 import type {
+
   ApiResultListMessage,
   ApiResultMessage,
   ChatMessageResponse,
@@ -103,7 +104,7 @@ export default function useChatFrameMessageMutations({
         if (targetMessage) {
           roomContext.chatHistory?.addOrUpdateMessage(targetMessage);
         }
-        toast.error("删除消息失败，已恢复原消息");
+        appToast.error("删除消息失败，已恢复原消息");
       },
     });
   }, [deleteMessageMutation, historyMessages, roomContext.chatHistory, roomUiStoreApi]);
@@ -167,7 +168,7 @@ export default function useChatFrameMessageMutations({
         if (targetMessages.length > 0) {
           void roomContext.chatHistory?.addOrUpdateMessages(targetMessages);
         }
-        toast.error("批量删除消息失败，已恢复原消息");
+        appToast.error("批量删除消息失败，已恢复原消息");
       },
     });
   }, [historyMessages, patchMessagesMutation, roomContext.chatHistory, roomUiStoreApi]);
@@ -243,7 +244,7 @@ export default function useChatFrameMessageMutations({
         if (rollbackMessages.length > 0) {
           void roomContext.chatHistory?.addOrUpdateMessages(rollbackMessages);
         }
-        toast.error("批量更新消息失败，已恢复原内容");
+        appToast.error("批量更新消息失败，已恢复原内容");
       },
     });
   }, [historyMessages, patchMessagesMutation, roomContext.chatHistory, roomUiStoreApi, toPatchItem]);
@@ -292,7 +293,7 @@ export default function useChatFrameMessageMutations({
         if (existingResponse) {
           roomContext.chatHistory?.addOrUpdateMessage(existingResponse);
         }
-        toast.error("更新消息失败，已恢复原内容");
+        appToast.error("更新消息失败，已恢复原内容");
       },
     });
   }, [historyMessages, roomContext.chatHistory, roomUiStoreApi, updateMessageMutation]);

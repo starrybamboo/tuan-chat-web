@@ -1377,6 +1377,8 @@ export function useUploadAvatarMutation() {
         const avatarId = res.data;
 
         if (avatarId) {
+          // 默认头像直接复用上传原图，后端负责同文件复用/派生处理。
+          const resolvedAvatarFileId = avatarFileId ?? originFileId;
           const trimmedAvatarName = avatarName?.trim();
           const avatarTitle = trimmedAvatarName
             ? { label: trimmedAvatarName }
@@ -1392,7 +1394,7 @@ export function useUploadAvatarMutation() {
           const uploadRes = await tuanchat.avatarController.updateRoleAvatar({
             roleId: roleId,
             avatarId,
-            avatarFileId,
+            avatarFileId: resolvedAvatarFileId,
             spriteFileId,
             originFileId,
             spriteTransform: toSpriteTransformPayload(t),
@@ -1450,7 +1452,7 @@ export function useUploadAvatarMutation() {
             ...(uploadRes.data ?? {}),
             roleId,
             avatarId,
-            avatarFileId,
+            avatarFileId: resolvedAvatarFileId,
             spriteFileId,
             originFileId,
             spriteTransform: toSpriteTransformPayload(t),

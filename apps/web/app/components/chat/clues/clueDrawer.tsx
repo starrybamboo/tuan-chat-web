@@ -65,7 +65,7 @@ export default function ClueDrawer() {
             title={PRIVATE_CLUE_FOLDER_NAME}
             isExpanded={expandedByKey.private}
             onToggleExpanded={() => toggleExpanded("private")}
-            actionTitle="新建线索"
+            actionTitle="新建私密线索"
             actionVisibility="always"
             onAction={() => setPrivateClueCreateRequestKey(key => key + 1)}
           >
@@ -85,7 +85,7 @@ export default function ClueDrawer() {
             title={PUBLIC_CLUE_FOLDER_NAME}
             isExpanded={expandedByKey.public}
             onToggleExpanded={() => toggleExpanded("public")}
-            actionTitle="新建线索"
+            actionTitle="新建公开线索"
             actionVisibility="always"
             onAction={() => setPublicClueCreateRequestKey(key => key + 1)}
             withDivider

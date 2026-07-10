@@ -1,6 +1,10 @@
 import {
+  getRoomMessageSyncGapStart,
+} from "@tuanchat/query/room-message";
+import {
   collectPersistedOptimisticDuplicateIds,
   commitOptimisticRoomMessageInList,
+  isOptimisticRoomMessage,
   mergeRoomMessagesForLocalState,
 } from "@tuanchat/query/room-message-lifecycle";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -10,9 +14,94 @@ import type { ChatMessageResponse } from "../../../../../api";
 import { tuanchat } from "../../../../../api/instance";
 import { loadChatHistoryDb } from "./chatHistoryDbLoader";
 import { logMessageOrderChange } from "./messageOrderDebug";
+import { isRoomMessagesReceivedEvent, ROOM_MESSAGES_RECEIVED_EVENT } from "./roomMessageEvents";
 
 const WS_RECONNECTED_EVENT = "tc:ws-reconnected";
 const MESSAGE_ID_ALIAS_MAX_AGE_MS = 10 * 60 * 1000;
+
+type IncomingRoomMessageGapParams = {
+  currentMessages: ChatMessageResponse[];
+  incomingMessages: ChatMessageResponse[];
+  latestHistorySyncId?: number;
+};
+
+function getPersistableRoomMessages(messages: ChatMessageResponse[]): ChatMessageResponse[] {
+  return messages.filter(message => !isOptimisticRoomMessage(message.message));
+}
+
+function shouldPhysicallyDeleteLocalMessage(messageId: number): boolean {
+  return messageId < 0;
+}
+
+export function detectIncomingRoomMessageGapStart({
+  currentMessages,
+  incomingMessages,
+  latestHistorySyncId = -1,
+}: IncomingRoomMessageGapParams): { missingStartSyncId: number; gapIncomingSyncId: number } | null {
+  if (incomingMessages.length === 0) {
+    return null;
+  }
+
+  const seedMessage = currentMessages[0]?.message ?? incomingMessages[0]?.message;
+  const baselineMessages = seedMessage && Number.isFinite(latestHistorySyncId) && latestHistorySyncId >= 0
+    ? [{
+        message: {
+          ...seedMessage,
+          messageId: Number.MIN_SAFE_INTEGER,
+          syncId: latestHistorySyncId,
+        },
+      } satisfies ChatMessageResponse]
+    : [];
+  let knownMessages = mergeRoomMessagesForLocalState(currentMessages, baselineMessages);
+
+  for (const incomingMessage of incomingMessages) {
+    const missingStartSyncId = getRoomMessageSyncGapStart(knownMessages, incomingMessage);
+    if (missingStartSyncId !== null) {
+      return {
+        missingStartSyncId,
+        gapIncomingSyncId: incomingMessage.message.syncId ?? -1,
+      };
+    }
+    knownMessages = mergeRoomMessagesForLocalState(knownMessages, [incomingMessage]);
+  }
+
+  return null;
+}
+
+export function getRoomHistoryFetchStartSyncId(localMessages: ChatMessageResponse[]): number {
+  const syncIds = Array.from(new Set(
+    localMessages
+      .map(item => item.message.syncId)
+      .filter((syncId): syncId is number => Number.isFinite(syncId) && syncId > 0),
+  )).sort((a, b) => a - b);
+
+  if (syncIds.length === 0) {
+    return 0;
+  }
+  if (syncIds[0] > 1) {
+    return 1;
+  }
+
+  let expectedNextSyncId = syncIds[0] + 1;
+  for (let index = 1; index < syncIds.length; index += 1) {
+    const syncId = syncIds[index];
+    if (syncId > expectedNextSyncId) {
+      return expectedNextSyncId;
+    }
+    expectedNextSyncId = syncId + 1;
+  }
+
+  return syncIds[syncIds.length - 1] + 1;
+}
+
+export function mergeLoadedRoomHistory(
+  roomId: number,
+  localHistory: ChatMessageResponse[],
+  currentMessages: ChatMessageResponse[],
+): ChatMessageResponse[] {
+  const currentRoomMessages = currentMessages.filter(message => message.message.roomId === roomId);
+  return mergeRoomMessagesForLocalState(localHistory, currentRoomMessages);
+}
 
 export type UseChatHistoryReturn = {
   messages: ChatMessageResponse[];
@@ -147,10 +236,15 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         });
       }
 
-      // 异步将消息批量存入数据库
+      const persistableMessages = getPersistableRoomMessages(newMessages);
+      if (persistableMessages.length === 0) {
+        return;
+      }
+
+      // 异步将服务端已确认消息批量存入数据库；pending 乐观消息只保留在当前渲染态。
       try {
         const db = await loadChatHistoryDb();
-        await db.addOrUpdateMessagesBatch(newMessages);
+        await db.addOrUpdateMessagesBatch(persistableMessages);
         const duplicateIds = collectPersistedOptimisticDuplicateIds(
           mergeRoomMessagesForLocalState(messagesRawRef.current, newMessages),
         );
@@ -203,7 +297,12 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
 
     try {
       const db = await loadChatHistoryDb();
-      await db.markMessagesDeletedByIds([messageId]);
+      if (shouldPhysicallyDeleteLocalMessage(messageId)) {
+        await db.deleteMessagesByIds([messageId]);
+      }
+      else {
+        await db.markMessagesDeletedByIds([messageId]);
+      }
     }
     catch (err) {
       setError(err as Error);
@@ -284,6 +383,41 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     return newMessages;
   }, [addOrUpdateMessages]); // ← 只依赖 addOrUpdateMessages，不依赖 roomId
 
+  const addReceivedRoomMessages = useCallback(async (incomingMessages: ChatMessageResponse[]) => {
+    const currentRoomId = roomIdRef.current;
+    if (currentRoomId === null || incomingMessages.length === 0) {
+      return;
+    }
+
+    const roomScopedMessages = incomingMessages.filter(message => message.message.roomId === currentRoomId);
+    if (roomScopedMessages.length === 0) {
+      return;
+    }
+
+    const missingRange = detectIncomingRoomMessageGapStart({
+      currentMessages: messagesRawRef.current,
+      incomingMessages: roomScopedMessages,
+      latestHistorySyncId: latestSyncId,
+    });
+    if (missingRange) {
+      try {
+        const missingMessagesRes = await tuanchat.chatController.getHistoryMessages({
+          roomId: currentRoomId,
+          syncId: missingRange.missingStartSyncId,
+        });
+        if (missingMessagesRes.data && missingMessagesRes.data.length > 0) {
+          await addOrUpdateMessages(missingMessagesRes.data);
+        }
+      }
+      catch (err) {
+        setError(err as Error);
+        console.error("[useChatHistory] Failed to fetch missing room messages:", err);
+      }
+    }
+
+    await addOrUpdateMessages(roomScopedMessages);
+  }, [addOrUpdateMessages, latestSyncId]);
+
   /**
    * 按照房间获取消息
    */
@@ -299,10 +433,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       if (currentFetchingRoomId.current !== roomId) {
         return [];
       }
-      const maxSyncId = messages.length > 0
-        ? Math.max(...messages.map(msg => msg.message.syncId))
-        : -1;
-      const newMessages = await fetchNewestMessages(maxSyncId);
+      const newMessages = await fetchNewestMessages(getRoomHistoryFetchStartSyncId(messages) - 1);
       if (currentFetchingRoomId.current !== roomId) {
         return [];
       }
@@ -356,14 +487,11 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
           return;
         // 读取本地快照后仍经过共享合并，避免旧缓存复活 tombstone 或保留重复乐观消息。
         const sortedLocalHistory = mergeRoomMessagesForLocalState(localHistory, []);
-        setMessages(sortedLocalHistory);
+        // SQLite 返回期间可能已经发送了首条消息，合并当前房间热态以保留乐观消息。
+        setMessages(currentMessages => mergeLoadedRoomHistory(roomId, sortedLocalHistory, currentMessages));
         // 本地缓存读取完成后立即释放首屏，服务端增量补拉在后台合并进来。
         setLoading(false);
-        const localMaxSyncId = localHistory.length > 0
-          ? Math.max(...localHistory.map(msg => msg.message.syncId))
-          : -1;
-
-        void fetchNewestMessages(localMaxSyncId).catch((err) => {
+        void fetchNewestMessages(getRoomHistoryFetchStartSyncId(localHistory) - 1).catch((err) => {
           if (!isCancelled) {
             setError(err as Error);
           }
@@ -394,6 +522,27 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       setError(err as Error);
     });
   }, [fetchNewestMessages]);
+
+  useEffect(() => {
+    if (roomId === null || typeof window === "undefined") {
+      return;
+    }
+
+    const handleRoomMessagesReceived = (event: Event) => {
+      if (!isRoomMessagesReceivedEvent(event)) {
+        return;
+      }
+      if (event.detail.roomId !== roomIdRef.current) {
+        return;
+      }
+      void addReceivedRoomMessages(event.detail.messages);
+    };
+
+    window.addEventListener(ROOM_MESSAGES_RECEIVED_EVENT, handleRoomMessagesReceived);
+    return () => {
+      window.removeEventListener(ROOM_MESSAGES_RECEIVED_EVENT, handleRoomMessagesReceived);
+    };
+  }, [addReceivedRoomMessages, roomId]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {

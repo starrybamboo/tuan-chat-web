@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+
+import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
 
 type TutorialUpdatePromptModalProps = {
   open: boolean;
@@ -21,12 +23,23 @@ export default function TutorialUpdatePromptModal({
   onConfirmPull,
 }: TutorialUpdatePromptModalProps) {
   const [suppress, setSuppress] = useState(false);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (open) {
       queueMicrotask(() => setSuppress(false));
     }
   }, [open]);
+
+  const handleClose = () => {
+    onClose(suppress);
+  };
+
+  useEscapeToClose({
+    enabled: open,
+    onClose: handleClose,
+    containerRef: dialogRef,
+  });
 
   if (!open) {
     return null;
@@ -42,18 +55,20 @@ export default function TutorialUpdatePromptModal({
     : "检测到新手教程已更新，是否拉取最新版本？拉取后会新建一份教程空间，并删除你当前的旧教程空间。";
   const confirmText = isMissingMode ? "立即克隆" : "立即拉取";
 
-  const handleClose = () => {
-    onClose(suppress);
-  };
-
   return createPortal(
     <div className="
       fixed inset-0 z-10000 flex items-center justify-center bg-black/35 p-4
     ">
       <div className="
         w-full max-w-lg rounded-xl border border-base-300 bg-base-100 p-5
-        shadow-xl
-      ">
+      shadow-xl
+      "
+        ref={dialogRef}
+        data-modal-layer="true"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
         <div className="text-lg font-semibold">{title}</div>
         <div className="mt-2 text-sm/relaxed text-base-content/70">
           {description}

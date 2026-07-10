@@ -23,31 +23,43 @@ export default function ForwardMessage({ messageResponse }: { messageResponse: C
     return previewMessages.map(item => (
       <div key={`${item.message.messageId}`} className="
         text-xs text-base-content/70 truncate
-      ">
+      " title={item.message.content}>
         <PreviewMessage message={item.message} className="block" />
       </div>
     ));
   }, [previewMessages]);
 
   const queryClient = useQueryClient();
+  const previewLabel = useMemo(() => {
+    const previewText = previewMessages
+      .map(item => item.message.content)
+      .filter(Boolean)
+      .join("；");
+    return previewText
+      ? `查看转发消息详情，共 ${messageList.length} 条。预览：${previewText}`
+      : `查看转发消息详情，共 ${messageList.length} 条`;
+  }, [messageList.length, previewMessages]);
+
+  const openForwardDetail = () => toastWindow(
+    <QueryClientProvider client={queryClient}>
+      <div
+        className="w-[60vw] max-h-[80vh] overflow-auto"
+      >
+        {messageList.map(item => (
+          <ChatBubble chatMessageResponse={item} key={item.message.messageId}></ChatBubble>
+        ))}
+      </div>
+    </QueryClientProvider>,
+  );
 
   return (
     <div>
-      <div
-        className="bg-base-200 rounded-box p-3 max-w-md"
-        onClick={
-          () => toastWindow(
-            <QueryClientProvider client={queryClient}>
-              <div
-                className="w-[60vw] max-h-[80vh] overflow-auto"
-              >
-                {messageList.map(item => (
-                  <ChatBubble chatMessageResponse={item} key={item.message.messageId}></ChatBubble>
-                ))}
-              </div>
-            </QueryClientProvider>,
-          )
-        }
+      <button
+        type="button"
+        className="bg-base-200 rounded-box p-3 max-w-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30"
+        onClick={openForwardDetail}
+        aria-haspopup="dialog"
+        aria-label={previewLabel}
       >
         <div className="flex items-center pb-2 mb-2 border-b border-base-300/50">
           <div className="text-sm font-semibold text-base-content">
@@ -71,7 +83,7 @@ export default function ForwardMessage({ messageResponse }: { messageResponse: C
             </div>
           )}
         </div>
-      </div>
+      </button>
     </div>
   );
 }

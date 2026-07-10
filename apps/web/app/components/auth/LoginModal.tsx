@@ -36,6 +36,12 @@ type LoginModalProps = {
   onAuthenticated?: () => void;
 }
 
+type LoginAuthContentProps = Omit<LoginModalProps, "isOpen"> & {
+  isActive: boolean;
+};
+
+type LoginPageAuthPanelProps = Omit<LoginAuthContentProps, "isActive">;
+
 function buildMobileAuthCallbackUrl(token: string, uid?: number) {
   const callbackUrl = new URL("tuanchat://auth/callback");
   callbackUrl.searchParams.set("token", token);
@@ -94,8 +100,7 @@ function useTurnstileChallenge() {
   };
 }
 
-// 登录弹窗组件
-export default function LoginModal({ isOpen, mobileCallbackEnabled = false, onClose, onAuthenticated }: LoginModalProps) {
+function LoginAuthContent({ isActive, mobileCallbackEnabled = false, onClose, onAuthenticated }: LoginAuthContentProps) {
   const location = useLocation();
   const router = useRouter();
   const searchParams = useMemo(() => new URLSearchParams(location.searchStr), [location.searchStr]);
@@ -168,12 +173,13 @@ export default function LoginModal({ isOpen, mobileCallbackEnabled = false, onCl
   }, [clearPendingTimeouts, onClose, resetFeedbackState]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isActive) {
       return;
     }
 
     clearPendingTimeouts();
-  }, [clearPendingTimeouts, isOpen]);
+    resetFeedbackState();
+  }, [clearPendingTimeouts, isActive, resetFeedbackState]);
 
   useEffect(() => clearPendingTimeouts, [clearPendingTimeouts]);
 
@@ -477,17 +483,7 @@ export default function LoginModal({ isOpen, mobileCallbackEnabled = false, onCl
   };
 
   return (
-    <Modal
-      open={isOpen}
-      onOpenChange={(next) => {
-        if (!next) {
-          handleClose();
-        }
-      }}
-      size="xl"
-      ariaLabel="登录团剧共创账号"
-      className="relative max-h-[calc(100dvh-2rem)] w-full max-w-[34rem] overflow-y-auto border border-base-content/10 bg-base-100/95 p-0 shadow-2xl dark:bg-base-300/95"
-    >
+    <>
       <div className="space-y-6 px-6 py-6 sm:px-8">
         {isLoggedIn
           ? (
@@ -622,6 +618,48 @@ export default function LoginModal({ isOpen, mobileCallbackEnabled = false, onCl
       <AlertMessage
         errorMessage={errorMessage}
         successMessage={successMessage}
+      />
+    </>
+  );
+}
+
+export function LoginPageAuthPanel({ mobileCallbackEnabled = false, onClose, onAuthenticated }: LoginPageAuthPanelProps) {
+  return (
+    <div
+      className="
+        relative w-full max-w-[34rem] overflow-hidden rounded-md border
+        border-base-content/10 bg-base-100/95 shadow-xl dark:bg-base-300/95
+      "
+    >
+      <LoginAuthContent
+        isActive
+        mobileCallbackEnabled={mobileCallbackEnabled}
+        onAuthenticated={onAuthenticated}
+        onClose={onClose}
+      />
+    </div>
+  );
+}
+
+// 登录弹窗组件：保留给全局弹窗入口使用，独立登录页不走这个壳。
+export default function LoginModal({ isOpen, mobileCallbackEnabled = false, onClose, onAuthenticated }: LoginModalProps) {
+  return (
+    <Modal
+      open={isOpen}
+      onOpenChange={(next) => {
+        if (!next) {
+          onClose();
+        }
+      }}
+      size="xl"
+      ariaLabel="登录团剧共创账号"
+      className="relative max-h-[calc(100dvh-2rem)] w-full max-w-[34rem] overflow-y-auto border border-base-content/10 bg-base-100/95 p-0 shadow-2xl dark:bg-base-300/95"
+    >
+      <LoginAuthContent
+        isActive={isOpen}
+        mobileCallbackEnabled={mobileCallbackEnabled}
+        onAuthenticated={onAuthenticated}
+        onClose={onClose}
       />
     </Modal>
   );

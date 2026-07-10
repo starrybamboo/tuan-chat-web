@@ -22,6 +22,12 @@ function mergeAvatarPatch(avatar: RoleAvatar, patch?: RoleAvatar | null): RoleAv
   };
 }
 
+function normalizeFileId(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : undefined;
+}
+
 function bytesFromBase64(base64: string): Uint8Array {
   const binary = globalThis.atob(base64);
   const bytes = new Uint8Array(binary.length);
@@ -117,8 +123,13 @@ export async function ensureRoleAvatarDefaultMedia(
     avatarId,
   };
 
-  const uploadedAvatarFileId = nextAvatar.avatarFileId ? null : await uploadDefaultAvatarMediaFile();
-  const avatarFileId = nextAvatar.avatarFileId ?? uploadedAvatarFileId ?? undefined;
+  const existingAvatarFileId = normalizeFileId(nextAvatar.avatarFileId);
+  // 头像默认复用角色立绘原图，避免前端重复上传同一张默认图。
+  const reusableOriginFileId = normalizeFileId(nextAvatar.originFileId);
+  const uploadedAvatarFileId = existingAvatarFileId || reusableOriginFileId
+    ? null
+    : await uploadDefaultAvatarMediaFile();
+  const avatarFileId = existingAvatarFileId ?? reusableOriginFileId ?? normalizeFileId(uploadedAvatarFileId);
 
   if (avatarFileId && nextAvatar.avatarFileId !== avatarFileId) {
     const updateRes = await tuanchat.avatarController.updateRoleAvatar({

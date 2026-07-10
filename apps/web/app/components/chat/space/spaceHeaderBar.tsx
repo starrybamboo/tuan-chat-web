@@ -2,7 +2,7 @@ import { AddressBookIcon, ArchiveIcon, ArrowCounterClockwise, SignOutIcon, Trash
 import { useRouter } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
 import React from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { OpenSpaceDetailPanelOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
 
@@ -156,7 +156,7 @@ export default function SpaceHeaderBar({
       return;
     }
     const toastId = `space-archive-${targetSpaceId}`;
-    toast.loading(nextArchived ? "正在归档空间..." : "正在恢复编辑...", { id: toastId });
+    appToast.loading(nextArchived ? "正在归档空间..." : "正在恢复编辑...", { id: toastId });
     try {
       if (nextArchived) {
         await prepareSpaceDocsForArchive(targetSpaceId);
@@ -165,10 +165,10 @@ export default function SpaceHeaderBar({
       else {
         await recoverSpace.mutateAsync({ spaceId: targetSpaceId });
       }
-      toast.success(nextArchived ? "归档完成" : "已恢复编辑", { id: toastId });
+      appToast.success(nextArchived ? "归档完成" : "已恢复编辑", { id: toastId });
     }
     catch {
-      toast.error(nextArchived ? "归档失败，请重试" : "恢复编辑失败，请重试", { id: toastId });
+      appToast.error(nextArchived ? "归档失败，请重试" : "恢复编辑失败，请重试", { id: toastId });
     }
   };
 
@@ -202,14 +202,14 @@ export default function SpaceHeaderBar({
     setDissolveTargetSpaceId(null);
 
     const toastId = `space-dissolve-${targetSpaceId}`;
-    toast.loading("正在解散空间...", { id: toastId });
+    appToast.loading("正在解散空间...", { id: toastId });
     try {
       await dissolveSpace.mutateAsync(targetSpaceId);
       clearCurrentSpaceSelection();
-      toast.success("空间已解散", { id: toastId });
+      appToast.success("空间已解散", { id: toastId });
     }
     catch {
-      toast.error("解散空间失败，请重试", { id: toastId });
+      appToast.error("解散空间失败，请重试", { id: toastId });
     }
   };
 
@@ -230,14 +230,14 @@ export default function SpaceHeaderBar({
     setExitTargetSpaceId(null);
 
     const toastId = `space-exit-${targetSpaceId}`;
-    toast.loading("正在退出空间...", { id: toastId });
+    appToast.loading("正在退出空间...", { id: toastId });
     try {
       await exitSpace.mutateAsync(targetSpaceId);
       clearCurrentSpaceSelection();
-      toast.success("已退出空间", { id: toastId });
+      appToast.success("已退出空间", { id: toastId });
     }
     catch {
-      toast.error("退出空间失败，请重试", { id: toastId });
+      appToast.error("退出空间失败，请重试", { id: toastId });
     }
   };
 
@@ -262,14 +262,14 @@ export default function SpaceHeaderBar({
     setIsResetConfirmOpen(false);
     setIsResettingSidebarTree(true);
     const toastId = "space-sidebar-tree-reset";
-    toast.loading("正在重置侧边树...", { id: toastId });
+    appToast.loading("正在重置侧边树...", { id: toastId });
     try {
       await onResetSidebarTreeToDefault();
-      toast.success("侧边树已重置为默认结构", { id: toastId });
+      appToast.success("侧边树已重置为默认结构", { id: toastId });
     }
     catch (error) {
       console.error("[SidebarTree] reset to default failed", error);
-      toast.error("重置侧边树失败，请重试", { id: toastId });
+      appToast.error("重置侧边树失败，请重试", { id: toastId });
     }
     finally {
       setIsResettingSidebarTree(false);
@@ -291,15 +291,15 @@ export default function SpaceHeaderBar({
               btn btn-ghost btn-sm px-0 min-w-0 gap-2 justify-start rounded-lg
               w-full
             "
-            aria-label="空间选项"
+            aria-label={`空间选项：${spaceName}`}
             aria-expanded={isOptionsMenuOpen}
             aria-haspopup="menu"
-            title="打开空间菜单"
+            title={`${spaceName}，打开空间菜单`}
             onClick={() => setIsOptionsMenuOpen(current => !current)}
           >
             <span className="
               text-base font-bold truncate leading-none min-w-0 flex-1 text-left
-            ">
+            " title={spaceName}>
               {spaceName}
             </span>
             {archived && (

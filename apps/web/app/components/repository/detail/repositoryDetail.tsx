@@ -495,9 +495,12 @@ export default function RepositoryDetailComponent({
                           rounded-md border border-base-300 bg-base-100
                         ">
                           <div className="border-b border-base-300 px-4 py-3">
-                            <div className="
-                              truncate text-base font-medium text-base-content
-                            ">
+                            <div
+                              className="
+                                truncate text-base font-medium text-base-content
+                              "
+                              title={linkedSpace?.name ?? repositoryData.repositoryName}
+                            >
                               {linkedSpace?.name ?? repositoryData.repositoryName}
                             </div>
                           </div>
@@ -534,7 +537,7 @@ export default function RepositoryDetailComponent({
             </div>
 
             {isViewModeOpen && (
-              <div className={viewOverlayClassName}>
+              <div className={viewOverlayClassName} role="region" aria-label="模组内容预览">
                 <div className="flex h-full min-h-0 flex-col">
                   <div className="
                     flex items-center justify-between gap-3 border-b
@@ -544,15 +547,18 @@ export default function RepositoryDetailComponent({
                       flex items-center gap-2 text-sm text-info min-w-0
                     ">
                       <span className="badge badge-info badge-outline">查看模式</span>
-                      <span className="truncate">正在预览模组内容</span>
+                      <span className="truncate" title="正在预览模组内容">正在预览模组内容</span>
                       {linkedSpace?.name && (
-                        <span className="text-base-content/60 truncate">
+                        <span className="text-base-content/60 truncate" title={linkedSpace.name}>
                           ·
                           {linkedSpace.name}
                         </span>
                       )}
                       {linkedSpaceId && !roomsQuery.isLoading && !roomsQuery.isError && linkedRooms.length === 1 && (
-                        <span className="text-base-content/60 truncate">
+                        <span
+                          className="text-base-content/60 truncate"
+                          title={linkedRooms[0]?.name ?? `房间 #${linkedRooms[0]?.roomId}`}
+                        >
                           ·
                           {linkedRooms[0]?.name ?? `房间 #${linkedRooms[0]?.roomId}`}
                         </span>

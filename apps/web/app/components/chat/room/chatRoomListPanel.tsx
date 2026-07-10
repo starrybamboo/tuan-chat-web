@@ -23,7 +23,6 @@ import useRoomSidebarSplitLayout, { ROOM_SIDEBAR_SPLIT_HANDLE_HEIGHT } from "@/c
 import useRoomSidebarTreeActions from "@/components/chat/room/useRoomSidebarTreeActions";
 import useRoomSidebarTreeState from "@/components/chat/room/useRoomSidebarTreeState";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
-import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import MaterialPackageImportModal from "@/components/material/components/materialPackageImportModal";
 import { useMaterialEditorActionStore } from "@/components/material/stores/materialEditorActionStore";
 import LeftChatList from "@/components/privateChat/LeftChatList";
@@ -135,7 +134,6 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     canViewDocs,
     docMetas,
   });
-  const docHeaderOverrides = useDocHeaderOverrideStore(state => state.headers);
 
   const roomById = useMemo(() => {
     const map = new Map<number, Room>();
@@ -276,7 +274,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
   const canViewMaterialSection = isKPInSpace;
   const hasMaterialSidebarPackages = materialSidebarPackages.length > 0;
   const isMaterialSectionExpanded = canViewMaterialSection && Boolean(expandedSidebarSections?.[MATERIAL_SECTION_KEY]);
-  const showSidebarSplitLayout = shouldShowRoomSidebarSplitLayout({
+  const shouldUseSidebarSplitLayout = shouldShowRoomSidebarSplitLayout({
     canViewMaterialSection,
     hasMaterialPackages: hasMaterialSidebarPackages,
     isRoomDocSectionExpanded,
@@ -309,8 +307,6 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     fallbackTextRooms,
     visibleDocMetas,
     isSpaceOwner,
-    docHeaderOverrides,
-    docMetaMap,
     setLocalTree,
     onSaveSidebarTree,
   });
@@ -426,7 +422,6 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
           setContextMenu={setContextMenu}
           onContextMenu={onContextMenu}
           onOpenRoomContextMenu={onOpenRoomContextMenu}
-          docHeaderOverrides={docHeaderOverrides}
           docMetaMap={docMetaMap}
           roomById={roomById}
           activeSpaceId={activeSpaceId}
@@ -498,7 +493,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
           })
         : (
             <div className="px-3 py-2 text-xs text-base-content/50">
-              当前空间还没有导入素材包
+              当前素材库还没有导入素材包
             </div>
           )}
     </div>
@@ -514,11 +509,14 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
   } = useRoomSidebarSplitLayout({
     activeSpaceId,
     currentUserId,
-    enabled: showSidebarSplitLayout,
+    enabled: shouldUseSidebarSplitLayout,
   });
   const fillSectionClassName = "flex min-h-0 flex-1 flex-col";
   const roomDocSectionContentClassName = "mt-0.5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden";
   const fillSectionContentClassName = "min-h-0 flex-1 overflow-y-auto overflow-x-hidden";
+  const splitPaneClassName = isDraggingSplitHandle
+    ? "min-h-0 shrink-0 overflow-hidden"
+    : "min-h-0 shrink-0 overflow-hidden transition-[height,flex] duration-300 ease-out";
   const materialSectionClassName = getRoomSidebarMaterialSectionClassName({
     fillSectionClassName,
     isRoomDocSectionExpanded,
@@ -566,111 +564,86 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                 <div
                   className="flex min-h-0 flex-1 flex-col py-1.5"
                 >
-                  {showSidebarSplitLayout
-                    ? (
-                        <div ref={splitContainerRef} className="
-                          flex min-h-0 flex-1 flex-col px-1
-                        ">
-                          <div className="min-h-0 shrink-0 overflow-hidden" style={topPaneStyle}>
-                            <SidebarSection
-                              title="频道与文档"
-                              isExpanded={isRoomDocSectionExpanded}
-                              onToggleExpanded={() => toggleSidebarSection(ROOM_DOC_SECTION_KEY)}
-                              actionTitle={canEdit ? "新增分类" : undefined}
-                              onAction={canEdit ? openAddCategory : undefined}
-                              className="flex h-full min-h-0 flex-col"
-                              contentClassName="mt-0.5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
-                              fillContent
-                            >
-                              {roomDocSectionContent}
-                            </SidebarSection>
-                          </div>
+                  <div ref={splitContainerRef} className="
+                    flex w-full min-h-0 flex-1 flex-col gap-0.5 overflow-hidden px-1
+                  ">
+                    <div
+                      className={shouldUseSidebarSplitLayout
+                        ? splitPaneClassName
+                        : "min-h-0 flex-1 overflow-hidden"}
+                      style={shouldUseSidebarSplitLayout ? topPaneStyle : undefined}
+                    >
+                      <SidebarSection
+                        title="频道与文档"
+                        isExpanded={isRoomDocSectionExpanded}
+                        onToggleExpanded={() => toggleSidebarSection(ROOM_DOC_SECTION_KEY)}
+                        actionTitle={canEdit ? "新增分类" : undefined}
+                        onAction={canEdit ? openAddCategory : undefined}
+                        className={shouldUseSidebarSplitLayout ? "flex h-full min-h-0 flex-col" : fillSectionClassName}
+                        contentClassName={shouldUseSidebarSplitLayout ? fillSectionContentClassName : roomDocSectionContentClassName}
+                        fillContent
+                      >
+                        {roomDocSectionContent}
+                      </SidebarSection>
+                    </div>
 
-                          <button
-                            type="button"
-                            className={`
-                              group mx-2 my-0.5 flex items-center justify-center
-                              rounded-md cursor-row-resize touch-none opacity-0
-                              transition-[opacity,background-color] duration-150
-                              focus:outline-none
-                              focus-visible:ring-2 focus-visible:ring-info/40
-                              hover:opacity-100
-                              focus-visible:opacity-100
-                              ${isDraggingSplitHandle ? `
-                                opacity-100 bg-base-300/80
-                              ` : `hover:bg-base-300/55`}
-                            `}
-                            style={{ height: ROOM_SIDEBAR_SPLIT_HANDLE_HEIGHT }}
-                            aria-label="调整侧边栏分栏高度"
-                            title="拖拽调整“频道与文档”和“素材包”的高度分配"
-                            onPointerDown={handleSplitPointerDown}
-                            onKeyDown={handleSplitKeyDown}
-                            onDoubleClick={resetSplitRatio}
-                          >
-                            <div className={`
-                              h-px w-full transition-colors
-                              ${isDraggingSplitHandle ? `bg-info/45` : `
-                                bg-base-300/80
-                                group-hover:bg-base-content/28
-                              `}
-                            `}></div>
-                          </button>
+                    {shouldUseSidebarSplitLayout && (
+                      <button
+                        type="button"
+                        className={`
+                          group mx-2 my-0.5 flex items-center justify-center
+                          rounded-md cursor-row-resize touch-none opacity-0
+                          transition-[opacity,background-color] duration-150
+                          focus:outline-none
+                          focus-visible:ring-2 focus-visible:ring-info/40
+                          hover:opacity-100
+                          focus-visible:opacity-100
+                          ${isDraggingSplitHandle ? `
+                            opacity-100 bg-base-300/80
+                          ` : `hover:bg-base-300/55`}
+                        `}
+                        style={{ height: ROOM_SIDEBAR_SPLIT_HANDLE_HEIGHT }}
+                        aria-label="调整侧边栏分栏高度"
+                        title="拖拽调整“频道与文档”和“素材库”的高度分配"
+                        onPointerDown={handleSplitPointerDown}
+                        onKeyDown={handleSplitKeyDown}
+                        onDoubleClick={resetSplitRatio}
+                      >
+                        <div className={`
+                          h-px w-full transition-colors
+                          ${isDraggingSplitHandle ? `bg-info/45` : `
+                            bg-base-300/80
+                            group-hover:bg-base-content/28
+                          `}
+                        `}></div>
+                      </button>
+                    )}
 
-                          {canViewMaterialSection && (
-                            <div className="min-h-0 shrink-0 overflow-hidden" style={bottomPaneStyle}>
-                              <SidebarSection
-                                title="素材包"
-                                isExpanded={isMaterialSectionExpanded}
-                                onToggleExpanded={() => toggleSidebarSection(MATERIAL_SECTION_KEY)}
-                                actionTitle="局内素材包"
-                                onAction={handleOpenMaterialDetail}
-                                actionIcon={<PackageIcon className="size-4" weight="regular" />}
-                                className="flex h-full min-h-0 flex-col"
-                                contentClassName="mt-0.5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
-                                fillContent
-                              >
-                                {materialSectionContent}
-                              </SidebarSection>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    : (
-                        <div className="
-                          flex w-full min-h-0 flex-1 flex-col gap-0.5
-                          overflow-hidden px-1
-                        ">
-                          <SidebarSection
-                            title="频道与文档"
-                            isExpanded={isRoomDocSectionExpanded}
-                            onToggleExpanded={() => toggleSidebarSection(ROOM_DOC_SECTION_KEY)}
-                            actionTitle={canEdit ? "新增分类" : undefined}
-                            onAction={canEdit ? openAddCategory : undefined}
-                            className={fillSectionClassName}
-                            contentClassName={roomDocSectionContentClassName}
-                            fillContent
-                          >
-                            {roomDocSectionContent}
-                          </SidebarSection>
-
-                          {canViewMaterialSection && (
-                            <SidebarSection
-                              title="素材包"
-                              isExpanded={isMaterialSectionExpanded}
-                              onToggleExpanded={() => toggleSidebarSection(MATERIAL_SECTION_KEY)}
-                              withDivider
-                              actionTitle="局内素材包"
-                              onAction={handleOpenMaterialDetail}
-                              actionIcon={<PackageIcon className="size-4" weight="regular" />}
-                              className={materialSectionClassName}
-                              contentClassName={stretchMaterialSection ? fillSectionContentClassName : undefined}
-                              fillContent={stretchMaterialSection}
-                            >
-                              {materialSectionContent}
-                            </SidebarSection>
-                          )}
-                        </div>
-                      )}
+                    {canViewMaterialSection && (
+                      <div
+                        className={shouldUseSidebarSplitLayout
+                          ? splitPaneClassName
+                          : "shrink-0 overflow-hidden"}
+                        style={shouldUseSidebarSplitLayout ? bottomPaneStyle : undefined}
+                      >
+                        <SidebarSection
+                          title="素材库"
+                          isExpanded={isMaterialSectionExpanded}
+                          onToggleExpanded={() => toggleSidebarSection(MATERIAL_SECTION_KEY)}
+                          expandDirection="up"
+                          withDivider={!shouldUseSidebarSplitLayout}
+                          actionTitle="局内素材库"
+                          onAction={handleOpenMaterialDetail}
+                          actionIcon={<PackageIcon className="size-4" weight="regular" />}
+                          className={shouldUseSidebarSplitLayout ? "flex h-full min-h-0 flex-col" : materialSectionClassName}
+                          contentClassName={shouldUseSidebarSplitLayout ? fillSectionContentClassName : undefined}
+                          fillContent={shouldUseSidebarSplitLayout}
+                        >
+                          {materialSectionContent}
+                        </SidebarSection>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <SidebarTreeOverlays

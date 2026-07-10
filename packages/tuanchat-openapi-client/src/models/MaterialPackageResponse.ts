@@ -73,4 +73,3 @@ export type MaterialPackageResponse = {
      */
     updateTime?: string;
 };
-

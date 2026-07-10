@@ -1,9 +1,8 @@
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 
-import { BellSlashIcon, Broom, DotsThreeVerticalIcon } from "@phosphor-icons/react";
+import { Broom, DotsThreeVerticalIcon } from "@phosphor-icons/react";
 import { useLocation } from "@tanstack/react-router";
 import React from "react";
-import { toast } from "react-hot-toast";
 
 import SearchBar from "@/components/chat/input/inlineSearch";
 import MobileSearchPage from "@/components/chat/input/mobileSearchPage";
@@ -15,7 +14,6 @@ import {
   ArticleIcon,
   BaselineArrowBackIosNew,
   Bubble2,
-  RoomChatIcon,
   XMarkICon,
 } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
@@ -35,10 +33,6 @@ type RoomHeaderBarProps = {
   onCloseSubWindow?: () => void;
   onClearAndReloadAllMessages?: () => void | Promise<void>;
   isReloadingAllMessages?: boolean;
-  canManageMute?: boolean;
-  isSpaceMuted?: boolean;
-  onToggleMute?: () => void | Promise<void>;
-  isTogglingMute?: boolean;
 }
 
 function RoomHeaderBarImpl({
@@ -50,10 +44,6 @@ function RoomHeaderBarImpl({
   onCloseSubWindow,
   onClearAndReloadAllMessages,
   isReloadingAllMessages = false,
-  canManageMute = false,
-  isSpaceMuted = false,
-  onToggleMute,
-  isTogglingMute = false,
 }: RoomHeaderBarProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
@@ -74,7 +64,6 @@ function RoomHeaderBarImpl({
   const hasRoomDescription = Boolean(room?.description?.trim());
   const chatBubbleStyleLabel = useChatBubbleStyle ? "当前：气泡样式" : "当前：传统样式";
   const chatBubbleStyleToggleLabel = useChatBubbleStyle ? "切换到传统样式" : "切换到气泡样式";
-  const spaceMuteLabel = isSpaceMuted ? "解除全员禁言" : "除 KP 外全员禁言";
   const blurActiveElement = () => {
     if (typeof document === "undefined") {
       return;
@@ -101,16 +90,6 @@ function RoomHeaderBarImpl({
   const handleOpenMobileSearch = () => {
     setIsMobileSearchOpen(true);
     blurActiveElement();
-  };
-
-  const handleToggleMute = () => {
-    if (!canManageMute || !onToggleMute || isTogglingMute) {
-      return;
-    }
-    void Promise.resolve(onToggleMute()).catch((error) => {
-      console.error("切换空间禁言失败", error);
-      toast.error("切换禁言失败，请稍后重试");
-    });
   };
 
   const handleMobileBack = () => {
@@ -270,6 +249,7 @@ function RoomHeaderBarImpl({
                       <button
                         type="button"
                         className="btn btn-ghost btn-square btn-xs"
+                        aria-controls="room-mobile-tools-menu"
                         aria-label="工具菜单"
                         aria-expanded={isMobileToolsMenuOpen}
                         title="工具菜单"
@@ -287,7 +267,7 @@ function RoomHeaderBarImpl({
                       <ul className="
                         dropdown-content z-9999 menu p-2 shadow bg-base-100
                         rounded-box w-56 gap-1
-                      ">
+                      " id="room-mobile-tools-menu">
                         <li>
                           <button
                             type="button"
@@ -304,18 +284,8 @@ function RoomHeaderBarImpl({
                         <li>
                           <button
                             type="button"
-                            disabled={!canManageMute || isTogglingMute}
-                            onClick={() => {
-                              closeMobileToolsMenu();
-                              handleToggleMute();
-                            }}
-                          >
-                            {spaceMuteLabel}
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            type="button"
+                            aria-pressed={useChatBubbleStyle}
+                            aria-label={`${chatBubbleStyleLabel}，${chatBubbleStyleToggleLabel}`}
                             onClick={() => {
                               closeMobileToolsMenu();
                               toggleUseChatBubbleStyle();
@@ -328,6 +298,7 @@ function RoomHeaderBarImpl({
                         <li>
                           <button
                             type="button"
+                            aria-label="搜索房间消息"
                             onClick={() => {
                               closeMobileToolsMenu();
                               handleOpenMobileSearch();
@@ -343,39 +314,19 @@ function RoomHeaderBarImpl({
                     <>
                       <button
                         type="button"
-                        className="
-                          tooltip tooltip-bottom
-                          hover:text-info
-                          relative z-50
-                        "
+                        className={[
+                          "tooltip tooltip-bottom relative z-50 inline-flex size-8 items-center justify-center rounded-md transition-colors duration-150",
+                          contentMode === "doc"
+                            ? "text-info hover:text-info"
+                            : "text-base-content/70 hover:bg-base-300/60 hover:text-info",
+                        ].join(" ")}
                         data-tip={contentMode === "doc" ? "返回房间视图" : "进入文档视图"}
                         aria-label={contentMode === "doc" ? "返回房间视图" : "进入文档视图"}
+                        aria-pressed={contentMode === "doc"}
                         title={contentMode === "doc" ? "返回房间视图" : "进入文档视图"}
                         onClick={onToggleContentMode}
                       >
-                        {contentMode === "doc"
-                          ? <RoomChatIcon className="size-6" />
-                          : <ArticleIcon className="size-6" />}
-                      </button>
-                      <ToolbarDivider />
-                      <button
-                        type="button"
-                        className={[
-                          "tooltip tooltip-bottom relative z-50 inline-flex size-8 items-center justify-center rounded-md transition-all duration-150",
-                          isSpaceMuted
-                            ? "bg-error/15 text-error shadow-[inset_0_0_0_1px_color-mix(in_oklab,currentColor_35%,transparent)] hover:bg-error/20"
-                            : "text-base-content/70 hover:bg-base-300/60 hover:text-error",
-                          !canManageMute || isTogglingMute ? "cursor-not-allowed opacity-50" : "",
-                        ].join(" ")}
-                        data-tip={spaceMuteLabel}
-                        aria-label={spaceMuteLabel}
-                        aria-pressed={isSpaceMuted}
-                        disabled={!canManageMute || isTogglingMute}
-                        onClick={handleToggleMute}
-                      >
-                        <BellSlashIcon className={isSpaceMuted ? `
-                          size-5 drop-shadow-[0_0_6px_currentColor]
-                        ` : `size-5`} />
+                        <ArticleIcon className="size-6" />
                       </button>
                       <ToolbarDivider />
                       <button
@@ -383,7 +334,7 @@ function RoomHeaderBarImpl({
                         className={[
                           "tooltip tooltip-bottom relative z-50 inline-flex size-8 items-center justify-center rounded-md transition-all duration-150",
                           useChatBubbleStyle
-                            ? "bg-info/15 text-info shadow-[inset_0_0_0_1px_color-mix(in_oklab,currentColor_35%,transparent)] hover:bg-info/20"
+                            ? "text-info hover:text-info"
                             : "text-base-content/70 hover:bg-base-300/60 hover:text-info",
                         ].join(" ")}
                         data-tip={`${chatBubbleStyleLabel}，${chatBubbleStyleToggleLabel}`}
@@ -393,9 +344,7 @@ function RoomHeaderBarImpl({
                           toggleUseChatBubbleStyle();
                         }}
                       >
-                        <Bubble2 className={useChatBubbleStyle ? `
-                          size-6 drop-shadow-[0_0_6px_currentColor]
-                        ` : `size-6`} />
+                        <Bubble2 className="size-6" />
                       </button>
                       <ToolbarDivider />
                       <SearchBar className="w-64" />

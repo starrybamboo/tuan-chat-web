@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  fetchMyMaterialPackagesFirstPageWithCache,
-  fetchPublicMaterialPackagesFirstPageWithCache,
-  MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
-} from "api/hooks/materialPackageQueryHooks";
 import { lazy, Suspense } from "react";
 
 import type { RouteMetaArgs } from "@/routes/routeTypes";
 
 import { queryClient } from "@/queryClient";
 import { createSeoMeta } from "@/utils/seo";
+import {
+  fetchMyMaterialPackagesFirstPageWithCache,
+  fetchPublicMaterialPackagesFirstPageWithCache,
+  MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
+} from "api/hooks/materialPackageQueryHooks";
 
 const LazyMaterialLibraryPage = lazy(() => import("@/components/material/pages/materialLibraryPage"));
 type MaterialRouteSearch = {

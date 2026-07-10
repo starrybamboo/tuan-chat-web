@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { toast } from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { UploadUtils } from "@/utils/media/UploadUtils";
 
@@ -82,7 +82,7 @@ export default function AudioUploadModal({
       handleAudioFileSelect(audioFile);
     }
     else if (files.length > 0) {
-      toast.error("请选择音频文件（MP3、WAV、M4A、AAC、OGG）");
+      appToast.error("请选择音频文件（MP3、WAV、M4A、AAC、OGG）");
     }
   };
 
@@ -93,12 +93,12 @@ export default function AudioUploadModal({
 
     try {
       setIsUploading(true);
-      toast.loading("正在上传音频文件...", { id: "audio-upload" });
+      appToast.loading("正在上传音频文件...", { id: "audio-upload" });
 
       // 语音参考文件：上传原始音频（不做 Opus 转码），避免影响后续音色参考质量/兼容性
       const uploadedAudio = await uploadUtils.uploadAudioOriginalAsset(selectedAudioFile, 1);
 
-      toast.success("音频文件上传成功！", { id: "audio-upload" });
+      appToast.success("音频文件上传成功！", { id: "audio-upload" });
 
       // 调用成功回调
       onSuccess?.({
@@ -112,7 +112,7 @@ export default function AudioUploadModal({
     }
     catch (error) {
       console.error("音频上传失败:", error);
-      toast.error(
+      appToast.error(
         `音频上传失败: ${error instanceof Error ? error.message : "未知错误"}`,
         { id: "audio-upload" },
       );
@@ -146,16 +146,27 @@ export default function AudioUploadModal({
       <div className="
         bg-base-100 rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh]
         overflow-hidden
-      " onClick={e => e.stopPropagation()}>
+      "
+        role="dialog"
+        aria-modal="true"
+        aria-label="上传音频"
+        onClick={e => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            handleClose();
+          }
+        }}
+      >
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-semibold">上传音频文件</h3>
             <button
               type="button"
               className="btn btn-sm btn-circle btn-ghost"
+              aria-label="关闭"
               onClick={handleClose}
             >
-              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -206,6 +217,7 @@ export default function AudioUploadModal({
                 accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.webm"
                 className="hidden"
                 id="audioFileInput"
+                aria-label="选择音频文件"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
@@ -213,7 +225,7 @@ export default function AudioUploadModal({
                       handleAudioFileSelect(file);
                     }
                     else {
-                      toast.error("请选择音频文件（MP3、WAV、M4A、AAC、OGG）");
+                      appToast.error("请选择音频文件（MP3、WAV、M4A、AAC、OGG）");
                       // 清空input值，允许重新选择同一个文件
                       e.target.value = "";
                     }

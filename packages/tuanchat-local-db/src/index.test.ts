@@ -5,11 +5,9 @@ import initSqlJs from "sql.js";
 import { describe, expect, it } from "vitest";
 
 import {
-  createDocSnapshotRepository,
   createMobileKeyValueRepository,
   createQuerySnapshotRepository,
   createRoomMessageRepository,
-  DOC_SNAPSHOT_SCHEMA_SQL,
   fromRoomMessageRecord,
   fromRoomMessageRecords,
   MOBILE_KV_SCHEMA_SQL,
@@ -124,24 +122,6 @@ describe("tuanchat local db room message helpers", () => {
     ]);
   });
 
-  it("存储前会清理已被正式消息替换的乐观消息", () => {
-    const messages = normalizeRoomMessagesForStorage([
-      createMessage(100, {
-        content: "hello",
-        roleId: 3,
-        userId: 7,
-      }),
-      createMessage(-1, {
-        content: "hello",
-        roleId: 3,
-        tcLocalSyncState: "optimistic",
-        userId: 7,
-      } as Partial<ChatMessageResponse["message"]>),
-    ]);
-
-    expect(messages.map(item => item.message.messageId)).toEqual([100]);
-  });
-
   it("批量读取记录时会忽略坏 JSON", () => {
     const messages = fromRoomMessageRecords([
       { payload_json: JSON.stringify(createMessage(2)) },
@@ -150,15 +130,6 @@ describe("tuanchat local db room message helpers", () => {
     ]);
 
     expect(messages.map(item => item.message.messageId)).toEqual([1, 2]);
-  });
-
-  it("批量读取记录时会清理持久化乐观重复消息", () => {
-    const messages = fromRoomMessageRecords([
-      { payload_json: JSON.stringify(createMessage(100, { content: "hello", roleId: 3, userId: 7 })) },
-      { payload_json: JSON.stringify(createMessage(-1, { content: "hello", roleId: 3, tcLocalSyncState: "optimistic", userId: 7 } as Partial<ChatMessageResponse["message"]>)) },
-    ]);
-
-    expect(messages.map(item => item.message.messageId)).toEqual([100]);
   });
 
   it("repository 统一执行 SQLite 消息读写和 tombstone 删除", async () => {
@@ -179,6 +150,23 @@ describe("tuanchat local db room message helpers", () => {
 
     await repository.deleteMessagesByIds([1]);
     expect((await repository.getMessagesByRoomId(9)).map(item => item.message.messageId)).toEqual([2]);
+  });
+
+  it("upsert 旧快照不会覆盖已持久化的删除 tombstone", async () => {
+    const repository = await createMemoryRepository();
+
+    await repository.upsertMessages([
+      createMessage(10, { content: "已删除", status: 1, syncId: 12 }),
+    ]);
+    await repository.upsertMessages([
+      createMessage(10, { content: "旧快照", status: 0, syncId: 11 }),
+    ]);
+
+    const messages = await repository.getMessagesByRoomId(9);
+    expect(messages).toHaveLength(1);
+    expect(messages[0].message.status).toBe(1);
+    expect(messages[0].message.content).toBe("已删除");
+    expect(messages[0].message.syncId).toBe(12);
   });
 });
 
@@ -317,53 +305,6 @@ describe("tuanchat local db mobile key value store", () => {
     const rows = await driver.all<{ count: number }>(
       `SELECT COUNT(*) AS count FROM mobile_kv_store WHERE "key" = ? AND user_id = ?`,
       ["workspace-selection", 7],
-    );
-    expect(rows[0]?.count).toBe(0);
-  });
-});
-
-describe("tuanchat local db doc snapshots", () => {
-  it("暴露文档快照 schema", () => {
-    const schema = DOC_SNAPSHOT_SCHEMA_SQL.join("\n");
-    expect(schema).toContain("CREATE TABLE IF NOT EXISTS doc_snapshots");
-    expect(schema).toContain("snapshot_json");
-  });
-
-  it("按文档房间 id 写入、读取和删除快照", async () => {
-    const repository = createDocSnapshotRepository(await createMemoryDriver());
-    const snapshot = {
-      format: "message-stream",
-      updateB64: "abc",
-      updatedAt: 123,
-      v: 4,
-    };
-
-    await repository.writeSnapshot(" 123 ", snapshot, { now: 1000 });
-
-    await expect(repository.readSnapshot<typeof snapshot>("123")).resolves.toEqual(expect.objectContaining({
-      docId: "123",
-      snapshot,
-      updatedAt: 1000,
-    }));
-
-    await repository.removeSnapshot("123");
-    await expect(repository.readSnapshot("123")).resolves.toBeNull();
-  });
-
-  it("坏文档快照 JSON 会被忽略并清理", async () => {
-    const driver = await createMemoryDriver();
-    const repository = createDocSnapshotRepository(driver);
-
-    await repository.writeSnapshot("456", { ok: true });
-    await driver.run(
-      `UPDATE doc_snapshots SET snapshot_json = ? WHERE doc_id = ?`,
-      ["not-json", "456"],
-    );
-
-    await expect(repository.readSnapshot("456")).resolves.toBeNull();
-    const rows = await driver.all<{ count: number }>(
-      `SELECT COUNT(*) AS count FROM doc_snapshots WHERE doc_id = ?`,
-      ["456"],
     );
     expect(rows[0]?.count).toBe(0);
   });

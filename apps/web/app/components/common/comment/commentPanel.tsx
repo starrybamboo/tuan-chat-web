@@ -1,7 +1,8 @@
+import type { CommentVO } from "api";
+
 import { useMemo } from "react";
 
 import type { CommentContextType } from "@/components/common/comment/commentContext";
-import type { CommentVO } from "api";
 
 import CommentComponent from "@/components/common/comment/commentComponent";
 import { CommentContext } from "@/components/common/comment/commentContext";
@@ -197,6 +198,7 @@ export default function CommentPanel({
                 <button
                   type="button"
                   className="btn btn-outline btn-sm rounded-full px-5"
+                  aria-busy={isFetchingNextPage}
                   disabled={isFetchingNextPage}
                   onClick={() => void getCommentPageInfiniteQuery.fetchNextPage()}
                 >

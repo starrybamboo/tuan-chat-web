@@ -23,4 +23,3 @@ export type MediaUploadTarget = {
      */
     uploadHeaders?: Record<string, string>;
 };
-

@@ -35,6 +35,47 @@ export function upsertDirectInboxQueryData(
   );
 }
 
+export function removeDirectInboxMessageData(
+  currentMessages: MessageDirectResponse[] | undefined,
+  messageId: number,
+): MessageDirectResponse[] {
+  return (currentMessages ?? []).filter(message => message.messageId !== messageId);
+}
+
+export function removeDirectInboxMessageFromCache(
+  queryClient: QueryClient,
+  currentUserId: number | null | undefined,
+  messageId: number,
+) {
+  queryClient.setQueryData<MessageDirectResponse[]>(
+    getDirectInboxQueryKey(currentUserId),
+    current => removeDirectInboxMessageData(current, messageId),
+  );
+}
+
+export function replaceDirectOptimisticInboxMessageData(
+  currentMessages: MessageDirectResponse[] | undefined,
+  optimisticMessageId: number,
+  committedMessage: MessageDirectResponse,
+): MessageDirectResponse[] {
+  return mergeDirectMessages(
+    removeDirectInboxMessageData(currentMessages, optimisticMessageId),
+    [committedMessage],
+  );
+}
+
+export function replaceDirectOptimisticMessageInCache(
+  queryClient: QueryClient,
+  currentUserId: number | null | undefined,
+  optimisticMessageId: number,
+  committedMessage: MessageDirectResponse,
+) {
+  queryClient.setQueryData<MessageDirectResponse[]>(
+    getDirectInboxQueryKey(currentUserId),
+    current => replaceDirectOptimisticInboxMessageData(current, optimisticMessageId, committedMessage),
+  );
+}
+
 export function markDirectMessageRecalledData(
   currentMessages: MessageDirectResponse[] | undefined,
   messageId: number,

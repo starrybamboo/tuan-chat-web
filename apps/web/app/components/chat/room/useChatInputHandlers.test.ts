@@ -37,12 +37,22 @@ vi.mock("@/components/chat/utils/mediaAnnotationPreference", () => ({
   applyRoomMediaAnnotationPreferenceToComposer: mocks.applyRoomMediaAnnotationPreferenceToComposerMock,
 }));
 
-function createKeyboardEvent(key: string, options?: { shiftKey?: boolean }) {
+function createKeyboardEvent(key: string, options?: {
+  altKey?: boolean;
+  ctrlKey?: boolean;
+  isComposing?: boolean;
+  metaKey?: boolean;
+  shiftKey?: boolean;
+}) {
   return {
     key,
+    altKey: options?.altKey ?? false,
     shiftKey: options?.shiftKey ?? false,
-    ctrlKey: false,
-    metaKey: false,
+    ctrlKey: options?.ctrlKey ?? false,
+    metaKey: options?.metaKey ?? false,
+    nativeEvent: {
+      isComposing: options?.isComposing ?? false,
+    },
     preventDefault: vi.fn<(...args: any[]) => any>(),
   } as unknown as KeyboardEvent;
 }
@@ -53,9 +63,10 @@ describe("useChatInputHandlers", () => {
     useChatComposerStore.getState().reset();
   });
 
-  function useTestHook() {
+  function useTestHook(options?: { acceptCommandCompletion?: () => boolean }) {
     const handleMessageSubmit = vi.fn<(...args: any[]) => any>();
     const hook = useChatInputHandlers({
+      acceptCommandCompletion: options?.acceptCommandCompletion,
       atMentionRef: { current: null },
       handleMessageSubmit,
       roomId: 1,
@@ -111,6 +122,53 @@ describe("useChatInputHandlers", () => {
 
     expect(event.preventDefault).not.toHaveBeenCalled();
     expect(handleMessageSubmit).not.toHaveBeenCalled();
+  });
+
+  it("按 Tab 时如果有指令补全会接收补全", () => {
+    const acceptCommandCompletion = vi.fn(() => true);
+    const { handleKeyDown, handleMessageSubmit } = useTestHook({ acceptCommandCompletion });
+
+    const event = createKeyboardEvent("Tab");
+    handleKeyDown(event);
+
+    expect(acceptCommandCompletion).toHaveBeenCalledTimes(1);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    expect(handleMessageSubmit).not.toHaveBeenCalled();
+  });
+
+  it("按右方向键时如果有指令补全会接收补全", () => {
+    const acceptCommandCompletion = vi.fn(() => true);
+    const { handleKeyDown, handleMessageSubmit } = useTestHook({ acceptCommandCompletion });
+
+    const event = createKeyboardEvent("ArrowRight");
+    handleKeyDown(event);
+
+    expect(acceptCommandCompletion).toHaveBeenCalledTimes(1);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    expect(handleMessageSubmit).not.toHaveBeenCalled();
+  });
+
+  it("组合输入期间不会接收指令补全", () => {
+    const acceptCommandCompletion = vi.fn(() => true);
+    const { handleKeyDown, onCompositionStart } = useTestHook({ acceptCommandCompletion });
+
+    onCompositionStart();
+    const event = createKeyboardEvent("Tab");
+    handleKeyDown(event);
+
+    expect(acceptCommandCompletion).not.toHaveBeenCalled();
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it("浏览器原生组合输入标记期间不会接收指令补全", () => {
+    const acceptCommandCompletion = vi.fn(() => true);
+    const { handleKeyDown } = useTestHook({ acceptCommandCompletion });
+
+    const event = createKeyboardEvent("Tab", { isComposing: true });
+    handleKeyDown(event);
+
+    expect(acceptCommandCompletion).not.toHaveBeenCalled();
+    expect(event.preventDefault).not.toHaveBeenCalled();
   });
 
   it("粘贴普通文件时会提示不支持且不会写入草稿", () => {

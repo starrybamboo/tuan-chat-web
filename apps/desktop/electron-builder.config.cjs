@@ -1,7 +1,12 @@
 const path = require("node:path");
 
-const projectDir = __dirname;
-const defaultWebGALTerreReleaseDir = path.resolve(projectDir, "..", "..", "..", "WebGAL_Terre", "release");
+const desktopDir = __dirname;
+const workspaceRoot = path.resolve(desktopDir, "..", "..");
+const defaultWebGALTerreReleaseDir = path.resolve(workspaceRoot, "..", "WebGAL_Terre", "release", "tuanchat-runtime");
+const localOutputDir = "release_local_latest";
+const desktopIconPng = "build/icons/icon.png";
+const desktopIconIco = "build/icons/icon.ico";
+const desktopIconIcns = "build/icons/icon.icns";
 
 function resolveWebGALTerreReleaseDir() {
   const rawDir = String(process.env.WEBGAL_TERRE_RELEASE_DIR || defaultWebGALTerreReleaseDir).trim();
@@ -9,7 +14,7 @@ function resolveWebGALTerreReleaseDir() {
     return defaultWebGALTerreReleaseDir;
   }
 
-  return path.isAbsolute(rawDir) ? rawDir : path.resolve(projectDir, rawDir);
+  return path.isAbsolute(rawDir) ? rawDir : path.resolve(desktopDir, rawDir);
 }
 
 const webGALTerreReleaseDir = resolveWebGALTerreReleaseDir();
@@ -26,7 +31,11 @@ const webGALTerreRuntimeFiles = {
   ],
 };
 
-module.exports = {
+function createConfig(request = {}) {
+  const projectDir = request.projectDir ? path.resolve(request.projectDir) : desktopDir;
+  const runsFromWorkspaceRoot = projectDir.toLowerCase() === workspaceRoot.toLowerCase();
+
+  return {
   appId: "com.tuanchat.tuanchat",
   productName: "团剧共创",
   copyright: "Copyright © 2025 ${tuan-chat}",
@@ -37,10 +46,13 @@ module.exports = {
     },
   ],
   files: ["./electron/main/**/*", "./electron/preload/**/*", "./build/**/*"],
+  beforeBuild: async () => false,
   directories: {
-    output: "../../release",
+    ...(runsFromWorkspaceRoot ? { app: "apps/desktop" } : {}),
+    output: runsFromWorkspaceRoot ? localOutputDir : `../../${localOutputDir}`,
   },
   win: {
+    icon: desktopIconIco,
     extraFiles: [
       {
         ...webGALTerreRuntimeFiles,
@@ -50,6 +62,7 @@ module.exports = {
     target: ["nsis", "zip"],
   },
   mac: {
+    icon: desktopIconIcns,
     extraFiles: [
       {
         ...webGALTerreRuntimeFiles,
@@ -59,6 +72,7 @@ module.exports = {
     target: ["dmg", "zip"],
   },
   linux: {
+    icon: desktopIconPng,
     extraFiles: [
       {
         ...webGALTerreRuntimeFiles,
@@ -73,4 +87,7 @@ module.exports = {
     createDesktopShortcut: true,
     createStartMenuShortcut: true,
   },
-};
+  };
+}
+
+module.exports = createConfig;

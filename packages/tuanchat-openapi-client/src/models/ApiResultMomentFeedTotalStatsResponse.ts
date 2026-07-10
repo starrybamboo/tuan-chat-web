@@ -21,4 +21,3 @@ export type ApiResultMomentFeedTotalStatsResponse = {
     errMsg?: string;
     data?: MomentFeedTotalStatsResponse;
 };
-

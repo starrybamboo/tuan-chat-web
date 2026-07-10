@@ -130,6 +130,7 @@ export function CreateRoomSheet({ onClose, onCreated, spaceId, visible }: Create
       <ThemedText style={styles.title}>创建房间</ThemedText>
 
       <TextInput
+        accessibilityLabel="房间名称"
         autoFocus
         onChangeText={setName}
         placeholder="房间名称"
@@ -139,6 +140,9 @@ export function CreateRoomSheet({ onClose, onCreated, spaceId, visible }: Create
       />
 
       <Pressable
+        accessibilityLabel="选择房间头像"
+        accessibilityRole="button"
+        accessibilityState={{ disabled: loading }}
         disabled={loading}
         onPress={() => void handlePickAvatar()}
         style={[styles.avatarButton, { borderColor: theme.border, backgroundColor: theme.background }]}
@@ -157,6 +161,9 @@ export function CreateRoomSheet({ onClose, onCreated, spaceId, visible }: Create
         : null}
 
       <Pressable
+        accessibilityLabel={loading ? "正在创建房间" : "创建房间"}
+        accessibilityRole="button"
+        accessibilityState={{ busy: loading, disabled: !name.trim() || loading }}
         disabled={!name.trim() || loading}
         onPress={handleCreate}
         style={[styles.button, { backgroundColor: name.trim() ? theme.accent : theme.backgroundElement, opacity: loading ? 0.6 : 1 }]}

@@ -12,7 +12,6 @@ import type { RoomArchiveCloneRequest } from '../models/RoomArchiveCloneRequest'
 import type { RoomArchiveRequest } from '../models/RoomArchiveRequest';
 import type { RoomExtraRequest } from '../models/RoomExtraRequest';
 import type { RoomExtraSetRequest } from '../models/RoomExtraSetRequest';
-import type { RoomMuteRequest } from '../models/RoomMuteRequest';
 import type { RoomUpdateRequest } from '../models/RoomUpdateRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
@@ -30,22 +29,6 @@ export class RoomControllerService {
         return this.httpRequest.request({
             method: 'PUT',
             url: '/room',
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
-    /**
-     * 更新房间禁言状态
-     * @param requestBody
-     * @returns ApiResultVoid OK
-     * @throws ApiError
-     */
-    public updateRoomMuteStatus(
-        requestBody: RoomMuteRequest,
-    ): CancelablePromise<ApiResultVoid> {
-        return this.httpRequest.request({
-            method: 'PUT',
-            url: '/room/mute',
             body: requestBody,
             mediaType: 'application/json',
         });

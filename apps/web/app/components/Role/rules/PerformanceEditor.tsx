@@ -1,12 +1,11 @@
 import type { FocusEvent, KeyboardEvent } from "react";
-
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { buildRoleAbilityFieldKeyPayload, buildRoleAbilitySectionUpdatePayload } from "./roleAbilityFieldPayload";
 
@@ -93,7 +92,7 @@ export default function PerformanceEditor({
     pendingChangesRef.current = {};
     setLocalFields(fields);
     onChange(fields);
-    toast.error(`背景描述更新失败：${getErrorMessage(error)}`);
+    appToast.error(`背景描述更新失败：${getErrorMessage(error)}`);
   };
 
   const handleDeleteField = (key: string) => {
@@ -250,7 +249,7 @@ export default function PerformanceEditor({
       return;
     }
     if (nextKey in localFields) {
-      toast.error("字段名已存在");
+      appToast.error("字段名已存在");
       return;
     }
     handleRename(oldKey, nextKey);
@@ -267,7 +266,7 @@ export default function PerformanceEditor({
       return;
     }
     if (nextKey in localFields) {
-      toast.error("字段名已存在");
+      appToast.error("字段名已存在");
       return;
     }
     const didSave = await handleAddField(nextKey, addValueDraft);
@@ -402,6 +401,8 @@ export default function PerformanceEditor({
                           }
                         }}
                         onKeyDown={(e) => {
+                          if (e.nativeEvent.isComposing)
+                            return;
                           if (e.key === "Enter") {
                             e.preventDefault();
                             commitRename(key);
@@ -460,6 +461,8 @@ export default function PerformanceEditor({
                     value={addKeyDraft}
                     onChange={e => setAddKeyDraft(e.currentTarget.value)}
                     onKeyDown={(e) => {
+                      if (e.nativeEvent.isComposing)
+                        return;
                       if (e.key === "Enter") {
                         e.preventDefault();
                         handleAddDraftField();
@@ -481,6 +484,8 @@ export default function PerformanceEditor({
                       setAddValueDraft(e.currentTarget.value);
                     }}
                     onKeyDown={(e) => {
+                      if (e.nativeEvent.isComposing)
+                        return;
                       if (e.key === "Enter" && e.ctrlKey) {
                         e.preventDefault();
                         handleAddDraftField();

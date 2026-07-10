@@ -7,10 +7,10 @@
   },
   "dependencies": {
     "@tuanchat/openapi-client": "workspace:*",
-    "@tuanchat/query": "workspace:*",
-    "sql.js": "1.14.1"
+    "@tuanchat/query": "workspace:*"
   },
   "devDependencies": {
-    "@tuanchat/typescript-config": "workspace:*"
+    "@tuanchat/typescript-config": "workspace:*",
+    "sql.js": "1.14.1"
   }
 }

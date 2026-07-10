@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { toast } from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { ImportChatRequestMessage } from "@/components/chat/utils/importChatMessageRequestBuilder";
 
@@ -39,13 +39,13 @@ export default function useRoomOverlaysController({
 
   const handleAddRole = useCallback(async (roleId: number) => {
     addRoleMutation.mutate({ roomId, roleIdList: [roleId] }, {
-      onSettled: () => { toast("添加角色成功"); },
+      onSettled: () => { appToast.info("添加角色成功"); },
     });
   }, [addRoleMutation, roomId]);
 
   const handleAddNpcRole = useCallback(async (roleId: number) => {
     addRoleMutation.mutate({ roomId, roleIdList: [roleId] }, {
-      onSettled: () => { toast("添加NPC成功"); },
+      onSettled: () => { appToast.info("添加NPC成功"); },
     });
   }, [addRoleMutation, roomId]);
 

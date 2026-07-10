@@ -373,7 +373,7 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
     });
   }, []);
 
-  const renderAvatarItem = useCallback(({ item }: { item: AvatarGridItem }) => {
+  const renderAvatarItem = useCallback(({ item, index }: { item: AvatarGridItem; index: number }) => {
     if (item.type === "add") {
       return (
         <SquareUploadButton
@@ -411,6 +411,14 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
             )
           : null}
         <Pressable
+          accessibilityHint={selectionMode ? "点按切换选中" : "点按设为当前头像"}
+          accessibilityLabel={
+            selectionMode
+              ? `头像 ${index + 1}，${isSelectedForDeletion ? "已选中" : "未选中"}`
+              : `头像 ${index + 1}${isCurrent ? "，当前头像" : ""}`
+          }
+          accessibilityRole="button"
+          accessibilityState={{ selected: selectionMode ? isSelectedForDeletion : isCurrent }}
           onPress={() => {
             if (!avatar.avatarId) {
               return;
@@ -449,6 +457,7 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
         {manageMode && !selectionMode && avatar.avatarId && selectableAvatarIds.length > 1
           ? (
               <Pressable
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 onPress={() => handleSingleDelete(avatar.avatarId!)}
                 style={[
                   styles.deleteBadge,
@@ -487,8 +496,9 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
                   onPress={handleBatchDelete}
                   disabled={selectedVisibleAvatarIds.size === 0 || deleteAvatarMutation.isPending}
                   style={{ opacity: selectedVisibleAvatarIds.size === 0 || deleteAvatarMutation.isPending ? 0.5 : 1 }}
-                  accessibilityLabel="删除选中头像"
+                  accessibilityLabel={selectedVisibleAvatarIds.size > 0 ? `删除选中的 ${selectedVisibleAvatarIds.size} 个头像` : "删除选中头像"}
                   accessibilityRole="button"
+                  accessibilityState={{ disabled: selectedVisibleAvatarIds.size === 0 || deleteAvatarMutation.isPending, busy: deleteAvatarMutation.isPending }}
                 >
                   <ThemedText style={{ color: selectedVisibleAvatarIds.size === 0 || deleteAvatarMutation.isPending ? theme.textSecondary : theme.danger }} type="small">
                     删除
@@ -507,7 +517,7 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
               <View style={styles.headerActions}>
                 {!manageMode && selectableAvatarIds.length > 0
                   ? (
-                      <Pressable onPress={enterSelectionMode}>
+                      <Pressable accessibilityLabel="多选头像" accessibilityRole="button" onPress={enterSelectionMode}>
                         <ThemedText themeColor="accent" type="small">
                           多选
                         </ThemedText>
@@ -515,6 +525,8 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
                     )
                   : null}
                 <Pressable
+                  accessibilityLabel={manageMode ? "完成头像编辑" : "编辑头像"}
+                  accessibilityRole="button"
                   onPress={manageMode ? exitManageMode : enterManageMode}
                 >
                   <ThemedText themeColor="accent" type="small">

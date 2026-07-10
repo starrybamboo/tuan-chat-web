@@ -42,4 +42,3 @@ export type RoleAvatarRequest = {
     spriteTransform?: SpriteTransform;
     avatarCropContext?: AvatarCropContext;
 };
-

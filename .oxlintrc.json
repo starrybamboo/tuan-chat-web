@@ -16,6 +16,7 @@
     ".github/**",
     "packages/tuanchat-openapi-client/**",
     "patches/**",
+    "release/release_smoke_*/**",
     "**/*.md"
   ]
 }

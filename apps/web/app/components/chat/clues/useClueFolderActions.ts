@@ -4,7 +4,7 @@ import {
   useJoinPublicClueFolderMutation,
 } from "@tuanchat/query/clue-folder";
 import { useCallback } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { Message, SpaceMember } from "../../../../api";
 import type { ClueFolderScope } from "./clueRooms";
@@ -60,7 +60,7 @@ export function useClueFolderActions({
   }, [joinPublicClueFolderAsync, spaceId]);
 
   const copyMessageToClueFolder = useCallback(async (sourceMessage: Message, scope: ClueFolderScope) => {
-    const toastId = toast.loading(scope === "private" ? "正在收藏到我的线索..." : "正在收藏到公共线索...");
+    const toastId = appToast.loading(scope === "private" ? "正在收藏到我的线索..." : "正在收藏到公共线索...");
     try {
       await copyMessageToClueFolderAsync({
         currentUserId,
@@ -72,11 +72,11 @@ export function useClueFolderActions({
         spaceMembers,
       });
 
-      toast.success(scope === "private" ? "已收藏到我的线索" : "已收藏到公共线索", { id: toastId });
+      appToast.success(scope === "private" ? "已收藏到我的线索" : "已收藏到公共线索", { id: toastId });
     }
     catch (error) {
       console.error("[ClueFolder] copy message failed", error);
-      toast.error(error instanceof Error ? error.message : "收藏线索失败", { id: toastId });
+      appToast.error(error instanceof Error ? error.message : "收藏线索失败", { id: toastId });
     }
   }, [
     copyMessageToClueFolderAsync,

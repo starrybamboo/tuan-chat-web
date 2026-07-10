@@ -16,4 +16,3 @@ export type CommandRequestExtra = {
      */
     allowedRoleIds?: Array<number>;
 };
-

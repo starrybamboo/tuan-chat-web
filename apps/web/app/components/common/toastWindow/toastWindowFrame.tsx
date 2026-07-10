@@ -2,6 +2,7 @@ import { XIcon } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import React from "react";
 
+import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
 import { IconButton } from "@/components/common/IconButton";
 import "@/components/common/scrollbar.css";
 
@@ -17,6 +18,8 @@ export type ToastWindowFrameProps = {
   rootClassName?: string;
   panelClassName?: string;
   bodyClassName?: string;
+  /** 弹窗的无障碍标题；未传时默认为“弹窗”。 */
+  ariaLabel?: string;
 }
 
 export function ToastWindowFrame({
@@ -31,7 +34,9 @@ export function ToastWindowFrame({
   rootClassName = "",
   panelClassName = "",
   bodyClassName = "",
+  ariaLabel = "弹窗",
 }: ToastWindowFrameProps) {
+  const dialogRef = React.useRef<HTMLDivElement | null>(null);
   const supportsDynamicViewportUnit = typeof CSS !== "undefined" && CSS.supports("height: 100dvh");
   const fullScreenHeight = fullScreen
     ? (supportsDynamicViewportUnit ? "100dvh" : "100vh")
@@ -39,6 +44,12 @@ export function ToastWindowFrame({
   const modalMaxHeight = !fullScreen
     ? (supportsDynamicViewportUnit ? "min(90vh, 100dvh - 2rem)" : "min(90vh, calc(100vh - 2rem))")
     : undefined;
+
+  useEscapeToClose({
+    enabled: isOpen,
+    onClose,
+    containerRef: dialogRef,
+  });
 
   return (
     <AnimatePresence>
@@ -48,6 +59,11 @@ export function ToastWindowFrame({
           ${rootClassName}
         `}>
           <motion.div
+            ref={dialogRef}
+            data-modal-layer={isOpen ? "true" : undefined}
+            role="dialog"
+            aria-modal="true"
+            aria-label={ariaLabel}
             className={`
               relative flex flex-col overflow-hidden
               ${transparent ? "bg-transparent w-full h-screen" : `

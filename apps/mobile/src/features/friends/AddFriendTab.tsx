@@ -259,7 +259,7 @@ export function AddFriendTab({ pendingRequestsContent }: AddFriendTabProps = {})
           placeholderTextColor={theme.textSecondary}
           keyboardType={searchMode === "id" ? "number-pad" : "default"}
           style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.surface }]}
-          accessibilityLabel={searchMode === "id" ? "用户ID输入框" : "用户名输入框"}
+          accessibilityLabel={searchMode === "id" ? "输入用户 ID 搜索好友" : "输入用户名搜索好友"}
           returnKeyType="search"
           onSubmitEditing={() => void handleCheckFriend()}
         />
@@ -328,7 +328,7 @@ export function AddFriendTab({ pendingRequestsContent }: AddFriendTabProps = {})
               placeholder="简单说明你是谁/为何添加"
               placeholderTextColor={theme.textSecondary}
               style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.surface }]}
-              accessibilityLabel="验证消息输入框"
+              accessibilityLabel="好友申请说明"
             />
           </View>
 

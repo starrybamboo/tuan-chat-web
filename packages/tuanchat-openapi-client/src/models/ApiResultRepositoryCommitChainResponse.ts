@@ -21,4 +21,3 @@ export type ApiResultRepositoryCommitChainResponse = {
     errMsg?: string;
     data?: RepositoryCommitChainResponse;
 };
-

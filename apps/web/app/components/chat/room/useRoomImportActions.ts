@@ -1,8 +1,8 @@
 import type { QueryClient } from "@tanstack/react-query";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 import { useCallback } from "react";
-import { toast } from "react-hot-toast";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
@@ -12,15 +12,12 @@ import type { ImportChatRequestMessage } from "@/components/chat/utils/importCha
 import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
 import type { RoomRefDragPayload } from "@/components/chat/utils/roomRef";
 
-import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
-import { getPersistedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotPersistence";
 import { recordDocCardShareObservation } from "@/components/chat/infra/doc/shared/docCardShareObservability";
 import { buildDocCardReferencePayload } from "@/components/chat/message/docCard/docCardMedia";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { buildImportedChatMessageRequests } from "@/components/chat/utils/importChatMessageRequestBuilder";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 import UTILS from "@/components/common/dicer/utils/utils";
-import { readMessageEditorSnapshotExcerpt } from "@/components/messageEditor/model/messageEditorCodec";
 import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
@@ -85,11 +82,11 @@ export default function useRoomImportActions({
     onProgress?: (sent: number, total: number) => void,
   ) => {
     if (isSubmitting) {
-      toast.error("正在提交中，请稍后");
+      appToast.error("正在提交中，请稍后");
       return;
     }
     if (!messages.length) {
-      toast.error("没有可导入的消息");
+      appToast.error("没有可导入的消息");
       return;
     }
 
@@ -196,7 +193,7 @@ export default function useRoomImportActions({
   const handleSendClueCard = useCallback(async (payload: ClueRefDragPayload) => {
     const snapshot = payload?.snapshot;
     if (!snapshot || typeof snapshot.messageType !== "number" || !Number.isFinite(snapshot.messageType) || snapshot.messageType <= 0) {
-      toast.error("未检测到可用线索");
+      appToast.error("未检测到可用线索");
       return;
     }
 
@@ -204,11 +201,11 @@ export default function useRoomImportActions({
     const isNarrator = curRoleId <= 0;
 
     if (isNarrator && !isKP && !notMember) {
-      toast.error("旁白仅主持可用，请先选择/拉入你的角色");
+      appToast.error("旁白仅主持可用，请先选择/拉入你的角色");
       return;
     }
     if (isSubmitting) {
-      toast.error("正在提交中，请稍后");
+      appToast.error("正在提交中，请稍后");
       return;
     }
 
@@ -274,18 +271,18 @@ export default function useRoomImportActions({
       hasImageFileId: Boolean(requestedDocCard.imageFileId),
     });
     if (!docId) {
-      toast.error("未检测到可用文档");
+      appToast.error("未检测到可用文档");
       return;
     }
 
     const docRoomId = parseDocRoomId(docId);
     if (!docRoomId || !isSendableDocRef(docId)) {
-      toast.error("仅支持发送共享文档或我的文档");
+      appToast.error("仅支持发送共享文档或我的文档");
       return;
     }
 
     if (!spaceId || spaceId <= 0) {
-      toast.error("未找到当前空间，无法发送文档");
+      appToast.error("未找到当前空间，无法发送文档");
       return;
     }
     const sourceSpaceId = typeof requestedDocCard.spaceId === "number" && requestedDocCard.spaceId > 0
@@ -296,26 +293,15 @@ export default function useRoomImportActions({
     const isNarrator = curRoleId <= 0;
 
     if (isNarrator && !isKP && !notMember) {
-      toast.error("旁白仅主持可用，请先选择/拉入你的角色");
+      appToast.error("旁白仅主持可用，请先选择/拉入你的角色");
       return;
     }
     if (isSubmitting) {
-      toast.error("正在提交中，请稍后");
+      appToast.error("正在提交中，请稍后");
       return;
     }
 
-    let excerpt = typeof requestedDocCard.excerpt === "string" ? requestedDocCard.excerpt.trim() : "";
-
-    if (!excerpt) {
-      let snapshot = getCachedDocSnapshot(docId);
-      if (!snapshot) {
-        snapshot = await getPersistedDocSnapshot(docId).catch(() => null);
-        if (snapshot) {
-          setCachedDocSnapshot(docId, snapshot);
-        }
-      }
-      excerpt = readMessageEditorSnapshotExcerpt(snapshot);
-    }
+    const excerpt = typeof requestedDocCard.excerpt === "string" ? requestedDocCard.excerpt.trim() : "";
 
     const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
     const docCard = buildDocCardReferencePayload({
@@ -389,11 +375,11 @@ export default function useRoomImportActions({
   const handleSendMaterialItem = useCallback(async (payload: MaterialItemDragPayload) => {
     const messages = Array.isArray(payload?.messages) ? payload.messages : [];
     if (messages.length === 0) {
-      toast.error("当前素材条目没有可发送的消息");
+      appToast.error("当前素材条目没有可发送的消息");
       return;
     }
     if (isSubmitting) {
-      toast.error("正在提交中，请稍后");
+      appToast.error("正在提交中，请稍后");
       return;
     }
 
@@ -444,7 +430,7 @@ export default function useRoomImportActions({
           : -1;
 
         if (roleId <= 0 && !isSpaceOwner && !notMember) {
-          toast.error("旁白仅主持可用，请先选择/拉入你的角色");
+          appToast.error("旁白仅主持可用，请先选择/拉入你的角色");
           return;
         }
 
@@ -468,7 +454,7 @@ export default function useRoomImportActions({
     }
     catch (error) {
       const message = error instanceof Error ? error.message : "发送素材失败";
-      toast.error(message);
+      appToast.error(message);
     }
     finally {
       roomUiStoreApi.getState().setInsertAfterMessageId(prevInsertAfter);
@@ -490,12 +476,12 @@ export default function useRoomImportActions({
   const handleSendRoomJump = useCallback(async (payload: RoomRefDragPayload) => {
     const targetRoomId = Number(payload?.roomId);
     if (!Number.isFinite(targetRoomId) || targetRoomId <= 0) {
-      toast.error("未检测到可用群聊");
+      appToast.error("未检测到可用群聊");
       return;
     }
 
     if (!spaceId || spaceId <= 0) {
-      toast.error("当前不在空间群聊，无法发送群聊跳转");
+      appToast.error("当前不在空间群聊，无法发送群聊跳转");
       return;
     }
     const targetSpaceId = typeof payload?.spaceId === "number" && payload.spaceId > 0
@@ -506,11 +492,11 @@ export default function useRoomImportActions({
     const isNarrator = curRoleId <= 0;
 
     if (isNarrator && !isKP && !notMember) {
-      toast.error("旁白仅主持可用，请先选择/拉入你的角色");
+      appToast.error("旁白仅主持可用，请先选择/拉入你的角色");
       return;
     }
     if (isSubmitting) {
-      toast.error("正在提交中，请稍后");
+      appToast.error("正在提交中，请稍后");
       return;
     }
 

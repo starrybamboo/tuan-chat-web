@@ -22,7 +22,7 @@ export default function TopInfo({ currentContactUserInfo }: { setIsOpenLeftDrawe
           <div className="sm:hidden">
             <button
               type="button"
-              aria-label="返回好友列表"
+              aria-label="打开好友列表"
               className="btn btn-ghost btn-square btn-sm"
               onClick={() => handleOpenPrivate()}
             >
@@ -31,7 +31,7 @@ export default function TopInfo({ currentContactUserInfo }: { setIsOpenLeftDrawe
           </div>
           <span className="
             text-base font-bold truncate leading-none min-w-0 text-left ml-1
-          ">
+          " title={currentContactUserInfo?.username ?? "好友列表"}>
             {currentContactUserInfo ? `「 ${currentContactUserInfo.username} 」` : "好友列表"}
           </span>
         </div>

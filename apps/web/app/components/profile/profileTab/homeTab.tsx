@@ -30,6 +30,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
   return (
     <div className="
       flex min-h-full flex-col p-2 pl-3 transition-all duration-300
+      motion-reduce:transition-none
       md:flex-row md:pl-4
       lg:pl-6
     ">

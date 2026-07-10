@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 
 import type { FeedbackIssueListFilters, FeedbackIssueListItem, FeedbackIssueStatus } from "@/components/feedback/feedbackTypes";
 
+import { ImeAwareSearchInput } from "@/components/common/imeAwareSearchInput";
 import { listItemMotionProps } from "@/components/common/motion/listItemMotion";
 import {
   FEEDBACK_ISSUE_STATUS_COMPLETED,
@@ -166,15 +167,15 @@ export default function FeedbackIssueList({
           grid gap-3
           xl:grid-cols-[minmax(0,1fr)_180px_180px_170px_auto]
         ">
-          <input
-            type="search"
+          <ImeAwareSearchInput
+            type="text"
             id="feedback-search"
             name="feedback-search"
             autoComplete="off"
             aria-label="搜索 issue"
             className="input input-bordered input-sm w-full rounded-md"
             value={keyword}
-            onChange={event => onKeywordChange(event.target.value)}
+            onValueChange={onKeywordChange}
             placeholder="搜索反馈和工单"
           />
 
@@ -279,18 +280,20 @@ export default function FeedbackIssueList({
                     "
                     onClick={() => onSelectIssue(issue.feedbackIssueId)}
                     {...listItemMotionProps(index, { direction: "left", distance: 10, duration: 0.25, staggerDelay: 0.03, maxDelay: 0.3 })}
-                    whileHover={{ scale: 1.005 }}
                   >
                     <div className="flex gap-3">
                       <FeedbackStateDot status={issue.status} archived={issue.archived} />
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <div className="
-                            text-[16px] font-semibold text-base-content
+                          <div
+                            className="
+                            line-clamp-2 text-[16px] font-semibold text-base-content
                             transition-colors
                             group-hover:text-info
-                          ">
+                          "
+                            title={issue.title}
+                          >
                             {issue.title}
                           </div>
                           <span className="

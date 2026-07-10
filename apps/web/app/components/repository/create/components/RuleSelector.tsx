@@ -20,9 +20,10 @@ export default function RuleSelector({ value, onChange }: { value: number; onCha
         {rules.map(rule => (
           <label
             key={rule.ruleId}
+            title={`${rule.ruleName}\n${rule.ruleDescription || "暂无规则说明"}`}
             className={`
               cursor-pointer border-2 rounded-xl p-2 transition-all duration-200
-              hover:scale-105
+              hover:scale-105 motion-reduce:hover:scale-100
               focus-within:ring-2 focus-within:ring-info/30
               ${value === rule.ruleId
             ? "border-info bg-info/10 shadow-lg"
@@ -45,10 +46,12 @@ export default function RuleSelector({ value, onChange }: { value: number; onCha
               className="sr-only"
             />
             <div className="flex flex-col items-start">
-              <span className={value === rule.ruleId ? "text-info" : "text-base-content"}>
+              <span className={`line-clamp-1 ${value === rule.ruleId ? "text-info" : "text-base-content"}`}>
                 {rule.ruleName}
               </span>
-              <span className="text-sm text-base-content/70 mt-1">{rule.ruleDescription}</span>
+              <span className="text-sm text-base-content/70 mt-1 line-clamp-2">
+                {rule.ruleDescription || "暂无规则说明"}
+              </span>
             </div>
           </label>
         ))}

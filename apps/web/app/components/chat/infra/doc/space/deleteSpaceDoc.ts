@@ -13,22 +13,7 @@ export async function deleteSpaceDoc(params: { spaceId: number; docId: string })
   }
 
   try {
-    const [
-      { removeSpaceDocMetaCacheEntry, removePendingSpaceDocTitleSync },
-      { useDocHeaderOverrideStore },
-      { setCachedDocSnapshot },
-      { removePersistedDocSnapshot },
-    ] = await Promise.all([
-      import("@/components/chat/infra/doc/space/spaceDocMetaPersistence"),
-      import("@/components/chat/stores/docHeaderOverrideStore"),
-      import("@/components/chat/infra/doc/document/docSnapshotCache"),
-      import("@/components/chat/infra/doc/document/docSnapshotPersistence"),
-    ]);
-
-    removeSpaceDocMetaCacheEntry({ spaceId: params.spaceId, docId: params.docId });
-    setCachedDocSnapshot(params.docId, null);
-    await removePersistedDocSnapshot(params.docId);
-    useDocHeaderOverrideStore.getState().clearHeader({ docId: params.docId });
+    const { removePendingSpaceDocTitleSync } = await import("@/components/chat/infra/doc/space/spaceDocMetaPersistence");
 
     if (Number.isFinite(docRoomId) && docRoomId > 0) {
       removePendingSpaceDocTitleSync(docRoomId);

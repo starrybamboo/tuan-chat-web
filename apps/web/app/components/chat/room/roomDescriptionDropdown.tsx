@@ -1,10 +1,9 @@
 import type { Room } from "@tuanchat/openapi-client/models/Room";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import { CaretDown, Check, X } from "@phosphor-icons/react";
-import React from "react";
-import toast from "react-hot-toast";
-
 import { useUpdateRoomMutation } from "api/hooks/chatQueryHooks";
+import React from "react";
 
 type RoomDescriptionDropdownProps = {
   room?: Room | null;
@@ -14,6 +13,7 @@ export default function RoomDescriptionDropdown({ room }: RoomDescriptionDropdow
   const updateRoomMutation = useUpdateRoomMutation();
   const [isOpen, setIsOpen] = React.useState(false);
   const [draft, setDraft] = React.useState(room?.description ?? "");
+  const dropdownId = React.useId();
   const rootRef = React.useRef<HTMLDivElement | null>(null);
   const roomId = room?.roomId;
   const currentDescription = room?.description ?? "";
@@ -64,11 +64,11 @@ export default function RoomDescriptionDropdown({ room }: RoomDescriptionDropdow
         avatarFileId: room?.avatarFileId,
         description: draft,
       });
-      toast.success("房间描述已保存");
+      appToast.success("房间描述已保存");
       setIsOpen(false);
     }
     catch {
-      toast.error("保存房间描述失败，请重试");
+      appToast.error("保存房间描述失败，请重试");
     }
   };
 
@@ -84,6 +84,7 @@ export default function RoomDescriptionDropdown({ room }: RoomDescriptionDropdow
         className="btn btn-ghost btn-square btn-xs"
         aria-label={isOpen ? "收起房间描述编辑" : "展开房间描述编辑"}
         aria-expanded={isOpen}
+        aria-controls={dropdownId}
         title="编辑房间描述"
         disabled={!roomId}
         onClick={() => {
@@ -94,7 +95,7 @@ export default function RoomDescriptionDropdown({ room }: RoomDescriptionDropdow
         }}
       >
         <CaretDown className={`
-          size-4 transition-transform
+          size-4 transition-transform motion-reduce:transition-none
           ${isOpen ? `rotate-180` : ""}
         `} />
       </button>
@@ -103,7 +104,7 @@ export default function RoomDescriptionDropdown({ room }: RoomDescriptionDropdow
         <div className="
           absolute left-0 top-full z-9999 mt-2 w-[min(92vw,28rem)] rounded-md
           border border-base-300 bg-base-100 p-3 shadow-xl
-        ">
+        " id={dropdownId}>
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="min-w-0 text-sm font-medium">房间描述</div>
             <button
@@ -126,6 +127,8 @@ export default function RoomDescriptionDropdown({ room }: RoomDescriptionDropdow
             placeholder="填写房间描述..."
             onChange={event => setDraft(event.target.value)}
             onKeyDown={(event) => {
+              if (event.nativeEvent.isComposing)
+                return;
               if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
                 event.preventDefault();
                 void handleSave();
@@ -146,6 +149,8 @@ export default function RoomDescriptionDropdown({ room }: RoomDescriptionDropdow
               className="btn btn-primary btn-sm rounded-md"
               onClick={() => void handleSave()}
               disabled={!hasChanges || updateRoomMutation.isPending}
+              aria-busy={updateRoomMutation.isPending}
+              title={!hasChanges ? "没有变更可保存" : undefined}
             >
               <Check className="size-4" />
               {updateRoomMutation.isPending ? "保存中..." : "保存"}

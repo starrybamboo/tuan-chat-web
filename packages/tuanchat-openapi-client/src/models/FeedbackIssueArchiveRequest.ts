@@ -15,4 +15,3 @@ export type FeedbackIssueArchiveRequest = {
      */
     archived: boolean;
 };
-

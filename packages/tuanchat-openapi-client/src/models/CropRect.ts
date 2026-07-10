@@ -23,4 +23,3 @@ export type CropRect = {
      */
     height?: number;
 };
-

@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import toast from "react-hot-toast";
 
 import type { FeedbackIssueStatus } from "@/components/feedback/feedbackTypes";
 
+import { appToast } from "@/components/common/appToast/appToast";
 import {
   useFeedbackIssueDetailQuery,
   useUpdateFeedbackIssueArchiveMutation,
@@ -11,6 +11,7 @@ import {
 import FeedbackIssueContent from "@/components/feedback/feedbackIssueContent";
 import FeedbackIssueTimeline from "@/components/feedback/feedbackIssueTimeline";
 import {
+
   FEEDBACK_ISSUE_STATUS_COMPLETED,
   FEEDBACK_ISSUE_STATUS_OPTIONS,
   FEEDBACK_ISSUE_STATUS_PROCESSING,
@@ -275,10 +276,16 @@ export default function FeedbackIssueDetail({
         feedbackIssueId: issue.feedbackIssueId,
         status,
       });
-      toast.success("反馈状态已更新");
+      appToast.success({
+        title: "反馈状态已更新",
+        description: `当前状态：${getFeedbackIssueStatusLabel(status)}。`,
+      });
     }
     catch (error) {
-      toast.error(readErrorMessage(error));
+      appToast.error({
+        title: "反馈状态更新失败",
+        description: readErrorMessage(error),
+      });
     }
   };
 
@@ -289,14 +296,46 @@ export default function FeedbackIssueDetail({
         archived: !issue.archived,
       });
       if (issue.archived) {
-        toast.success("已取消归档");
+        appToast.success({
+          title: "反馈已恢复",
+          description: "已恢复到未归档状态。",
+        });
       }
       else {
-        toast.success(issue.status === FEEDBACK_ISSUE_STATUS_COMPLETED ? "已归档" : "已归档，并自动设为拒绝");
+        appToast.success({
+          title: "反馈已归档",
+          description: issue.status === FEEDBACK_ISSUE_STATUS_COMPLETED
+            ? "已从反馈列表中收起。"
+            : "已从反馈列表中收起，并自动标记为拒绝。",
+          actions: [
+            {
+              label: "恢复显示",
+              onClick: () => {
+                void updateArchiveMutation.mutateAsync({
+                  feedbackIssueId: issue.feedbackIssueId,
+                  archived: false,
+                }).then(() => {
+                  appToast.success({
+                    title: "反馈已恢复",
+                    description: "已恢复到未归档状态。",
+                  });
+                }).catch((error) => {
+                  appToast.error({
+                    title: "恢复反馈失败",
+                    description: readErrorMessage(error),
+                  });
+                });
+              },
+            },
+          ],
+        });
       }
     }
     catch (error) {
-      toast.error(readErrorMessage(error));
+      appToast.error({
+        title: "反馈归档状态更新失败",
+        description: readErrorMessage(error),
+      });
     }
   };
 

@@ -7,14 +7,14 @@
 移动端不再按“另写一套聊天逻辑”的方向继续扩张。当前策略是：
 
 - UI 可以不同：移动端使用抽屉、底部弹窗、长按菜单、轻量卡片。
-- 领域逻辑必须共享：消息预览、消息类型、发送身份、角色权限、私聊未读、通知缓存、房间消息 cache key 都进入 `@tuanchat/domain` / `@tuanchat/query`。
+- 领域逻辑必须共享：消息预览、消息类型、发送身份、角色权限、私聊未读、通知缓存、房间消息查询 key 都进入 `@tuanchat/domain` / `@tuanchat/query`。
 - 平台裁剪必须显式：WebGAL 实时渲染、文档、素材库、复杂 GM 工作台等可以不做，但入口不能表现成半实现。
 
 ## 二、已对齐能力
 
 ### 聊天室
 
-- 房间消息查询、发送后刷新、WebSocket 实时写入已统一使用 `getAllRoomMessagesQueryKey(roomId)`。
+- 房间消息查询、发送后刷新、WebSocket 实时写入复用移动端本地 `roomMessages` 查询 key，不再依赖已移除的 Web 端旧房间消息 key。
 - 移动端回复预览、消息引用预览复用 `@tuanchat/domain/message-preview`，覆盖图片、文件、视频、语音、骰娘、状态事件、指令请求、线索、文档、房间跳转、子区、已读线等类型。
 - 主消息流复用 `selectVisibleMainRoomMessages`，过滤 thread reply，并按当前用户/主持权限处理隐藏消息。
 - 删除消息后先在本地 cache 置为 deleted 状态，再触发 refetch。

@@ -2,10 +2,11 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { RoleAvatar } from "api";
 
-import { loadMediaImageWithOriginalFallback, MediaImage } from "@/components/common/mediaImage";
+import { MediaImage } from "@/components/common/mediaImage";
 import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
 
+import { loadPreviewSpriteImage, preloadPreviewSpriteImages } from "../previewSpriteImageCache";
 import { getEffectiveAvatarThumbUrl, getEffectiveAvatarUrl, getEffectiveSpriteUrl, parseTransformFromAvatar } from "../utils";
 
 type RenderTransform = {
@@ -27,6 +28,8 @@ const DEFAULT_TRANSFORM: RenderTransform = {
 type PreviewTabProps = {
   /** 当前选中的头像数据 */
   currentAvatar: RoleAvatar | null;
+  /** 用于预热渲染预览的候选头像列表 */
+  preloadAvatars?: RoleAvatar[];
   /** 角色名称 */
   characterName: string;
   /** 应用头像回调 */
@@ -43,6 +46,7 @@ type PreviewTabProps = {
  */
 export function PreviewTab({
   currentAvatar,
+  preloadAvatars = [],
   characterName,
   onAvatarChange,
   onPreview,
@@ -69,12 +73,18 @@ export function PreviewTab({
   const [renderTransform, setRenderTransform] = useState<RenderTransform>(() => computedTransform);
   const [renderSpriteUrl, setRenderSpriteUrl] = useState<string | null>(() => spriteUrl);
   const pendingRenderImageRef = useRef<HTMLImageElement | null>(null);
+  const pendingRenderBitmapRef = useRef<ImageBitmap | null>(null);
   const pendingRenderSpriteUrlRef = useRef<string | null>(null);
   const [renderDrawVersion, setRenderDrawVersion] = useState(0);
+  const [isRenderSpriteLoading, setIsRenderSpriteLoading] = useState(false);
   const displayRenderTransform = renderSpriteUrl === renderSpriteRequestUrl ? computedTransform : renderTransform;
 
-  // 图片加载缓存：同一 URL 只加载一次（含 in-flight 复用）
-  const imageLoadCacheRef = useRef<Map<string, Promise<HTMLImageElement>>>(new Map());
+  useEffect(() => {
+    if (preloadAvatars.length === 0)
+      return;
+
+    preloadPreviewSpriteImages(preloadAvatars.map(avatar => getEffectiveSpriteUrl(avatar) || null));
+  }, [preloadAvatars]);
 
   // Load sprite image for render preview.
   // Important: switching avatars quickly can cause async image loads to resolve out of order.
@@ -86,7 +96,9 @@ export function PreviewTab({
     // No sprite: reset to computed transform and clear pending work.
     if (!renderSpriteRequestUrl) {
       pendingRenderImageRef.current = null;
+      pendingRenderBitmapRef.current = null;
       pendingRenderSpriteUrlRef.current = null;
+      setIsRenderSpriteLoading(false);
       return;
     }
 
@@ -94,21 +106,6 @@ export function PreviewTab({
     let rafId: number | null = null;
     const targetSpriteUrl = renderSpriteRequestUrl;
     const targetTransform = computedTransform;
-
-    const loadImageCached = (url: string) => {
-      const cached = imageLoadCacheRef.current.get(url);
-      if (cached)
-        return cached;
-
-      const promise = loadMediaImageWithOriginalFallback(url).catch((error) => {
-        // 失败的条目不缓存，方便下次重试
-        imageLoadCacheRef.current.delete(url);
-        throw error;
-      });
-
-      imageLoadCacheRef.current.set(url, promise);
-      return promise;
-    };
 
     const tryStartLoad = (attemptsLeft: number) => {
       if (!active)
@@ -130,18 +127,21 @@ export function PreviewTab({
         return;
       }
 
-      loadImageCached(targetSpriteUrl).then((img) => {
+      setIsRenderSpriteLoading(targetSpriteUrl !== renderSpriteUrl);
+      loadPreviewSpriteImage(targetSpriteUrl).then(({ image, bitmap }) => {
         if (!active)
           return;
-        // Stash the image and commit the transform first.
+        // Stash the decoded image and commit the transform first.
         // Then we draw in a layout effect (paint-safe) to avoid showing a mismatched frame.
-        pendingRenderImageRef.current = img;
+        pendingRenderImageRef.current = image;
+        pendingRenderBitmapRef.current = bitmap;
         pendingRenderSpriteUrlRef.current = targetSpriteUrl;
         setRenderTransform(targetTransform);
         setRenderDrawVersion(v => v + 1);
       }).catch((error) => {
         if (!active)
           return;
+        setIsRenderSpriteLoading(false);
         console.error("Failed to load sprite image:", error, targetSpriteUrl);
       });
     };
@@ -154,7 +154,7 @@ export function PreviewTab({
       if (rafId != null)
         cancelAnimationFrame(rafId);
     };
-  }, [previewMode, renderSpriteRequestUrl, computedTransform]);
+  }, [previewMode, renderSpriteRequestUrl, computedTransform, renderSpriteUrl]);
 
   // Draw pending render sprite *after* renderTransform has been committed (layout effect runs before paint).
   useLayoutEffect(() => {
@@ -163,6 +163,7 @@ export function PreviewTab({
 
     const pendingUrl = pendingRenderSpriteUrlRef.current;
     const pendingImg = pendingRenderImageRef.current;
+    const pendingBitmap = pendingRenderBitmapRef.current;
     if (!pendingUrl || !pendingImg)
       return;
 
@@ -181,10 +182,12 @@ export function PreviewTab({
     canvas.width = pendingImg.width;
     canvas.height = pendingImg.height;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(pendingImg, 0, 0);
+    ctx.drawImage(pendingBitmap ?? pendingImg, 0, 0);
 
     setRenderSpriteUrl(pendingUrl);
+    setIsRenderSpriteLoading(false);
     pendingRenderImageRef.current = null;
+    pendingRenderBitmapRef.current = null;
     pendingRenderSpriteUrlRef.current = null;
   }, [renderDrawVersion, previewMode, renderSpriteRequestUrl]);
 
@@ -240,6 +243,7 @@ export function PreviewTab({
           type="button"
           className="btn btn-sm btn-ghost gap-2 rounded-md"
           onClick={cyclePreviewMode}
+          aria-label={`切换预览模式，当前 ${getPreviewModeLabel()}，将切换至 ${getNextModeLabel()}`}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="size-5" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
@@ -316,15 +320,24 @@ export function PreviewTab({
         {previewMode === "render" && (
           spriteUrl
             ? (
-                <div className="size-full p-4 flex items-center justify-center">
+                <div className="size-full p-4 flex items-center justify-center relative">
                   <div className="w-full max-w-4xl">
                     <RenderPreview
                       previewCanvasRef={previewCanvasRef}
                       transform={displayRenderTransform}
                       characterName={characterName}
-                      dialogContent="这是一段示例对话内容。"
+                      dialogContent="点击进行立绘矫正"
                     />
                   </div>
+                  {isRenderSpriteLoading && (
+                    <div className="
+                      absolute inset-4 rounded-lg bg-base-300/20
+                      backdrop-blur-[1px] flex items-center justify-center
+                      text-base-content/70
+                    ">
+                      <span className="loading loading-spinner loading-sm" aria-label="正在加载预览" />
+                    </div>
+                  )}
                 </div>
               )
             : (
@@ -351,6 +364,7 @@ export function PreviewTab({
           className="btn btn-outline rounded-md"
           onClick={handlePreview}
           disabled={!currentAvatar}
+          title={currentAvatar ? "展示预览" : "请先选择头像"}
         >
           展示预览
         </button>
@@ -359,6 +373,7 @@ export function PreviewTab({
           className="btn btn-primary rounded-md"
           onClick={handleApplyAvatar}
           disabled={!currentAvatar}
+          title={currentAvatar ? "应用头像" : "请先选择头像"}
         >
           应用头像
         </button>

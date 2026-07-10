@@ -12,4 +12,3 @@ export type RoomExtraRequest = {
      */
     key: string;
 };
-

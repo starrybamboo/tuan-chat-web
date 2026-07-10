@@ -21,6 +21,7 @@ export type PatchOptimisticMessageInput = Partial<Message> & {
 };
 
 const OPTIMISTIC_RENDER_KEY_PREFIX = "room-message:optimistic:";
+let optimisticRoomRenderKeySeed = 1;
 
 function formatLocalMessageTime(date: Date): string {
   const year = date.getFullYear();
@@ -47,6 +48,12 @@ function getOptimisticRenderKey(message: RoomMessageSyncLike | null | undefined)
     return `${OPTIMISTIC_RENDER_KEY_PREFIX}${messageId}`;
   }
   return null;
+}
+
+function createOptimisticRenderKey(messageId: number, now: string): string {
+  const sequence = optimisticRoomRenderKeySeed;
+  optimisticRoomRenderKeySeed += 1;
+  return `${OPTIMISTIC_RENDER_KEY_PREFIX}${messageId}:${now}:${sequence}`;
 }
 
 export function isOptimisticRoomMessage(message: RoomMessageSyncLike | null | undefined): boolean {
@@ -89,7 +96,7 @@ export function createOptimisticRoomMessage(
   const now = formatLocalMessageTime(new Date());
   const optimisticMessage: ChatMessageResponse["message"] & RoomMessageSyncLike = {
     tcLocalSyncState: "optimistic",
-    tcLocalRenderKey: `${OPTIMISTIC_RENDER_KEY_PREFIX}${options.optimisticId}:${now}`,
+    tcLocalRenderKey: createOptimisticRenderKey(options.optimisticId, now),
     messageId: options.optimisticId,
     syncId: options.optimisticId,
     roomId: request.roomId,
@@ -171,7 +178,7 @@ function toOptimisticPatchMessage(params: {
     ...(params.message.extra ? { extra: params.message.extra } : {}),
     createTime: typeof params.message.createTime === "string" ? params.message.createTime : now,
     updateTime: now,
-    tcLocalRenderKey: `${OPTIMISTIC_RENDER_KEY_PREFIX}${messageId}:${now}`,
+    tcLocalRenderKey: createOptimisticRenderKey(messageId, now),
     tcLocalSyncState: "optimistic",
   };
 }

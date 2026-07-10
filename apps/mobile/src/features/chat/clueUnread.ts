@@ -22,6 +22,16 @@ export function formatUnreadBadgeCount(count: number): string {
   return count > 99 ? "99+" : String(Math.max(0, count));
 }
 
+export function formatClueUnreadAccessibilityLabel(count: number): string {
+  if (count <= 0) {
+    return "线索，暂无未读";
+  }
+  if (count > 99) {
+    return "线索，99 条以上未读";
+  }
+  return `线索，${count} 条未读`;
+}
+
 export function getVisibleClueFolderUnreadCount({
   currentUserId,
   rooms,

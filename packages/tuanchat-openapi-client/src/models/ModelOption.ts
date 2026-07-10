@@ -19,4 +19,3 @@ export type ModelOption = {
      */
     supportsImage?: boolean;
 };
-

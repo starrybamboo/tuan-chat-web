@@ -69,4 +69,23 @@ describe("roleAvatarMedia", () => {
       spriteFileId: 200,
     }).origin.url).toBe("");
   });
+
+  it("本地临时 URL 优先用于上传中的预览和裁剪", () => {
+    const media = resolveRoleAvatarMedia({
+      avatarFileId: 100,
+      spriteFileId: 200,
+      originFileId: 300,
+      localAvatarUrl: "blob:avatar",
+      localOriginUrl: "blob:origin",
+      localSpriteUrl: "blob:sprite",
+    });
+
+    expect(media.avatar.url).toBe("blob:avatar");
+    expect(media.avatar.thumbUrl).toBe("image-low:100");
+    expect(media.avatar.originalUrl).toBe("avatar-original:100");
+    expect(media.sprite.url).toBe("blob:sprite");
+    expect(media.sprite.cropSourceUrl).toBe("blob:sprite");
+    expect(media.sprite.originalUrl).toBe("blob:sprite");
+    expect(media.origin.url).toBe("blob:origin");
+  });
 });

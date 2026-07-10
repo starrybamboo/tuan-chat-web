@@ -19,4 +19,3 @@ export type RepositoryPageRequest = {
      */
     ruleId?: number;
 };
-

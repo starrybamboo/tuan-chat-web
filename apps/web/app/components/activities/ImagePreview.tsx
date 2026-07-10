@@ -116,33 +116,49 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
           />
 
           {hasPrev && (
-            <div className="
-              absolute left-0 top-0 w-[30%] h-full bg-gradient-to-r
-              from-black/20 to-transparent opacity-0
-              hover:opacity-100
-              transition-opacity flex items-center justify-start pl-4
-            ">
+            <button
+              type="button"
+              aria-label="上一张"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNavigation(e, "prev");
+              }}
+              className="
+                absolute left-0 top-0 w-[30%] h-full bg-gradient-to-r
+                from-black/20 to-transparent opacity-0
+                hover:opacity-100 focus-visible:opacity-100
+                transition-opacity flex items-center justify-start pl-4
+              "
+            >
               <div className="bg-black/50 rounded-full p-2">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                   <path d="M15 18l-6-6 6-6" />
                 </svg>
               </div>
-            </div>
+            </button>
           )}
 
           {hasNext && (
-            <div className="
-              absolute right-0 top-0 w-[30%] h-full bg-gradient-to-l
-              from-black/20 to-transparent opacity-0
-              hover:opacity-100
-              transition-opacity flex items-center justify-end pr-4
-            ">
+            <button
+              type="button"
+              aria-label="下一张"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNavigation(e, "next");
+              }}
+              className="
+                absolute right-0 top-0 w-[30%] h-full bg-gradient-to-l
+                from-black/20 to-transparent opacity-0
+                hover:opacity-100 focus-visible:opacity-100
+                transition-opacity flex items-center justify-end pr-4
+              "
+            >
               <div className="bg-black/50 rounded-full p-2">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                   <path d="M9 18l6-6-6-6" />
                 </svg>
               </div>
-            </div>
+            </button>
           )}
         </div>
 
@@ -157,6 +173,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
               text-white p-2 rounded-full transition-colors
             "
             title="向左旋转"
+            aria-label="向左旋转图片"
           >
             <RotateLeftIcon />
           </button>
@@ -169,6 +186,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
               text-white p-2 rounded-full transition-colors
             "
             title="向右旋转"
+            aria-label="向右旋转图片"
           >
             <RotateRightIcon />
           </button>

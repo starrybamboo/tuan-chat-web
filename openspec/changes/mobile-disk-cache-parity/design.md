@@ -2,7 +2,7 @@
 
 移动端已经具备两类本地能力：图片通过 `mobile-image-cache` 写入 `Paths.cache/mobile-image-cache`，房间消息通过 `mobileRoomMessageCache` 写入 `tuanchat-local.db`。但 QueryClient 仍是内存缓存，私聊、空间、房间、会话、角色、成员、通知、贴纸、房间 extra、地图和角色能力等数据冷启动后都会重新请求。
 
-Web 端对同类问题已有多种持久化策略：房间消息使用 IndexedDB 保存 sql.js SQLite 文件并按 `syncId` 增量同步；WebGAL 资产使用 CacheStorage；UI 状态、文档快照和偏好使用 IndexedDB/localStorage。移动端应采用原生 App 更常见的 SQLite/FileSystem 组合，而不是依赖浏览器存储语义。
+Web 端对同类问题已有多种持久化策略：房间消息使用官方 sqlite-wasm OPFS SAH pool 写入本地 SQLite，并按 `syncId` 增量同步；WebGAL 资产使用 CacheStorage；UI 状态、文档快照和偏好使用 IndexedDB/localStorage。移动端采用原生 App 更常见的 SQLite/FileSystem 组合。
 
 ## Goals / Non-Goals
 

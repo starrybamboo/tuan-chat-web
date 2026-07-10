@@ -100,6 +100,7 @@ const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
       }
       `}
       type="button"
+      aria-pressed={activeTab === tab}
     >
       {label}
     </button>

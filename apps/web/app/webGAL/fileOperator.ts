@@ -13,54 +13,12 @@ import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 
 import { fetchWithUnifiedAuth } from "../../api/unifiedAuthFetch";
 
-/**
- * WebGAL 调试命令枚举
- * 用于通过 WebSocket 与 WebGAL 引擎通信
- */
-export enum DebugCommand {
-  // 跳转到指定场景的指定行
-  JUMP,
-  // 同步自客户端
-  SYNCFC,
-  // 同步自编辑器
-  SYNCFE,
-  // 执行指令
-  EXE_COMMAND,
-  // 重新拉取模板样式文件
-  REFETCH_TEMPLATE_FILES,
-  // 设置组件可见性
-  SET_COMPONENT_VISIBILITY,
-  // 执行临时场景（单条命令）
-  TEMP_SCENE,
-  // 字体优化
-  FONT_OPTIMIZATION,
-  // 直接设置效果
-  SET_EFFECT,
-  // 实时预览快进超时
-  FAST_PREVIEW_TIMEOUT,
-  // 设置文本已读模式
-  SET_TEXT_READ_MODE,
-}
-
 type IFile = {
   extName: string;
   isDir: boolean;
   name: string;
   path: string;
   pathFromBase?: string;
-};
-
-export type IDebugMessage = {
-  event: string;
-  data: {
-    command: DebugCommand;
-    sceneMsg: {
-      sentence: number;
-      scene: string;
-    };
-    message: string;
-    stageSyncMsg: any;
-  };
 };
 
 /**
@@ -317,32 +275,3 @@ export async function checkFileExist(currentPathString: string, fileName: string
     throw error;
   }
 }
-
-/**
- * 生成 WebGAL JUMP 同步消息
- * @param sceneName 场景文件名（含 .txt 后缀）
- * @param lineNumber 跳转到的行号
- * @param forceReload 是否强制重新加载场景（用于文件内容变更后刷新）
- */
-export function getAsyncMsg(sceneName: string, lineNumber: number, forceReload: boolean = false): IDebugMessage {
-  return {
-    event: "message",
-    data: {
-      command: DebugCommand.JUMP,
-      sceneMsg: {
-        scene: sceneName,
-        sentence: lineNumber,
-      },
-      stageSyncMsg: {},
-      // 使用 'exp' 模式可以触发更快的同步，'Sync' 是普通同步
-      // 强制重新加载时使用 'Sync' 确保场景完全刷新
-      message: forceReload ? "Sync" : "exp",
-    },
-  };
-}
-
-/**
- * 生成 WebGAL 临时场景执行脚本
- * 可以用来执行单条 WebGAL 场景脚本而不改变当前场景状态
- * @param command WebGAL 场景脚本字符串
- */

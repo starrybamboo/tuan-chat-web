@@ -37,6 +37,7 @@ export default function RoleSidebarActionCard({
             hover:bg-base-300/80
           "
           onClick={onClick}
+          title={`${actionLabel}：${title}`}
         >
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="flex size-8 shrink-0 items-center justify-center">
@@ -44,10 +45,13 @@ export default function RoleSidebarActionCard({
             </div>
             <div className="min-w-0 space-y-0.5">
               <h3 className="text-sm font-semibold">{title}</h3>
-              <p className={`
+              <p
+                className={`
                 truncate text-xs/5 font-medium
                 ${subtitleClassName}
-              `}>
+              `}
+                title={subtitle}
+              >
                 {subtitle}
               </p>
             </div>

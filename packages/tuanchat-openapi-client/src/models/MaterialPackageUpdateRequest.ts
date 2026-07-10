@@ -29,4 +29,3 @@ export type MaterialPackageUpdateRequest = {
     isPublic: boolean;
     content: MaterialPackageContent;
 };
-

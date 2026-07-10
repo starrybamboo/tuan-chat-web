@@ -2,7 +2,7 @@
 
 移动端当前只有图片与房间消息的一部分数据真正落盘，大量业务数据仍停留在 React Query 内存缓存，导致冷启动、切换页面、滑动加载或 WebSocket 更新后反复请求已经加载过的消息、头像元数据、会话与空间/房间数据。
 
-Web 端已经通过 IndexedDB、sql.js SQLite、CacheStorage 与 localStorage 建立了更完整的本地持久化层；移动端需要补齐 App 级磁盘缓存能力，让已加载内容可优先从本地恢复，再做增量同步。
+Web 端已经通过官方 sqlite-wasm OPFS SAH pool、CacheStorage、IndexedDB 与 localStorage 建立了更完整的本地持久化层；移动端需要补齐 App 级磁盘缓存能力，让已加载内容可优先从本地恢复，再做增量同步。
 
 ## What Changes
 

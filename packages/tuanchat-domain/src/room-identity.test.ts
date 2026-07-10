@@ -76,6 +76,22 @@ describe("room identity helpers", () => {
     });
   });
 
+  it("未选中角色时不会沿用角色头像", () => {
+    expect(resolveSendIdentity({
+      currentAvatarId: 99,
+      customRoleName: "化名",
+      inputContent: "普通发言",
+      isSpaceOwner: true,
+      isSpectator: false,
+      roleId: -1,
+    })).toEqual({
+      avatarId: -1,
+      content: "普通发言",
+      customRoleName: undefined,
+      roleId: -1,
+    });
+  });
+
   it("优先选择标记为默认的头像", () => {
     expect(pickDefaultAvatarId([
       { avatarId: 1, avatarTitle: { label: "开心" } },

@@ -14,7 +14,13 @@
 
 ```bash
 pnpm install
+pnpm mobile:start
+pnpm mobile:android
+pnpm mobile:ios
+pnpm mobile:web
+pnpm mobile:typecheck
 pnpm mobile:local-apk
+pnpm mobile:emulator-apk
 pnpm mobile:cloud-apk
 pnpm mobile:workflow:preview
 pnpm mobile:workflow:production
@@ -22,9 +28,7 @@ pnpm mobile:ios:credentials
 pnpm mobile:ios:bootstrap-production
 ```
 
-当前仓库根目录只保留发版和 EAS 相关移动端命令。
-
-如需本地 Expo 开发，请进入 `apps/mobile` 目录后直接使用该目录自己的脚本，例如：
+如需在 `apps/mobile` 目录内运行，也可以直接使用该目录自己的脚本：
 
 ```bash
 pnpm start
@@ -34,45 +38,40 @@ pnpm web
 pnpm typecheck
 ```
 
-此外，仓库根目录也恢复了一组精简的 Expo 开发入口：
-
-```bash
-pnpm mobile:start
-pnpm mobile:android
-pnpm mobile:web
-pnpm mobile:typecheck
-```
-
 ## Android 调试约定
 
 ### 调试命令分层
 
-日常改 JS / TS / 样式时，不要重复跑 Gradle 和安装流程。推荐只保留手机上的 dev build，然后运行：
+日常改 JS / TS / 样式时，不要重复跑 Gradle 和安装流程。推荐保留设备上的 dev build，然后只启动 Expo / Metro：
 
 ```bash
-pnpm android:fast
+pnpm mobile:start
 ```
 
-这条命令会给在线设备补 `adb reverse tcp:8082 tcp:8082` 和 `adb reverse tcp:8081 tcp:8081`，然后只启动 Metro，固定监听 `8082`，不会重新构建 APK，也不会重新安装 App。手机上的应用已经打开时，保存代码后走热更新 / 刷新即可。
+这条命令固定监听 `8082`，不会重新构建 APK，也不会重新安装 App。手机上的应用已经打开时，保存代码后走热更新 / 刷新即可。
 
-Windows + 真机调试时，Metro 使用 `--host lan` 绑定到 IPv4 / 全部地址；App 仍通过 `adb reverse` 访问 `localhost:8082`。不要把这里改回仅 `--localhost`，否则 Windows 可能只监听 IPv6 `::1`，真机会卡在 Expo 启动页。
-
-如果 Metro 还没连上，或者需要从电脑侧重新唤起手机上的 dev client，运行：
+如果 Metro 还没连上，或者需要从电脑侧重新唤起 Android 上的 dev client，运行：
 
 ```bash
-pnpm android:open
+pnpm mobile:android
 ```
 
-如果 Metro / 后端都已经在跑，只是手机重新插拔过，需要单独补端口转发，运行：
+需要 iOS 入口时运行：
 
 ```bash
-pnpm android:reverse
+pnpm mobile:ios
 ```
 
-如果改了原生依赖、`android/`、权限、包名、Expo config 或 native module，再运行完整链路：
+如果改了原生依赖、`android/`、权限、包名、Expo config 或 native module，需要重新生成并安装本地 APK。模拟器优先运行：
 
 ```bash
-pnpm android:dev
+pnpm mobile:emulator-apk
+```
+
+真机或发布前本地包使用：
+
+```bash
+pnpm mobile:local-apk
 ```
 
 - 本项目与 `watch-maid` 共用同一套 Android 开发脚本核心：`C:\Users\降星驰\.codex\scripts\android-mobile-dev-common.ps1`
@@ -82,41 +81,16 @@ pnpm android:dev
   - `WatchMaid_API_36_Alt`
   - `WatchMaid_API_36_Fresh`
 - `A_watch_maid` 的移动端是 React Native CLI 工程；团剧共创移动端是 Expo 工程。两者可以共用同一个模拟器，但不能共用同一个 Metro / Expo 端口
-- 团剧共创移动端默认 Android 调试链路已经切到”本地 dev build + 共享模拟器”，不再默认依赖 Expo Go。推荐入口：
-
-```bash
-pnpm android:dev
-```
-
-- 仓库根目录不再暴露旧的本地 Android 调试脚本入口；如果后续还需要这类入口，再按当前工作流重新整理。
-
-- 这条命令会自动完成：
+- 团剧共创移动端默认 Android 调试链路已经切到“本地 dev build / APK + 共享模拟器”，不再默认依赖 Expo Go。
+- `pnpm mobile:emulator-apk` 会自动完成：
   1. 固定使用 `D:\android-sdk` 下的 `adb.exe`
   2. 优先使用唯一在线真机；没有真机时才启动共享 AVD `WatchMaid_API_36_Fresh`
   3. 固定用 `D:\AndroidSdk` 作为原生构建 SDK
   4. 将 `TEMP` / `TMP` 固定到 `D:\A_collection\.tmp\expo-temp`
   5. 将 `GRADLE_USER_HOME` 固定到 `D:\A_collection\.gradle-home2`
-  6. 按当前设备 ABI 构建 debug APK，真机通常只构建 `arm64-v8a`
-  7. 固定 Metro 端口为 `8082`
-  8. 执行 `adb reverse tcp:8082 tcp:8082` 和 `adb reverse tcp:8081 tcp:8081`、`adb install -r`，并启动 `com.tuanchat.mobile/.MainActivity`
-- 如果你只想单独拉起共享模拟器，可以运行：
-
-```bash
-pnpm android:emulator
-```
-
-- 如果 dev build 已经安装过，只想重新拉起 Metro，可以运行：
-
-```bash
-pnpm android:fast
-```
-
-- 如果还需要顺手唤起 Android dev client，可以运行：
-
-```bash
-pnpm android:open
-```
-
+  6. 默认构建 `Release` / `x86_64` APK；如需其他变体或架构，可向脚本追加 `-Variant`、`-Architectures` 或 `-AllArchitectures`
+  7. 执行 `adb install -r`，并启动 `com.tuanchat.mobile/.MainActivity`
+  8. 只有显式追加 `-ReversePorts` 时，才会补 `adb reverse tcp:8082 tcp:8082` 和 `adb reverse tcp:8081 tcp:8081`
 - 如果 `watch-maid` 已占用 `8081`，团剧共创移动端请固定用 `8082`，不要和它共用同一端口。
 - 移动端 API 默认显示 `http://127.0.0.1:8081`，这里的 `127.0.0.1` 是设备侧 localhost；脚本会通过 `adb reverse` 转发到电脑上的 TuanChat 后端。
 - Windows 中文用户目录下，Node 临时目录和 Gradle 用户目录会触发 `expo prebuild` / prefab `.bat` 路径问题；上面的脚本已经把这两个目录强制切到纯 ASCII 路径，不要再改回中文路径。
@@ -133,14 +107,14 @@ pnpm android:open
 
 ## 已实测链路
 
-- 已在真机 `LBGYTWQCCYNFMRHU` 上实测通过：
+- 历史上已在真机 `LBGYTWQCCYNFMRHU` 上实测通过 Android dev build 链路；当前 README 只保留仍存在的 package scripts：
 
 ```bash
-pnpm android:dev
-pnpm android:fast
+pnpm mobile:android
+pnpm mobile:emulator-apk
 ```
 
-- 实测结果：
+- 历史实测结果：
   - `BUILD SUCCESSFUL`
   - 生成 APK：`apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk`
   - 已安装包名：`com.tuanchat.mobile`

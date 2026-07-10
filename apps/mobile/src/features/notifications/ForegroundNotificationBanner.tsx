@@ -55,6 +55,8 @@ function BannerCard({ banner, onDismiss, onPress }: { banner: ForegroundBanner; 
         style={styles.card}
       >
         <Pressable
+          accessibilityLabel={`打开通知：${banner.title}${banner.body ? `，${banner.body}` : ""}`}
+          accessibilityHint="点按查看相关对话"
           accessibilityRole="button"
           android_ripple={{ color: Colors.dark.accentMuted }}
           style={styles.pressable}

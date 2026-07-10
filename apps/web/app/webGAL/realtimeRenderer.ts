@@ -36,7 +36,7 @@ import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "@/type
 import { extractWebgalDicePayload } from "@/types/webgalDice";
 import { avatarOriginalUrl, avatarUrl as buildAvatarUrl, mediaFileUrl } from "@/utils/media/mediaUrl";
 import { checkGameExist, getTerreApis } from "@/webGAL/index";
-import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
+import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 
 /**
  * WebGAL 实时渲染管理器
@@ -49,7 +49,6 @@ import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
  * 4. 增量更新：新消息来时只更新对应房间的场景内容
  */
 import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api";
-import type { IDebugMessage } from "./fileOperator";
 import type { RealtimeAssetUploadContext } from "./realtimeRendererAssetUploads";
 import type { RealtimeGameConfig, RealtimeTTSConfig } from "./realtimeRendererConfig";
 import type { RealtimeRenderMessageCompilerInput } from "./realtimeRendererMessageCompiler";
@@ -62,7 +61,8 @@ import type { WorkflowGraph } from "./realtimeRendererWorkflow";
 import type { WebgalFigureRenderAsset } from "./webgalFigureComposition";
 
 import { fetchRoleAvatarWithCache, fetchRoleAvatarsWithCache } from "../../api/hooks/RoleAndAvatarHooks";
-import { checkFileExist, DebugCommand, getAsyncMsg, getFileExtensionFromUrl, readTextFile, uploadFile } from "./fileOperator";
+import { EditorPreviewSyncClient } from "./editorPreviewSyncClient";
+import { checkFileExist, getFileExtensionFromUrl, readTextFile, uploadFile } from "./fileOperator";
 import {
   BUILTIN_WEBGAL_ANIMATION_FILES,
   TUANCHAT_DEFAULT_FIGURE_ENTER_ANIMATION,
@@ -201,20 +201,6 @@ type RenderMessageOptions = {
 
 type SyncMessageOptions = {
   force?: boolean;
-  forceReload?: boolean;
-};
-
-type JumpToMessageOptions = {
-  forceReload?: boolean;
-};
-
-type FastPreviewTimeoutPayload = {
-  elapsedMs?: number;
-  forwardedLineCount?: number;
-  maxDurationMs?: number;
-  scene?: string;
-  sentence?: number;
-  targetSentence?: number;
 };
 
 function normalizeSceneLineFragments(line: string, allowEmpty = false): string[] {
@@ -260,8 +246,7 @@ export class RealtimeRenderer {
   private static sharedUploadCacheByGame = new Map<string, SharedUploadCache>();
   private disposed = false;
   private initEpoch = 0;
-  private syncSocket: WebSocket | null = null;
-  private isConnected = false;
+  private previewSyncClient: EditorPreviewSyncClient | null = null;
   private spaceId: number;
   private spaceName: string = "";
   private gameName: string;
@@ -280,8 +265,6 @@ export class RealtimeRenderer {
   private roomMap = new Map<number, Room>(); // roomId -> Room
   private onStatusChange?: (status: "connected" | "disconnected" | "error") => void;
   private onProgressChange?: (progress: InitProgress) => void;
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private messageQueue: string[] = [];
   private currentSpriteStateMap = new Map<number, Set<string>>(); // roomId -> 当前场景显示的立绘
   private messageLineMap = new Map<string, { startLine: number; endLine: number }>(); // `${roomId}_${messageId}` -> { startLine, endLine } (消息在场景中的行号范围)
   private pendingDiceMergeMap = new Map<string, PendingDiceMergeEntry>(); // `${roomId}_${messageId}` -> 延迟渲染的骰子消息
@@ -296,7 +279,6 @@ export class RealtimeRenderer {
   private roomSyncBatchDepthMap = new Map<number, number>();
   private roomSyncPendingSet = new Set<number>();
   private autoJumpEnabled = false;
-  private autoJumpRequestDepth = 0;
 
   // 小头像相关
   private miniAvatarEnabled: boolean = false;
@@ -1086,8 +1068,7 @@ export class RealtimeRenderer {
       await this.initScene();
       ensureInitActive();
 
-      // 连接 WebSocket
-      this.connectWebSocket();
+      this.connectPreviewSync();
       ensureInitActive();
 
       this.updateProgress({ phase: "ready", message: "初始化完成" });
@@ -1479,157 +1460,35 @@ export class RealtimeRenderer {
     this.sendSyncMessage(roomId, { force: true });
   }
 
-  private isQueuedCommand(messageText: string, command: DebugCommand): boolean {
-    try {
-      const parsed = JSON.parse(messageText) as IDebugMessage;
-      return parsed?.data?.command === command;
-    }
-    catch {
-      return false;
-    }
-  }
-
-  private enqueueDebugMessage(messageText: string, options: { replaceQueuedJump?: boolean } = {}): void {
-    if (options.replaceQueuedJump) {
-      this.messageQueue = this.messageQueue.filter(item => !this.isQueuedCommand(item, DebugCommand.JUMP));
-    }
-    this.messageQueue.push(messageText);
-  }
-
-  private sendDebugMessage(messageText: string, options: { replaceQueuedJump?: boolean } = {}): boolean {
-    if (this.isConnected && this.syncSocket?.readyState === WebSocket.OPEN) {
-      this.syncSocket.send(messageText);
-      return true;
-    }
-    this.enqueueDebugMessage(messageText, options);
-    return true;
-  }
-
-  private handleSyncSocketMessage(rawData: unknown): void {
-    if (typeof rawData !== "string") {
-      return;
-    }
-    let parsed: IDebugMessage;
-    try {
-      parsed = JSON.parse(rawData) as IDebugMessage;
-    }
-    catch {
-      return;
-    }
-
-    if (parsed?.data?.command !== DebugCommand.FAST_PREVIEW_TIMEOUT) {
-      return;
-    }
-
-    let payload: FastPreviewTimeoutPayload | null = null;
-    try {
-      payload = JSON.parse(parsed.data.message) as FastPreviewTimeoutPayload;
-    }
-    catch {
-      payload = null;
-    }
-    console.warn("[RealtimeRenderer] WebGAL 实时预览快进超时", payload ?? parsed.data.sceneMsg);
-  }
-
-  /**
-   * 连接 WebSocket
-   */
-  private connectWebSocket(): void {
+  private ensurePreviewSyncClient(): EditorPreviewSyncClient | null {
     if (this.disposed) {
-      return;
+      return null;
     }
-    if (this.syncSocket?.readyState === WebSocket.OPEN) {
-      return;
+    if (!this.previewSyncClient) {
+      this.previewSyncClient = new EditorPreviewSyncClient({
+        onStatusChange: status => this.onStatusChange?.(status),
+        onFastPreviewTimeout: payload => {
+          console.warn("[RealtimeRenderer] WebGAL 实时预览快进超时", payload);
+        },
+      });
     }
-
-    const wsUrl = getTerreWsUrl();
-    if (!wsUrl) {
-      console.error("WebGAL WebSocket 地址未配置");
-      this.onStatusChange?.("error");
-      return;
-    }
-
-    try {
-      this.syncSocket = new WebSocket(wsUrl);
-
-      this.syncSocket.onopen = () => {
-        if (this.disposed) {
-          return;
-        }
-        debugRealtimeRender("WebGAL 实时渲染 WebSocket 已连接");
-        this.isConnected = true;
-        this.onStatusChange?.("connected");
-
-        // 发送队列中的消息
-        while (this.messageQueue.length > 0) {
-          const msg = this.messageQueue.shift();
-          if (msg)
-            this.syncSocket?.send(msg);
-        }
-      };
-
-      this.syncSocket.onmessage = (event) => {
-        if (this.disposed) {
-          return;
-        }
-        this.handleSyncSocketMessage(event.data);
-      };
-
-      this.syncSocket.onclose = () => {
-        if (this.disposed) {
-          return;
-        }
-        debugRealtimeRender("WebGAL 实时渲染 WebSocket 已断开");
-        this.isConnected = false;
-        this.onStatusChange?.("disconnected");
-
-        // 自动重连
-        this.scheduleReconnect();
-      };
-
-      this.syncSocket.onerror = (error) => {
-        if (this.disposed) {
-          return;
-        }
-        console.error("WebGAL WebSocket 错误:", error);
-        this.onStatusChange?.("error");
-      };
-    }
-    catch (error) {
-      console.error("WebSocket 连接失败:", error);
-      this.onStatusChange?.("error");
-    }
+    this.previewSyncClient.connect();
+    return this.previewSyncClient;
   }
 
-  /**
-   * 安排重连
-   */
-  private scheduleReconnect(): void {
-    if (this.disposed) {
-      return;
-    }
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-    }
-    this.reconnectTimer = setTimeout(() => {
-      if (this.disposed) {
-        return;
-      }
-      debugRealtimeRender("尝试重连 WebGAL WebSocket...");
-      this.connectWebSocket();
-    }, 3000);
+  private connectPreviewSync(): void {
+    void this.ensurePreviewSyncClient();
   }
 
   /**
    * 发送同步消息到指定房间的场景。
-   * 默认强制刷新当前行；只有实时渲染开关触发的单次请求才跳到最新行。
+   * 默认仅在调用方显式要求时同步；尾部自动推进由 autoJumpEnabled 控制。
    */
   private sendSyncMessage(roomId: number, options: SyncMessageOptions = {}): void {
     if (this.disposed) {
       return;
     }
-    const shouldJumpToLatestLine = this.autoJumpEnabled && this.autoJumpRequestDepth > 0;
-    if (!options.force && !shouldJumpToLatestLine) {
+    if (!options.force) {
       return;
     }
     const sceneName = this.getSceneName(roomId);
@@ -1639,9 +1498,16 @@ export class RealtimeRenderer {
       return;
     }
 
-    const msg = getAsyncMsg(`${sceneName}.txt`, context.lineNumber, options.forceReload === true);
-    const msgStr = JSON.stringify(msg);
-    this.sendDebugMessage(msgStr, { replaceQueuedJump: true });
+    this.ensurePreviewSyncClient()?.sendSyncScene({
+      sceneName: `${sceneName}.txt`,
+      sentenceId: context.lineNumber,
+    });
+  }
+
+  private syncAutoAdvance(roomId: number, syncToFile: boolean, options?: RenderMessageOptions): void {
+    if (syncToFile && options?.autoJump && this.autoJumpEnabled) {
+      this.sendSyncMessage(roomId, { force: true });
+    }
   }
 
   /**
@@ -2343,8 +2209,7 @@ export class RealtimeRenderer {
                 `changeBg:${bgFileName}${buildBackgroundChangeBgArgsFromAnnotations(msg.annotations)} -next;`,
                 syncToFile,
               );
-              if (syncToFile)
-                this.sendSyncMessage(targetRoomId);
+              this.syncAutoAdvance(targetRoomId, syncToFile, options);
             }
           }
           // 处理解锁CG
@@ -2354,8 +2219,7 @@ export class RealtimeRenderer {
             if (cgFileName) {
               const cgName = imageMessage.fileName ? imageMessage.fileName.split(".")[0] : "CG";
               await this.appendLine(targetRoomId, `unlockCg:${cgFileName} -name=${cgName};`, syncToFile);
-              if (syncToFile)
-                this.sendSyncMessage(targetRoomId);
+              this.syncAutoAdvance(targetRoomId, syncToFile, options);
             }
           }
           // 普通图片：作为常驻展示图层（直到显式清除）
@@ -2372,8 +2236,7 @@ export class RealtimeRenderer {
                 `changeFigure:${figureFileName} ${figureArgs};`,
                 syncToFile,
               );
-              if (syncToFile)
-                this.sendSyncMessage(targetRoomId);
+              this.syncAutoAdvance(targetRoomId, syncToFile, options);
             }
           }
         }
@@ -2399,8 +2262,7 @@ export class RealtimeRenderer {
           const skipOff = hasAnnotation(msg.annotations, ANNOTATION_IDS.VIDEO_SKIP_OFF);
           const skipOffPart = skipOff ? " -skipOff" : "";
           await this.appendLine(targetRoomId, `playVideo:${videoFileName}${skipOffPart};`, syncToFile);
-          if (syncToFile)
-            this.sendSyncMessage(targetRoomId);
+          this.syncAutoAdvance(targetRoomId, syncToFile, options);
         }
 
         await finalizeMessageLineRange();
@@ -2450,8 +2312,7 @@ export class RealtimeRenderer {
               }
               command += " -next;";
               await this.appendLine(targetRoomId, command, syncToFile);
-              if (syncToFile)
-                this.sendSyncMessage(targetRoomId);
+              this.syncAutoAdvance(targetRoomId, syncToFile, options);
             }
           }
           else if (soundPurpose === "se") {
@@ -2470,8 +2331,7 @@ export class RealtimeRenderer {
               }
               command += " -next;";
               await this.appendLine(targetRoomId, command, syncToFile);
-              if (syncToFile)
-                this.sendSyncMessage(targetRoomId);
+              this.syncAutoAdvance(targetRoomId, syncToFile, options);
             }
           }
           await finalizeMessageLineRange();
@@ -2515,8 +2375,8 @@ export class RealtimeRenderer {
           wroteEffectCommand = true;
         }
 
-        if (wroteEffectCommand && syncToFile) {
-          this.sendSyncMessage(targetRoomId);
+        if (wroteEffectCommand) {
+          this.syncAutoAdvance(targetRoomId, syncToFile, options);
         }
         await finalizeMessageLineRange();
         return;
@@ -2535,9 +2395,7 @@ export class RealtimeRenderer {
           }),
         );
         await this.appendCompiledLines(targetRoomId, lines, syncToFile);
-        if (syncToFile) {
-          this.sendSyncMessage(targetRoomId);
-        }
+        this.syncAutoAdvance(targetRoomId, syncToFile, options);
         await finalizeMessageLineRange();
         return;
       }
@@ -2551,8 +2409,7 @@ export class RealtimeRenderer {
           await this.appendStateEventVarLines(targetRoomId, normalizedStateEventExtra, syncToFile);
         }
         await finalizeMessageLineRange();
-        if (syncToFile)
-          this.sendSyncMessage(targetRoomId);
+        this.syncAutoAdvance(targetRoomId, syncToFile, options);
         return;
       }
 
@@ -2585,8 +2442,7 @@ export class RealtimeRenderer {
         );
         await this.appendCompiledLines(targetRoomId, lines, syncToFile);
         await finalizeMessageLineRange();
-        if (syncToFile)
-          this.sendSyncMessage(targetRoomId);
+        this.syncAutoAdvance(targetRoomId, syncToFile, options);
         return;
       }
 
@@ -2820,23 +2676,12 @@ export class RealtimeRenderer {
 
       await finalizeMessageLineRange();
 
-      // 自动跳转已关闭，保留写入但不主动跳转
-      if (syncToFile) {
-        this.sendSyncMessage(targetRoomId);
+      if (syncToFile && options?.autoJump && this.autoJumpEnabled) {
+        this.sendSyncMessage(targetRoomId, { force: true });
       }
     };
 
-    if (options?.autoJump) {
-      this.autoJumpRequestDepth += 1;
-    }
-    try {
-      await this.runWithRoomSyncBatch(targetRoomId, syncToFile, renderImpl);
-    }
-    finally {
-      if (options?.autoJump) {
-        this.autoJumpRequestDepth = Math.max(0, this.autoJumpRequestDepth - 1);
-      }
-    }
+    await this.runWithRoomSyncBatch(targetRoomId, syncToFile, renderImpl);
   }
 
   /**
@@ -2851,7 +2696,7 @@ export class RealtimeRenderer {
       return;
     if (await this.tryRenderHistoryWithSharedCompiler(messages, targetRoomId)) {
       if (!this.disposed) {
-        this.sendSyncMessage(targetRoomId, { force: true, forceReload: true });
+        this.sendSyncMessage(targetRoomId, { force: true });
       }
       return;
     }
@@ -2899,7 +2744,7 @@ export class RealtimeRenderer {
     if (this.disposed) {
       return;
     }
-    this.sendSyncMessage(targetRoomId, { force: true, forceReload: true });
+    this.sendSyncMessage(targetRoomId, { force: true });
   }
 
   public async rerenderHistoryFromIndex(
@@ -2918,7 +2763,7 @@ export class RealtimeRenderer {
 
     if (await this.tryRenderHistoryWithSharedCompiler(messages, targetRoomId)) {
       if (!this.disposed) {
-        this.sendSyncMessage(targetRoomId, { force: true, forceReload: true });
+        this.sendSyncMessage(targetRoomId, { force: true });
       }
       return;
     }
@@ -2998,7 +2843,7 @@ export class RealtimeRenderer {
     if (this.disposed) {
       return;
     }
-    this.sendSyncMessage(targetRoomId, { force: true, forceReload: true });
+    this.sendSyncMessage(targetRoomId, { force: true });
   }
 
   /**
@@ -3017,7 +2862,7 @@ export class RealtimeRenderer {
     }
 
     await this.appendLine(targetRoomId, "changeBg:none -next;", true);
-    this.sendSyncMessage(targetRoomId, { force: true, forceReload: true });
+    this.sendSyncMessage(targetRoomId, { force: true });
   }
 
   /**
@@ -3040,7 +2885,7 @@ export class RealtimeRenderer {
     }
     this.renderedFigureStateMap.delete(targetRoomId);
     this.lastFigureSlotIdMap.delete(targetRoomId);
-    this.sendSyncMessage(targetRoomId, { force: true, forceReload: true });
+    this.sendSyncMessage(targetRoomId, { force: true });
   }
 
   /**
@@ -3050,7 +2895,7 @@ export class RealtimeRenderer {
     if (roomId) {
       await this.initRoomScene(roomId);
       this.clearRoomRebuildState(roomId);
-      this.sendSyncMessage(roomId, { force: true, forceReload: true });
+      this.sendSyncMessage(roomId, { force: true });
     }
     else {
       // 重置所有房间
@@ -3085,7 +2930,7 @@ export class RealtimeRenderer {
    * 获取连接状态
    */
   public isReady(): boolean {
-    return this.isConnected;
+    return this.previewSyncClient?.isReady() ?? false;
   }
 
   /**
@@ -3124,7 +2969,7 @@ export class RealtimeRenderer {
       console.warn(`[RealtimeRenderer] 消息 ${msg.messageId} 未找到对应的行号，将使用 append 方式`);
       await this.renderMessage(message, targetRoomId, true, { bypassDiceMerge: true });
       const appendedRange = this.messageLineMap.get(key);
-      return appendedRange ? this.jumpToMessage(msg.messageId, targetRoomId, { forceReload: true }) : true;
+      return appendedRange ? this.jumpToMessage(msg.messageId, targetRoomId) : true;
     }
 
     // 获取场景上下文
@@ -3172,7 +3017,7 @@ export class RealtimeRenderer {
     if (insertedLineCount === 0) {
       this.messageLineMap.delete(key);
       this.messageRenderStateSnapshotMap.delete(key);
-      this.sendSyncMessage(targetRoomId, { force: true, forceReload: true });
+      this.sendSyncMessage(targetRoomId, { force: true });
       return true;
     }
 
@@ -3184,7 +3029,7 @@ export class RealtimeRenderer {
     });
 
     // 跳转到该消息
-    return this.jumpToMessage(msg.messageId, targetRoomId, { forceReload: true });
+    return this.jumpToMessage(msg.messageId, targetRoomId);
   }
 
   /**
@@ -3193,7 +3038,7 @@ export class RealtimeRenderer {
    * @param roomId 房间 ID（可选，默认使用当前房间）
    * @returns 是否跳转成功
    */
-  public jumpToMessage(messageId: number, roomId?: number, options: JumpToMessageOptions = {}): boolean {
+  public jumpToMessage(messageId: number, roomId?: number): boolean {
     const targetRoomId = roomId ?? this.currentRoomId;
     if (!targetRoomId) {
       console.warn("[RealtimeRenderer] 无法确定目标房间ID");
@@ -3213,10 +3058,10 @@ export class RealtimeRenderer {
     }
 
     const sceneName = this.getSceneName(targetRoomId);
-    // 跳转到消息的起始行
-    const msg = getAsyncMsg(`${sceneName}.txt`, lineRange.startLine, options.forceReload === true);
-    const msgStr = JSON.stringify(msg);
-    return this.sendDebugMessage(msgStr, { replaceQueuedJump: true });
+    return this.ensurePreviewSyncClient()?.sendSyncScene({
+      sceneName: `${sceneName}.txt`,
+      sentenceId: lineRange.startLine,
+    }) ?? false;
   }
 
   /**
@@ -3228,19 +3073,8 @@ export class RealtimeRenderer {
     this.initEpoch += 1;
     this.annotationEffectSoundCache.clear();
     this.clearPendingDiceMerge();
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
-    if (this.syncSocket) {
-      this.syncSocket.onopen = null;
-      this.syncSocket.onclose = null;
-      this.syncSocket.onerror = null;
-      this.syncSocket.close();
-      this.syncSocket = null;
-    }
-    this.messageQueue = [];
-    this.isConnected = false;
+    this.previewSyncClient?.dispose();
+    this.previewSyncClient = null;
     this.renderedMiniAvatarVisibleMap.clear();
     this.roomSyncBatchDepthMap.clear();
     this.roomSyncPendingSet.clear();

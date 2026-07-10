@@ -12,4 +12,3 @@ export type DiceResult = {
      */
     hidden?: boolean;
 };
-

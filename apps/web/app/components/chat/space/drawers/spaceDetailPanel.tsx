@@ -1,5 +1,5 @@
 import { lazy, Suspense, use, useState } from "react";
-import toast from "react-hot-toast";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
 
@@ -79,7 +79,7 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
     }, {
       onSettled: () => {
         // setIsRoleHandleOpen(false);
-        toast("添加角色成功");
+        appToast.info("添加角色成功");
       },
     });
   };
@@ -173,8 +173,9 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
                 type="button"
                 className="btn btn-xs btn-dash btn-info"
                 onClick={() => setIsRoleHandleOpen(true)}
+                aria-label="添加空间角色"
               >
-                角色+
+                添加角色
               </button>
             )}
           </div>
