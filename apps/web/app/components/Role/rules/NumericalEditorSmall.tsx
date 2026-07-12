@@ -4,6 +4,7 @@ import {
 } from "api/hooks/abilityQueryHooks";
 import { useEffect, useReducer, useRef, useState } from "react";
 import { appToast } from "@/components/common/appToast/appToast";
+import { Button } from "@/components/common/Button";
 
 import AddFieldForm from "../Editors/AddFieldForm";
 import EditableField from "../Editors/EditableField";
@@ -246,16 +247,12 @@ export default function NumericalEditorSmall({
           ? (
               <div className="flex flex-wrap gap-1.5">
                 {entries.map(([key, value]) => (
-                  <button
+                  <Button
                     key={key}
-                    type="button"
+                    variant={editingKey === key ? "info" : "outline"}
+                    size="xs"
                     onClick={() => setEditingKey(prevKey => (prevKey === key ? null : key))}
-                    className={`
-                      badge badge-sm
-                      ${
-                      editingKey === key ? "badge-info" : "badge-outline"
-                    }
-                    `}
+                    className="min-h-5 rounded-full px-2 text-xs"
                     title={`编辑字段 ${key}，当前值 ${String(value)}`}
                     aria-label={`编辑字段 ${key}，当前值 ${String(value)}`}
                     aria-pressed={editingKey === key}
@@ -265,7 +262,7 @@ export default function NumericalEditorSmall({
                     :
                     {" "}
                     {String(value)}
-                  </button>
+                  </Button>
                 ))}
               </div>
             )

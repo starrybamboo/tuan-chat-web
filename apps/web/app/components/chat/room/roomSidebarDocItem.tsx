@@ -7,6 +7,7 @@ import {
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
+import { selectionClassName } from "@/components/common/DesignLanguage";
 import { MediaImage } from "@/components/common/mediaImage";
 
 import type { MinimalDocMeta, SidebarLeafNode } from "./sidebarTree";
@@ -14,6 +15,7 @@ import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
 const DOC_DRAG_MIME = "application/x-tuanchat-doc-id";
+const currentNavigationItemClassName = selectionClassName({ level: "strong" });
 
 type RoomSidebarDocItemProps = {
   node: SidebarLeafNode;
@@ -85,7 +87,7 @@ export default function RoomSidebarDocItem({
       className={`
         group relative font-bold text-sm rounded-lg p-1 pr-10 flex justify-start
         items-center gap-2 w-full min-w-0 select-none
-        ${isActive ? `bg-info-content/10` : `hover:bg-base-300`}
+        ${isActive ? currentNavigationItemClassName : "hover:bg-base-300"}
       `}
       role="button"
       tabIndex={0}
@@ -169,7 +171,7 @@ export default function RoomSidebarDocItem({
       }}
     >
       <div className="
-        mask mask-squircle size-8 bg-base-100 border border-base-300/60 flex
+        size-8 rounded-md bg-base-100 border border-base-300/60 flex
         items-center justify-center relative overflow-hidden
       ">
         {displayCoverUrl

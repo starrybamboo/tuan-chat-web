@@ -12,6 +12,11 @@ import {
 } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { appToast } from "@/components/common/appToast/appToast";
+import { Button, buttonClassName } from "@/components/common/Button";
+import { ControlGroup } from "@/components/common/ControlGroup";
+import { FileInput, Radio, SelectInput, TextArea } from "@/components/common/FormField";
+import { IconButton } from "@/components/common/IconButton";
+import { Badge, InlineAlert, ProgressBar } from "@/components/common/StatusPrimitives";
 
 import type { ImportChatRequestMessage } from "@/components/chat/utils/importChatMessageRequestBuilder";
 import type { RglImportResolverSources } from "@/components/chat/utils/importRglResolvers";
@@ -437,12 +442,16 @@ export default function ImportChatMessagesWindow({
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <h2 className="text-lg/6 font-semibold">导入对话</h2>
               {supportsRglImport && (
-                <div className="join" role="group" aria-label="导入模式">
+                <ControlGroup aria-label="导入模式">
                   <button
                     type="button"
                     aria-label="切换到普通导入模式"
                     aria-pressed={importMode === "plain"}
-                    className={`join-item btn btn-xs ${importMode === "plain" ? "border-info/40 bg-base-300 text-info shadow-sm" : "btn-ghost"}`}
+                    className={buttonClassName({
+                      variant: "ghost",
+                      size: "xs",
+                      className: importMode === "plain" ? "border-info/40 bg-base-300 text-info shadow-sm" : "",
+                    })}
                     onClick={() => setImportMode("plain")}
                     disabled={isImportBusy}
                   >
@@ -452,27 +461,31 @@ export default function ImportChatMessagesWindow({
                     type="button"
                     aria-label="切换到 RGL 导入模式"
                     aria-pressed={importMode === "rgl"}
-                    className={`join-item btn btn-xs ${importMode === "rgl" ? "border-info/40 bg-base-300 text-info shadow-sm" : "btn-ghost"}`}
+                    className={buttonClassName({
+                      variant: "ghost",
+                      size: "xs",
+                      className: importMode === "rgl" ? "border-info/40 bg-base-300 text-info shadow-sm" : "",
+                    })}
                     onClick={() => setImportMode("rgl")}
                     disabled={isImportBusy}
                   >
                     <Table size={13} />
                     RGL
                   </button>
-                </div>
+                </ControlGroup>
               )}
             </div>
           </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-circle btn-sm shrink-0"
+          <IconButton
+            size="sm"
+            shape="circle"
+            className="shrink-0"
             onClick={onClose}
             disabled={isImportBusy}
             title="关闭"
-            aria-label="关闭导入窗口"
-          >
-            <X size={20} />
-          </button>
+            label="关闭导入窗口"
+            icon={<X size={20} />}
+          />
         </div>
       </header>
 
@@ -489,12 +502,10 @@ export default function ImportChatMessagesWindow({
             border-base-300/70 bg-base-100/70 px-5 py-3
           ">
             <h3 className="text-sm font-semibold">导入内容</h3>
-            <button
-              type="button"
-              className="
-                btn btn-ghost btn-xs text-error
-                hover:bg-error/10
-              "
+            <Button
+              variant="ghost"
+              size="xs"
+              className="text-error hover:bg-error/10"
               onClick={handleClear}
               disabled={isImportBusy || (!rawText && !fileName)}
               title="清空内容"
@@ -502,15 +513,14 @@ export default function ImportChatMessagesWindow({
             >
               <Broom size={14} />
               清空
-            </button>
+            </Button>
           </div>
 
           <div className="
             flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5
           ">
             <div className="relative group flex-none">
-              <input
-                type="file"
+              <FileInput
                 accept=".txt,.rgl,.md,text/plain,text/markdown"
                 className="
                   absolute inset-0 z-10 size-full cursor-pointer opacity-0
@@ -561,7 +571,7 @@ export default function ImportChatMessagesWindow({
               </div>
             </div>
 
-            <textarea
+            <TextArea
               className="
                 size-full min-h-65 flex-1 resize-none rounded-md border
                 border-base-300 bg-base-100 px-3 py-2 font-mono text-xs/relaxed
@@ -584,19 +594,19 @@ export default function ImportChatMessagesWindow({
                 flex flex-none flex-wrap items-center gap-2 rounded-md border
                 border-base-300/70 bg-base-100 px-3 py-2 text-xs
               ">
-                <div className="badge badge-sm badge-ghost gap-1">
+                <Badge appearance="ghost" className="gap-1">
                   <CheckCircle className="text-success" size={12} weight="fill" />
                   {activeMessageCount}
                   {" "}
                   条有效
-                </div>
+                </Badge>
                 {activeInvalidLines.length > 0 && (
-                  <div className="badge badge-sm badge-warning gap-1">
+                  <Badge tone="warning" className="gap-1">
                     <Warning className="text-warning-content" size={12} weight="fill" />
                     {activeInvalidLines.length}
                     {" "}
                     条无效
-                  </div>
+                  </Badge>
                 )}
                 {activeInvalidLines.length > 0 && (
                   <span className="min-w-0 text-base-content/55">
@@ -632,26 +642,28 @@ export default function ImportChatMessagesWindow({
                     {(onOpenRoleAddWindow || onOpenNpcAddWindow) && (
                       <div className="flex shrink-0 items-center gap-2">
                         {onOpenRoleAddWindow && (
-                          <button
-                            type="button"
-                            className="btn btn-xs btn-outline btn-info gap-1"
+                          <Button
+                            variant="outline"
+                            size="xs"
+                            className="gap-1 border-info/45 text-info hover:border-info/70 hover:bg-info/10"
                             onClick={handleQuickCreateRole}
                             disabled={isImportBusy}
                           >
                             <UserPlus size={14} />
                             新建角色
-                          </button>
+                          </Button>
                         )}
                         {onOpenNpcAddWindow && (
-                          <button
-                            type="button"
-                            className="btn btn-xs btn-outline gap-1"
+                          <Button
+                            variant="outline"
+                            size="xs"
+                            className="gap-1 border-info/45 text-info hover:border-info/70 hover:bg-info/10"
                             onClick={handleQuickCreateNpc}
                             disabled={isImportBusy}
                           >
                             <UserPlus size={14} />
                             新建NPC
-                          </button>
+                          </Button>
                         )}
                       </div>
                     )}
@@ -659,10 +671,9 @@ export default function ImportChatMessagesWindow({
 
                   <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
                     {roleOptions.length === 0 && (
-                      <div className="m-4 alert alert-info py-3 text-sm">
-                        <Info size={20} />
+                      <InlineAlert tone="info" icon={<Info size={20} />} className="m-4 py-3">
                         <span className="text-xs">暂无可用角色，请先新建或导入</span>
-                      </div>
+                      </InlineAlert>
                     )}
 
                     {speakers.length === 0
@@ -706,23 +717,19 @@ export default function ImportChatMessagesWindow({
                                       " title={speaker}>
                                         {speaker}
                                       </div>
-                                      <div className={`
-                                        badge badge-sm
-                                        ${isMissing ? `badge-error` : `
-                                          badge-success badge-outline
-                                        `}
-                                      `}>
+                                      <Badge
+                                        tone={isMissing ? "error" : "success"}
+                                        appearance={isMissing ? "solid" : "outline"}
+                                      >
                                         {isMissing ? "待匹配" : "已匹配"}
-                                      </div>
+                                      </Badge>
                                     </div>
 
                                     <div className="grid gap-2">
-                                      <select
-                                        className={`
-                                          select select-bordered select-sm w-full
-                                          rounded-md
-                                          ${isMissing ? `select-error` : ""}
-                                        `}
+                                      <SelectInput
+                                        density="compact"
+                                        className="w-full"
+                                        aria-invalid={isMissing || undefined}
                                         value={value == null ? "" : String(value)}
                                         onChange={(e) => {
                                           const v = e.target.value;
@@ -747,23 +754,25 @@ export default function ImportChatMessagesWindow({
                                             {o.label}
                                           </option>
                                         ))}
-                                      </select>
+                                      </SelectInput>
 
                                       <div className="flex items-center gap-2">
                                         <span className="
                                           shrink-0 text-[11px] text-base-content/50
                                         ">立绘</span>
-                                        <div className="join min-w-0 flex-1">
+                                        <ControlGroup className="min-w-0 flex-1" aria-label={`${speaker} 的立绘位置`}>
                                           {FIGURE_POSITION_ORDER.map(pos => (
-                                            <input
+                                            <Radio
+                                              density="compact"
                                               key={pos}
-                                              className="
-                                                join-item btn btn-xs btn-ghost flex-1
-                                                px-1 text-[10px] font-normal
-                                                aria-checked:bg-info/20
-                                                aria-checked:text-info
-                                              "
-                                              type="radio"
+                                              className={buttonClassName({
+                                                variant: "ghost",
+                                                size: "xs",
+                                                className: `
+                                                  flex-1 px-1 text-[10px] font-normal
+                                                  aria-checked:bg-info/20 aria-checked:text-info
+                                                `,
+                                              })}
                                               name={`pos-${speaker}`}
                                               aria-label={FIGURE_POSITION_LABELS[pos]}
                                               checked={figurePosition === pos}
@@ -772,13 +781,16 @@ export default function ImportChatMessagesWindow({
                                               title={`立绘位置：${FIGURE_POSITION_LABELS[pos]}`}
                                             />
                                           ))}
-                                          <input
-                                            className="
-                                              join-item btn btn-xs btn-ghost px-2
-                                              font-mono text-[10px]
-                                              aria-checked:opacity-50
-                                            "
-                                            type="radio"
+                                          <Radio
+                                            density="compact"
+                                            className={buttonClassName({
+                                              variant: "ghost",
+                                              size: "xs",
+                                              className: `
+                                                px-2 font-mono text-[10px]
+                                                aria-checked:opacity-50
+                                              `,
+                                            })}
                                             name={`pos-${speaker}`}
                                             aria-label="无"
                                             checked={figurePosition == null}
@@ -786,7 +798,7 @@ export default function ImportChatMessagesWindow({
                                             disabled={isImportBusy || value == null || value <= 0}
                                             title="不显示立绘"
                                           />
-                                        </div>
+                                        </ControlGroup>
                                       </div>
                                     </div>
                                   </div>
@@ -823,35 +835,34 @@ export default function ImportChatMessagesWindow({
                         按底层 annotation ID 解析角色、素材和骰子
                       </p>
                     </div>
-                    <div className="badge badge-outline badge-sm gap-1">
+                    <Badge appearance="outline" className="gap-1">
                       <Table size={12} />
                       严格模式
-                    </div>
+                    </Badge>
                   </div>
 
                   <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
                     {!supportsRglImport && (
-                      <div className="alert alert-warning py-3 text-sm">
-                        <Warning size={20} />
+                      <InlineAlert tone="warning" icon={<Warning size={20} />} className="py-3">
                         <span className="text-xs">当前入口没有提供素材/头像加载器，无法执行 RGL 导入。</span>
-                      </div>
+                      </InlineAlert>
                     )}
 
                     <div className="rounded-md border border-base-300/70 bg-base-200/20 p-3 text-xs">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="badge badge-ghost badge-sm gap-1">
+                        <Badge appearance="ghost" className="gap-1">
                           <CheckCircle className="text-success" size={12} weight="fill" />
                           {activeMessageCount}
                           {" "}
                           条有效
-                        </span>
+                        </Badge>
                         {activeInvalidLines.length > 0 && (
-                          <span className="badge badge-warning badge-sm gap-1">
+                          <Badge tone="warning" className="gap-1">
                             <Warning className="text-warning-content" size={12} weight="fill" />
                             {activeInvalidLines.length}
                             {" "}
                             条无效
-                          </span>
+                          </Badge>
                         )}
                       </div>
                       {activeInvalidLines.length > 0 && (
@@ -885,17 +896,17 @@ export default function ImportChatMessagesWindow({
                               选择包含 assets.json / replay-assets.json / local-assets.json 和素材文件的目录，上传后写入通用素材和角色素材。
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            className="btn btn-outline btn-xs shrink-0 gap-1"
+                          <Button
+                            variant="outline"
+                            size="xs"
+                            className="shrink-0 gap-1"
                             onClick={handlePickRglLocalAssets}
                             disabled={isImportBusy}
+                            loading={isImportingRglLocalAssets}
+                            icon={<ImageSquare size={13} />}
                           >
-                            {isImportingRglLocalAssets
-                              ? <span className="loading loading-spinner loading-xs"></span>
-                              : <ImageSquare size={13} />}
                             上传
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     )}
@@ -909,17 +920,17 @@ export default function ImportChatMessagesWindow({
                               读取导入期 asset-manifest.json 的 media 段，创建或重写 Replay 局内素材包。
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            className="btn btn-outline btn-xs shrink-0 gap-1"
+                          <Button
+                            variant="outline"
+                            size="xs"
+                            className="shrink-0 gap-1"
                             onClick={handlePickRglMaterialAssets}
                             disabled={isImportBusy}
+                            loading={isImportingRglMaterialAssets}
+                            icon={<ImageSquare size={13} />}
                           >
-                            {isImportingRglMaterialAssets
-                              ? <span className="loading loading-spinner loading-xs"></span>
-                              : <ImageSquare size={13} />}
                             导入
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     )}
@@ -933,17 +944,17 @@ export default function ImportChatMessagesWindow({
                               读取导入期 asset-manifest.json 的 roles 段；缺失角色会自动创建并加入当前房间，再创建或更新 RoleAvatar。
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            className="btn btn-outline btn-xs shrink-0 gap-1"
+                          <Button
+                            variant="outline"
+                            size="xs"
+                            className="shrink-0 gap-1"
                             onClick={handlePickRglRoleAssets}
                             disabled={isImportBusy}
+                            loading={isImportingRglRoleAssets}
+                            icon={<ImageSquare size={13} />}
                           >
-                            {isImportingRglRoleAssets
-                              ? <span className="loading loading-spinner loading-xs"></span>
-                              : <ImageSquare size={13} />}
                             导入
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     )}
@@ -978,7 +989,12 @@ export default function ImportChatMessagesWindow({
                       %
                     </span>
                   </div>
-                  <progress className="progress progress-info h-2 w-full" value={progress.sent} max={progress.total}></progress>
+                  <ProgressBar
+                    value={progress.sent}
+                    max={progress.total}
+                    label="聊天消息导入进度"
+                    className="h-2"
+                  />
                 </div>
               )
             : isImportingRglAssets
@@ -1020,46 +1036,42 @@ export default function ImportChatMessagesWindow({
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
-          <button
-            type="button"
-            className="btn btn-ghost"
+          <Button
+            variant="ghost"
             onClick={onClose}
             disabled={isImportBusy}
           >
             取消
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary min-w-36"
+          </Button>
+          <Button
+            variant="primary"
+            className="min-w-36"
             onClick={handleImport}
             disabled={!canImport}
             title={canImport ? "开始导入" : importBlockedReason}
+            loading={isImporting}
           >
-            {isImporting ? <span className="loading loading-spinner loading-xs"></span> : null}
             {submitLabel ? submitLabel(activeMessageCount, isImporting) : (isImporting ? "正在导入..." : `导入 ${activeMessageCount} 条`)}
-          </button>
+          </Button>
         </div>
       </footer>
-      <input
+      <FileInput
         ref={rglLocalAssetsInputRef}
-        type="file"
         className="hidden"
         multiple
         {...RGL_LOCAL_ASSET_DIRECTORY_INPUT_PROPS}
         disabled={isImportBusy}
         onChange={event => void handleImportRglLocalAssetsFile(event.target.files)}
       />
-      <input
+      <FileInput
         ref={rglMaterialAssetsInputRef}
-        type="file"
         accept=".json,application/json"
         className="hidden"
         disabled={isImportBusy}
         onChange={event => void handleImportRglMaterialAssetsFile(event.target.files)}
       />
-      <input
+      <FileInput
         ref={rglRoleAssetsInputRef}
-        type="file"
         accept=".json,application/json"
         className="hidden"
         disabled={isImportBusy}

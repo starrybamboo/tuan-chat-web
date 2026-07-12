@@ -2,9 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * 骰娘回复列表
- */
 export type DiceTurnReply = {
     /**
      * 骰娘回复内容
@@ -13,17 +10,18 @@ export type DiceTurnReply = {
     /**
      * 是否隐藏该条回复
      */
-    hidden?: boolean;
+    hidden?: boolean | null;
     /**
      * 回复显示身份的角色 ID
      */
-    roleId?: number;
+    roleId?: number | null;
     /**
      * 回复显示身份的立绘 ID
      */
-    avatarId?: number;
+    avatarId?: number | null;
     /**
      * 回复显示身份的自定义角色名
      */
-    customRoleName?: string;
+    customRoleName?: string | null;
 };
+

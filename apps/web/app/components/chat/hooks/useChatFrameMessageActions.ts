@@ -122,7 +122,7 @@ export default function useChatFrameMessageActions({
       }
       catch (error) {
         console.error("逐条转发失败:", error);
-        appToast.error("逐条转发失败");
+        appToast.error("逐条转发失败，请重新选择消息后重试");
         return false;
       }
       if (options?.closeWindow ?? true) {
@@ -147,7 +147,7 @@ export default function useChatFrameMessageActions({
       }
       catch (error) {
         console.error("合并转发失败:", error);
-        appToast.error("合并转发失败");
+        appToast.error("合并转发失败，请重新选择消息后重试");
         return false;
       }
     }

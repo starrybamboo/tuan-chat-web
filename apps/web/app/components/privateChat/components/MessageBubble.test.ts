@@ -12,6 +12,22 @@ vi.mock("@/components/common/betterImg", () => ({
 }));
 
 describe("private MessageBubble", () => {
+  it("私聊消息时间使用统一格式并保持单行显示", () => {
+    const html = renderToStaticMarkup(createElement(MessageBubble, {
+      groupedWithPrevious: true,
+      isOwn: true,
+      message: {
+        messageId: 0,
+        messageType: 1,
+        content: "测试时间",
+        createTime: "2026-05-30T12:00:00Z",
+      } as never,
+    }));
+
+    expect(html).toContain("whitespace-nowrap");
+    expect(html).not.toContain("2026/5/30 20:00:00");
+  });
+
   it("私聊图片消息列表走 medium，点开大图走 original", () => {
     const html = renderToStaticMarkup(createElement(MessageBubble, {
       groupedWithPrevious: true,

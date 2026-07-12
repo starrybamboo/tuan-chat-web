@@ -8,6 +8,7 @@ import {
 } from "@phosphor-icons/react";
 
 import { MASK_COLOR_OPTIONS } from "@/components/aiImage/inpaintMaskUtils";
+import { Checkbox, RangeInput } from "@/components/common/FormField";
 import { ZoomInIcon as AppZoomInIcon, ZoomOutIcon as AppZoomOutIcon } from "@/icons";
 
 export function InpaintBottomBar({
@@ -201,8 +202,8 @@ export function InpaintBottomBar({
                           %
                         </span>
                       </div>
-                      <input
-                        type="range"
+                      <RangeInput
+                        density="compact"
                         min={10}
                         max={100}
                         step={1}
@@ -236,8 +237,8 @@ export function InpaintBottomBar({
                         mt-4 flex items-center gap-2 text-[11px] font-medium
                         text-base-content
                       ">
-                        <input
-                          type="checkbox"
+                        <Checkbox
+                          density="compact"
                           checked={showMaskBorder}
                           className="
                             size-3.5 rounded border border-base-300 bg-base-100

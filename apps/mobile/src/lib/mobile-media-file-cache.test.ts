@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  cleanupMobileMediaFileCache,
   getCachedMediaFileUriSync,
   getMediaFileCacheKey,
   resetMobileMediaFileCacheForTests,
@@ -13,7 +12,7 @@ const platformMock = vi.hoisted(() => ({
 }));
 
 const fileSystemMock = vi.hoisted(() => {
-  const existingDirectories = new Set<string>(["file:///mock/cache"]);
+  const existingDirectories = new Set<string>(["file:///mock/document"]);
   const existingFiles = new Map<string, { modificationTime: number; size: number }>();
   let defaultModificationTime = Date.now();
   let defaultSize = 1_024;
@@ -111,22 +110,22 @@ vi.mock("expo-file-system", () => ({
   Directory: fileSystemMock.MockDirectory,
   File: fileSystemMock.MockFile,
   Paths: {
-    get cache() {
-      return new fileSystemMock.MockDirectory("file:///mock/cache");
+    get document() {
+      return new fileSystemMock.MockDirectory("file:///mock/document");
     },
   },
 }));
 
 const VIDEO_URL = "https://media.tuan.chat/media/v1/files/007/7/video/low.webm";
-const VIDEO_FILE_URI = "file:///mock/cache/mobile-media-file-cache/7_video_low.webm";
+const VIDEO_FILE_URI = "file:///mock/document/mobile-media-file-cache/7_video_low.webm";
 const ORIGINAL_FILE_URL = "https://media.tuan.chat/media/v1/files/012/12/original";
-const ORIGINAL_PDF_FILE_URI = "file:///mock/cache/mobile-media-file-cache/12_file_original.pdf";
+const ORIGINAL_PDF_FILE_URI = "file:///mock/document/mobile-media-file-cache/12_file_original.pdf";
 
 beforeEach(() => {
   platformMock.OS = "ios";
   resetMobileMediaFileCacheForTests();
   fileSystemMock.existingDirectories.clear();
-  fileSystemMock.existingDirectories.add("file:///mock/cache");
+  fileSystemMock.existingDirectories.add("file:///mock/document");
   fileSystemMock.existingFiles.clear();
   fileSystemMock.setDefaultFileInfo({ modificationTime: Date.now(), size: 1_024 });
   fileSystemMock.MockFile.downloadFileAsync.mockClear();
@@ -176,8 +175,9 @@ describe("mobile media file cache", () => {
     expect(getCachedMediaFileUriSync(ORIGINAL_FILE_URL, { fileName: "handout.PDF" })).toBe(ORIGINAL_PDF_FILE_URI);
   });
 
-  it("uses cached file without downloading again", async () => {
+  it("应用运行时重启后继续使用永久缓存文件", async () => {
     await resolveCachedMediaFileUri(VIDEO_URL);
+    resetMobileMediaFileCacheForTests();
     fileSystemMock.MockFile.downloadFileAsync.mockClear();
 
     await expect(resolveCachedMediaFileUri(VIDEO_URL)).resolves.toBe(VIDEO_FILE_URI);
@@ -230,33 +230,27 @@ describe("mobile media file cache", () => {
     await expect(resolveCachedMediaFileUri(VIDEO_URL, { fallbackToRemote: false })).resolves.toBeNull();
   });
 
-  it("cleans expired files and trims least-recently modified files over total limit", async () => {
-    fileSystemMock.existingDirectories.add("file:///mock/cache/mobile-media-file-cache");
-    fileSystemMock.setFile("file:///mock/cache/mobile-media-file-cache/expired.bin", {
+  it("允许用户立即重试失败的永久缓存下载", async () => {
+    fileSystemMock.MockFile.downloadFileAsync.mockRejectedValueOnce(new Error("network error"));
+    await expect(resolveCachedMediaFileUri(VIDEO_URL, { fallbackToRemote: false })).resolves.toBeNull();
+
+    await expect(resolveCachedMediaFileUri(VIDEO_URL, {
+      fallbackToRemote: false,
+      forceRetry: true,
+    })).resolves.toBe(VIDEO_FILE_URI);
+    expect(fileSystemMock.MockFile.downloadFileAsync).toHaveBeenCalledTimes(2);
+  });
+
+  it("永久保留已经下载的大文件", async () => {
+    fileSystemMock.existingDirectories.add("file:///mock/document/mobile-media-file-cache");
+    fileSystemMock.setFile(VIDEO_FILE_URI, {
       modificationTime: 1_000,
-      size: 4,
-    });
-    fileSystemMock.setFile("file:///mock/cache/mobile-media-file-cache/lru.bin", {
-      modificationTime: 1_800,
-      size: 7,
-    });
-    fileSystemMock.setFile("file:///mock/cache/mobile-media-file-cache/recent.bin", {
-      modificationTime: 1_900,
-      size: 7,
+      size: 1024 * 1024 * 1024,
     });
 
-    await expect(cleanupMobileMediaFileCache({
-      maxTotalSizeBytes: 7,
-      now: 2_000,
-      ttlMs: 500,
-    })).resolves.toEqual({
-      deletedCount: 2,
-      remainingSizeBytes: 7,
-    });
-
-    expect(fileSystemMock.existingFiles.has("file:///mock/cache/mobile-media-file-cache/expired.bin")).toBe(false);
-    expect(fileSystemMock.existingFiles.has("file:///mock/cache/mobile-media-file-cache/lru.bin")).toBe(false);
-    expect(fileSystemMock.existingFiles.has("file:///mock/cache/mobile-media-file-cache/recent.bin")).toBe(true);
+    await expect(resolveCachedMediaFileUri(VIDEO_URL, { now: Date.now() })).resolves.toBe(VIDEO_FILE_URI);
+    expect(fileSystemMock.MockFile.downloadFileAsync).not.toHaveBeenCalled();
+    expect(fileSystemMock.existingFiles.has(VIDEO_FILE_URI)).toBe(true);
   });
 
   it("falls back directly on web, local URIs, and non-remote values", async () => {
@@ -272,7 +266,7 @@ describe("mobile media file cache", () => {
 
   it("returns Android content URI for cached files", () => {
     platformMock.OS = "android";
-    fileSystemMock.existingDirectories.add("file:///mock/cache/mobile-media-file-cache");
+    fileSystemMock.existingDirectories.add("file:///mock/document/mobile-media-file-cache");
     fileSystemMock.setFile(VIDEO_FILE_URI, {
       modificationTime: Date.now(),
       size: 1_024,

@@ -2,7 +2,14 @@ import type { ChangeEvent, Dispatch, RefObject, SetStateAction } from "react";
 
 import { lazy, Suspense } from "react";
 
+import type { VoiceboxQwenCustomVoiceId } from "@/tts/engines/voicebox/api";
 import type { RealtimeGameConfig } from "@/webGAL/realtimeRenderer";
+
+import { Button } from "@/components/common/Button";
+import { SelectInput, Switch, TextInput } from "@/components/common/FormField";
+import { StateView } from "@/components/common/StateView";
+import { Tabs } from "@/components/common/Tabs";
+import { VOICEBOX_QWEN_CUSTOM_VOICES } from "@/tts/engines/voicebox/api";
 
 import type { CollapsibleSectionKey, SpaceWebgalSettingsTab } from "./spaceWebgalRenderWindowParts";
 
@@ -13,14 +20,7 @@ import { SectionCollapseToggle } from "./spaceWebgalRenderWindowParts";
 const LazyWorkflowWindow = lazy(() => import("@/components/chat/window/workflowWindow"));
 
 function WorkflowLazyFallback() {
-  return (
-    <div className="
-      flex h-40 items-center justify-center text-sm text-base-content/60
-    ">
-      <span className="loading loading-spinner loading-sm" />
-      <span className="ml-2">正在加载流程图...</span>
-    </div>
-  );
+  return <StateView loading title="正在加载流程图..." className="h-40 py-0" />;
 }
 
 type SpaceWebgalRenderWindowSettingsProps = {
@@ -33,6 +33,8 @@ type SpaceWebgalRenderWindowSettingsProps = {
   miniAvatarEnabled: boolean;
   ttsEnabled: boolean;
   ttsApiInput: string;
+  ttsVoiceId: VoiceboxQwenCustomVoiceId;
+  ttsInstructInput: string;
   gameConfig: RealtimeGameConfig;
   descriptionInput: string;
   packageNameInput: string;
@@ -57,6 +59,8 @@ type SpaceWebgalRenderWindowSettingsProps = {
   setMiniAvatarEnabled: (value: boolean) => void;
   setTtsEnabled: (value: boolean) => void;
   setTtsApiInput: (value: string) => void;
+  setTtsVoiceId: (value: VoiceboxQwenCustomVoiceId) => void;
+  setTtsInstructInput: (value: string) => void;
   setGameConfig: (config: Partial<RealtimeGameConfig>) => void;
   setDescriptionInput: (value: string) => void;
   setPackageNameInput: (value: string) => void;
@@ -96,6 +100,8 @@ export function SpaceWebgalRenderWindowSettings({
   miniAvatarEnabled,
   ttsEnabled,
   ttsApiInput,
+  ttsVoiceId,
+  ttsInstructInput,
   gameConfig,
   descriptionInput,
   packageNameInput,
@@ -120,6 +126,8 @@ export function SpaceWebgalRenderWindowSettings({
   setMiniAvatarEnabled,
   setTtsEnabled,
   setTtsApiInput,
+  setTtsVoiceId,
+  setTtsInstructInput,
   setGameConfig,
   setDescriptionInput,
   setPackageNameInput,
@@ -150,57 +158,39 @@ export function SpaceWebgalRenderWindowSettings({
 }: SpaceWebgalRenderWindowSettingsProps) {
   return (
     <>
-      <div role="tablist" className="tabs tabs-boxed w-fit">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={settingsTab === "render"}
-          aria-controls="space-webgal-render-settings-panel"
-          className={`
-            tab
-            ${settingsTab === "render" ? "tab-active" : ""}
-          `}
-          onClick={() => onSettingsTabChange("render")}
-        >
-          渲染设置
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={settingsTab === "roomContent"}
-          aria-controls="space-webgal-room-content-settings-panel"
-          className={`
-            tab
-            ${settingsTab === "roomContent" ? "tab-active" : ""}
-          `}
-          onClick={() => onSettingsTabChange("roomContent")}
-        >
-          房间内容
-        </button>
-      </div>
+      <Tabs
+        value={settingsTab}
+        options={[
+          { value: "render", label: "渲染设置", controls: "space-webgal-render-settings-panel" },
+          { value: "roomContent", label: "房间内容", controls: "space-webgal-room-content-settings-panel" },
+        ]}
+        onValueChange={onSettingsTabChange}
+        ariaLabel="WebGAL 设置"
+        className="w-fit"
+      />
 
       {settingsTab === "render"
         ? (
             <div id="space-webgal-render-settings-panel" role="tabpanel">
               <div className="flex flex-wrap items-center justify-end gap-2">
-                <button
-                  type="button"
-                  className="btn btn-xs btn-outline"
+                <Button
+                  variant="outline"
+                  size="xs"
                   disabled={isAllSectionsExpanded}
                   title={isAllSectionsExpanded ? "所有段落已展开" : "展开所有段落"}
                   onClick={onExpandAllSections}
                 >
                   一键展开
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-xs btn-outline"
+                </Button>
+                <Button
+                  variant="outline"
+                  size="xs"
                   disabled={isAllSectionsCollapsed}
                   title={isAllSectionsCollapsed ? "所有段落已折叠" : "折叠所有段落"}
                   onClick={onCollapseAllSections}
                 >
                   一键折叠
-                </button>
+                </Button>
               </div>
 
               <div className={`
@@ -225,7 +215,7 @@ export function SpaceWebgalRenderWindowSettings({
                 </div>
                 {sectionExpandedMap.workflowLayer && (
                   <div className="
-                    rounded-md border border-base-300 p-2 overflow-x-auto
+                    rounded-md border border-base-300 p-2 overflow-x-auto overscroll-x-none
                   ">
                     <Suspense fallback={<WorkflowLazyFallback />}>
                       <LazyWorkflowWindow />
@@ -256,9 +246,8 @@ export function SpaceWebgalRenderWindowSettings({
                       border-base-300 px-3 py-2
                     ">
                       <span className="text-sm">自动填充立绘</span>
-                      <input
-                        type="checkbox"
-                        className="toggle toggle-sm toggle-info"
+                      <Switch
+                        density="compact"
                         checked={autoFigureEnabled}
                         onChange={event => setAutoFigureEnabled(event.target.checked)}
                       />
@@ -268,9 +257,8 @@ export function SpaceWebgalRenderWindowSettings({
                       border-base-300 px-3 py-2
                     ">
                       <span className="text-sm">小头像</span>
-                      <input
-                        type="checkbox"
-                        className="toggle toggle-sm toggle-info"
+                      <Switch
+                        density="compact"
                         checked={miniAvatarEnabled}
                         onChange={event => setMiniAvatarEnabled(event.target.checked)}
                       />
@@ -291,9 +279,8 @@ export function SpaceWebgalRenderWindowSettings({
                       px-2 py-1 text-xs
                     ">
                       <span>AI 配音</span>
-                      <input
-                        type="checkbox"
-                        className="toggle toggle-xs toggle-info"
+                      <Switch
+                        density="compact"
                         checked={ttsEnabled}
                         onChange={event => setTtsEnabled(event.target.checked)}
                       />
@@ -306,18 +293,72 @@ export function SpaceWebgalRenderWindowSettings({
                   </div>
                 </div>
                 {isTtsConfigVisible && (
-                  <div className="rounded-md border border-base-300 px-3 py-2">
-                    <div className="text-sm mb-2">TTS API 地址</div>
-                    <div className="flex gap-2">
-                      <input
-                        type="url"
-                        inputMode="url"
+                  <div className="space-y-3 rounded-md border border-base-300 px-3 py-3">
+                    <div>
+                      <div className="mb-2 text-sm">VoiceBox API 地址</div>
+                      <div className="flex gap-2">
+                        <TextInput
+                          density="compact"
+                          type="url"
+                          inputMode="url"
+                          autoComplete="off"
+                          aria-label="VoiceBox API 地址"
+                          className="
+                            h-8 min-w-0 flex-1 rounded-md border border-base-300 bg-base-100 px-2 text-sm
+                            transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20
+                          "
+                          placeholder="http://127.0.0.1:17493"
+                          value={ttsApiInput}
+                          onChange={event => setTtsApiInput(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.nativeEvent.isComposing)
+                              return;
+                            if (event.key === "Enter") {
+                              handleSaveTtsApi();
+                            }
+                          }}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSaveTtsApi}
+                        >
+                          保存
+                        </Button>
+                      </div>
+                    </div>
+                    <label className="block">
+                      <span className="mb-2 block text-sm">Qwen CustomVoice 0.6B 音色</span>
+                      <SelectInput
+                        density="compact"
+                        aria-label="Qwen CustomVoice 0.6B 音色"
+                        className="
+                          h-8 w-full rounded-md border border-base-300 bg-base-100 px-2 text-sm
+                          transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20
+                        "
+                        value={ttsVoiceId}
+                        onChange={event => setTtsVoiceId(event.target.value as VoiceboxQwenCustomVoiceId)}
+                      >
+                        {VOICEBOX_QWEN_CUSTOM_VOICES.map(voice => (
+                          <option key={voice.id} value={voice.id}>{voice.label}</option>
+                        ))}
+                      </SelectInput>
+                    </label>
+                    <label className="block">
+                      <span className="mb-2 block text-sm">风格指令</span>
+                      <TextInput
+                        density="compact"
+                        type="text"
                         autoComplete="off"
-                        aria-label="TTS API 地址"
-                        className="input input-bordered input-sm flex-1"
-                        placeholder="http://localhost:9000"
-                        value={ttsApiInput}
-                        onChange={event => setTtsApiInput(event.target.value)}
+                        maxLength={500}
+                        aria-label="VoiceBox 风格指令"
+                        className="
+                          h-8 w-full rounded-md border border-base-300 bg-base-100 px-2 text-sm
+                          transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20
+                        "
+                        placeholder="例如：温柔、自然地讲述"
+                        value={ttsInstructInput}
+                        onChange={event => setTtsInstructInput(event.target.value)}
                         onKeyDown={(event) => {
                           if (event.nativeEvent.isComposing)
                             return;
@@ -326,14 +367,7 @@ export function SpaceWebgalRenderWindowSettings({
                           }
                         }}
                       />
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline"
-                        onClick={handleSaveTtsApi}
-                      >
-                        保存
-                      </button>
-                    </div>
+                    </label>
                   </div>
                 )}
               </div>

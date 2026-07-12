@@ -4,6 +4,7 @@ import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSo
 import BetterImg from "@/components/common/betterImg";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
+import { formatTimeSmartly } from "@/utils/dateUtil";
 
 import type { MessageDirectResponse } from "../../../../api";
 
@@ -22,7 +23,7 @@ function formatMessageTimeLabel(createTime?: string | null) {
   if (Number.isNaN(parsed.getTime())) {
     return "";
   }
-  return parsed.toLocaleString("zh-CN", { hour12: false });
+  return formatTimeSmartly(createTime);
 }
 
 function MessageAvatar({ name, fileId }: { name?: string; fileId?: number }) {
@@ -178,9 +179,11 @@ export default function MessageBubble({ message, replyMessage = null, isOwn, gro
         </div>
         {messageTimeLabel && (
           <div className="
-            pointer-events-none absolute bottom-full right-0 z-10 mb-1 px-1
+            pointer-events-none absolute bottom-full right-0 z-10 mb-1 whitespace-nowrap
+            rounded bg-base-300/90 px-1.5 py-1
             text-[11px] leading-none text-base-content/50 opacity-0
             translate-y-0.5 transition-[opacity,transform] duration-150
+            motion-reduce:translate-y-0 motion-reduce:transition-none
             group-hover/message:opacity-100 group-hover/message:translate-y-0
           ">
             {messageTimeLabel}

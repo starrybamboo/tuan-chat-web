@@ -23,8 +23,9 @@ describe("wsInvalidation", () => {
 
     invalidateRoleChangeQueries(queryClient, { roomId: 56, spaceId: 78 });
 
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["roomRoles", 56] });
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["roomRole", 56] });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["roomNpcRole", 56] });
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["spaceRole", 78] });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["spaceRepositoryRole", 78] });
   });
 });

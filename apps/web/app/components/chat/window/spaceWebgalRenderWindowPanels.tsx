@@ -3,6 +3,9 @@ import {
   MAX_ROOM_CONTENT_ALERT_THRESHOLD,
   MIN_ROOM_CONTENT_ALERT_THRESHOLD,
 } from "@/components/chat/stores/realtimeRenderStore";
+import { Button } from "@/components/common/Button";
+import { TextInput } from "@/components/common/FormField";
+import { Badge } from "@/components/common/StatusPrimitives";
 
 import type { BatchProgress, RenderableRoom, RoomRenderState } from "./spaceWebgalRenderWindowParts";
 
@@ -38,12 +41,13 @@ export function SpaceWebgalRoomContentSettingsPanel({
           字（中文对话一般可稳定落在两行内）。
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <input
+          <TextInput
+            density="compact"
             type="number"
             min={MIN_ROOM_CONTENT_ALERT_THRESHOLD}
             max={MAX_ROOM_CONTENT_ALERT_THRESHOLD}
             step={1}
-            className="input input-bordered input-sm w-44"
+            className="w-44"
             value={roomContentAlertThresholdInput}
             onChange={(event) => {
               setRoomContentAlertThresholdInput(event.target.value);
@@ -56,23 +60,23 @@ export function SpaceWebgalRoomContentSettingsPanel({
               }
             }}
           />
-          <button
-            type="button"
-            className="btn btn-sm btn-outline"
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleSaveRoomContentAlertThreshold}
           >
             保存
-          </button>
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost"
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => {
               setRoomContentAlertThreshold(DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD);
               setRoomContentAlertThresholdInput(String(DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD));
             }}
           >
             恢复推荐值
-          </button>
+          </Button>
         </div>
         <div className="text-xs text-base-content/70">
           当前阈值：
@@ -142,10 +146,9 @@ export function SpaceWebgalBatchStatusPanel({
                           <div className="text-xs text-base-content/70">{`Room ID: ${room.roomId}`}</div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`
-                            badge badge-sm
-                            ${roomStatusMeta.badgeClass}
-                          `}>{roomStatusMeta.label}</span>
+                          <Badge tone={roomStatusMeta.tone} appearance={roomStatusMeta.appearance}>
+                            {roomStatusMeta.label}
+                          </Badge>
                           <span className="text-xs text-base-content/70">
                             {state.messageCount}
                             {" "}

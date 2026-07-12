@@ -159,6 +159,7 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
         className={`
           group relative isolate flex w-full items-center gap-3 overflow-hidden
           rounded-2xl border p-3 text-left transition-[background-color,border-color,box-shadow,transform] duration-200
+          motion-reduce:transform-none motion-reduce:transition-none
           ${
           canDirectJump
             ? `
@@ -182,7 +183,7 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
         {canDirectJump && (
           <div className="
             pointer-events-none absolute inset-0 opacity-0 transition-opacity
-            duration-200
+            duration-200 motion-reduce:transition-none
             group-hover:opacity-100
             bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_60%)]
           " />
@@ -191,7 +192,7 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
         {/* Avatar */}
         <div className="relative shrink-0">
           <div className={`
-            mask mask-squircle size-11 overflow-hidden border
+            size-11 overflow-hidden rounded-md border
             ${canDirectJump ? `border-info/20` : `border-base-content/10`}
           `}>
             <MediaImage

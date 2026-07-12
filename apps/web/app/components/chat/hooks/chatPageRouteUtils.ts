@@ -91,11 +91,9 @@ export function getIsRoomSettingRoute(params: {
 
 /**
  * 将私聊页的 tab 查询参数映射为页面状态。
- * 未显式指定或遇到未知值时，默认回到具体私聊页。
+ * 未显式指定或遇到未知值时，默认进入私聊首页。
  */
 export function resolvePrivateChatTab(tabParam?: string | null): PrivateChatTab {
-  if (tabParam === "friends")
-    return "friends";
   if (tabParam === "new-friends")
     return "new-friends";
   return "chat";

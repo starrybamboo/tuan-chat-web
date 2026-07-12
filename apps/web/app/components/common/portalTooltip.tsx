@@ -13,6 +13,7 @@ type PortalTooltipProps = {
   delayMs?: number;
   children: React.ReactNode;
   className?: string;
+  anchorClassName?: string;
 }
 
 const DEFAULT_GAP = 8;
@@ -26,6 +27,7 @@ export default function PortalTooltip({
   delayMs = 0,
   children,
   className,
+  anchorClassName = "",
 }: PortalTooltipProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
@@ -146,7 +148,7 @@ export default function PortalTooltip({
   return (
     <span
       ref={anchorRef}
-      className="inline-flex"
+      className={`inline-flex ${anchorClassName}`}
       onMouseEnter={openTooltip}
       onMouseLeave={closeTooltip}
       onFocus={openTooltip}
@@ -158,8 +160,8 @@ export default function PortalTooltip({
           ref={tooltipRef}
           role="tooltip"
           className={className ?? `
-            portal-tooltip pointer-events-none z-[9999] rounded bg-black px-2
-            py-1 text-xs text-white shadow-md
+            portal-tooltip tc-surface-floating pointer-events-none z-[9999]
+            max-w-72 px-2 py-1 text-xs leading-5 text-base-content shadow-lg
           `}
           style={{
             position: "fixed",

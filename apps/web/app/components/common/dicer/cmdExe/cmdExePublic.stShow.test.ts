@@ -2,20 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import executorPublic from "./cmdExePublic";
 
-const { openStShowCardWindowMock } = vi.hoisted(() => ({
-  openStShowCardWindowMock: vi.fn<(...args: any[]) => any>(),
-}));
-
-vi.mock("./stShowCard", () => ({
-  openStShowCardWindow: openStShowCardWindowMock,
-}));
-
 describe("通用 st show 指令", () => {
   let cpi: CPI;
 
   beforeEach(() => {
-    openStShowCardWindowMock.mockReset();
-    openStShowCardWindowMock.mockResolvedValue(undefined);
     cpi = {
       replyMessage: vi.fn<(...args: any[]) => any>(),
       sendToast: vi.fn<(...args: any[]) => any>(),
@@ -24,6 +14,7 @@ describe("通用 st show 指令", () => {
       getSpaceData: vi.fn<(...args: any[]) => any>(),
       setRoleAbilityList: vi.fn<(...args: any[]) => any>(),
       setCopywritingKey: vi.fn<(...args: any[]) => any>(),
+      showRoleAbilityCard: vi.fn<(...args: any[]) => any>(),
     } as unknown as CPI;
   });
 
@@ -48,7 +39,7 @@ describe("通用 st show 指令", () => {
     } as UserRole], cpi);
 
     expect(result).toBe(true);
-    expect(openStShowCardWindowMock).toHaveBeenCalledWith({
+    expect(cpi.showRoleAbilityCard).toHaveBeenCalledWith({
       ability: expect.objectContaining({
         basic: { 力量: "60" },
         ability: { hp: "5", hpm: "10" },
@@ -58,5 +49,6 @@ describe("通用 st show 指令", () => {
       requestedKeys: [],
     });
     expect(cpi.sendToast).not.toHaveBeenCalled();
+    expect(cpi.replyMessage).not.toHaveBeenCalled();
   });
 });

@@ -1,15 +1,20 @@
 import { FilePlusIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { appToast } from "@/components/common/appToast/appToast";
 
 import ChatStatusBar from "@/components/chat/chatStatusBar";
 import { formatUnreadBadgeCount } from "@/components/chat/clues/clueUnread";
 import ChatToolbarDock from "@/components/chat/input/chatToolbarDock";
-import { CANCEL_INSERT_MODE_LABEL } from "@/components/chat/room/roomComposerInsertMode";
+import {
+  CANCEL_INSERT_MODE_LABEL,
+  CANCEL_POKE_MODE_LABEL,
+} from "@/components/chat/room/roomComposerInsertMode";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
 import StickerWindow from "@/components/chat/window/StickerWindow";
-import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
+import { appToast } from "@/components/common/appToast/appToast";
+import { FileInput } from "@/components/common/FormField";
+import { MenuSurface } from "@/components/common/MenuPopover";
+import PortalTooltip from "@/components/common/portalTooltip";
 import {
   CloseIcon,
   DiceD6Icon,
@@ -43,6 +48,8 @@ type ChatToolbarProps = {
   handleMessageSubmit: () => void;
   isInsertMode?: boolean;
   onCancelInsertMode?: () => void;
+  isPokeMode?: boolean;
+  onCancelPokeMode?: () => void;
 
   // 附件/表情等富消息入口
   disableRichMessageActions?: boolean;
@@ -117,6 +124,8 @@ function ChatToolbar({
   handleMessageSubmit,
   isInsertMode = false,
   onCancelInsertMode,
+  isPokeMode = false,
+  onCancelPokeMode,
   disableRichMessageActions = false,
   currentChatStatus,
   onChangeChatStatus,
@@ -151,8 +160,6 @@ function ChatToolbar({
   const emojiDropdownRef = useRef<HTMLDivElement>(null);
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
 
-  const screenSize = useScreenSize();
-  const isMobile = screenSize === "sm";
   const storeSetEmojiMetaByUrl = useChatComposerStore(state => state.setEmojiMetaByUrl);
   const resolvedSetEmojiMetaByUrl = setEmojiMetaByUrl ?? storeSetEmojiMetaByUrl;
 
@@ -235,24 +242,42 @@ function ChatToolbar({
   const sendButtonTip = isSpaceArchived && !isKP ? "当前空间已归档，仅主持人可发言" : "发送";
   const richActionDisabledClass = disableRichMessageActions ? "cursor-not-allowed opacity-20" : "cursor-pointer";
   const runModeToggleTip = runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/文档/战斗";
-  const cancelInsertButton = isInsertMode && onCancelInsertMode
+  const cancelMode = isPokeMode && onCancelPokeMode
+    ? {
+        className: `
+          chatToolbarCancelButton--poke
+        `,
+        label: CANCEL_POKE_MODE_LABEL,
+        onCancel: onCancelPokeMode,
+      }
+    : isInsertMode && onCancelInsertMode
+      ? {
+          className: `
+            text-info hover:bg-info/12 hover:text-info
+            focus-visible:ring-info/35
+          `,
+          label: CANCEL_INSERT_MODE_LABEL,
+          onCancel: onCancelInsertMode,
+        }
+      : null;
+  const cancelModeButton = cancelMode
     ? (
-        <div className={isMobile ? "" : "tooltip tooltip-top"} data-tip={isMobile ? undefined : CANCEL_INSERT_MODE_LABEL}>
+        <PortalTooltip label={cancelMode.label} placement="top">
           <button
             type="button"
-            className="
+            className={`
               inline-flex size-6 items-center justify-center rounded-md
-              text-info transition-[background-color,color,transform]
-              hover:bg-info/12 hover:text-info active:scale-95
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/35
-            "
-            aria-label={CANCEL_INSERT_MODE_LABEL}
-            title={CANCEL_INSERT_MODE_LABEL}
-            onClick={onCancelInsertMode}
+              transition-[background-color,color,transform] active:scale-95
+              focus-visible:outline-none focus-visible:ring-2
+              ${cancelMode.className}
+            `}
+            aria-label={cancelMode.label}
+            title={cancelMode.label}
+            onClick={cancelMode.onCancel}
           >
             <CloseIcon className="size-5 stroke-[4]" />
           </button>
-        </div>
+        </PortalTooltip>
       )
     : null;
   const openMediaPicker = useCallback(() => {
@@ -273,15 +298,14 @@ function ChatToolbar({
         title="发送媒体"
         onClick={openMediaPicker}
       >
-        <div className={isMobile ? "" : "tooltip tooltip-top"} data-tip={isMobile ? undefined : "发送媒体"}>
+        <PortalTooltip label="发送媒体" placement="top">
           <FilePlusIcon className="
             size-6 jump_icon mt-1
             md:mt-0
           " />
-        </div>
+        </PortalTooltip>
       </button>
-      <input
-        type="file"
+      <FileInput
         ref={mediaInputRef}
         className="hidden"
         accept={setAudioFile ? "image/*,audio/*,video/*" : "image/*,video/*"}
@@ -320,14 +344,10 @@ function ChatToolbar({
             ` : `flex items-center gap-2 flex-wrap`}
           `}>
             <div className="flex items-center gap-2 flex-wrap">
-              {cancelInsertButton}
+              {cancelModeButton}
               <div
                 ref={emojiDropdownRef}
-                className={`
-                  dropdown dropdown-top dropdown-start
-                  md:dropdown-center
-                  ${isEmojiOpen ? `dropdown-open` : ""}
-                `}
+                className="relative inline-flex"
               >
                 <button
                   type="button"
@@ -342,22 +362,17 @@ function ChatToolbar({
                     setIsEmojiOpen(prev => !prev);
                   }}
                 >
-                  <div
-                    className={isMobile ? "" : "tooltip tooltip-top"}
-                    data-tip={isMobile ? undefined : "发送表情"}
-                  >
+                  <PortalTooltip label="发送表情" placement="top">
                     <EmojiIconWhite className="
                       size-6 jump_icon mt-1
                       md:mt-0
                     "></EmojiIconWhite>
-                  </div>
+                  </PortalTooltip>
                 </button>
-                <ul
-                  className="
-                    dropdown-content menu bg-base-100 rounded-box z-9999 w-56
-                    md:w-96
-                    p-2 shadow-sm overflow-y-auto mb-6
-                  "
+                <MenuSurface
+                  as="ul"
+                  ariaLabel="表情选择"
+                  className={`absolute bottom-full left-0 z-9999 mb-6 w-56 overflow-y-auto p-2 shadow-sm md:left-1/2 md:w-96 md:-translate-x-1/2 ${isEmojiOpen ? "" : "hidden"}`}
                 >
                   <StickerWindow onChoose={async (emoji) => {
                     const emojiUrl = mediaFileUrl(emoji?.fileId, emoji?.mediaType, "medium");
@@ -380,17 +395,14 @@ function ChatToolbar({
                   }}
                   >
                   </StickerWindow>
-                </ul>
+                </MenuSurface>
               </div>
 
               {mediaActionButton}
 
               {/* WebGAL 联动模式按钮 */}
               {showWebgalLinkToggle && onToggleWebgalLinkMode && !isStacked && (
-                <div
-                  className="tooltip tooltip-top"
-                  data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
-                >
+                <PortalTooltip label={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"} placement="top">
                   <button
                     type="button"
                     className="
@@ -409,14 +421,11 @@ function ChatToolbar({
                       `}
                     />
                   </button>
-                </div>
+                </PortalTooltip>
               )}
 
               {showRunModeToggle && onToggleRunMode && !isStacked && (
-                <div
-                  className="tooltip tooltip-top"
-                  data-tip={runModeToggleTip}
-                >
+                <PortalTooltip label={runModeToggleTip} placement="top">
                   <button
                     type="button"
                     className="
@@ -436,12 +445,12 @@ function ChatToolbar({
                     />
                     <UnreadBadge count={runModeBadgeCount} />
                   </button>
-                </div>
+                </PortalTooltip>
               )}
 
               {/* 发送按钮 */}
               {showSendButton && !isStacked && (
-                <div className="tooltip tooltip-top" data-tip={sendButtonTip}>
+                <PortalTooltip label={sendButtonTip} placement="top">
                   <button
                     type="button"
                     className="
@@ -459,17 +468,14 @@ function ChatToolbar({
                       className={`size-6 font-light hover:text-info md:mb-1 ${disableSendMessage ? "cursor-not-allowed opacity-20" : ""}`.trim()}
                     />
                   </button>
-                </div>
+                </PortalTooltip>
               )}
             </div>
 
             {isStacked && (
               <div className="flex items-center gap-2 flex-nowrap">
                 {showWebgalLinkToggle && onToggleWebgalLinkMode && (
-                  <div
-                    className="tooltip tooltip-top"
-                    data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
-                  >
+                  <PortalTooltip label={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"} placement="top">
                     <button
                       type="button"
                       className="
@@ -487,14 +493,11 @@ function ChatToolbar({
                         `}
                       />
                     </button>
-                  </div>
+                  </PortalTooltip>
                 )}
 
                 {showRunModeToggle && onToggleRunMode && (
-                  <div
-                    className="tooltip tooltip-top"
-                    data-tip={runModeToggleTip}
-                  >
+                  <PortalTooltip label={runModeToggleTip} placement="top">
                     <button
                       type="button"
                       className="
@@ -513,11 +516,11 @@ function ChatToolbar({
                       />
                       <UnreadBadge count={runModeBadgeCount} />
                     </button>
-                  </div>
+                  </PortalTooltip>
                 )}
 
                 {showSendButton && (
-                  <div className="tooltip tooltip-top" data-tip={sendButtonTip}>
+                  <PortalTooltip label={sendButtonTip} placement="top">
                     <button
                       type="button"
                       className="
@@ -535,7 +538,7 @@ function ChatToolbar({
                         className={`size-6 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20" : ""}`.trim()}
                       />
                     </button>
-                  </div>
+                  </PortalTooltip>
                 )}
               </div>
             )}

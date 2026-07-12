@@ -4,6 +4,8 @@ import { isRunSideDrawerState } from "@/components/chat/room/runSideDrawerState"
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import PortalTooltip from "@/components/common/portalTooltip";
+import { DropdownMenu, MenuItem } from "@/components/common/MenuPopover";
 import { BranchIcon, WebgalIcon } from "@/icons";
 
 type ChatToolbarDockProps = {
@@ -60,61 +62,60 @@ export default function ChatToolbarDock({
     >
       {/* WebGAL 导演控制台 */}
       {showWebgalControls && webgalLinkMode && onSendEffect && (
-        <div className={`
-          dropdown dropdown-top dropdown-center md:dropdown-end
-          ${isInline ? "inline-flex h-6 items-center" : "mt-0.5 md:mt-1"}
-        `}>
-          <button type="button" className="
-            tooltip tooltip-top inline-flex h-6 items-center
-            hover:text-info
-          " data-tip="导演控制台" aria-label="导演控制台" title="导演控制台">
-            <FilmSlateIcon className="size-6" />
-          </button>
-          <ul className="
-            dropdown-content z-9999 menu p-2 shadow bg-base-100 rounded-box w-52
-            mb-2
-          ">
+        <PortalTooltip label="导演控制台" placement="top">
+          <DropdownMenu
+            ariaLabel="导演控制台"
+            placement="top-end"
+            className={isInline ? "h-6 items-center" : "mt-0.5 md:mt-1"}
+            menuClassName="z-9999 w-52 p-2 shadow"
+            trigger={(
+              <button type="button" className="inline-flex h-6 items-center hover:text-info" aria-label="导演控制台" title="导演控制台">
+                <FilmSlateIcon className="size-6" />
+              </button>
+            )}
+          >
             {onSendEffect && (
               <>
-                <li><button type="button" onClick={() => onSendEffect("rain")}>🌧️ 下雨</button></li>
-                <li><button type="button" onClick={() => onSendEffect("snow")}>❄️ 下雪</button></li>
-                <li><button type="button" onClick={() => onSendEffect("sakura")}>🌸 樱花</button></li>
-                <li><button type="button" onClick={() => onSendEffect("none")}>🛑 停止特效</button></li>
+                <li role="none"><MenuItem onClick={() => onSendEffect("rain")}>🌧️ 下雨</MenuItem></li>
+                <li role="none"><MenuItem onClick={() => onSendEffect("snow")}>❄️ 下雪</MenuItem></li>
+                <li role="none"><MenuItem onClick={() => onSendEffect("sakura")}>🌸 樱花</MenuItem></li>
+                <li role="none"><MenuItem onClick={() => onSendEffect("none")}>🛑 停止特效</MenuItem></li>
               </>
             )}
-          </ul>
-        </div>
+          </DropdownMenu>
+        </PortalTooltip>
       )}
 
       {showWebgalControls && webgalLinkMode && onOpenFullMessageDiff && (
-        <button
-          type="button"
-          className={`
-            tooltip tooltip-top inline-flex h-6 items-center
+        <PortalTooltip label={isFullMessageDiffOpen ? "关闭消息差异" : "消息差异"} placement="top">
+          <button
+            type="button"
+            className={`
+            inline-flex h-6 items-center
             ${isInline ? "" : "mt-0.5 md:mt-1"}
             ${isFullMessageDiffOpen ? `text-info` : `hover:text-info`}
           `}
-          data-tip={isFullMessageDiffOpen ? "关闭消息差异" : "消息差异"}
           aria-label="消息差异"
           title="消息差异"
           onClick={onOpenFullMessageDiff}
         >
           <BranchIcon className="size-6 cursor-pointer" />
-        </button>
+          </button>
+        </PortalTooltip>
       )}
 
       {/* WebGAL 入口：打开独立预览侧栏，实时渲染开关留在侧栏内部。 */}
       {showWebgalControls && webgalLinkMode && onToggleRealtimeRender && (
-        <button
-          type="button"
-          className={`
-            tooltip tooltip-top inline-flex h-6 items-center
+        <PortalTooltip label={webgalOpen ? "关闭 WebGAL 预览" : "打开 WebGAL 预览"} placement="top">
+          <button
+            type="button"
+            className={`
+            inline-flex h-6 items-center
             ${isInline ? "" : "mt-0.5 md:mt-1"}
             ${webgalOpen ? `text-info` : isRealtimeRenderActive ? `
               text-success
             ` : `hover:text-info`}
           `}
-          data-tip={webgalOpen ? "关闭 WebGAL 预览" : "打开 WebGAL 预览"}
           aria-label={webgalOpen ? "关闭 WebGAL 预览" : "打开 WebGAL 预览"}
           title={webgalOpen ? "关闭 WebGAL 预览" : "打开 WebGAL 预览"}
           onClick={handleToggleWebgalDrawer}
@@ -124,7 +125,8 @@ export default function ChatToolbarDock({
             ${isInline ? "" : "mb-2 md:mb-0"}
             ${isRealtimeRenderActive ? `animate-pulse` : ""}
           `} />
-        </button>
+          </button>
+        </PortalTooltip>
       )}
     </div>
   );

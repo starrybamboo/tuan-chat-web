@@ -2,9 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * 选择项列表
- */
 export type WebgalChooseOption = {
     /**
      * 选项文本
@@ -15,3 +12,4 @@ export type WebgalChooseOption = {
      */
     code?: string;
 };
+

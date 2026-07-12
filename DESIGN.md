@@ -36,20 +36,117 @@
 | 组件 | 用途 | 替代的旧实现 |
 |---|---|---|
 | `Button` / `IconButton` | 统一按钮（variant/size/shape/loading/icon）；IconButton 强制 aria-label | 散写的 `className="btn ..."` |
-| `Modal` | 声明式 `<Modal open onOpenChange>`，原生 `<dialog>`+`showModal()`（自带 focus trap/ESC/scroll lock）+ motion 入场 | 各自实现的 overlay/动画/scroll-lock |
+| `DialogFrame` / `DialogActions` | 统一弹窗遮罩、悬浮表面、Esc、aria、操作区与进出场动效；弹窗不显示右上角 X | 各自实现的 overlay/动画/scroll-lock |
 | `ConfirmDialog` | 声明式 + 命令式 `confirm({...}): Promise<boolean>`（`ConfirmDialogProvider` 挂 `__root`） | `comfirmModel.tsx`(已删)、`window.confirm`、aiImage `HistoryConfirmModal`(薄封装) |
+| `FormField` / `ChoiceField` / `FieldGroup` / `FieldLabel` / `FieldDescription` / `FieldError` | 统一标签、说明、错误及可访问关联 | 各业务字段布局 |
+| `TextInput` / `TextArea` / `SelectInput` | 统一文本类输入的密度、表面和状态 | 散写的 `input`/`textarea`/`select` class |
+| `Checkbox` / `Radio` / `Switch` / `RangeInput` | 统一选择控件与滑杆的密度、焦点和禁用状态 | 散写的 checkbox/radio/toggle/range class |
+| `Surface` / `Text` | 三层表面与固定文字角色 | 散写的背景、边框、阴影和字号组合 |
+| `Tabs` / `DropdownMenu` / `MenuSurface` / `MenuItem` / `PopoverSurface` | 页签、菜单和轻浮层的状态、键盘与关闭行为 | 各业务自建 tabs/menu/popover |
+| `Badge` / `Tag` / `StatusIndicator` / `Divider` / `ProgressBar` / `Skeleton` / `InlineAlert` / `LoadingIndicator` | 次级控件和反馈原语 | 各模块散写 badge/indicator/tag/progress/skeleton/alert/loading |
+| `Disclosure` / `ControlGroup` | 折叠区与相邻控件组的语义、圆角和边框 | `collapse` / `join` 类结构 |
+| `StateView` | 加载、空态、错误、重试、离线、刷新和进度 | 各模块独立内容状态 |
+| `MediaFrame` / `MediaImageFrame` / `UploadDropZone` | 图片比例、裁切、占位、失败、预览、选中和上传拖放 | 各业务媒体容器与上传区域 |
 | `Avatar` | 头像壳 + 尺寸档位 + 图片回退（业务头像复用其 `AVATAR_SIZE_CLASS`/`AVATAR_HOVER_*`） | UserAvatar/RoleAvatar 内重复的 sizeMap |
-| `Card` | 卡片容器基线（rounded-lg + base-300 边框 + shadow-sm，可选 interactive） | 散写的 `border bg rounded shadow` |
 | `OpenAbleDrawer` | 挤压式响应抽屉（大屏拖拽宽度、小屏覆盖） | — |
 | `VaulSideDrawer` | 浮层式抽屉（不挤压布局） | — |
 | `PortalTooltip` | Portal 渲染、智能定位的 tooltip | — |
 
-**新代码必须用上述组件**，不再散写 `btn`/`modal`/`overlay`。
+**新代码优先使用上述组件**。业务结构保持在业务组件中，公共层只承载跨模块稳定重复的视觉语法、状态与可访问行为。
+
+业务组件只使用公共 React 原语、语义 helper 与 Tailwind 布局类。`btn`、`badge`、`card`、`menu`、`modal` 等 daisyUI 组件类，以及 `tc-*` 内部实现类，仅允许出现在公共原语内部。
+
+### 跨模块统一边界
+
+- **统一基础语法**：颜色语义、圆角与阴影档位、文字角色、间距档位、焦点环、禁用、只读、错误、加载与 reduced motion。
+- **统一稳定原语**：按钮、图标按钮、表单字段、弹窗、Toast、内容状态、Tooltip、头像与媒体加载行为。
+- **保留业务结构**：聊天室消息流、AI 绘画工作区、角色编辑器及其业务列表各自实现。
+- **抽取判断**：视觉语法、状态模型、键盘行为三项稳定重复时进入公共层；单纯外形相似继续共享 class helper 或 token。
+
+### 表面层级
+
+- **画布层**：页面或工作区底层使用 `base-200`，承载大区域和滚动背景。
+- **内容层**：输入、卡片和主要内容使用 `base-100` + `border-base-300`，默认 `rounded-md`。
+- **悬浮层**：Dialog、Popover、Menu、Tooltip 使用内容层颜色 + `shadow-lg/xl`，遮罩和层级由公共组件管理。
+- **嵌套层**：内容层内的次级区域使用 `base-200`；避免连续嵌套阴影，通过背景与边框建立层级。
+
+### 文字角色
+
+- **标题**：页面 `text-page-title`，区块 `text-section-title`，组件 `text-component-title`；分别映射固定字号、行高与字重。
+- **正文**：`text-body`；长正文通过 `Text wrap="pretty"` 处理。
+- **辅助信息**：`text-supporting text-base-content/60`；交互提示最低保持 `/60`。
+- **标签、数字和代码**：`Text` 的 `label`、`data`、`code` 角色分别固定字重、等宽数字和等宽字体。
+- **长文本**：`balance`、`pretty`、`truncate`、`line2` 五种固定策略由 `Text` / `textClassName()` 提供。
+
+### 尺寸与节奏
+
+- **密度**：公共原语只提供 `compact` / `default` 两档；页面自行组合布局密度。
+- **控件高度**：`h-control-compact` = 32px，`h-control-default` = 40px。
+- **图标尺寸**：`size-icon-compact` = 16px，`size-icon-default` = 20px。
+- **触控热区**：`size-hit-compact` = 32px，`size-hit-default` = 44px。
+- **内部节奏**：紧凑控件以 `gap-1/1.5`、`px-2/2.5` 为主，默认控件以 `gap-2`、`px-3/4` 为主。
+
+### 表单语法
+
+- `FormField` 负责标签、说明、错误和 `aria-describedby` / `aria-invalid` 关联。
+- `ChoiceField` 负责复选框、单选框、开关的标签、说明与错误关联。
+- `FieldGroup`、`FieldLabel`、`FieldDescription`、`FieldError` 负责无法直接套用 `FormField` 的复合字段结构。
+- `TextInput`、`TextArea`、`SelectInput` 负责 `compact/default` 密度、`default/muted` 表面，以及 hover、focus、disabled、readonly、invalid 状态。
+- `Checkbox`、`Radio`、`Switch`、`RangeInput` 统一蓝色选择语义、焦点环和禁用态。
+- 复合输入通过 `formControlClassName()` 复用同一状态语法，业务组件继续控制前后缀、浮层与快捷操作。
+
+### 状态语法
+
+- **hover**：中性表面轻微加深；危险动作使用 `error/10`。
+- **pressed**：`base-300` 表面反馈；按钮通过原生 `:active` 表达。
+- **选中强度**：统一通过 `selectionClassName({ level })` 选择以下四档，并由 `aria-current`、`aria-pressed`、`aria-selected` 或 `data-selected` 标记语义。
+
+| 等级 | 视觉表达 | 使用场景 |
+|---|---|---|
+| `tone` | `text-info` | 空间栏、图标入口等最轻当前态 |
+| `soft` | `info/10` 背景 + `text-info` | Tab、菜单项、筛选项和轻量开关 |
+| `strong` | `info/15` 背景 + `1px info/70` 内描边 | 当前房间、当前私聊、当前文档等持续导航定位 |
+| `solid` | `bg-info` + `text-info-content` | 已选卡片、确认性选择和需要最高识别度的单选结果 |
+
+- **focus**：全局 `focus-visible` 使用 2px `info/24` 焦点环与 2px offset。
+- **disabled / readonly / loading**：分别使用禁用指针与 45% 透明度、弱化表面与只读文字、`aria-busy` + spinner/progress。
+- **拖放目标**：`tc-drop-target` + `data-drag-state="active"` 使用虚线边框、`info/10` 背景和焦点 ring。
+
+### 内容状态
+
+- `Skeleton` 用于结构已知的首屏与局部加载，统一 `base-content/10` 和 reduced-motion。
+- `StateView kind="empty|loading|error|offline|refreshing|progress"` 用于区域级状态；`actionLabel/onAction` 负责重试或恢复动作。
+- `ProgressBar` 用于可量化任务；局部刷新保留当前内容并在所属区域标记 `aria-busy`。
+
+### 即时数据交互
+
+- **必须乐观更新**：可逆、结果可预测、已有 React Query 唯一缓存源的实体变更，例如选中、排序、订阅、成员增删、身份切换、已读和归档。
+- **保持 pending**：依赖服务端生成 ID 或内容的创建操作、登录与安全验证、文件上传、AI 生成、导入和不可逆外部副作用。
+- **统一协议**：`cancel → optimistic patch → error rollback → success reconcile → settled invalidate`；跨模块快照事务使用 `@tuanchat/query/optimistic-cache`。
+- **并发规则**：回滚只恢复仍由当前事务持有的缓存引用；出现更晚的并发写入时保留新值，并通过 settled 重新校准服务端状态。
+- **业务失败**：接口返回 `success: false` 时必须抛出 mutation 错误，确保进入回滚路径。
+- **缓存边界**：React Query 已缓存的数据直接修改唯一缓存；业务组件不再维护同一实体的临时“已添加／已删除”副本。
+
+### 次级控件
+
+- `Tabs` 统一选中态、两档密度、方向键、Home/End 和禁用页签跳过。
+- `MenuSurface` / `MenuItem` 统一菜单表面、热区、危险项和选中态；`PopoverSurface` 统一 Esc 与外部点击关闭。
+- `DropdownMenu` 统一触发器、定位、`aria-expanded`、Esc、外部点击和选择后关闭行为。
+- `PortalTooltip` 统一悬浮表面、最大宽度、延迟与 reduced-motion。
+- `Badge` 表达状态和数量，`Tag` 表达可移除对象，`Divider` 表达结构边界，`ProgressBar` 表达任务进度。
+
+### 媒体语言
+
+- **比例**：`square`、`portrait`、`landscape`、`video`、`auto` 五档，由 `MediaFrame` 统一。
+- **裁切**：头像、封面和缩略图使用 `cover`；完整作品、立绘与参考图预览使用 `contain`。
+- **头像形状**：头像和缩略图通过 `maskClassName({ shape: "squircle" })` 统一使用 squircle 裁切；底层 `mask` class 只在 `DesignLanguage.tsx` 内维护。
+- **状态**：`MediaImageFrame` 统一骨架、加载过渡、失败占位、重试、预览入口和蓝色选中框。
+- **上传**：`UploadDropZone` 统一点击、键盘、拖入、放置、禁用、文件类型说明和活动目标反馈。
 
 ### 按钮视觉规范
 
 - **默认按钮形态**：后续所有按钮优先采用空心/轮廓样式，背景保持透明或贴合所在容器，仅用 `border-base-300`、`text-base-content`、图标与轻量 hover/focus 态表达可点击性。
-- **选中/激活态**：按钮被选中、当前页、当前筛选项或当前工具激活时，统一使用蓝色强调；优先采用中性底 + `text-info` / `border-info` / `ring-info` 的轻量状态，只有强确认或大面积主操作才使用填充态。避免每个业务场景自行定义高亮色，也避免用绿色表示“选中”。
+- **选中/激活态**：按钮被选中、当前页、当前筛选项或当前工具激活时，统一使用蓝色强调，并按 `tone / soft / strong / solid` 四档表达强度。持续导航定位使用亮色内描边与蓝色半透明背景，强确认或大面积主操作使用实心填充态。
 - **实现入口**：业务代码继续通过 `Button` / `IconButton` 的 `variant`、`size`、`shape`、`aria-pressed` 等参数表达状态，不直接散写 daisyUI `btn-*` 或硬编码颜色类。
 - **例外**：破坏性操作、成功/警告/错误反馈按钮可使用对应语义色，但仍应保持默认空心、选中/确认时填充的状态层级。
 
@@ -63,8 +160,8 @@
 ## 反馈机制分工
 
 - **轻提示**（操作反馈，2.5s 自动消失）：`react-hot-toast` 的 `toast.success/error/...`，`<Toaster position="top-center">`。
-- **需交互弹窗**：`<Modal>` / `<ConfirmDialog>`。
-- **命令式业务弹窗**（需注入路由/业务 Context）：`toastWindow()`（60 文件依赖，保留；其内部 `ToastWindowFrame` 仍可用，未来可选地改用 `<Modal>`）。
+- **需交互弹窗**：`DialogFrame` / `ConfirmDialog`。
+- **命令式业务弹窗**（需注入路由/业务 Context）：`toastWindow()` 继续承载路由与业务 Context 注入，其渲染层统一使用 `DialogFrame`。
 
 ## 交互与无障碍（P1 基线）
 
@@ -72,7 +169,7 @@
 - **动画**：所有 motion/transition 动画须尊重 `prefers-reduced-motion`（用 `useReducedMotion()` 或 `motion-reduce:` 变体）。
 - **对比度**：文字透明度遵循 主文字 `base-content` / 次要 `/70` / 辅助 `/50`（更低需评审）。
 - **表单**：`<input>` 带 `type`（email/url/tel/number 而非裸 text）、`name`、`autocomplete`（auth 用 username/current-password 等）、可点击 `label[htmlFor]`；提交按钮保持启用、校验错误 inline。
-- **触控热区**：可点击图标 ≥ 24px（`btn-xs`/`size-6`）。
+- **触控热区**：紧凑操作使用 32px，默认操作使用 44px；图标尺寸与热区尺寸分离。
 - **语义化**：交互元素用 `<button>`/`<a>`，避免 `<div onClick>`。
 
 ## 排版

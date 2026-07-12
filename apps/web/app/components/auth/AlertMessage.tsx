@@ -1,5 +1,7 @@
 import { CheckCircleIcon, WarningCircleIcon } from "@phosphor-icons/react";
 
+import { InlineAlert } from "@/components/common/StatusPrimitives";
+
 type AlertMessageProps = {
   errorMessage: string;
   successMessage: string;
@@ -7,28 +9,28 @@ type AlertMessageProps = {
 
 export function AlertMessage({ errorMessage, successMessage }: AlertMessageProps) {
   return (
-    <div className="toast toast-top toast-center z-[70] w-[min(92vw,28rem)]">
+    <div className="fixed left-1/2 top-4 z-[70] flex w-[min(92vw,28rem)] -translate-x-1/2 flex-col gap-2">
       {errorMessage && (
-        <div
-          role="alert"
+        <InlineAlert
+          tone="error"
+          icon={<WarningCircleIcon className="size-5" weight="regular" />}
           aria-live="assertive"
           aria-atomic="true"
-          className="alert alert-error items-start gap-3 shadow-lg"
+          className="shadow-lg"
         >
-          <WarningCircleIcon className="mt-0.5 size-5 shrink-0" weight="regular" />
           <span className="text-sm leading-6">{errorMessage}</span>
-        </div>
+        </InlineAlert>
       )}
       {successMessage && (
-        <div
-          role="status"
+        <InlineAlert
+          tone="success"
+          icon={<CheckCircleIcon className="size-5" weight="regular" />}
           aria-live="polite"
           aria-atomic="true"
-          className="alert alert-success items-start gap-3 shadow-lg"
+          className="shadow-lg"
         >
-          <CheckCircleIcon className="mt-0.5 size-5 shrink-0" weight="regular" />
           <span className="text-sm leading-6">{successMessage}</span>
-        </div>
+        </InlineAlert>
       )}
     </div>
   );

@@ -58,6 +58,9 @@ export function usePrivateMessageList({
       setDeletedContactIds([...deletedContactIds, contactId]);
     }
   }
+  function restoreDeletedContactId(contactId: number) {
+    setDeletedContactIds(prev => prev.filter(id => id !== contactId));
+  }
 
   const prevInboxMessagesRef = useRef<Record<number, MessageDirectResponse[]>>({});
 
@@ -116,6 +119,7 @@ export function usePrivateMessageList({
     realTimeContacts,
     sortedRealTimeMessages,
     deletedThisContactId,
+    restoreDeletedContactId,
   };
 }
 

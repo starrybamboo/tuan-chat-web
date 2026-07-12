@@ -187,7 +187,7 @@ export function useWebSocketMessageHandlers({
       if (!draft[roomId])
         draft[roomId] = [];
       const userIndex = draft[roomId].findIndex(u => u.userId === userId);
-      if (status === "idle") {
+      if (status.type === "idle") {
         if (userIndex !== -1)
           draft[roomId].splice(userIndex, 1);
         return;
@@ -234,7 +234,11 @@ export function useWebSocketMessageHandlers({
     const sendingUserId = chatMessageResponse.message.userId;
     if (sendingUserId) {
       setTimeout(() => {
-        handleChatStatusChange({ roomId, userId: sendingUserId, status: "idle" });
+        handleChatStatusChange({
+          roomId,
+          userId: sendingUserId,
+          status: { type: "idle", description: "空闲" },
+        });
       }, 500);
     }
 
@@ -292,6 +296,7 @@ export function useWebSocketMessageHandlers({
 
     upsertDirectMessageIntoInboxCache(queryClient, selfUserId, message, matchedOptimisticMessageId);
     queryClient.invalidateQueries({ queryKey: ["dmInbox"] });
+    queryClient.invalidateQueries({ queryKey: ["directBadgeSummary"] });
 
     if ((message?.content ?? "").trim() === "好友申请同意") {
       queryClient.invalidateQueries({ queryKey: ["friendList"] });
@@ -371,6 +376,7 @@ export function useWebSocketMessageHandlers({
         queryClient.invalidateQueries({ queryKey: ["friendReqPage"] });
         queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
         queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
+        queryClient.invalidateQueries({ queryKey: ["directBadgeSummary"] });
         notifyNewFriendRequest(event);
       },
       22: () => {
@@ -416,6 +422,7 @@ export function useWebSocketMessageHandlers({
         queryClient.invalidateQueries({ queryKey: ["friendList"] });
         queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
         queryClient.invalidateQueries({ queryKey: ["friendCheck"] });
+        queryClient.invalidateQueries({ queryKey: ["directBadgeSummary"] });
       },
       100: () => {
         try {

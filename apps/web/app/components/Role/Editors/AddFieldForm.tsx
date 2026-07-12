@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
+import { Button } from "@/components/common/Button";
+import { FieldGroup, formControlShellClassName, TextArea, TextInput } from "@/components/common/FormField";
+import PortalTooltip from "@/components/common/portalTooltip";
+
 type AddFieldFormProps = {
   onAddField: (key: string, value: string) => void | Promise<void>;
   existingKeys: string[];
@@ -210,13 +214,20 @@ export default function AddFieldForm({
     : fieldStatus === "duplicate"
       ? "border-error/45 bg-error/5 ring-1 ring-error/15"
       : "border-base-content/20 bg-base-100";
-  const tileSubmitButtonStateClassName = isSubmitSaved
-    ? "btn-success text-success-content shadow-sm shadow-success/20"
+  const tileSubmitButtonVariant = isSubmitSaved
+    ? "success"
     : isSubmitError
-      ? "btn-error text-error-content shadow-sm shadow-error/20"
+      ? "error"
       : canAdd || isSubmitting
-        ? "btn-info text-info-content shadow-sm shadow-info/25"
-        : "btn-ghost text-base-content/50 hover:text-info hover:bg-info/10";
+        ? "info"
+        : "ghost";
+  const tileSubmitButtonStateClassName = isSubmitSaved
+    ? "shadow-sm shadow-success/20"
+    : isSubmitError
+      ? "shadow-sm shadow-error/20"
+      : canAdd || isSubmitting
+        ? "shadow-sm shadow-info/25"
+        : "text-base-content/50 hover:text-info hover:bg-info/10";
 
   if (layout === "stacked") {
     if (!isStackedOpen) {
@@ -263,23 +274,23 @@ export default function AddFieldForm({
               ">+</span>
               {title}
             </span>
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="xs"
               onClick={() => setIsStackedOpen(false)}
-              className="btn btn-ghost btn-xs text-base-content/50 hover:text-base-content"
+              className="text-base-content/50 hover:text-base-content"
             >
               收起
-            </button>
+            </Button>
           </div>
         )}
         <div className="space-y-3">
-          <label className="
-            input flex w-full items-center gap-2 rounded-lg border-base-content/12
-            bg-base-200/35 transition focus-within:border-info
-            focus-within:outline-none focus-within:ring-2
-            focus-within:ring-info/20
-          ">
-            <input
+          <label className={formControlShellClassName({
+            surface: "muted",
+            className: "w-full gap-2 rounded-lg border-base-content/12 bg-base-200/35",
+          })}>
+            <TextInput
+              appearance="bare"
               ref={keyInputRef}
               type="text"
               autoComplete="off"
@@ -298,13 +309,12 @@ export default function AddFieldForm({
             />
           </label>
           <div className="relative">
-            <label className="
-              textarea flex w-full items-center gap-2 rounded-lg
-              border-base-content/12 bg-base-200/35 p-0 transition
-              focus-within:border-info focus-within:outline-none
-              focus-within:ring-2 focus-within:ring-info/20
-            ">
-              <textarea
+            <label className={formControlShellClassName({
+              surface: "muted",
+              className: "w-full gap-2 rounded-lg border-base-content/12 bg-base-200/35 p-0",
+            })}>
+              <TextArea
+                appearance="bare"
                 ref={valueTextareaRef}
                 autoComplete="off"
                 onKeyDown={(e) => {
@@ -314,18 +324,16 @@ export default function AddFieldForm({
                 aria-label="字段值"
                 placeholder={placeholder.value || "字段值"}
                 data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
-                className="
-                  textarea min-h-28 grow border-none bg-transparent pb-12 pr-20
-                  outline-none placeholder:text-base-content/35 focus:outline-none focus:ring-2 focus:ring-info/30
-                "
+                className="min-h-28 grow pb-12 pr-20 placeholder:text-base-content/35"
               />
             </label>
-            <div className="tooltip tooltip-top absolute bottom-2 right-2" data-tip={stackedAddTip}>
-              <button
-                type="button"
+            <PortalTooltip label={stackedAddTip} placement="top" anchorClassName="absolute bottom-2 right-2">
+              <Button
+                variant="primary"
+                size="xs"
+                loading={isSubmitting}
                 onClick={() => void handleAddField()}
                 disabled={!canAdd || isSubmitting}
-                aria-busy={isSubmitting}
                 title={
                   isSubmitting
                     ? "正在保存字段"
@@ -333,11 +341,10 @@ export default function AddFieldForm({
                       ? "请输入字段名"
                       : stackedAddTip
                 }
-                className="btn btn-primary btn-xs"
               >
                 {isSubmitting ? "保存中..." : isSubmitSaved ? "已保存" : isSubmitError ? "保存失败" : "✓ 添加"}
-              </button>
-            </div>
+              </Button>
+            </PortalTooltip>
           </div>
         </div>
       </div>
@@ -346,7 +353,7 @@ export default function AddFieldForm({
 
   if (variant === "tile") {
     return (
-      <div className={`form-control ${className}`}>
+      <FieldGroup className={className}>
         <label className={`
           relative flex items-center gap-2 rounded-lg border
           py-2 px-3 transition-all
@@ -354,10 +361,11 @@ export default function AddFieldForm({
           focus-within:ring-info/20
           max-md:flex-col max-md:items-stretch max-md:h-auto max-md:gap-0
           w-full
-          md:input md:input-ghost md:h-10
+          md:h-10
           ${tileShellStateClassName}
         `}>
-          <input
+          <TextInput
+            appearance="bare"
             ref={keyInputRef}
             type="text"
             onChange={e => setKeyDraft(e.currentTarget.value)}
@@ -384,7 +392,8 @@ export default function AddFieldForm({
             md:block
             w-px h-4 bg-base-content/20 mx-2
           "></div>
-          <input
+          <TextInput
+            appearance="bare"
             ref={valueInputRef}
             type="text"
             onKeyDown={(e) => {
@@ -402,28 +411,28 @@ export default function AddFieldForm({
               placeholder:text-base-content/30
             "
           />
-          <button
-            type="button"
+          <Button
+            variant={tileSubmitButtonVariant}
+            shape="circle"
+            size="xs"
+            loading={isSubmitting}
             onClick={() => void handleAddField()}
             disabled={!canAdd || isSubmitting}
             className={`
-              btn btn-circle
-              md:static md:btn-xs
+              md:static
               max-md:absolute max-md:top-1 max-md:right-1 max-md:size-6
               max-md:min-h-0
               ${tileSubmitButtonStateClassName}
             `}
             title={inlineAddTip}
-            aria-busy={isSubmitting}
             aria-label={isSubmitting ? "保存中" : isSubmitSaved ? "已保存" : isSubmitError ? "保存失败" : "添加字段"}
           >
-            {isSubmitting && <span className="loading loading-spinner loading-xs" aria-hidden="true" />}
             {isSubmitSaved && <span className="text-success">✓</span>}
             {isSubmitError && <span className="text-error">!</span>}
             {submitStatus === "idle" && "✓"}
-          </button>
+          </Button>
         </label>
-      </div>
+      </FieldGroup>
     );
   }
 
@@ -435,12 +444,9 @@ export default function AddFieldForm({
       {showTitle && (
         <span className="text-sm text-base-content/50 mb-2 block">{title}</span>
       )}
-      <label className="
-        input flex items-center gap-2 rounded-md transition
-        focus-within:ring-2 focus-within:ring-info/20
-        focus-within:border-info focus-within:outline-none
-      ">
-        <input
+      <label className={formControlShellClassName({ className: "gap-2" })}>
+        <TextInput
+          appearance="bare"
           ref={keyInputRef}
           type="text"
           onChange={e => setKeyDraft(e.currentTarget.value)}
@@ -458,7 +464,8 @@ export default function AddFieldForm({
           "
         />
         <div className="w-px h-4 bg-base-content/20"></div>
-        <input
+        <TextInput
+          appearance="bare"
           ref={valueInputRef}
           type="text"
           onKeyDown={(e) => {
@@ -474,24 +481,24 @@ export default function AddFieldForm({
             border-none outline-none
           "
         />
-        <div className="tooltip tooltip-top" data-tip={inlineAddTip}>
-          <button
-            type="button"
+        <PortalTooltip label={inlineAddTip} placement="top">
+          <Button
+            variant="primary"
+            size="xs"
+            loading={isSubmitting}
             onClick={() => void handleAddField()}
             disabled={!canAdd || isSubmitting}
-            aria-busy={isSubmitting}
             title={
               isSubmitting
                 ? "正在保存字段"
                 : fieldStatus === "empty"
                   ? "请输入字段名"
-                  : inlineAddTip
+                : inlineAddTip
             }
-            className="btn btn-xs btn-primary"
           >
             {isSubmitting ? "保存中..." : isSubmitSaved ? "已保存" : isSubmitError ? "保存失败" : "✓ 添加"}
-          </button>
-        </div>
+          </Button>
+        </PortalTooltip>
       </label>
     </div>
   );

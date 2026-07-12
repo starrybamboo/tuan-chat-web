@@ -337,7 +337,6 @@ export function OpenAbleDrawer({
     );
   }
 
-  // 大屏情况下，返回可调整宽度的容器。
   const visibleWidth = isDragCollapsed ? 0 : Math.max(0, renderedWidth);
   const visibleOpacity = isDragCollapsed ? 0 : 1;
   const widthAnimationDuration = isDragCollapseAnimating ? 0.16 : isResizing ? 0 : animationDuration;

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { Button } from "@/components/common/Button";
 import { RoomChatIcon } from "@/icons";
 
 import LoginModal from "./LoginModal";
@@ -15,16 +16,16 @@ export default function LoginButton({ autoOpen }: { autoOpen?: boolean }) {
 
   return (
     <div>
-      <button
-        type="button"
+      <Button
+        variant="primary"
+        icon={<RoomChatIcon className="size-4" />}
+        className="gap-2"
         onClick={() => setIsLoginModalOpen(true)}
-        className="btn btn-primary gap-2"
         aria-haspopup="dialog"
         aria-expanded={isLoginModalOpen}
       >
-        <RoomChatIcon className="size-4" />
         登录 / 注册
-      </button>
+      </Button>
 
       <LoginModal
         isOpen={isLoginModalOpen}

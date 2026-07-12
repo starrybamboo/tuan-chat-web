@@ -1,6 +1,12 @@
 import React, { useImperativeHandle, useRef } from "react";
 
 import { extractEditablePlainText } from "@/components/chat/input/chatInputPlainText";
+import {
+  CHAT_MENTION_SELECTOR,
+  findChatMentionElement,
+  selectChatMentionElement,
+  syncChatMentionSelectionState,
+} from "@/components/chat/input/chatMentionNode";
 import { insertPlainTextWithUndo } from "@/components/chat/input/undoablePlainText";
 import { getMessageEditorClipboardFiles } from "@/components/messageEditor/runtime/messageEditorFileDrop";
 import { getEditorRange } from "@/utils/getSelectionCoords";
@@ -140,7 +146,7 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
       return { mentionedRoles: [], textWithoutMentions: "" };
 
     const mentionedRoles: UserRole[] = [];
-    const mentionSpans = editorDiv.querySelectorAll<HTMLSpanElement>("span[data-role]");
+    const mentionSpans = editorDiv.querySelectorAll<HTMLSpanElement>(CHAT_MENTION_SELECTOR);
 
     mentionSpans.forEach((span) => {
       const roleData = span.dataset.role;
@@ -167,6 +173,23 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
   const getPlainText = (): string => {
     return extractEditablePlainText(internalTextareaRef.current);
   };
+
+  const syncMentionSelectionState = React.useCallback(() => {
+    const editor = internalTextareaRef.current;
+    if (!editor) {
+      return;
+    }
+    syncChatMentionSelectionState(editor);
+  }, []);
+
+  const scheduleMentionSelectionSync = React.useCallback(() => {
+    const view = internalTextareaRef.current?.ownerDocument.defaultView;
+    if (view?.requestAnimationFrame) {
+      view.requestAnimationFrame(syncMentionSelectionState);
+      return;
+    }
+    globalThis.setTimeout(syncMentionSelectionState, 0);
+  }, [syncMentionSelectionState]);
 
   /**
    * [内部 DOM 方法] 在光标处插入节点
@@ -289,6 +312,10 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
   const isVisuallyEmpty = (text: string) =>
     !text.replace(/[\s\u200B]/g, "");
 
+  const isEphemeralWhitespaceText = (node: Node) =>
+    node.nodeType === Node.TEXT_NODE
+    && !((node.textContent ?? "").replace(/\u200B/g, ""));
+
   /**
    * 清理 contentEditable 中浏览器残留的空块元素，
    * 避免删除换行后高度无法收缩。
@@ -308,7 +335,7 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     let lastChild = editor.lastChild;
     while (lastChild) {
       if (lastChild.nodeType === Node.TEXT_NODE) {
-        if (isVisuallyEmpty(lastChild.textContent ?? "")) {
+        if (isEphemeralWhitespaceText(lastChild)) {
           const prev = lastChild.previousSibling;
           editor.removeChild(lastChild);
           lastChild = prev;
@@ -358,6 +385,7 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     const { textWithoutMentions, mentionedRoles } = extractMentionsAndTextInternal();
     props.onInputSync(getPlainText(), textWithoutMentions, mentionedRoles);
     updateHasTextFlag();
+    syncMentionSelectionState();
   };
 
   const handleKeyDownInternal = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -370,6 +398,39 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     globalThis.setTimeout(() => {
       preserveTrailingLineBreakOnNextInputRef.current = false;
     }, 0);
+  };
+
+  const handleKeyUpInternal = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    props.onKeyUp(event);
+    syncMentionSelectionState();
+  };
+
+  const handleMouseDownInternal = (event: React.MouseEvent<HTMLDivElement>) => {
+    props.onMouseDown(event);
+    if (event.defaultPrevented || event.button !== 0) {
+      return;
+    }
+
+    const editor = internalTextareaRef.current;
+    const mention = findChatMentionElement(event.target, editor);
+    if (!editor || !mention) {
+      scheduleMentionSelectionSync();
+      return;
+    }
+
+    event.preventDefault();
+    editor.focus();
+    if (selectChatMentionElement(mention)) {
+      syncMentionSelectionState();
+    }
+  };
+
+  const handleBlurInternal = (event: React.FocusEvent<HTMLDivElement>) => {
+    const editor = internalTextareaRef.current;
+    if (editor) {
+      syncChatMentionSelectionState(editor, null);
+    }
+    props.onBlur?.(event);
   };
 
   /**
@@ -427,6 +488,15 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     updateHasTextFlag();
   }, []);
 
+  React.useEffect(() => {
+    const editor = internalTextareaRef.current;
+    const ownerDocument = editor?.ownerDocument ?? document;
+    ownerDocument.addEventListener("selectionchange", syncMentionSelectionState);
+    return () => {
+      ownerDocument.removeEventListener("selectionchange", syncMentionSelectionState);
+    };
+  }, [syncMentionSelectionState]);
+
   // --- 暴露 Ref API ---
   useImperativeHandle(ref, () => ({
     /**
@@ -440,6 +510,7 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
         if (htmlContent && options?.moveCursorToEnd !== false) {
           moveCaretToEnd();
         }
+        syncMentionSelectionState();
       }
     },
     /**
@@ -487,8 +558,8 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
       ref={internalTextareaRef}
       onInput={() => handleInputInternal()} // 使用内部的 input 处理器
       onKeyDown={handleKeyDownInternal}
-      onKeyUp={props.onKeyUp} // 转发给父组件
-      onMouseDown={props.onMouseDown} // 转发给父组件
+      onKeyUp={handleKeyUpInternal}
+      onMouseDown={handleMouseDownInternal}
       onScroll={props.onScroll}
 
       // *** 添加缺失的 Composition 事件处理器 ***
@@ -506,8 +577,9 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
       contentEditable={!props.disabled}
       data-placeholder={props.placeholder}
       data-chat-input-scope={props.inputScope}
-      onBlur={props.onBlur}
+      onBlur={handleBlurInternal}
       onFocus={props.onFocus}
+      onSelect={syncMentionSelectionState}
     />
   );
 }

@@ -75,6 +75,7 @@ type ChatFrameProps = {
   baseArchiveCommitId?: number | null;
   sendMessageWithInsert?: (message: ChatMessageRequest) => Promise<Message | null>;
   onCopyMessageToClueFolder?: (message: Message, scope: ClueFolderScope) => void | Promise<void>;
+  onPokeMessage?: (message: Message) => void;
   onExportPremiere?: (selectedMessages: ChatMessageResponse[]) => void | Promise<void>;
   showFullMessageDiff?: boolean;
 }
@@ -95,6 +96,7 @@ function ChatFrame(props: ChatFrameProps) {
     roomName,
     baseArchiveCommitId,
     onCopyMessageToClueFolder,
+    onPokeMessage,
     onExportPremiere,
     showFullMessageDiff = false,
   } = props;
@@ -611,6 +613,7 @@ function ChatFrame(props: ChatFrameProps) {
     onExecuteCommandRequest,
     isCommandRequestConsumed,
     onEditWebgalChoose: openWebgalChooseEditor,
+    onPokeMessage,
     onMessageClick: handleMessageClick,
     onToggleSelection: toggleMessageSelection,
     onDragOver: handleDragOver,
@@ -702,6 +705,7 @@ function ChatFrame(props: ChatFrameProps) {
         onOpenAnnotations: handleOpenAnnotations,
         onInsertAfter: setInsertAfterMessageId,
         onCopyMessageToClueFolder,
+        onPokeMessage,
         onToggleNarrator: handleToggleNarrator,
       }}
     />

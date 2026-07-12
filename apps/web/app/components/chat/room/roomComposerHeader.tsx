@@ -3,9 +3,12 @@ import React from "react";
 import ChatStatusBar from "@/components/chat/chatStatusBar";
 import { normalizeInlineRoleName, useInlineTextEditor } from "@/components/chat/hooks/useInlineTextEditor";
 import AvatarDropdownContent from "@/components/chat/input/avatarDropdownContent";
+import { Button } from "@/components/common/Button";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { AddRoleIcon, NarratorIcon } from "@/icons";
+
+import type { ChatStatusPayload } from "../../../../api/wsModels";
 
 type RoomComposerHeaderProps = {
   roomId: number;
@@ -79,12 +82,12 @@ export default function RoomComposerHeader({
   const isMobile = screenSize === "sm";
   const showSelfStatus = Boolean(currentChatStatus && !isSpectator);
   const showOtherStatus = React.useMemo(() => {
-    const raw = (webSocketUtils?.chatStatus?.[roomId] ?? []) as { userId: number; status: "input" | "wait" | "leave" | "idle" }[];
+    const raw = (webSocketUtils?.chatStatus?.[roomId] ?? []) as { userId: number; status: ChatStatusPayload }[];
     if (!raw.length) {
       return false;
     }
     const others = userId != null ? raw.filter(s => s.userId !== userId) : raw;
-    return others.some(s => s.status === "input" || s.status === "wait" || s.status === "leave");
+    return others.some(s => s.status.type === "input" || s.status.type === "wait" || s.status.type === "leave");
   }, [roomId, userId, webSocketUtils?.chatStatus]);
 
   const nameEditor = useInlineTextEditor<HTMLSpanElement>({
@@ -209,10 +212,10 @@ export default function RoomComposerHeader({
               `}
               aria-haspopup="dialog"
               aria-expanded={isAvatarPopoverOpen}
+              aria-label="选择发言角色和头像"
+              title={isSpectator ? "旁观模式无法切换发言角色" : "选择发言角色和头像"}
+              disabled={isSpectator}
               onClick={() => {
-                if (isSpectator) {
-                  return;
-                }
                 setIsAvatarPopoverPrewarmed(true);
                 if (isAvatarPopoverOpen) {
                   setIsAvatarPopoverOpen(false);
@@ -276,7 +279,7 @@ export default function RoomComposerHeader({
                     ? "size-full"
                     : "h-full w-full"
                   }
-                    rounded-box bg-base-100 border border-base-300 shadow-lg p-2
+                    rounded-md bg-base-100 border border-base-300 shadow-lg p-2
                     self-stretch flex flex-col
                   `}
                 >
@@ -286,13 +289,13 @@ export default function RoomComposerHeader({
                       border-base-300 mb-2
                     ">
                       <span className="text-sm font-medium">切换角色与头像</span>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-xs"
+                      <Button
+                        variant="ghost"
+                        size="xs"
                         onClick={() => setIsAvatarPopoverOpen(false)}
                       >
                         关闭
-                      </button>
+                      </Button>
                     </div>
                   )}
                   <div className="flex-1 min-h-0">
@@ -389,7 +392,7 @@ export default function RoomComposerHeader({
           {leftToolbar && (
             <div className={`
               flex h-8 items-center gap-1 min-w-0
-              ${isMobile ? `overflow-x-auto` : ""}
+              ${isMobile ? `overflow-x-auto overscroll-x-none` : ""}
             `}>
               {leftToolbar}
             </div>

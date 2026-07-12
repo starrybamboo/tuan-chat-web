@@ -1,6 +1,7 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
 import { getMobileRoomMessageRepository } from "../../lib/mobile-local-db";
+import { traceRoomMessageTiming } from "./roomMessageTimingTrace";
 
 function isPositiveRoomId(roomId: number): boolean {
   return Number.isInteger(roomId) && roomId > 0;
@@ -11,9 +12,29 @@ export async function readCachedRoomMessages(roomId: number): Promise<ChatMessag
     return [];
   }
 
-  const repository = await getMobileRoomMessageRepository();
-  const messages = await repository.getMessagesByRoomId(roomId);
-  return messages.filter(m => typeof m.message?.messageId === "number" && m.message.messageId > 0);
+  const startedAt = Date.now();
+  traceRoomMessageTiming("cache.read.start", { roomId });
+  try {
+    const repository = await getMobileRoomMessageRepository();
+    const messages = await repository.getMessagesByRoomId(roomId);
+    const visibleMessages = messages.filter(m =>
+      typeof m.message?.messageId === "number" && m.message.messageId > 0,
+    );
+    traceRoomMessageTiming("cache.read.end", {
+      count: visibleMessages.length,
+      durationMs: Date.now() - startedAt,
+      roomId,
+    });
+    return visibleMessages;
+  }
+  catch (error) {
+    traceRoomMessageTiming("cache.read.error", {
+      durationMs: Date.now() - startedAt,
+      error: error instanceof Error ? error.message : String(error),
+      roomId,
+    });
+    throw error;
+  }
 }
 
 export async function readCachedRoomMessagesSinceSyncId(roomId: number, syncId: number): Promise<ChatMessageResponse[]> {

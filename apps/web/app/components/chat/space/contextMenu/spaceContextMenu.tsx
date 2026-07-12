@@ -5,6 +5,7 @@ import { appToast } from "@/components/common/appToast/appToast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { getSpaceArchiveActionDisabledReason } from "@/components/chat/space/spaceArchiveActionPolicy";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { MenuItem, MenuSurface } from "@/components/common/MenuPopover";
 
 import { useDissolveSpaceMutation, useExitSpaceMutation, useGetSpaceInfoQuery, useRecoverSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../../api/hooks/chatQueryHooks";
 
@@ -121,56 +122,49 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
           style={{ top: contextMenu.y, left: contextMenu.x }}
           onClick={e => e.stopPropagation()}
         >
-          <ul className="menu p-2 w-50">
+          <MenuSurface as="ul" ariaLabel="空间操作" className="w-50 p-2">
             {isSpaceOwner
               ? (
                   <>
-                    <li
-                      className={`
-                        relative group
-                        ${archiveActionDisabled ? `
-                          opacity-60 cursor-not-allowed
-                        ` : ""}
-                      `}
-                      aria-disabled={archiveActionDisabled}
-                      title={archiveActionDisabledReason ?? archiveActionLabel}
-                      onClick={() => {
-                        handleArchiveAction(contextMenu.spaceId);
-                      }}
-                    >
-                      <div className="flex justify-between items-center w-full">
+                    <li role="none">
+                      <MenuItem
+                        disabled={archiveActionDisabled}
+                        aria-label={`${archiveActionLabel} ${displaySpaceLabel}`}
+                        title={archiveActionDisabledReason ?? archiveActionLabel}
+                        onClick={() => {
+                          handleArchiveAction(contextMenu.spaceId);
+                        }}
+                      >
                         <span>{archiveActionLabel}</span>
-                      </div>
+                      </MenuItem>
                     </li>
-                    <li className="relative group text-error">
-                      <button
-                        type="button"
-                        className="flex justify-between items-center w-full text-error"
+                    <li role="none">
+                      <MenuItem
+                        tone="danger"
                         aria-label={`解散空间 ${displaySpaceLabel}`}
                         onClick={() => {
                           handleDissolve();
                         }}
                       >
                         <span>解散空间</span>
-                      </button>
+                      </MenuItem>
                     </li>
                   </>
                 )
               : (
-                  <li className="relative group">
-                    <button
-                      type="button"
-                      className="flex justify-between items-center w-full"
+                  <li role="none">
+                    <MenuItem
+                      tone="danger"
                       aria-label={`退出空间 ${displaySpaceLabel}`}
                       onClick={() => {
                         handleExit(contextMenu.spaceId);
                       }}
                     >
                       <span>退出空间</span>
-                    </button>
+                    </MenuItem>
                   </li>
                 )}
-          </ul>
+          </MenuSurface>
         </div>
       )}
 

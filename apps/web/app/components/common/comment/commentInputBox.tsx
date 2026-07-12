@@ -1,5 +1,6 @@
 import { use, useState } from "react";
 
+import { Button } from "@/components/common/Button";
 import { CommentContext } from "@/components/common/comment/commentContext";
 import {
   hasMeaningfulMediaContent,
@@ -99,9 +100,11 @@ export default function CommentInputBox({
 
           <div className="flex items-center gap-2">
             {onCancel && (
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 className="
-                  btn btn-ghost btn-sm h-9 min-h-9 rounded-full px-4
+                  h-9 min-h-9 rounded-full px-4
                   text-base-content/65
                   hover:bg-base-200
                 "
@@ -112,34 +115,24 @@ export default function CommentInputBox({
               >
                 <CloseIcon className="h-4 w-4" />
                 取消
-              </button>
+              </Button>
             )}
-            <button
-              className={`
-                btn btn-sm h-9 min-h-9 rounded-full px-4 transition-all
+            <Button
+              variant="primary"
+              size="sm"
+              className="
+                h-9 min-h-9 rounded-full px-4 transition-all
                 duration-200 motion-reduce:transition-none
-                ${canSubmit ? `btn-primary` : `btn-disabled`}
-              `}
+              "
               type="button"
+              icon={<SendIcon className="h-4 w-4" />}
+              loading={addCommentMutation.isPending}
               onClick={handleAddComment}
               disabled={!canSubmit}
-              aria-busy={addCommentMutation.isPending}
               title={addCommentMutation.isPending ? "正在发布评论" : canSubmit ? "发布评论" : "请输入评论内容"}
             >
-              {addCommentMutation.isPending
-                ? (
-                    <>
-                      <span className="loading loading-spinner loading-xs"></span>
-                      发布中...
-                    </>
-                  )
-                : (
-                    <>
-                      <SendIcon className="h-4 w-4" />
-                      发布
-                    </>
-                  )}
-            </button>
+              {addCommentMutation.isPending ? "发布中..." : "发布"}
+            </Button>
           </div>
         </div>
       </div>

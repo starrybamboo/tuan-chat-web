@@ -1,10 +1,14 @@
+import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { use, useState } from "react";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
+import { Button } from "@/components/common/Button";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
+import { Badge, Skeleton } from "@/components/common/StatusPrimitives";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import ExpansionModule from "@/components/Role/rules/ExpansionModule";
 
@@ -90,19 +94,31 @@ export function RoleDetail({
 
   return (
     <div className="bg-base-100 flex flex-col gap-4 w-full">
-      <div className="card card-compact shadow-sm border border-base-200">
-        <div className="card-body gap-4">
+      {onClose && (
+        <div className="px-2 pt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<ArrowLeftIcon className="size-4" aria-hidden="true" />}
+            onClick={onClose}
+          >
+            返回
+          </Button>
+        </div>
+      )}
+      <div className={surfaceClassName({ level: "content", className: "border-base-200 p-4 shadow-sm" })}>
+        <div className="flex flex-col gap-4">
           <div className="flex flex-row gap-4 items-start justify-between">
             <div className="flex flex-row gap-4 items-start">
               <div className="shrink-0">
-                <div className="avatar">
+                <div className="relative inline-flex align-middle">
                   <div className="
                     w-20 h-20 rounded-full ring ring-info
                     ring-offset-base-100 ring-offset-2 overflow-hidden
                   ">
                     {roleQuery.isLoading
                       ? (
-                          <div className="skeleton w-20 h-20" />
+                          <Skeleton className="w-20 h-20" />
                         )
                       : (
                           <div className="
@@ -127,25 +143,21 @@ export function RoleDetail({
                 {roleQuery.isLoading
                   ? (
                       <div className="space-y-2">
-                        <div className="skeleton h-5 w-32" />
-                        <div className="skeleton h-4 w-48" />
+                        <Skeleton className="h-5 w-32" />
+                        <Skeleton className="h-4 w-48" />
                       </div>
                     )
                   : (
                       <>
                         <div className="flex items-center gap-2 min-w-0">
-                          <h2 className="
-                            card-title text-lg truncate min-w-0 flex-1
-                          ">
+                          <h2 className="min-w-0 flex-1 truncate text-lg font-medium">
                             {role?.roleName || `角色 ${roleId}`}
                           </h2>
-                          <span className="
-                            badge badge-outline badge-sm font-mono
-                          ">
+                          <Badge density="default" appearance="outline" className="font-mono">
                             ID:
                             {" "}
                             {roleId}
-                          </span>
+                          </Badge>
                         </div>
 
                         {role?.description && (
@@ -160,30 +172,30 @@ export function RoleDetail({
                           flex flex-wrap gap-2 text-[11px] text-base-content/60
                         ">
                           {roomId && (
-                            <span className="badge badge-ghost badge-xs">
+                            <Badge appearance="ghost">
                               房间
                               {" "}
                               {roomId}
-                            </span>
+                            </Badge>
                           )}
                           {ruleId && (
-                            <span className="badge badge-ghost badge-xs">
+                            <Badge appearance="ghost">
                               规则
                               {" "}
                               {ruleId}
-                            </span>
+                            </Badge>
                           )}
                           {user && (
-                            <span className="badge badge-ghost badge-xs">
+                            <Badge appearance="ghost">
                               所属用户
                               {" "}
                               {userName}
-                            </span>
+                            </Badge>
                           )}
                           {hasHostAccess && (
-                            <span className="badge badge-info badge-xs">
+                            <Badge tone="info">
                               你有主持权限
-                            </span>
+                            </Badge>
                           )}
                         </div>
                       </>
@@ -196,32 +208,27 @@ export function RoleDetail({
                 ? (
                     canKick
                       ? (
-                          <button
-                            type="button"
-                            className="
-                              btn btn-error btn-xs
-                              sm:btn-sm
-                            "
+                          <Button
+                            variant="error"
+                            size="xs"
+                            className="sm:h-8 sm:min-h-8 sm:px-3"
                             onClick={() => setIsKickConfirmOpen(true)}
                             aria-label={`踢出角色「${roleDisplayName}」（${roomDisplayName}）`}
                           >
                             踢出角色
-                          </button>
+                          </Button>
                         )
                       : null
                   )
                 : (
-                    <button
-                      type="button"
-                      className="
-                        btn btn-xs
-                        sm:btn-sm
-                      "
+                    <Button
+                      size="xs"
+                      className="sm:h-8 sm:min-h-8 sm:px-3"
                       disabled
                       onClick={() => setIsKickConfirmOpen(true)}
                     >
                       仓库角色不能被踢出
-                    </button>
+                    </Button>
                   )}
             </div>
           </div>
@@ -229,8 +236,8 @@ export function RoleDetail({
       </div>
 
       {showAbilities && (
-        <div className="card card-compact border border-base-200 shadow-sm">
-          <div className="card-body gap-3">
+        <div className={surfaceClassName({ level: "content", className: "border-base-200 p-4 shadow-sm" })}>
+          <div className="flex flex-col gap-3">
             <div className="mt-1">
               <ExpansionModule roleId={roleId} ruleId={ruleId ?? undefined} />
             </div>

@@ -1,6 +1,6 @@
 import { getClueCardRenderData, getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
+import { isSystemRowMessageType } from "@tuanchat/domain/poke-message";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { appToast } from "@/components/common/appToast/appToast";
 
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 
@@ -15,13 +15,15 @@ import MessageAnnotationsBar from "@/components/chat/message/annotations/message
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
 import { buildMessageTextDiff } from "@/components/chat/message/diff/messageTextDiff";
 import MessageTextDiffPreview from "@/components/chat/message/diff/MessageTextDiffPreview";
+import { MediaImage } from "@/components/common/mediaImage";
+import PortalTooltip from "@/components/common/portalTooltip";
 import EditableMessageContent from "@/components/chat/message/editableMessageContent";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
-import StateMessageCard from "@/components/chat/state/stateMessageCard";
 import ForwardMessage from "@/components/chat/message/preview/forwardMessage";
 import { MessagePreviewContent } from "@/components/chat/message/preview/messagePreviewContent";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import RoomJumpMessage from "@/components/chat/message/roomJump/roomJumpMessage";
+import StateMessageCard from "@/components/chat/state/stateMessageCard";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore, useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
@@ -30,12 +32,15 @@ import { isObserverLike } from "@/components/chat/utils/memberPermissions";
 import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
-import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
+import { appToast } from "@/components/common/appToast/appToast";
+import { Button } from "@/components/common/Button";
+import { DialogActions, DialogFrame } from "@/components/common/DialogFrame";
+import { Badge } from "@/components/common/StatusPrimitives";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { CloseIcon, CommentOutline, Edit2Outline, EmojiIconWhite, InsertLineBelow, ListUnordered, MoreMenu, NarratorIcon, ScreenIcon } from "@/icons";
+import { CommentOutline, Edit2Outline, EmojiIconWhite, InsertLineBelow, ListUnordered, MoreMenu, NarratorIcon, ScreenIcon } from "@/icons";
 import {
   ANNOTATION_IDS,
   areAnnotationsEqual,
@@ -47,6 +52,7 @@ import {
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { formatTimeSmartly } from "@/utils/dateUtil";
 import { getScreenSize } from "@/utils/getScreenSize";
+import { avatarUrl as buildAvatarUrl, imageLowUrl as buildAvatarThumbUrl } from "@/utils/media/mediaUrl";
 import { isRoleNotFoundApiError } from "@/utils/roleApiError";
 import { areRealtimeRenderMessagesEquivalent } from "@/webGAL/realtimeRenderMessageDelta";
 
@@ -96,10 +102,11 @@ function DiceTurnReplyItem({
   roomRoles: Pick<UserRole, "roleId" | "roleName">[];
 }) {
   const roleId = typeof reply.roleId === "number" && reply.roleId > 0 ? reply.roleId : 0;
-  const roleRequest = useGetRoleQuery(roleId);
+  const roomRole = roomRoles.find(item => item.roleId === reply.roleId);
+  const roleRequest = useGetRoleQuery(roleId, { enabled: !roomRole });
   const roleName = reply.customRoleName
+    || roomRole?.roleName?.trim()
     || roleRequest.data?.data?.roleName?.trim()
-    || roomRoles.find(item => item.roleId === reply.roleId)?.roleName?.trim()
     || (reply.roleId ? `角色 #${reply.roleId}` : "骰娘");
 
   return (
@@ -126,7 +133,7 @@ function DiceTurnReplyItem({
           `}
         `}>
           <span className="font-medium">{roleName}</span>
-          {reply.hidden ? <span className="badge badge-ghost badge-xs">暗骰</span> : null}
+          {reply.hidden ? <Badge appearance="ghost">暗骰</Badge> : null}
         </div>
         {useChatBubbleStyle
           ? (
@@ -199,12 +206,13 @@ function formatMessageHeaderTime(createTime?: string | number | null, updateTime
 
 function HoverToolbarActionButton({ label, onClick, children }: HoverToolbarActionButtonProps) {
   return (
-    <div className="tooltip tooltip-bottom flex" data-tip={label}>
-      <button
-        type="button"
+    <PortalTooltip label={label} placement="bottom" anchorClassName="flex">
+      <Button
+        variant="ghost"
+        size="xs"
+        shape="circle"
         className="
-          btn btn-ghost btn-xs size-7 min-h-0 rounded-full p-0
-          text-base-content/70
+          size-7 min-h-0 p-0 text-base-content/70
           hover:bg-base-300/70 hover:text-base-content
         "
         onClick={onClick}
@@ -212,8 +220,8 @@ function HoverToolbarActionButton({ label, onClick, children }: HoverToolbarActi
         aria-label={label}
       >
         {children}
-      </button>
-    </div>
+      </Button>
+    </PortalTooltip>
   );
 }
 
@@ -224,34 +232,17 @@ function ClueCardReadonlyModal({
   message: Message;
   onClose: () => void;
 }) {
-  const dialogRef = useRef<HTMLDivElement | null>(null);
-
-  useEscapeToClose({
-    enabled: true,
-    onClose,
-    containerRef: dialogRef,
-  });
-
   return (
-    <div
-      ref={dialogRef}
-      data-modal-layer="true"
-      role="dialog"
-      aria-modal="true"
-      aria-label="查看线索"
-      className="modal modal-open z-9999"
+    <DialogFrame
+      open
+      mode="inline"
+      onClose={onClose}
+      ariaLabel="查看线索"
+      rootClassName="z-9999"
+      panelClassName="max-w-2xl"
     >
-      <div className="modal-box max-w-2xl">
-        <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="mb-3">
           <h3 className="text-base font-semibold">查看线索</h3>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm btn-square"
-            aria-label="关闭"
-            onClick={onClose}
-          >
-            <CloseIcon className="size-5" />
-          </button>
         </div>
 
         <div className="
@@ -267,17 +258,12 @@ function ClueCardReadonlyModal({
           />
         </div>
 
-        <div className="modal-action">
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={onClose}
-          >
+        <DialogActions>
+          <Button variant="ghost" size="sm" onClick={onClose}>
             关闭
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogActions>
+    </DialogFrame>
   );
 }
 
@@ -310,7 +296,7 @@ function ClueCardMessage({ message }: { message: Message }) {
           setIsModalOpen(true);
         }}
       >
-        <span className="badge badge-info badge-xs w-fit">线索</span>
+        <Badge tone="info" className="w-fit">线索</Badge>
         <div className="min-w-0 wrap-break-word text-sm">
           <MessagePreviewContent message={snapshotMessage} withMediaPreview />
         </div>
@@ -343,7 +329,7 @@ export function ClueCardReadonlyContent({
   );
 }
 
-function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecuteCommandRequest, isCommandRequestConsumed, onToggleSelection, onEditWebgalChoose, baseVersionMessage, showFullMessageDiff, showAddedMessageDiff = true, messageAction }: {
+function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecuteCommandRequest, isCommandRequestConsumed, onToggleSelection, onEditWebgalChoose, onPokeMessage, baseVersionMessage, showFullMessageDiff, showAddedMessageDiff = true, messageAction }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
   chatMessageResponse: ChatMessageResponse;
   /** 控制是否应用气泡样式，默认为false */
@@ -353,6 +339,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   isCommandRequestConsumed?: (requestMessageId: number) => boolean;
   onToggleSelection?: (messageId: number) => void;
   onEditWebgalChoose?: (messageId: number) => void;
+  onPokeMessage?: (message: Message) => void;
   baseVersionMessage?: ChatMessageResponse | null;
   showFullMessageDiff?: boolean;
   showAddedMessageDiff?: boolean;
@@ -399,15 +386,16 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
       clearTimeout(effectPreviewTimerRef.current);
     }
   }, []);
-  const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId ?? 0);
-  const role = useRoleRequest.data?.data;
-  const roleDeleted = isRoleNotFoundApiError(useRoleRequest.error);
+  const roomContext = use(RoomContext);
+  const roleFromRoom = roomContext.roomAllRoles?.find(item => item.roleId === chatMessageResponse.message.roleId);
+  const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId ?? 0, { enabled: !roleFromRoom });
+  const role = roleFromRoom ?? useRoleRequest.data?.data;
+  const roleDeleted = !roleFromRoom && isRoleNotFoundApiError(useRoleRequest.error);
 
   const updateMessageMutation = useUpdateMessageMutation();
 
   const userId = useGlobalUserId();
 
-  const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
   const setReplyMessage = useRoomUiStore(state => state.setReplyMessage);
@@ -425,12 +413,13 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
 
   const [isEditingContent, setIsEditingContent] = useState(false);
   const editInputRef = useRef<ChatInputAreaHandle | null>(null);
+  const avatarClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 判断是否为旁白（无角色）- 包括 roleId 为空/undefined/0/负数 的情况
   const isNarrator = !message.roleId || message.roleId <= 0;
   // 判断是否为黑屏文字
   const isIntroText = message.messageType === MESSAGE_TYPE.INTRO_TEXT;
-  const isStateEventMessage = message.messageType === MESSAGE_TYPE.STATE_EVENT;
+  const isSystemRowMessage = isSystemRowMessageType(message.messageType);
   const createTime = message.createTime;
   const updateTime = message.updateTime;
   const formattedTime = formatMessageHeaderTime(createTime, updateTime);
@@ -531,7 +520,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     },
   });
   const showRoleNameEditor = !isIntroText
-    && !isStateEventMessage
+    && !isSystemRowMessage
     && !isOutOfCharacterTextMessage
     && roleNameEditor.isEditing;
 
@@ -645,7 +634,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     || message.messageType === MESSAGE_TYPE.INTRO_TEXT
     || message.messageType === MESSAGE_TYPE.IMG
     || message.messageType === MESSAGE_TYPE.SOUND
-    || message.messageType === MESSAGE_TYPE.STATE_EVENT;
+    || message.messageType === MESSAGE_TYPE.POKE;
   const canEditContent = canEdit && isEditableContentMessage;
   const canShowTextStyleToolbar = isEditingContent
     && canEdit
@@ -875,10 +864,36 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
       return;
     }
     if (canEdit) {
-      // 打开表情选择器的 toast 窗口
-      openExpressionChooser(isMobile);
+      if (avatarClickTimerRef.current) {
+        clearTimeout(avatarClickTimerRef.current);
+      }
+      avatarClickTimerRef.current = setTimeout(() => {
+        avatarClickTimerRef.current = null;
+        openExpressionChooser(isMobile);
+      }, 220);
     }
   }
+
+  const handlePokeAvatarDoubleClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (!onPokeMessage || !(message.roleId && message.roleId > 0)) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (avatarClickTimerRef.current) {
+      clearTimeout(avatarClickTimerRef.current);
+      avatarClickTimerRef.current = null;
+    }
+    onPokeMessage(message);
+  }, [message, onPokeMessage]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarClickTimerRef.current) {
+        clearTimeout(avatarClickTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleContentUpdate = useCallback((content: string) => {
     if (message.content !== content) {
@@ -1066,7 +1081,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
             <div className="
               flex items-center gap-2 text-xs text-base-content/70
             ">
-              <span className="badge badge-info badge-xs">检定请求</span>
+              <Badge tone="info">检定请求</Badge>
               {allowAll && <span className="text-[10px] text-base-content/50">全员</span>}
             </div>
             <div className="mt-1 text-sm font-mono wrap-break-word">
@@ -1170,15 +1185,25 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
             </div>
           );
         case MESSAGE_TYPE.STATE_EVENT:
+          return <StateMessageCard message={message} />;
+        case MESSAGE_TYPE.POKE:
           return (
-            <StateMessageCard
-              message={message}
-              canEditContent={canEditContent}
-              onContentCommit={handleContentUpdate}
-              onContentEditingChange={setIsEditingContent}
-              editInputRef={editInputRef}
-              shouldIgnoreContentBlur={shouldIgnoreEditBlur}
-            />
+            <div className="
+              rounded-md border border-base-300/60
+              bg-base-200/45 px-3 py-1.5
+              text-center text-sm text-base-content/80
+            ">
+              <EditableMessageContent
+                content={message.content ?? ""}
+                onCommit={handleContentUpdate}
+                className="editable-field whitespace-pre-wrap wrap-break-word"
+                editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded w-full text-center"
+                onEditingChange={setIsEditingContent}
+                editInputRef={editInputRef}
+                shouldIgnoreBlur={shouldIgnoreEditBlur}
+                canEdit={canEditContent}
+              />
+            </div>
           );
         case MESSAGE_TYPE.FORWARD:
           return <ForwardMessage messageResponse={chatMessageResponse} />;
@@ -1277,10 +1302,12 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   return (
     <div>
       {textStyleToolbar}
-      {isStateEventMessage
+      {isSystemRowMessage
         ? (
             <div
-              className="group relative flex w-full justify-center"
+              className={`
+                group relative flex w-full justify-center
+              `}
             >
               {messageHoverToolbar}
               <div className="
@@ -1314,6 +1341,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                   }
                   `}
                   onClick={isIntroText || shouldUseUserAvatar ? undefined : handleAvatarClick}
+                  onDoubleClick={isIntroText || shouldUseUserAvatar ? undefined : handlePokeAvatarDoubleClick}
                 >
                   {shouldUseUserAvatar
                     ? (
@@ -1341,6 +1369,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                       : (
                           <RoleAvatarComponent
                             avatarId={message.avatarId ?? 0}
+                            avatarUrl={buildAvatarUrl(message.avatarFileId)}
+                            avatarThumbUrl={buildAvatarThumbUrl(message.avatarFileId)}
                             roleId={message.roleId ?? undefined}
                             width={isMobile ? 10 : 12}
                             isRounded={true}
@@ -1421,7 +1451,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                     </span>
                                   )}
                                   {effectPreviewVisible && effectIconUrl && (
-                                    <img
+                                    <MediaImage
                                       src={`${effectIconUrl}?t=${effectPreviewToken}`}
                                       alt=""
                                       className="
@@ -1450,7 +1480,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                     </span>
                                   )}
                                   {effectPreviewVisible && effectIconUrl && (
-                                    <img
+                                    <MediaImage
                                       src={`${effectIconUrl}?t=${effectPreviewToken}`}
                                       alt=""
                                       className="
@@ -1524,6 +1554,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                     }
                     `}
                     onClick={isIntroText || shouldUseUserAvatar ? undefined : handleAvatarClick}
+                    onDoubleClick={isIntroText || shouldUseUserAvatar ? undefined : handlePokeAvatarDoubleClick}
                   >
                     {shouldUseUserAvatar
                       ? (
@@ -1555,6 +1586,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                         : (
                             <RoleAvatarComponent
                               avatarId={message.avatarId ?? 0}
+                              avatarUrl={buildAvatarUrl(message.avatarFileId)}
+                              avatarThumbUrl={buildAvatarThumbUrl(message.avatarFileId)}
                               roleId={message.roleId ?? undefined}
                               width={isMobile ? 10 : 21}
                               isRounded={false}
@@ -1656,7 +1689,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                     </span>
                                   )}
                                   {effectPreviewVisible && effectIconUrl && (
-                                    <img
+                                    <MediaImage
                                       src={`${effectIconUrl}?t=${effectPreviewToken}`}
                                       alt=""
                                       className="
@@ -1685,7 +1718,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                     </span>
                                   )}
                                   {effectPreviewVisible && effectIconUrl && (
-                                    <img
+                                    <MediaImage
                                       src={`${effectIconUrl}?t=${effectPreviewToken}`}
                                       alt=""
                                       className="
@@ -1765,6 +1798,7 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
     && prevProps.showAddedMessageDiff === nextProps.showAddedMessageDiff
     && prevProps.useChatBubbleStyle === nextProps.useChatBubbleStyle
     && prevProps.messageAction === nextProps.messageAction
+    && prevProps.onPokeMessage === nextProps.onPokeMessage
   );
 
   // 如果基础属性不相等,直接返回 false

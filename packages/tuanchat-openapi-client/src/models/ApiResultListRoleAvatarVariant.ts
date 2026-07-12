@@ -24,3 +24,4 @@ export type ApiResultListRoleAvatarVariant = {
      */
     data?: Array<RoleAvatarVariant>;
 };
+

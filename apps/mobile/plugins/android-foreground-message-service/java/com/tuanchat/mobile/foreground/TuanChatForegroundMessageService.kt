@@ -40,6 +40,7 @@ class TuanChatForegroundMessageService : Service() {
       .build()
   }
   private var config: ServiceConfig? = null
+  private var lastFrameAt = 0L
   private var reconnectAttempt = 0
   private var webSocket: WebSocket? = null
   private var shouldRun = false
@@ -127,8 +128,13 @@ class TuanChatForegroundMessageService : Service() {
     val request = Request.Builder().url(currentConfig.wsUrl).build()
     webSocket = client.newWebSocket(request, object : WebSocketListener() {
       override fun onOpen(webSocket: WebSocket, response: Response) {
+        if (this@TuanChatForegroundMessageService.webSocket !== webSocket) {
+          webSocket.close(1000, "stale connection")
+          return
+        }
         reconnectAttempt = 0
         connected = true
+        lastFrameAt = System.currentTimeMillis()
         recordEvent("fg-ws.open")
         startHeartbeat()
         startWatchdog()
@@ -136,22 +142,32 @@ class TuanChatForegroundMessageService : Service() {
       }
 
       override fun onMessage(webSocket: WebSocket, text: String) {
-        lastMessageAt = System.currentTimeMillis()
+        val receivedAt = System.currentTimeMillis()
+        lastFrameAt = receivedAt
+        lastMessageAt = receivedAt
         receivedFrameCount += 1
         handleIncomingFrame(text)
       }
 
       override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+        if (this@TuanChatForegroundMessageService.webSocket !== webSocket) {
+          return
+        }
         this@TuanChatForegroundMessageService.webSocket = null
         connected = false
+        lastFrameAt = 0L
         recordEvent("fg-ws.close")
         trace("fg-ws.close", "code=$code reason=$reason")
         scheduleReconnect()
       }
 
       override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+        if (this@TuanChatForegroundMessageService.webSocket !== webSocket) {
+          return
+        }
         this@TuanChatForegroundMessageService.webSocket = null
         connected = false
+        lastFrameAt = 0L
         recordEvent("fg-ws.error")
         trace("fg-ws.error", "message=${t.message ?: t.javaClass.simpleName}")
         scheduleReconnect()
@@ -185,7 +201,7 @@ class TuanChatForegroundMessageService : Service() {
       if (!shouldRun) {
         return
       }
-      val last = lastMessageAt
+      val last = lastFrameAt
       val staleMs = if (last > 0L) System.currentTimeMillis() - last else 0L
       if (connected && last > 0L && staleMs > CONNECTION_STALE_TIMEOUT_MS) {
         trace("fg-ws.watchdog.stale", "staleMs=$staleMs")
@@ -200,9 +216,11 @@ class TuanChatForegroundMessageService : Service() {
     trace("fg-ws.reconnect.now", "reason=$reason")
     handler.removeCallbacks(heartbeatRunnable)
     handler.removeCallbacks(watchdogRunnable)
-    webSocket?.close(1001, reason)
+    val staleSocket = webSocket
     webSocket = null
     connected = false
+    lastFrameAt = 0L
+    staleSocket?.close(1001, reason)
     scheduleReconnect()
   }
 

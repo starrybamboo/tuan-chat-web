@@ -1,5 +1,7 @@
 import type { FormEvent } from "react";
 import { appToast } from "@/components/common/appToast/appToast";
+import { Button } from "@/components/common/Button";
+import { TextInput } from "@/components/common/FormField";
 
 import { useId, useRef, useState } from "react";
 
@@ -10,6 +12,7 @@ import {
   normalizeMediaContent,
 } from "@/components/common/content/mediaContent";
 import TextMediaEditor from "@/components/common/markdown/textMediaEditor";
+import { CollapsibleMotion } from "@/components/common/motion/CollapsibleMotion";
 import { consumeFeedbackAttachmentDraft } from "@/components/feedback/feedbackAttachmentDraft";
 import {
   appendFeedbackAttachmentTokens,
@@ -121,32 +124,29 @@ export default function FeedbackComposer({
           <div className="text-sm font-semibold text-base-content">新建反馈</div>
         </div>
 
-        <button
-          type="button"
+        <Button
           aria-controls={formRegionId}
           aria-expanded={isExpanded}
-          className={`
-            btn btn-sm
-            ${isExpanded ? "btn-ghost" : "btn-warning"}
-          `}
+          variant={isExpanded ? "ghost" : "outline"}
+          size="sm"
+          className={isExpanded ? undefined : "border-warning/45 text-warning hover:border-warning/70 hover:bg-warning/10"}
           onClick={() => setIsExpanded(current => !current)}
         >
           {isExpanded ? "收起" : "展开"}
-        </button>
+        </Button>
       </div>
 
-      {isExpanded && (
+      <CollapsibleMotion open={isExpanded}>
         <div id={formRegionId} className="border-t border-base-300 px-4 py-4">
           <form className="space-y-4" autoComplete="off" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <label className="text-sm font-medium text-base-content" htmlFor="feedback-title">
                 标题
               </label>
-              <input
+              <TextInput
                 id="feedback-title"
                 name="feedback-title-ignore-autofill"
                 type="text"
-                className="input input-bordered w-full rounded-md"
                 value={title}
                 maxLength={255}
                 autoComplete="new-password"
@@ -163,10 +163,11 @@ export default function FeedbackComposer({
               <div className="text-sm font-medium text-base-content">类型</div>
               <div className="flex flex-wrap gap-2">
                 {FEEDBACK_ISSUE_TYPE_OPTIONS.map(option => (
-                  <button
+                  <Button
                     key={option.value}
-                    type="button"
                     aria-pressed={issueType === option.value}
+                    variant="ghost"
+                    size="sm"
                     className={`
                       rounded-md border px-3 py-2 text-sm transition
                       ${
@@ -181,7 +182,7 @@ export default function FeedbackComposer({
                     onClick={() => setIssueType(option.value)}
                   >
                     {option.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
               <div className="text-xs text-base-content/55">
@@ -217,15 +218,15 @@ export default function FeedbackComposer({
                           {formatFeedbackAttachmentSize(attachment.file.size)}
                         </div>
                       </div>
-                      <button
-                        type="button"
+                      <Button
                         aria-label={`移除附件 ${attachment.file.name || "未命名附件"}`}
-                        className="btn btn-ghost btn-xs"
+                        variant="ghost"
+                        size="xs"
                         disabled={isSubmitting}
                         onClick={() => setAttachments(current => current.filter(item => item.id !== attachment.id))}
                       >
                         移除
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -233,9 +234,9 @@ export default function FeedbackComposer({
             )}
 
             <div className="flex items-center justify-end gap-2">
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
+              <Button
+                variant="ghost"
+                size="sm"
                 disabled={isSubmitting}
                 onClick={() => {
                   resetForm();
@@ -243,18 +244,20 @@ export default function FeedbackComposer({
                 }}
               >
                 取消
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
-                className="btn btn-primary btn-sm"
+                variant="primary"
+                size="sm"
+                loading={isSubmitting}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "提交中..." : "提交反馈"}
-              </button>
+                提交反馈
+              </Button>
             </div>
           </form>
         </div>
-      )}
+      </CollapsibleMotion>
     </section>
   );
 }

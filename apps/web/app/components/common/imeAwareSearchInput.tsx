@@ -1,17 +1,20 @@
 import type {
   ChangeEvent,
   CompositionEvent,
-  InputHTMLAttributes,
   KeyboardEvent,
 } from "react";
 
 import { forwardRef, useCallback, useRef, useState } from "react";
 
+import type { TextInputProps } from "@/components/common/FormField";
+
+import { TextInput } from "@/components/common/FormField";
+
 const DEFAULT_COMPOSITION_END_ACTION_GUARD_MS = 250;
 
 type ImeAwareSearchInputProps = Omit<
-  InputHTMLAttributes<HTMLInputElement>,
-  "onChange" | "onCompositionEnd" | "onCompositionStart" | "onKeyDown" | "type" | "value"
+  TextInputProps,
+  "onChange" | "onCompositionEnd" | "onCompositionStart" | "onKeyDown" | "onSubmit" | "type" | "value"
 > & {
   value: string;
   onValueChange: (value: string) => void;
@@ -96,7 +99,7 @@ export const ImeAwareSearchInput = forwardRef<HTMLInputElement, ImeAwareSearchIn
     };
 
     return (
-      <input
+      <TextInput
         {...inputProps}
         ref={ref}
         type={type}

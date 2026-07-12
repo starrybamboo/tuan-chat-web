@@ -52,7 +52,6 @@ export default function RoomWindowOverlays({
       <ToastWindow
         isOpen={isImportChatTextOpen}
         onClose={() => setIsImportChatTextOpen(false)}
-        showCloseButton={false}
         disableScroll
         panelClassName="overflow-hidden rounded-2xl border border-base-300 p-0 shadow-2xl"
         bodyClassName="overflow-hidden"

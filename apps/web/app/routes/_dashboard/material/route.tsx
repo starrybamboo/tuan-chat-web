@@ -1,17 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { lazy, Suspense } from "react";
 
 import type { RouteMetaArgs } from "@/routes/routeTypes";
 
-import { queryClient } from "@/queryClient";
+import FeaturePlaceholderPage from "@/components/common/featurePlaceholderPage";
 import { createSeoMeta } from "@/utils/seo";
-import {
-  fetchMyMaterialPackagesFirstPageWithCache,
-  fetchPublicMaterialPackagesFirstPageWithCache,
-  MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
-} from "api/hooks/materialPackageQueryHooks";
 
-const LazyMaterialLibraryPage = lazy(() => import("@/components/material/pages/materialLibraryPage"));
 type MaterialRouteSearch = {
   tab?: "public" | "mine";
 };
@@ -33,19 +26,6 @@ export function meta(_args: RouteMetaArgs) {
 
 export const Route = createFileRoute("/_dashboard/material")({
   validateSearch: validateMaterialRouteSearch,
-  loaderDeps: ({ search }) => ({
-    tab: search.tab ?? "mine",
-  }),
-  loader: async ({ deps }) => {
-    const request = {
-      pageNo: 1,
-      pageSize: MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
-    };
-    await (deps.tab === "public"
-      ? fetchPublicMaterialPackagesFirstPageWithCache(queryClient, request)
-      : fetchMyMaterialPackagesFirstPageWithCache(queryClient, request));
-    return null;
-  },
   head: () => ({
     meta: meta({ params: {} }),
   }),
@@ -53,15 +33,12 @@ export const Route = createFileRoute("/_dashboard/material")({
 });
 
 function MaterialRoute() {
-  const { tab } = Route.useSearch();
-
   return (
     <div className="h-full overflow-hidden bg-base-200">
-      <Suspense fallback={<div className="
-        flex h-full items-center justify-center text-sm text-base-content/60
-      ">正在加载素材库...</div>}>
-        <LazyMaterialLibraryPage initialTab={tab} />
-      </Suspense>
+      <FeaturePlaceholderPage
+        title="素材库正在重写"
+        description="公共素材、个人素材与素材编辑器正在重新设计，当前入口暂时保留。"
+      />
     </div>
   );
 }

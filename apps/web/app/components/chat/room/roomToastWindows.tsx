@@ -1,5 +1,6 @@
 import React from "react";
 
+import { StateView } from "@/components/common/StateView";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 
 const LazyAddRoleWindow = React.lazy(async () => {
@@ -57,11 +58,5 @@ export default function RoomToastWindows({
 }
 
 function RoomToastWindowFallback() {
-  return (
-    <div className="
-      flex min-h-40 w-full items-center justify-center text-base-content/60
-    ">
-      <span className="loading loading-spinner loading-md"></span>
-    </div>
-  );
+  return <StateView loading className="min-h-40 w-full py-0" />;
 }

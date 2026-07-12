@@ -24,3 +24,4 @@ export type ApiResultListSticker = {
      */
     data?: Array<Sticker>;
 };
+

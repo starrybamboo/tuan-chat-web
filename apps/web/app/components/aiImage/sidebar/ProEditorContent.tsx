@@ -26,6 +26,9 @@ import { clampIntRange, clampRange, formatSliderValue, getV4CharGridCellByCenter
 import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasisTextarea";
 import { NOVELAI_V45_CONTEXT_LIMIT } from "@/components/aiImage/novelaiV45TokenMeter";
 import { ReferenceActionIcon } from "@/components/aiImage/ReferenceActionIcon";
+import { RangeInput, SelectInput, Switch } from "@/components/common/FormField";
+import { MediaImage } from "@/components/common/mediaImage";
+import { MenuItem, MenuSurface } from "@/components/common/MenuPopover";
 import { ChevronDown } from "@/icons";
 
 export type ProEditorContentLocalProps = {
@@ -300,9 +303,8 @@ export const ProEditorContent = memo(({
               <div className="space-y-5">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-base-content">Add Quality tags</div>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-sm"
+                  <Switch
+                    density="compact"
                     checked={qualityToggle}
                     onChange={e => setQualityToggle(e.target.checked)}
                   />
@@ -310,9 +312,8 @@ export const ProEditorContent = memo(({
 
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-base-content">Highlight Emphasis</div>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-sm"
+                  <Switch
+                    density="compact"
                     checked={highlightEmphasisEnabled}
                     onChange={e => setHighlightEmphasisEnabled(e.target.checked)}
                   />
@@ -320,7 +321,8 @@ export const ProEditorContent = memo(({
 
                 <div className="space-y-2">
                   <div className="text-sm font-semibold text-base-content">Undesired Content Preset</div>
-                  <select
+                  <SelectInput
+                    density="compact"
                     className={`
                       ${subtleSelectClassName}
                       w-full !rounded-none bg-base-100
@@ -333,7 +335,7 @@ export const ProEditorContent = memo(({
                         {option.label}
                       </option>
                     ))}
-                  </select>
+                  </SelectInput>
                 </div>
               </div>
             </div>
@@ -423,7 +425,7 @@ export const ProEditorContent = memo(({
                 dark:to-base-100
               ">
                 <div className={baseImagePanelClassName}>
-                  <img
+                  <MediaImage
                     src={sourceImageDataUrl}
                     alt="Base Img"
                     className="
@@ -509,8 +511,8 @@ export const ProEditorContent = memo(({
                               <span>Strength</span>
                               <span>{formatSliderValue(strength)}</span>
                             </div>
-                            <input
-                              type="range"
+                            <RangeInput
+                              density="compact"
                               min={0.01}
                               max={1}
                               step={0.01}
@@ -528,8 +530,8 @@ export const ProEditorContent = memo(({
                               <span>Noise</span>
                               <span>{formatSliderValue(noise)}</span>
                             </div>
-                            <input
-                              type="range"
+                            <RangeInput
+                              density="compact"
                               min={0}
                               max={0.99}
                               step={0.01}
@@ -582,48 +584,42 @@ export const ProEditorContent = memo(({
             </button>
             {isCharacterAddMenuOpen
               ? (
-                  <div className={characterAddMenuPanelClassName} role="menu" aria-label="Add Character presets">
-                    <button
-                      type="button"
+                  <MenuSurface ariaLabel="Add Character presets" className={characterAddMenuPanelClassName}>
+                    <MenuItem
                       className={characterAddMenuItemClassName}
-                      role="menuitem"
                       onClick={() => {
                         setIsCharacterAddMenuOpen(false);
                         handleAddV4Char({ defaultPrompt: "girl,", gender: "female" });
                       }}
-                    >
-                      <GenderFemaleIcon className="
+                      icon={<GenderFemaleIcon className="
                         size-3.5 shrink-0 text-white/90
-                      " weight="regular" />
+                      " weight="regular" />}
+                    >
                       <span>Female</span>
-                    </button>
-                    <button
-                      type="button"
+                    </MenuItem>
+                    <MenuItem
                       className={characterAddMenuItemClassName}
-                      role="menuitem"
                       onClick={() => {
                         setIsCharacterAddMenuOpen(false);
                         handleAddV4Char({ defaultPrompt: "boy,", gender: "male" });
                       }}
-                    >
-                      <GenderMaleIcon className="
+                      icon={<GenderMaleIcon className="
                         size-3.5 shrink-0 text-white/90
-                      " weight="regular" />
+                      " weight="regular" />}
+                    >
                       <span>Male</span>
-                    </button>
-                    <button
-                      type="button"
+                    </MenuItem>
+                    <MenuItem
                       className={characterAddMenuItemClassName}
-                      role="menuitem"
                       onClick={() => {
                         setIsCharacterAddMenuOpen(false);
                         handleAddV4Char({ gender: "other" });
                       }}
+                      icon={<CircleIcon className="size-3.5 shrink-0 text-white/85" weight="regular" />}
                     >
-                      <CircleIcon className="size-3.5 shrink-0 text-white/85" weight="regular" />
                       <span>Other</span>
-                    </button>
-                  </div>
+                    </MenuItem>
+                  </MenuSurface>
                 )
               : null}
           </div>

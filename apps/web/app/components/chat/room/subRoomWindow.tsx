@@ -3,7 +3,7 @@ import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent a
 import React from "react";
 
 import ClueDrawer from "@/components/chat/clues/clueDrawer";
-import CombatDrawer from "@/components/chat/room/drawers/combatDrawer";
+import StateDrawer from "@/components/chat/room/drawers/stateDrawer";
 import RunSideDrawerButtons from "@/components/chat/room/runSideDrawerButtons";
 import { isCombatDrawerState, isRunSideDrawerState } from "@/components/chat/room/runSideDrawerState";
 import { WebgalPreviewPanel } from "@/components/chat/room/webgalPreviewDrawer";
@@ -16,6 +16,7 @@ import DNDMap from "@/components/chat/shared/map/DNDMap";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import { IconButton } from "@/components/common/IconButton";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { XMarkICon } from "@/icons";
 
@@ -296,15 +297,15 @@ function SubRoomWindowImpl() {
           </div>
           <div className="min-w-0 flex-1" />
           <div className="mr-2 flex shrink-0 items-center gap-1">
-            <button
-              type="button"
-              className="btn btn-ghost btn-square btn-xs"
-              aria-label="关闭侧窗"
+            <IconButton
+              variant="ghost"
+              size="xs"
+              shape="square"
+              label="关闭侧窗"
               title="关闭侧窗"
               onClick={close}
-            >
-              <XMarkICon className="size-4" />
-            </button>
+              icon={<XMarkICon className="size-4" />}
+            />
           </div>
         </div>
       </div>
@@ -317,7 +318,7 @@ function SubRoomWindowImpl() {
         )}
         {activePane === "combat" && (
           <div className="h-full overflow-hidden">
-            <CombatDrawer />
+            <StateDrawer />
           </div>
         )}
         {activePane === "clue" && (

@@ -19,3 +19,4 @@ export type MaterialPackagePageRequest = {
      */
     keyword?: string;
 };
+

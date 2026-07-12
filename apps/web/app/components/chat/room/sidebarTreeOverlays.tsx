@@ -2,7 +2,11 @@ import { TrashSimpleIcon } from "@phosphor-icons/react";
 import React, { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
+import { Button } from "@/components/common/Button";
+import { TextInput } from "@/components/common/FormField";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { DialogActions, DialogFrame } from "@/components/common/DialogFrame";
+import { MenuItem, MenuSurface } from "@/components/common/MenuPopover";
 
 import { clampFloatingMenuPosition } from "./floatingMenuPosition";
 
@@ -136,14 +140,20 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
   return (
     <>
       {categoryEditor && renderOverlay(
-        <div className="modal modal-open z-9999">
-          <div className="modal-box">
+        <DialogFrame
+          open
+          mode="inline"
+          onClose={onCloseCategoryEditor}
+          ariaLabel={categoryEditor.mode === "add" ? "新增分类" : "重命名分类"}
+          closeButtonLabel="关闭分类编辑弹窗"
+          rootClassName="z-9999"
+        >
             <h3 className="font-bold text-lg">
               {categoryEditor.mode === "add" ? "新增分类" : "重命名分类"}
             </h3>
             <div className="py-4 space-y-2">
-              <input
-                className="input input-bordered w-full"
+              <TextInput
+                className="w-full"
                 autoComplete="off"
                 aria-label="分类名称"
                 value={categoryEditor.name}
@@ -157,13 +167,11 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
                 <div className="text-error text-sm">{categoryEditorError}</div>
               )}
             </div>
-            <div className="modal-action">
-              <button type="button" className="btn" onClick={onCloseCategoryEditor}>取消</button>
-              <button type="button" className="btn btn-primary" onClick={onSubmitCategoryEditor}>确定</button>
-            </div>
-          </div>
-          <button type="button" className="modal-backdrop" onClick={onCloseCategoryEditor} aria-label="关闭分类编辑弹窗" />
-        </div>,
+            <DialogActions>
+              <Button onClick={onCloseCategoryEditor}>取消</Button>
+              <Button variant="primary" onClick={onSubmitCategoryEditor}>确定</Button>
+            </DialogActions>
+        </DialogFrame>,
       )}
 
       <ConfirmDialog
@@ -196,11 +204,12 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
             }}
             aria-label="关闭侧边栏上下文菜单"
           />
-          <ul
+          <MenuSurface
+            as="ul"
+            ariaLabel="侧边栏操作"
             ref={contextMenuRef}
             className="
-              relative menu bg-base-100 rounded-box shadow-xl border
-              border-base-300 w-48 p-2
+              relative w-48 border border-base-300 p-2 shadow-xl
             "
             onMouseDown={e => e.stopPropagation()}
             onContextMenu={(e) => {
@@ -210,9 +219,8 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
           >
             {contextMenu.kind === "category" && (
               <>
-                <li>
-                  <button
-                    type="button"
+                <li role="none">
+                  <MenuItem
                     onClick={() => {
                       if (!canEdit)
                         return;
@@ -221,11 +229,10 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
                     }}
                   >
                     重命名
-                  </button>
+                  </MenuItem>
                 </li>
-                <li>
-                  <button
-                    type="button"
+                <li role="none">
+                  <MenuItem
                     onClick={() => {
                       if (!canEdit)
                         return;
@@ -234,12 +241,11 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
                     }}
                   >
                     添加节点…
-                  </button>
+                  </MenuItem>
                 </li>
-                <li>
-                  <button
-                    type="button"
-                    className="text-error"
+                <li role="none">
+                  <MenuItem
+                    tone="danger"
                     onClick={() => {
                       if (!canEdit)
                         return;
@@ -249,29 +255,27 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
                     disabled={treeCategoryCount <= 1}
                   >
                     删除分类
-                  </button>
+                  </MenuItem>
                 </li>
               </>
             )}
 
             {contextMenu.kind === "doc" && (
               <>
-                <li>
-                  <button
-                    type="button"
+                <li role="none">
+                  <MenuItem
                     onClick={() => {
                       onOpenDoc(contextMenu.docId);
                       onCloseContextMenu();
                     }}
                   >
                     打开文档
-                  </button>
+                  </MenuItem>
                 </li>
                 {canEdit && (
-                  <li>
-                    <button
-                      type="button"
-                      className="text-error"
+                  <li role="none">
+                    <MenuItem
+                      tone="danger"
                       onClick={() => {
                         const title = getDocTitle(contextMenu.docId);
                         onRequestDeleteDoc(contextMenu.docId, title, contextMenu.categoryId, contextMenu.index);
@@ -279,12 +283,12 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
                       }}
                     >
                       删除文档…
-                    </button>
+                    </MenuItem>
                   </li>
                 )}
               </>
             )}
-          </ul>
+          </MenuSurface>
         </div>,
       )}
 

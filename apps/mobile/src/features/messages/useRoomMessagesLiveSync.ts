@@ -1,4 +1,5 @@
 import type { ApiResultRoomListResponse } from "@tuanchat/openapi-client/models/ApiResultRoomListResponse";
+import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 import type { NotificationItemResponse } from "@tuanchat/openapi-client/models/NotificationItemResponse";
@@ -42,6 +43,14 @@ import {
 import { mobileApiClient } from "@/lib/api";
 
 import { createMobileWebSocketUrl, maskMobileWebSocketUrl } from "./mobileWebSocketUrl";
+import {
+  MobileRoomMessageDeliveryUnknownError,
+  parseMobileRoomMessageSendResult,
+  registerMobileRoomMessageWebSocketSender,
+  ROOM_MESSAGE_SEND_REQUEST_TYPE,
+  ROOM_MESSAGE_SEND_RESULT_TYPE,
+  type MobileRoomMessageSendResult,
+} from "./mobileRoomMessageTransport";
 
 const GROUP_MESSAGE_PUSH_TYPE = 4;
 const GROUP_MESSAGE_BATCH_PUSH_TYPE = 25;
@@ -58,10 +67,17 @@ const HEARTBEAT_INTERVAL_MS = 25_000;
 const CONNECTION_STALE_TIMEOUT_MS = 60_000;
 // 看门狗轮询间隔。
 const WATCHDOG_INTERVAL_MS = 10_000;
+const ROOM_MESSAGE_SEND_ACK_TIMEOUT_MS = 15_000;
 
 type WebSocketEnvelope = {
   data?: unknown;
   type?: number;
+};
+
+type PendingRoomMessageSend = {
+  reject: (error: Error) => void;
+  resolve: (result: MobileRoomMessageSendResult) => void;
+  timeout: ReturnType<typeof setTimeout>;
 };
 
 export type RoomMessagesLiveSyncOptions = {
@@ -333,6 +349,7 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
   const appStateRef = useRef(AppState.currentState);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
+  const pendingRoomMessageSendsRef = useRef(new Map<string, PendingRoomMessageSend>());
   const reconnectAttemptRef = useRef(0);
   const closedByHookRef = useRef(false);
   // 心跳定时器：连接 OPEN 后周期性发送上行心跳。
@@ -433,6 +450,49 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
         type: CHAT_STATUS_REQ_TYPE,
       }));
       return true;
+    });
+
+    const unregisterRoomMessageSender = registerMobileRoomMessageWebSocketSender((requestId, request: ChatMessageRequest) => {
+      const socket = socketRef.current;
+      const sinceLastReceived = Date.now() - lastReceivedAtRef.current;
+      if (
+        !socket
+        || socket.readyState !== WebSocket.OPEN
+        || appStateRef.current !== "active"
+        || sinceLastReceived > CONNECTION_STALE_TIMEOUT_MS
+      ) {
+        return null;
+      }
+
+      let resolvePending!: (result: MobileRoomMessageSendResult) => void;
+      let rejectPending!: (error: Error) => void;
+      const pendingPromise = new Promise<MobileRoomMessageSendResult>((resolve, reject) => {
+        resolvePending = resolve;
+        rejectPending = reject;
+      });
+      const timeout = setTimeout(() => {
+        pendingRoomMessageSendsRef.current.delete(requestId);
+        rejectPending(new MobileRoomMessageDeliveryUnknownError());
+      }, ROOM_MESSAGE_SEND_ACK_TIMEOUT_MS);
+      pendingRoomMessageSendsRef.current.set(requestId, {
+        reject: rejectPending,
+        resolve: resolvePending,
+        timeout,
+      });
+
+      try {
+        socket.send(JSON.stringify({
+          data: JSON.stringify(request),
+          requestId,
+          type: ROOM_MESSAGE_SEND_REQUEST_TYPE,
+        }));
+        return pendingPromise;
+      }
+      catch {
+        clearTimeout(timeout);
+        pendingRoomMessageSendsRef.current.delete(requestId);
+        return null;
+      }
     });
 
     function scheduleReconnect() {
@@ -740,6 +800,17 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
           type: typeof envelope?.type === "number" ? envelope.type : null,
         });
 
+        if (envelope?.type === ROOM_MESSAGE_SEND_RESULT_TYPE) {
+          const result = parseMobileRoomMessageSendResult(envelope.data);
+          const pending = result ? pendingRoomMessageSendsRef.current.get(result.requestId) : undefined;
+          if (result && pending) {
+            clearTimeout(pending.timeout);
+            pendingRoomMessageSendsRef.current.delete(result.requestId);
+            pending.resolve(result);
+          }
+          return;
+        }
+
         // 心跳响应（pong）：仅用于确认连接存活，时间戳已在上面刷新，无需进入业务解析。
         if (envelope?.type === HEARTBEAT_REQ_TYPE) {
           logNotificationTrace("ws.heartbeat.pong", {
@@ -936,6 +1007,12 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
       logNotificationTrace("ws.effect.cleanup");
       disposed = true;
       unregisterStatusSender();
+      unregisterRoomMessageSender();
+      for (const pending of pendingRoomMessageSendsRef.current.values()) {
+        clearTimeout(pending.timeout);
+        pending.reject(new MobileRoomMessageDeliveryUnknownError());
+      }
+      pendingRoomMessageSendsRef.current.clear();
       foregroundSubscription.remove();
       stopHeartbeat();
       stopWatchdog();

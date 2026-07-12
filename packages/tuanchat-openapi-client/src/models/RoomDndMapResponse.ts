@@ -3,9 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { RoomDndMapTokenResponse } from './RoomDndMapTokenResponse';
-/**
- * 返回对象
- */
 export type RoomDndMapResponse = {
     /**
      * Room id
@@ -36,3 +33,4 @@ export type RoomDndMapResponse = {
      */
     updatedAt?: number;
 };
+

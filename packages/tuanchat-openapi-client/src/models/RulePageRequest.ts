@@ -23,3 +23,4 @@ export type RulePageRequest = {
      */
     authorId?: number;
 };
+

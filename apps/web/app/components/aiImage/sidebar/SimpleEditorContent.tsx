@@ -11,6 +11,9 @@ import { memo } from "react";
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
 
 import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasisTextarea";
+import { Button } from "@/components/common/Button";
+import { TextArea } from "@/components/common/FormField";
+import { MediaImage } from "@/components/common/mediaImage";
 
 export type SimpleEditorContentLocalProps = {
   isSimpleTagsEditor: boolean;
@@ -118,7 +121,9 @@ export const SimpleEditorContent = memo(({
             <div className="flex w-full min-w-0 flex-col items-stretch">
               <div className={editorPanelClassName}>
                 <div className="relative">
-                  <textarea
+                  <TextArea
+                    appearance="bare"
+                    density="compact"
                     className={simplePromptTextareaClassName}
                     autoComplete="off"
                     aria-label="提示词"
@@ -243,22 +248,22 @@ export const SimpleEditorContent = memo(({
               {renderSimpleBaseImageSection()}
 
               <div className="mt-3 flex flex-wrap justify-end gap-2">
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
+                <Button
+                  size="sm"
+                  variant="ghost"
                   onClick={handleRejectSimpleConverted}
+                  icon={<XCircleIcon className="size-4" weight="fill" />}
                 >
-                  <XCircleIcon className="size-4" weight="fill" />
                   拒绝
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
+                </Button>
+                <Button
+                  size="sm"
+                  variant="primary"
                   onClick={handleAcceptSimpleConverted}
+                  icon={<CheckCircleIcon className="size-4" weight="fill" />}
                 >
-                  <CheckCircleIcon className="size-4" weight="fill" />
                   接受
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -355,7 +360,7 @@ export const SimpleEditorContent = memo(({
                       key={preset.id}
                       type="button"
                       className="
-                        flex items-center gap-2 rounded-box border
+                        flex items-center gap-2 rounded-md border
                         border-base-300 bg-base-100 pr-2
                         hover:border-info
                       "
@@ -364,11 +369,11 @@ export const SimpleEditorContent = memo(({
                       aria-label={`已选画风 ${preset.title}，点击继续添加画风`}
                     >
                       <div className="
-                        w-10 aspect-square rounded-box bg-base-200
+                        w-10 aspect-square rounded-md bg-base-200
                         overflow-hidden flex items-center justify-center
                       ">
                         {preset.imageUrl
-                          ? <img src={preset.imageUrl} alt={preset.title} className="
+                          ? <MediaImage src={preset.imageUrl} alt={preset.title} className="
                             w-full h-full object-cover
                           " />
                           : <div className="text-xs opacity-60">{preset.title}</div>}

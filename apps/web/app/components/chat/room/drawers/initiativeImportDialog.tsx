@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { Button } from "@/components/common/Button";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 
 import type { InitiativeAbilityQuery, InitiativeRoleRef } from "./initiativeListDerived";
@@ -56,19 +57,18 @@ export function InitiativeImportDialog({
             </p>
           </div>
           {onRollAllInitiative && importableRoles.length > 0 && (
-            <button
-              type="button"
-              className="
-                btn btn-outline btn-sm h-8 min-h-8 shrink-0 rounded-lg px-3
-                text-xs
-              "
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 min-h-8 shrink-0 rounded-lg px-3 text-xs"
               disabled={isRollingAllInitiative}
+              loading={isRollingAllInitiative}
               onClick={() => {
                 void handleRollAllInitiative();
               }}
             >
               {isRollingAllInitiative ? "投掷中..." : "全员先攻"}
-            </button>
+            </Button>
           )}
         </div>
         <div className="flex flex-col gap-2">
@@ -104,14 +104,14 @@ export function InitiativeImportDialog({
                         : "尚无该规则的能力数据"}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-xs btn-primary"
+                <Button
+                  variant="primary"
+                  size="xs"
                   disabled={loading || !hasData}
                   onClick={() => onImportSingle(role.roleId)}
                 >
                   {isImported ? "复制导入" : "导入"}
-                </button>
+                </Button>
               </div>
             );
           })}

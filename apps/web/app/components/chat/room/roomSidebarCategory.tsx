@@ -1,10 +1,10 @@
 import type { DragEvent, MouseEvent } from "react";
 
-import { AnimatePresence, motion } from "motion/react";
-
 import RoomSidebarCategoryBody from "@/components/chat/room/roomSidebarCategoryBody";
 import RoomSidebarCategoryContainer from "@/components/chat/room/roomSidebarCategoryContainer";
 import RoomSidebarCategoryHeader from "@/components/chat/room/roomSidebarCategoryHeader";
+import { CollapsibleMotion } from "@/components/common/motion/CollapsibleMotion";
+import { springCollapseMotionProps } from "@/components/common/motion/listItemMotion";
 
 import type { Room } from "../../../../api";
 import type { MinimalDocMeta, SidebarCategoryNode, SidebarLeafNode } from "./sidebarTree";
@@ -138,59 +138,48 @@ export default function RoomSidebarCategory({
         addTitle={addTitle}
       />
 
-      <AnimatePresence initial={false}>
-        {!isCollapsed && (
-          <motion.div
-            key={`${cat.categoryId}-body`}
-            initial={{ opacity: 0, height: 0, y: -4 }}
-            animate={{ opacity: 1, height: "auto", y: 0 }}
-            exit={{ opacity: 0, height: 0, y: -4 }}
-            transition={{
-              height: { type: "spring", stiffness: 520, damping: 42, mass: 0.7 },
-              opacity: { duration: 0.12 },
-              y: { type: "spring", stiffness: 520, damping: 36, mass: 0.6 },
-            }}
-            className="overflow-hidden"
-          >
-            <RoomSidebarCategoryBody
-              categoryId={cat.categoryId}
-              categoryName={cat.name}
-              canEdit={canEdit}
-              isSpaceOwner={isSpaceOwner}
-              items={items}
-              dragging={dragging}
-              dropTarget={dropTarget}
-              resetDropHandled={resetDropHandled}
-              setDragging={setDragging}
-              setDropTarget={setDropTarget}
-              handleDrop={handleDrop}
-              setContextMenu={setContextMenu}
-              onContextMenu={onContextMenu}
-              onOpenRoomContextMenu={onOpenRoomContextMenu}
-              docMetaMap={docMetaMap}
-              roomById={roomById}
-              activeSpaceId={activeSpaceId}
-              activeRoomId={activeRoomId}
-              activeDocId={activeDocId}
-              unreadMessagesNumber={unreadMessagesNumber}
-              onSelectRoom={onSelectRoom}
-              onSelectDoc={onSelectDoc}
-              onCloseLeftDrawer={onCloseLeftDrawer}
-              isAddPanelOpen={isAddPanelOpen}
-              pendingAddRoomId={pendingAddRoomId}
-              setPendingAddRoomId={setPendingAddRoomId}
-              pendingAddDocId={pendingAddDocId}
-              setPendingAddDocId={setPendingAddDocId}
-              addNode={addNode}
-              fallbackTextRooms={fallbackTextRooms}
-              existingRoomIdsInTree={existingRoomIdsInTree}
-              visibleDocMetas={visibleDocMetas}
-              existingDocIdsInTree={existingDocIdsInTree}
-              setAddPanelCategoryId={setAddPanelCategoryId}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <CollapsibleMotion
+        open={!isCollapsed}
+        className="overflow-hidden"
+        {...springCollapseMotionProps()}
+      >
+        <RoomSidebarCategoryBody
+          categoryId={cat.categoryId}
+          categoryName={cat.name}
+          canEdit={canEdit}
+          isSpaceOwner={isSpaceOwner}
+          items={items}
+          dragging={dragging}
+          dropTarget={dropTarget}
+          resetDropHandled={resetDropHandled}
+          setDragging={setDragging}
+          setDropTarget={setDropTarget}
+          handleDrop={handleDrop}
+          setContextMenu={setContextMenu}
+          onContextMenu={onContextMenu}
+          onOpenRoomContextMenu={onOpenRoomContextMenu}
+          docMetaMap={docMetaMap}
+          roomById={roomById}
+          activeSpaceId={activeSpaceId}
+          activeRoomId={activeRoomId}
+          activeDocId={activeDocId}
+          unreadMessagesNumber={unreadMessagesNumber}
+          onSelectRoom={onSelectRoom}
+          onSelectDoc={onSelectDoc}
+          onCloseLeftDrawer={onCloseLeftDrawer}
+          isAddPanelOpen={isAddPanelOpen}
+          pendingAddRoomId={pendingAddRoomId}
+          setPendingAddRoomId={setPendingAddRoomId}
+          pendingAddDocId={pendingAddDocId}
+          setPendingAddDocId={setPendingAddDocId}
+          addNode={addNode}
+          fallbackTextRooms={fallbackTextRooms}
+          existingRoomIdsInTree={existingRoomIdsInTree}
+          visibleDocMetas={visibleDocMetas}
+          existingDocIdsInTree={existingDocIdsInTree}
+          setAddPanelCategoryId={setAddPanelCategoryId}
+        />
+      </CollapsibleMotion>
     </RoomSidebarCategoryContainer>
   );
 }

@@ -1,6 +1,9 @@
 import { Plus } from "@phosphor-icons/react";
 import { useState } from "react";
 import { appToast } from "@/components/common/appToast/appToast";
+import { Button } from "@/components/common/Button";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
+import { FieldDescription, FieldError, TextArea, TextInput } from "@/components/common/FormField";
 
 import type { Role } from "../types";
 
@@ -56,7 +59,7 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
 
   return (
     <div className={`
-      transition-opacity duration-300 ease-in-out
+      transition-opacity duration-300 ease-in-out motion-reduce:transition-none
       ${isSaving ? `opacity-50` : ""}
     `}>
       {/* 头部区域 */}
@@ -84,70 +87,57 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               {onBack && (
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={onBack}
-                  className="btn btn-sm btn-ghost"
                 >
                   ← 返回
-                </button>
+                </Button>
               )}
               <h1 className="font-semibold text-xl">{name || "创建骰娘"}</h1>
             </div>
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
+              loading={isSaving}
+              icon={<Plus className="size-4" weight="regular" />}
               onClick={handleSubmit}
               disabled={!canSubmit}
               className={`
-                btn btn-sm
-                md:btn-lg
-                rounded-lg btn-primary
+                rounded-lg md:min-h-12 md:px-6 md:text-lg
                 ${isSaving ? `scale-95` : ""}
               `}
             >
-              {isSaving
-                ? <span className="loading loading-spinner loading-xs"></span>
-                : (
-                    <span className="flex items-center gap-1">
-                      <Plus className="size-4" weight="regular" />
-                      创建骰娘
-                    </span>
-                  )}
-            </button>
+              {isSaving ? "创建中..." : "创建骰娘"}
+            </Button>
           </div>
           <p className="text-sm text-base-content/60">骰娘创建</p>
         </div>
 
         {/* 表单区域 */}
         <div className="space-y-6">
-          <div className="
-            card bg-base-100 shadow-xs rounded-2xl border-2
-            border-base-content/10
-          ">
-            <div className="card-body">
-              <h2 className="card-title flex items-center gap-2 mb-4">基础信息设置</h2>
+          <div className={surfaceClassName({ level: "content", className: "border-2 border-base-content/10 p-6 shadow-xs" })}>
+            <div>
+              <h2 className="mb-4 flex items-center gap-2 text-component-title font-medium">基础信息设置</h2>
 
               <div className="space-y-6">
                 {/* 名称 */}
                 <div>
                   <div className="flex gap-2 mb-2 items-center font-semibold">
                     <span>骰娘名称</span>
-                    <span className="label-text-alt text-base-content/60">
+                    <FieldDescription as="span">
                       {name.length}
                       /
                       {ROLE_NAME_MAX_LENGTH}
-                    </span>
+                    </FieldDescription>
                   </div>
-                  <input
+                  <TextInput
+                    surface="muted"
                     type="text"
                     autoComplete="off"
                     aria-label="骰娘名称"
-                    className="
-                      input input-bordered bg-base-200 rounded-md w-full
-                      transition
-                      focus:outline-none focus:ring-2 focus:ring-info/20
-                      focus:border-info
-                    "
                     placeholder="输入骰娘名称"
                     value={name}
                     onChange={e => setName(e.target.value)}
@@ -159,24 +149,21 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
                 <div>
                   <div className="flex gap-2 mb-2 items-center font-semibold">
                     <span>骰娘简介</span>
-                    <span className={`
-                      label-text-alt
-                      ${isDescriptionTooLong ? `text-error` : `
-                        text-base-content/60
-                      `}
-                    `}>
+                    {isDescriptionTooLong
+                      ? <FieldError as="span">
                       {description.length}
                       /
                       {ROLE_DESCRIPTION_MAX_LENGTH}
-                    </span>
+                      </FieldError>
+                      : <FieldDescription as="span">
+                          {description.length}
+                          /
+                          {ROLE_DESCRIPTION_MAX_LENGTH}
+                        </FieldDescription>}
                   </div>
-                  <textarea
-                    className="
-                      textarea textarea-bordered bg-base-200 rounded-md min-h-30
-                      resize-y w-full transition
-                      focus:outline-none focus:ring-2 focus:ring-info/20
-                      focus:border-info
-                    "
+                  <TextArea
+                    surface="muted"
+                    className="min-h-30"
                     autoComplete="off"
                     aria-label="骰娘简介"
                     placeholder="描述这个骰娘的背景故事、性格特点、说话风格等"

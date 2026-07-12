@@ -1,6 +1,9 @@
 import { Plus } from "@phosphor-icons/react";
 import { lazy, Suspense, useState } from "react";
 import { appToast } from "@/components/common/appToast/appToast";
+import { Button } from "@/components/common/Button";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
+import { Skeleton } from "@/components/common/StatusPrimitives";
 
 import type { Role } from "../types";
 import type { CharacterData } from "./types";
@@ -117,18 +120,20 @@ export default function RoleCreationFlow({
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             {onBack && (
-              <button type="button" className="btn btn-sm btn-ghost" onClick={onBack}>
+              <Button type="button" variant="ghost" size="sm" onClick={onBack}>
                 ← 返回
-              </button>
+              </Button>
             )}
             <h1 className="font-semibold text-xl">{title ?? "创建角色"}</h1>
           </div>
-          <button
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
+            loading={isSaving}
+            icon={<Plus className="size-4" weight="regular" />}
             className={`
-              btn btn-sm
-              md:btn-lg
-              rounded-lg btn-primary
+              rounded-lg md:min-h-12 md:px-6 md:text-lg
               ${isSaving ? `scale-95 motion-reduce:scale-100` : ""}
             `}
             onClick={handleComplete}
@@ -136,15 +141,8 @@ export default function RoleCreationFlow({
             aria-busy={isSaving}
             title={!canCreate ? "请先填写创建角色所需信息" : undefined}
           >
-            {isSaving
-              ? <span className="loading loading-spinner loading-xs"></span>
-              : (
-                  <span className="flex items-center gap-1">
-                    <Plus className="size-4" weight="regular" />
-                    创建角色
-                  </span>
-                )}
-          </button>
+            {isSaving ? "创建中..." : "创建角色"}
+          </Button>
         </div>
         <p className="text-sm text-base-content/60">{description ?? "填写角色信息，完成角色创建"}</p>
       </div>
@@ -156,18 +154,13 @@ export default function RoleCreationFlow({
         />
 
         {!hideRuleSelection && (
-          <div className="
-            card bg-base-100 shadow-xs rounded-2xl border-2
-            border-base-content/10
-          ">
+          <div className={surfaceClassName({ level: "content", className: "border-2 border-base-content/10 shadow-xs" })}>
             <div className="
-              card-body p-4
+              p-4
               md:p-5
               space-y-3
             ">
-              <Suspense fallback={<div className="
-                skeleton h-24 w-full rounded-lg
-              " />}>
+              <Suspense fallback={<Skeleton className="h-24 w-full rounded-lg" />}>
                 <LazyRulesSection
                   large={false}
                   currentRuleId={characterData.ruleId}

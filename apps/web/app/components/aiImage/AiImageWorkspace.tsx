@@ -7,6 +7,7 @@ import type { GeneratedImageItem } from "@/components/aiImage/types";
 
 import { AiImageHistoryPane } from "@/components/aiImage/AiImageHistoryPane";
 import { AiImagePreviewPane } from "@/components/aiImage/AiImagePreviewPane";
+import { MediaImage } from "@/components/common/mediaImage";
 import { HistoryIcon } from "@/icons";
 
 type AiImageWorkspaceProps = {
@@ -31,7 +32,7 @@ export const AiImageWorkspace = memo(({
   const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
   const [isPinnedDrawerOpen, setIsPinnedDrawerOpen] = useState(false);
   const [isPinnedEdgeHovered, setIsPinnedEdgeHovered] = useState(false);
-  const historyPaneWidthClassName = "w-[160px]";
+  const historyPaneWidthClassName = "h-[160px] w-full md:h-auto md:w-[160px]";
 
   useEffect(() => {
     if (!pinnedPreviewResult) {
@@ -45,7 +46,7 @@ export const AiImageWorkspace = memo(({
 
   return (
     <div className="
-      relative z-0 flex min-h-0 min-w-0 flex-1 overflow-visible bg-base-200
+      relative z-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-visible bg-base-200 md:flex-row
     ">
       {isPinnedDrawerOpen && pinnedPreviewResult && !isDirectorToolsOpen
         ? (
@@ -139,7 +140,7 @@ export const AiImageWorkspace = memo(({
                     setIsPinnedDrawerOpen(true);
                   }}
                 >
-                  <img
+                  <MediaImage
                     id="ai-image-pinned-preview"
                     src={pinnedPreviewResult.dataUrl}
                     className="
@@ -180,6 +181,7 @@ export const AiImageWorkspace = memo(({
       <div
         className={`
           relative shrink-0 overflow-hidden transition-all duration-300
+          motion-reduce:transition-none
           ease-emphasized
           ${
           isHistoryCollapsed

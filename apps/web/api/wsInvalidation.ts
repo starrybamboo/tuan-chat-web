@@ -40,16 +40,16 @@ export function invalidateRoleChangeQueries(
 ) {
   const roomId = eventData?.roomId;
   if (isPositiveId(roomId)) {
+    queryClient.invalidateQueries({ queryKey: ["roomRoles", roomId] });
     queryClient.invalidateQueries({ queryKey: ["roomRole", roomId] });
+    queryClient.invalidateQueries({ queryKey: ["roomNpcRole", roomId] });
   }
 
   const spaceId = eventData?.spaceId;
   if (isPositiveId(spaceId)) {
     queryClient.invalidateQueries({ queryKey: ["spaceRole", spaceId] });
-    queryClient.invalidateQueries({ queryKey: ["spaceRepositoryRole", spaceId] });
     return;
   }
 
   queryClient.invalidateQueries({ queryKey: ["spaceRole"] });
-  queryClient.invalidateQueries({ queryKey: ["spaceRepositoryRole"] });
 }

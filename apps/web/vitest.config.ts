@@ -14,7 +14,7 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: ["**/*.test.ts"],
-    exclude: ["**/*.e2e.test.ts", "**/.codex-tmp/**", "**/node_modules/**", "**/dist/**"],
+    exclude: ["**/.codex-tmp/**", "**/node_modules/**", "**/dist/**"],
     maxWorkers: 4,
     css: {
       include: [/\.scss\?raw$/],
@@ -25,7 +25,6 @@ export default defineConfig({
         "apps/web/app/components/privateChat/privateUnreadStateStore.ts",
         "apps/web/app/components/privateChat/privateUnreadUtils.ts",
         "apps/web/app/components/privateChat/utils/privateChatTimeline.ts",
-        "apps/web/app/components/repository/detail/repositoryDetail.helpers.ts",
         "apps/web/app/utils/mediaUrl.ts",
         "apps/mobile/src/features/auth/login-action.ts",
         "apps/mobile/src/features/auth/mobile-auth-redirect.ts",
@@ -62,7 +61,6 @@ export default defineConfig({
       ],
       exclude: [
         "**/*.test.ts",
-        "**/*.e2e.test.ts",
         "**/*.d.ts",
       ],
       reportsDirectory: "coverage",

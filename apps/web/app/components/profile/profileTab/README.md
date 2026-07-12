@@ -12,7 +12,7 @@
 ## 拆分后结构
 
 ### 📁 components/ (UI组件)
-- **UserAvatar.tsx** - 头像组件，支持编辑模式和不同尺寸
+- **ProfileAvatarEditor.tsx** - 头像组件，支持编辑模式和不同尺寸
 - **UserProfile.tsx** - 用户基本信息（用户名、描述），支持内联编辑
 - **FollowStats.tsx** - 关注/粉丝统计显示
 - **UserActions.tsx** - 操作按钮（编辑、关注、私信）
@@ -39,7 +39,7 @@
 - 测试更简单
 
 ### 2. 可复用性
-- 组件可以在其他地方复用（如 UserAvatar, UserProfile）
+- 组件可以在其他地方复用（如 ProfileAvatarEditor, UserProfile）
 - hooks 可以在其他相关组件中使用
 
 ### 3. 性能优化
@@ -55,13 +55,13 @@
 ```
 homeTab.tsx
 ├── MobileProfileHeader
-│   ├── UserAvatar
+│   ├── ProfileAvatarEditor
 │   ├── UserProfile
 │   ├── UserActions
 │   ├── ProfileEditPanel
 │   └── FollowStats
 ├── DesktopProfileSidebar
-│   ├── UserAvatar
+│   ├── ProfileAvatarEditor
 │   ├── UserProfile
 │   ├── FollowStats
 │   └── UserActions
@@ -80,3 +80,4 @@ homeTab.tsx
 3. **状态提升** - 共享状态通过 hooks 管理
 4. **响应式设计** - 支持移动端和桌面端不同布局
 5. **ESLint 兼容** - 修复了所有导入顺序和代码风格问题
+

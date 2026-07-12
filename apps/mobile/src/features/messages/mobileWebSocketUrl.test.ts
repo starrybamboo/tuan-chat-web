@@ -8,13 +8,25 @@ describe("createMobileWebSocketUrl", () => {
   });
 
   it("uses explicit websocket url instead of deriving from api base url", async () => {
-    process.env.EXPO_PUBLIC_TUANCHAT_API_WS_URL = "ws://127.0.0.1:8090";
+    process.env.EXPO_PUBLIC_TUANCHAT_API_WS_URL = "ws://10.0.2.2:8090";
     vi.doMock("../../lib/api", () => ({
-      DEFAULT_TUANCHAT_API_BASE_URL: "http://127.0.0.1:8081",
+      DEFAULT_TUANCHAT_API_BASE_URL: "http://10.0.2.2:8081",
+      LOCAL_TUANCHAT_API_BASE_URL: "http://10.0.2.2:8081",
     }));
 
     const { createMobileWebSocketUrl } = await import("./mobileWebSocketUrl");
 
-    expect(createMobileWebSocketUrl("token value")).toBe("ws://127.0.0.1:8090?token=token%20value");
+    expect(createMobileWebSocketUrl("token value")).toBe("ws://10.0.2.2:8090?token=token%20value");
+  });
+
+  it("uses local websocket port when api base url is local default", async () => {
+    vi.doMock("../../lib/api", () => ({
+      DEFAULT_TUANCHAT_API_BASE_URL: "http://10.0.2.2:8081",
+      LOCAL_TUANCHAT_API_BASE_URL: "http://10.0.2.2:8081",
+    }));
+
+    const { createMobileWebSocketUrl } = await import("./mobileWebSocketUrl");
+
+    expect(createMobileWebSocketUrl("token value")).toBe("ws://10.0.2.2:8090?token=token%20value");
   });
 });

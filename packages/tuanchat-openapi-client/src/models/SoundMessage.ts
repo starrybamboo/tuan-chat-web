@@ -4,6 +4,9 @@
 /* eslint-disable */
 import type { MediaSource } from './MediaSource';
 export type SoundMessage = {
+    /**
+     * 媒体资源来源
+     */
     source: MediaSource;
     /**
      * 大小（字节）
@@ -26,3 +29,4 @@ export type SoundMessage = {
      */
     volume?: number;
 };
+

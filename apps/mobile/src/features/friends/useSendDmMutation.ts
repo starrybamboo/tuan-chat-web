@@ -55,7 +55,7 @@ function warnDiskCacheFailure(action: string, error: unknown) {
 export function useSendDmMutation(currentUserId?: number | null) {
   const queryClient = useQueryClient();
   const mutation = useMutation({
-    mutationFn: (request: MessageDirectSendRequest) => mobileApiClient.messageDirectController.sendMessage(request),
+    mutationFn: (request: MessageDirectSendRequest) => mobileApiClient.messageDirectController.sendMessage1(request),
     mutationKey: ["sendDirectMessage", currentUserId ?? null],
     onMutate: async (request): Promise<SendDmMutationContext> => {
       const optimisticMessage = createMobileOptimisticDirectMessage({

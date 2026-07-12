@@ -8,7 +8,7 @@ import { Button, type ButtonProps } from "./Button";
 
 /**
  * 统一图标按钮：强制无障碍标签（label → aria-label），可选悬浮提示。
- * 用于关闭、工具栏、分页等图标按钮，替代散写的 `btn-ghost btn-circle`。
+ * 用于关闭、工具栏、分页等图标按钮，替代散写的图标按钮样式。
  */
 export type IconButtonProps = Omit<ButtonProps, "children"> & {
   /** 按钮内图标节点。 */

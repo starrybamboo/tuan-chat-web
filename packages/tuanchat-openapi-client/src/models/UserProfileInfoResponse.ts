@@ -2,9 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * 返回对象
- */
 export type UserProfileInfoResponse = {
     /**
      * 用户的uid，全局唯一
@@ -32,3 +29,4 @@ export type UserProfileInfoResponse = {
      */
     gender?: string;
 };
+

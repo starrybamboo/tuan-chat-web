@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
+import { TextArea } from "@/components/common/FormField";
 
 import type { Role } from "./types";
 
@@ -148,7 +149,8 @@ export default function RoleBasicInfoEditor({
       {showDescription && (isDescriptionEditing
         ? (
             <div className={descriptionEditorClassName}>
-              <textarea
+              <TextArea
+                appearance="bare"
                 value={descriptionDraft}
                 onChange={event => setDescriptionDraft(event.target.value)}
                 autoComplete="off"

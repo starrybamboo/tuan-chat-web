@@ -30,3 +30,4 @@ export type RoleAbility = {
      */
     extra?: Record<string, string>;
 };
+

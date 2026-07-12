@@ -19,11 +19,14 @@ export type RoomMessageStreamItem = {
      * 消息 annotations
      */
     annotations?: Array<string>;
+    /**
+     * 消息 extra
+     */
     extra?: MessageExtra;
     /**
      * WebGAL 配置
      */
-    webgal?: Record<string, any>;
+    webgal?: any;
     /**
      * 角色 ID
      */
@@ -45,3 +48,4 @@ export type RoomMessageStreamItem = {
      */
     position?: number;
 };
+

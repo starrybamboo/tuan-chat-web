@@ -2,9 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * 状态事件来源
- */
 export type StateEventSource = {
     /**
      * 事件来源：command 或 ui
@@ -19,3 +16,4 @@ export type StateEventSource = {
      */
     parserVersion: string;
 };
+

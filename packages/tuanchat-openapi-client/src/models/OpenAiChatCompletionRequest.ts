@@ -43,5 +43,6 @@ export type OpenAiChatCompletionRequest = {
     /**
      * 透传给 OpenAI-compatible 上游的额外顶层字段；也支持直接在请求顶层附带未知字段
      */
-    extra_body?: Record<string, Record<string, any>>;
+    extra_body?: Record<string, any>;
 };
+

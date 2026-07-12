@@ -1,8 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
 
-import { XIcon } from "@phosphor-icons/react";
-import { useRef } from "react";
-
 import type {
   MetadataImportSelectionState,
   PendingMetadataImportState,
@@ -12,7 +9,9 @@ import image2imageIconSrc from "@/components/aiImage/assets/image2image.png";
 import preciseReferenceIconSrc from "@/components/aiImage/assets/precise-reference.png";
 import vibeTransferIconSrc from "@/components/aiImage/assets/vibe-transfer.png";
 import { ReferenceActionIcon } from "@/components/aiImage/ReferenceActionIcon";
-import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
+import { DialogFrame } from "@/components/common/DialogFrame";
+import { Checkbox } from "@/components/common/FormField";
+import { MediaImage } from "@/components/common/mediaImage";
 import PortalTooltip from "@/components/common/portalTooltip";
 
 type MetadataImportDialogProps = {
@@ -84,7 +83,6 @@ export function MetadataImportDialog({
   onImportSourceImageTarget,
   onConfirmMetadataImport,
 }: MetadataImportDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement | null>(null);
   const isOpen = Boolean(pendingMetadataImport);
   const hasImportedMetadata = Boolean(pendingMetadataImport?.metadata);
   const previewFrameClassName = hasImportedMetadata
@@ -94,68 +92,38 @@ export function MetadataImportDialog({
     ? "mx-auto h-[220px] w-full max-w-[170px] object-contain"
     : "mx-auto h-[260px] w-full max-w-full object-contain";
 
-  useEscapeToClose({
-    enabled: isOpen,
-    onClose,
-    containerRef: dialogRef,
-  });
-
   return (
-    <dialog
-      ref={dialogRef}
+    <DialogFrame
       open={isOpen}
-      data-modal-layer={isOpen ? "true" : undefined}
-      role="dialog"
-      aria-modal="true"
-      aria-label="图片导入"
-      className={`
-        modal
-        ${isOpen ? "modal-open" : ""}
-      `}
-      onCancel={(event) => {
-        event.preventDefault();
-        onClose();
-      }}
-    >
-      <div className="
-        modal-box relative max-w-[452px] overflow-hidden border border-base-300
+      mode="native"
+      onClose={onClose}
+      ariaLabel="图片导入"
+      panelClassName="
+        max-w-[452px] overflow-hidden border border-base-300
         bg-base-100 p-0 text-base-content shadow-xl
-      ">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="
-            absolute left-1/2 top-10 h-[25rem] w-[25rem] -translate-x-1/2
-            rounded-full border border-base-content/10
-          " />
-          <div className="
-            absolute left-1/2 top-24 h-[38rem] w-[38rem] -translate-x-1/2
-            rounded-full border border-base-content/5
-          " />
-          <div className="
-            absolute -left-20 top-48 h-44 w-44 rounded-full bg-info/10
-            blur-3xl
-          " />
-          <div className="
-            absolute right-0 top-0 h-48 w-48 rounded-full bg-base-content/6
-            blur-3xl
-          " />
-        </div>
+      "
+    >
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="
+          absolute left-1/2 top-10 h-[25rem] w-[25rem] -translate-x-1/2
+          rounded-full border border-base-content/10
+        " />
+        <div className="
+          absolute left-1/2 top-24 h-[38rem] w-[38rem] -translate-x-1/2
+          rounded-full border border-base-content/5
+        " />
+        <div className="
+          absolute -left-20 top-48 h-44 w-44 rounded-full bg-info/10
+          blur-3xl
+        " />
+        <div className="
+          absolute right-0 top-0 h-48 w-48 rounded-full bg-base-content/6
+          blur-3xl
+        " />
+      </div>
 
-        <div className="relative px-6 pb-7 pt-5">
-          <button
-            type="button"
-            className="
-              absolute right-4 top-4 inline-flex size-8 items-center
-              justify-center rounded-md text-base-content/75 transition
-              hover:text-base-content
-            "
-            aria-label="关闭图片导入弹窗"
-            title="关闭图片导入弹窗"
-            onClick={onClose}
-          >
-            <XIcon className="size-6" weight="regular" />
-          </button>
-
-          <div className="max-w-[320px] pr-12">
+      <div className="relative px-6 pb-7 pt-5">
+          <div className="max-w-[320px]">
             <h3 className="
               font-serif text-[1.52rem] font-semibold leading-[1.22]
               text-base-content
@@ -167,7 +135,7 @@ export function MetadataImportDialog({
           <div className={previewFrameClassName}>
             {pendingMetadataImport
               ? (
-                  <img
+                  <MediaImage
                     src={pendingMetadataImport.sourceImage.dataUrl}
                     alt={pendingMetadataImport.sourceImage.name || "import-preview"}
                     className={previewImageClassName}
@@ -231,8 +199,8 @@ export function MetadataImportDialog({
                         flex items-center gap-3 text-[13px] leading-none
                         ${canImportMetadataPrompt ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}
                       `}>
-                        <input
-                          type="checkbox"
+                        <Checkbox
+                          density="compact"
                           className={METADATA_CHECKBOX_CLASS_NAME}
                           checked={canImportMetadataPrompt && metadataImportSelection.prompt}
                           disabled={!canImportMetadataPrompt}
@@ -245,8 +213,8 @@ export function MetadataImportDialog({
                         flex items-center gap-3 text-[13px] leading-none
                         ${canImportMetadataNegativePrompt ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}
                       `}>
-                        <input
-                          type="checkbox"
+                        <Checkbox
+                          density="compact"
                           className={METADATA_CHECKBOX_CLASS_NAME}
                           checked={canImportMetadataNegativePrompt && metadataImportSelection.undesiredContent}
                           disabled={!canImportMetadataNegativePrompt}
@@ -259,8 +227,8 @@ export function MetadataImportDialog({
                         flex items-center gap-3 text-[13px] leading-none
                         ${canImportMetadataCharacters ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}
                       `}>
-                        <input
-                          type="checkbox"
+                        <Checkbox
+                          density="compact"
                           className={METADATA_CHECKBOX_CLASS_NAME}
                           checked={canImportMetadataCharacters && metadataImportSelection.characters}
                           disabled={!canImportMetadataCharacters}
@@ -281,8 +249,8 @@ export function MetadataImportDialog({
                           cursor-pointer text-base-content/80
                         ` : `cursor-not-allowed text-base-content/50`}
                       `}>
-                        <input
-                          type="checkbox"
+                        <Checkbox
+                          density="compact"
                           className={METADATA_CHECKBOX_CLASS_NAME}
                           checked={canImportMetadataCharacters && metadataImportSelection.characters && metadataImportSelection.appendCharacters}
                           disabled={!canImportMetadataCharacters || !metadataImportSelection.characters}
@@ -295,8 +263,8 @@ export function MetadataImportDialog({
                         flex items-center gap-3 text-[13px] leading-none
                         ${canImportMetadataSettings ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}
                       `}>
-                        <input
-                          type="checkbox"
+                        <Checkbox
+                          density="compact"
                           className={METADATA_CHECKBOX_CLASS_NAME}
                           checked={canImportMetadataSettings && metadataImportSelection.settings}
                           disabled={!canImportMetadataSettings}
@@ -309,8 +277,8 @@ export function MetadataImportDialog({
                         flex items-center gap-3 text-[13px] leading-none
                         ${canImportMetadataSeed ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}
                       `}>
-                        <input
-                          type="checkbox"
+                        <Checkbox
+                          density="compact"
                           className={METADATA_CHECKBOX_CLASS_NAME}
                           checked={canImportMetadataSeed && metadataImportSelection.seed}
                           disabled={!canImportMetadataSeed}
@@ -346,8 +314,8 @@ export function MetadataImportDialog({
                         flex items-center gap-3 text-[13px] text-base-content/92
                         sm:mr-[23px]
                       ">
-                        <input
-                          type="checkbox"
+                        <Checkbox
+                          density="compact"
                           className={METADATA_CHECKBOX_CLASS_NAME}
                           checked={metadataImportSelection.cleanImports}
                           onChange={event => setMetadataImportSelection(prev => ({ ...prev, cleanImports: event.target.checked }))}
@@ -360,11 +328,7 @@ export function MetadataImportDialog({
                 </>
               )
             : null}
-        </div>
       </div>
-      <form method="dialog" className="modal-backdrop">
-        <button type="button" onClick={onClose}>关闭</button>
-      </form>
-    </dialog>
+    </DialogFrame>
   );
 }

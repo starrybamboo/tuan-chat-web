@@ -20,3 +20,4 @@ export type CursorPageBaseResponseNotificationItemResponse = {
      */
     list?: Array<NotificationItemResponse>;
 };
+

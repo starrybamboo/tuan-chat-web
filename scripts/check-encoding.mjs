@@ -13,7 +13,6 @@ const TEXT_FILE_GLOBS = [
   "scripts/**/*.{ts,tsx,js,jsx,mjs,cjs,ps1}",
   "apps/web/vite.config.{ts,js,mjs,cjs}",
   "apps/web/vitest.config.{ts,js,mjs,cjs}",
-  "apps/web/vitest.e2e.config.{ts,js,mjs,cjs}",
   "apps/web/tailwind.config.{ts,js,mjs,cjs}",
   "eslint.config.{js,mjs,cjs}",
   "package.json",

@@ -1,10 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 
 import {
-  fetchRoomInfoWithCache,
-  fetchRoomNpcRoleWithCache,
-  fetchRoomRoleWithCache,
-  fetchSpaceInfoWithCache,
+  fetchRoomAllRoleWithCache,
   fetchUserActiveSpacesWithCache,
   fetchUserRoomsWithCache,
 } from "api/hooks/chatQueryHooks";
@@ -26,7 +23,6 @@ export function preloadChatRouteData(
   const activeSpaceId = parsePositiveNumber(params.spaceId);
   if (activeSpaceId) {
     requests.push(
-      fetchSpaceInfoWithCache(queryClient, activeSpaceId),
       fetchUserRoomsWithCache(queryClient, activeSpaceId),
     );
   }
@@ -34,9 +30,7 @@ export function preloadChatRouteData(
   const activeRoomId = parsePositiveNumber(params.roomId);
   if (activeRoomId) {
     requests.push(
-      fetchRoomInfoWithCache(queryClient, activeRoomId),
-      fetchRoomRoleWithCache(queryClient, activeRoomId),
-      fetchRoomNpcRoleWithCache(queryClient, activeRoomId),
+      fetchRoomAllRoleWithCache(queryClient, activeRoomId),
     );
   }
 

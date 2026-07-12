@@ -15,6 +15,7 @@ describe("domain coc7 骰子指令", () => {
       sendToast: vi.fn<MockFn>(),
       getRoleAbilityList: vi.fn<MockFn>().mockReturnValue({
         skill: {
+          教育: "60",
           手枪: "80",
         },
       }),
@@ -48,5 +49,38 @@ describe("domain coc7 骰子指令", () => {
       "D100=10/80 极难成功",
       "D100=40/80 困难成功",
     ].join("\n"));
+  });
+
+  it("en 支持英文属性别名", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.49);
+
+    const result = await executorCoc.execute("en", ["edu"], [{ roleId: 1, roleName: "卑微小周" }] as any, cpi);
+
+    expect(result).toBe(true);
+    expect(cpi.replyMessage).toHaveBeenCalledWith("教育成长检定：D100=50/60，检定成功，无法成长");
+  });
+
+  it("en 支持属性名和值的紧凑写法", async () => {
+    vi.spyOn(Math, "random")
+      .mockReturnValueOnce(0.89)
+      .mockReturnValueOnce(0);
+
+    const result = await executorCoc.execute("en", ["教育80"], [{ roleId: 1, roleName: "卑微小周" }] as any, cpi);
+
+    expect(result).toBe(true);
+    expect(cpi.setRoleAbilityList).toHaveBeenCalledWith(1, expect.objectContaining({
+      skill: expect.objectContaining({ 教育: "81" }),
+    }));
+    expect(cpi.replyMessage).toHaveBeenCalledWith([
+      "教育成长检定：D100=90/80，检定失败",
+      "教育成长：80 -> 81",
+    ].join("\n"));
+  });
+
+  it("en 缺少属性名时返回可读错误", async () => {
+    const result = await executorCoc.execute("en", ["80"], [{ roleId: 1, roleName: "卑微小周" }] as any, cpi);
+
+    expect(result).toBe(false);
+    expect(cpi.replyMessage).toHaveBeenCalledWith("错误：缺少技能名称");
   });
 });

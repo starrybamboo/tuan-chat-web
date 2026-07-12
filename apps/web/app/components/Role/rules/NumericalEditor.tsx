@@ -453,7 +453,7 @@ export default function NumericalEditor({
       [overflow-anchor:none]
     ">
       <div className={headerClassName}>
-        <h3 className="card-title flex items-center gap-2 text-lg">
+        <h3 className="flex items-center gap-2 text-lg font-medium">
           {title}
         </h3>
       </div>
@@ -507,7 +507,7 @@ export default function NumericalEditor({
                   onValueCommit={handleFieldCommit}
                   onDelete={handleDeleteField}
                   onRename={handleRenameField}
-                  className="form-control"
+                  className="space-y-1.5"
                   editingBackgroundClassName="bg-base-100"
                   enableArrowNavigation
                   commitOnBlur={false}

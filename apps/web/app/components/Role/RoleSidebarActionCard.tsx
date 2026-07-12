@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { surfaceClassName } from "@/components/common/DesignLanguage";
+
 import { ChevronRightIcon } from "@/icons";
 
 type RoleSidebarActionCardProps = {
@@ -24,16 +26,17 @@ export default function RoleSidebarActionCard({
   className = "",
 }: RoleSidebarActionCardProps) {
   return (
-    <div className={`
-      card w-full rounded-xl bg-base-100 transition-all duration-200
+    <div className={surfaceClassName({ level: "content", className: `
+      w-full transition-all duration-200
+      motion-reduce:transition-none
       ${className}
-    `}>
-      <div className="card-body gap-3 p-4">
+    ` })}>
+      <div className="flex flex-col gap-3 p-4">
         <button
           type="button"
           className="
             flex min-w-0 items-center justify-between gap-3 rounded-xl p-2
-            text-left transition-colors
+            text-left transition-colors motion-reduce:transition-none
             hover:bg-base-300/80
           "
           onClick={onClick}

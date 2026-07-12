@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { canInviteSpectators, canManageMemberPermissions } from "@/components/chat/utils/memberPermissions";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
+import { Radio } from "@/components/common/FormField";
 import { InfoIcon } from "@/icons";
 
 type SpaceInvitePanelProps = {
@@ -114,10 +115,10 @@ function InviteModeCard({
       }
       `}
     >
-      <input
-        type="radio"
+      <Radio
+        density="compact"
         name={inputName}
-        className="radio radio-sm mt-1"
+        className="mt-1"
         checked={active}
         onChange={onSelect}
         aria-label={label}

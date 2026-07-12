@@ -8,3 +8,4 @@ export type SpaceRecoverRequest = {
      */
     spaceId: number;
 };
+

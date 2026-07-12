@@ -13,6 +13,7 @@ import {
   readCachedDirectInboxMessages,
   writeCachedDirectMessages,
 } from "./mobileDirectMessageCache";
+import { shouldEnableDmInboxQuery, type UseDmInboxQueryOptions } from "./dmInboxQueryOptions";
 
 export type DmConversation = {
   contactId: number;
@@ -30,17 +31,21 @@ export function mergeDirectInboxMessagesForQueryCache(
   return mergeDirectMessages(cachedMessages, currentMessages);
 }
 
-export function useDmInboxQuery(currentUserId: number | null) {
+export function useDmInboxQuery(
+  currentUserId: number | null,
+  options: UseDmInboxQueryOptions = {},
+) {
   const queryClient = useQueryClient();
+  const enabled = shouldEnableDmInboxQuery(currentUserId, options);
 
   const query = useDirectInboxMessagesQuery(mobileApiClient, currentUserId, {
-    enabled: typeof currentUserId === "number" && currentUserId > 0,
+    enabled,
   });
   const queryKey = useMemo(() => ["dmInbox", currentUserId ?? null] as const, [currentUserId]);
 
   // direct_messages 是 dmInbox 的恢复 read model；query 已成功后不得再被旧磁盘快照覆盖。
   useEffect(() => {
-    if (typeof currentUserId !== "number" || currentUserId <= 0) {
+    if (!enabled || typeof currentUserId !== "number" || currentUserId <= 0) {
       return;
     }
 
@@ -69,7 +74,7 @@ export function useDmInboxQuery(currentUserId: number | null) {
     return () => {
       disposed = true;
     };
-  }, [currentUserId, queryClient, queryKey]);
+  }, [currentUserId, enabled, queryClient, queryKey]);
   const hasQueryMessagesToPersist = useMemo(() => {
     return hasPersistableDirectInboxMessages(query.data);
   }, [query.data]);

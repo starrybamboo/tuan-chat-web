@@ -3,7 +3,10 @@ param(
     [string]$Architectures = "arm64-v8a",
     [switch]$AllArchitectures,
     [switch]$Clean,
-    [switch]$SkipPrebuild
+    [switch]$SkipPrebuild,
+    [switch]$UseLocalBackend,
+    [string]$ApiBaseUrl = "",
+    [string]$WebSocketUrl = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -38,6 +41,32 @@ Write-Host "  Prebuild: $(-not $SkipPrebuild)"
 
 # Set environment variables (JAVA_HOME, ANDROID_HOME, etc.)
 Set-AndroidDevBuildEnvironment -Config $config
+
+$effectiveApiBaseUrl = $ApiBaseUrl.Trim()
+$effectiveWebSocketUrl = $WebSocketUrl.Trim()
+if ($UseLocalBackend) {
+    if ([string]::IsNullOrWhiteSpace($effectiveApiBaseUrl)) {
+        $effectiveApiBaseUrl = "http://10.0.2.2:$($config.ApiPort)"
+    }
+    if ([string]::IsNullOrWhiteSpace($effectiveWebSocketUrl)) {
+        $effectiveWebSocketUrl = "ws://10.0.2.2:8090"
+    }
+}
+
+if (-not [string]::IsNullOrWhiteSpace($effectiveApiBaseUrl)) {
+    $env:EXPO_PUBLIC_TUANCHAT_API_BASE_URL = $effectiveApiBaseUrl
+    Write-Host "  Mobile API Base URL: $effectiveApiBaseUrl"
+}
+if (-not [string]::IsNullOrWhiteSpace($effectiveWebSocketUrl)) {
+    $env:EXPO_PUBLIC_TUANCHAT_API_WS_URL = $effectiveWebSocketUrl
+    Write-Host "  Mobile WebSocket URL: $effectiveWebSocketUrl"
+}
+if ($UseLocalBackend) {
+    $env:EXPO_PUBLIC_ENABLE_LOCAL_ACCOUNT_LOGIN = "1"
+    $env:EXPO_PUBLIC_CHAT_TIMING_TRACE = "1"
+    $env:EXPO_PUBLIC_MOBILE_NOTIFICATION_TRACE = "1"
+    Write-Host "  Local backend login and chat timing trace enabled."
+}
 
 # Also need to write local.properties
 Write-AndroidDevLocalProperties -Config $config
@@ -83,6 +112,9 @@ $buildStamp = [ordered]@{
     package       = $config.AppPackage
     variant       = $variantName
     architectures = $architecturesName
+    apiBaseUrl    = $env:EXPO_PUBLIC_TUANCHAT_API_BASE_URL
+    webSocketUrl  = $env:EXPO_PUBLIC_TUANCHAT_API_WS_URL
+    localBackend  = [bool]$UseLocalBackend
     builtAt       = $buildStampTime.ToString("yyyy-MM-ddTHH:mm:ss.fffzzz")
     builtAtUtc    = $buildStampTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
     gitHead       = $buildStampGitHead

@@ -1,15 +1,17 @@
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 
 import { Broom, DotsThreeVerticalIcon } from "@phosphor-icons/react";
-import { useLocation } from "@tanstack/react-router";
+import { useLocation, useRouter } from "@tanstack/react-router";
 import React from "react";
 
-import SearchBar from "@/components/chat/input/inlineSearch";
-import MobileSearchPage from "@/components/chat/input/mobileSearchPage";
 import RoomDescriptionDropdown from "@/components/chat/room/roomDescriptionDropdown";
+import ChatSearchTrigger from "@/components/chat/search/chatSearchTrigger";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { IconButton } from "@/components/common/IconButton";
+import PortalTooltip from "@/components/common/portalTooltip";
+import { MenuItem, MenuSurface } from "@/components/common/MenuPopover";
 import {
   ArticleIcon,
   BaselineArrowBackIosNew,
@@ -25,6 +27,8 @@ function ToolbarDivider() {
 export type RoomContentMode = "room" | "doc";
 
 type RoomHeaderBarProps = {
+  spaceId: number;
+  roomId: number;
   roomName?: string;
   room?: Room | null;
   contentMode: RoomContentMode;
@@ -36,6 +40,8 @@ type RoomHeaderBarProps = {
 }
 
 function RoomHeaderBarImpl({
+  spaceId,
+  roomId,
   roomName,
   room,
   contentMode,
@@ -53,7 +59,7 @@ function RoomHeaderBarImpl({
   const toggleUseChatBubbleStyle = useRoomPreferenceStore(state => state.toggleUseChatBubbleStyle);
   const isMobile = getScreenSize() === "sm";
   const location = useLocation();
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = React.useState(false);
+  const router = useRouter();
   const [isClearReloadConfirmOpen, setIsClearReloadConfirmOpen] = React.useState(false);
   const [isMobileToolsMenuOpen, setIsMobileToolsMenuOpen] = React.useState(false);
   const mobileToolsMenuRef = React.useRef<HTMLDivElement | null>(null);
@@ -87,8 +93,8 @@ function RoomHeaderBarImpl({
     setIsClearReloadConfirmOpen(true);
   };
 
-  const handleOpenMobileSearch = () => {
-    setIsMobileSearchOpen(true);
+  const openMessageSearch = () => {
+    router.history.push(`/chat/${spaceId}/${roomId}/search`);
     blurActiveElement();
   };
 
@@ -104,16 +110,14 @@ function RoomHeaderBarImpl({
     blurActiveElement();
   };
 
-  // 退出移动端或切路由时，避免搜索页保持打开状态
+  // 退出移动端时收起移动工具菜单。
   React.useEffect(() => {
     if (!isMobile) {
-      setIsMobileSearchOpen(false);
       setIsMobileToolsMenuOpen(false);
     }
   }, [isMobile]);
 
   React.useEffect(() => {
-    setIsMobileSearchOpen(false);
     setIsMobileToolsMenuOpen(false);
   }, [location.pathname, location.searchStr]);
 
@@ -169,27 +173,25 @@ function RoomHeaderBarImpl({
           >
             <div className="flex flex-1 items-center gap-2 min-w-0">
               {onCloseSubWindow && (
-                <div className="tooltip tooltip-bottom" data-tip="关闭副窗口">
-                  <button
-                    type="button"
-                    aria-label="关闭副窗口"
+                <PortalTooltip label="关闭副窗口" placement="bottom">
+                  <IconButton
+                    label="关闭副窗口"
                     title="关闭副窗口"
-                    className="btn btn-ghost btn-square btn-xs"
+                    size="xs"
+                    shape="square"
                     onClick={onCloseSubWindow}
-                  >
-                    <XMarkICon className="size-4" />
-                  </button>
-                </div>
+                    icon={<XMarkICon className="size-4" />}
+                  />
+                </PortalTooltip>
               )}
               <div className="sm:hidden">
-                <button
-                  type="button"
-                  aria-label={hasSideDrawerOpen ? "返回群聊" : "打开左侧边栏"}
-                  className="btn btn-ghost btn-square btn-sm"
+                <IconButton
+                  label={hasSideDrawerOpen ? "返回群聊" : "打开左侧边栏"}
+                  size="sm"
+                  shape="square"
                   onClick={handleMobileBack}
-                >
-                  <BaselineArrowBackIosNew className="size-6" />
-                </button>
+                  icon={<BaselineArrowBackIosNew className="size-6" />}
+                />
               </div>
               <div className="flex min-w-0 shrink-0 items-center gap-1">
                 <span className="
@@ -226,31 +228,32 @@ function RoomHeaderBarImpl({
             <div className="flex shrink-0 gap-2 items-center overflow-visible">
               {canClearAndReloadMessages && (
                 <>
-                  <div className="tooltip tooltip-bottom relative z-50" data-tip="清空本地并重拉全量消息（开发/测试）">
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-square btn-xs text-warning"
+                  <PortalTooltip
+                    label="清空本地并重拉全量消息（开发/测试）"
+                    placement="bottom"
+                    anchorClassName="relative z-50"
+                  >
+                    <IconButton
+                      size="xs"
+                      shape="square"
+                      className="text-warning"
                       disabled={isReloadingAllMessages}
                       onClick={handleRequestClearAndReloadMessages}
-                      aria-label="清空并重拉消息（开发/测试）"
-                    >
-                      <Broom className="size-5" />
-                    </button>
-                  </div>
+                      label="清空并重拉消息（开发/测试）"
+                      icon={<Broom className="size-5" />}
+                    />
+                  </PortalTooltip>
                   {!isMobile && <ToolbarDivider />}
                 </>
               )}
               {isMobile
                 ? (
-                    <div ref={mobileToolsMenuRef} className={`
-                      dropdown dropdown-end
-                      ${isMobileToolsMenuOpen ? `dropdown-open` : ""}
-                    `}>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-square btn-xs"
+                    <div ref={mobileToolsMenuRef} className="relative inline-flex">
+                      <IconButton
+                        size="xs"
+                        shape="square"
                         aria-controls="room-mobile-tools-menu"
-                        aria-label="工具菜单"
+                        label="工具菜单"
                         aria-expanded={isMobileToolsMenuOpen}
                         title="工具菜单"
                         onClick={() => {
@@ -261,16 +264,17 @@ function RoomHeaderBarImpl({
                           }
                           openMobileToolsMenu();
                         }}
+                        icon={<DotsThreeVerticalIcon className="size-4" />}
+                      />
+                      <MenuSurface
+                        as="ul"
+                        ariaLabel="房间工具"
+                        className={`absolute right-0 top-full z-9999 mt-2 w-56 gap-1 p-2 shadow ${isMobileToolsMenuOpen ? "" : "hidden"}`}
+                        id="room-mobile-tools-menu"
                       >
-                        <DotsThreeVerticalIcon className="size-4" />
-                      </button>
-                      <ul className="
-                        dropdown-content z-9999 menu p-2 shadow bg-base-100
-                        rounded-box w-56 gap-1
-                      " id="room-mobile-tools-menu">
-                        <li>
-                          <button
-                            type="button"
+                        <li role="none">
+                          <MenuItem
+                            selected={contentMode === "doc"}
                             aria-label={contentMode === "doc" ? "返回房间视图" : "进入文档视图"}
                             title={contentMode === "doc" ? "返回房间视图" : "进入文档视图"}
                             onClick={() => {
@@ -279,11 +283,11 @@ function RoomHeaderBarImpl({
                             }}
                           >
                             {contentMode === "doc" ? "返回房间视图" : "进入文档视图"}
-                          </button>
+                          </MenuItem>
                         </li>
-                        <li>
-                          <button
-                            type="button"
+                        <li role="none">
+                          <MenuItem
+                            selected={useChatBubbleStyle}
                             aria-pressed={useChatBubbleStyle}
                             aria-label={`${chatBubbleStyleLabel}，${chatBubbleStyleToggleLabel}`}
                             onClick={() => {
@@ -293,51 +297,51 @@ function RoomHeaderBarImpl({
                             }}
                           >
                             {`${chatBubbleStyleLabel}，${chatBubbleStyleToggleLabel}`}
-                          </button>
+                          </MenuItem>
                         </li>
-                        <li>
-                          <button
-                            type="button"
+                        <li role="none">
+                          <MenuItem
                             aria-label="搜索房间消息"
                             onClick={() => {
                               closeMobileToolsMenu();
-                              handleOpenMobileSearch();
+                              openMessageSearch();
                             }}
                           >
                             消息搜索
-                          </button>
+                          </MenuItem>
                         </li>
-                      </ul>
+                      </MenuSurface>
                     </div>
                   )
                 : (
                     <>
-                      <button
-                        type="button"
-                        className={[
-                          "tooltip tooltip-bottom relative z-50 inline-flex size-8 items-center justify-center rounded-md transition-colors duration-150",
+                      <PortalTooltip label={contentMode === "doc" ? "返回房间视图" : "进入文档视图"} placement="bottom">
+                        <button
+                          type="button"
+                          className={[
+                          "relative z-50 inline-flex size-8 items-center justify-center rounded-md transition-colors duration-150",
                           contentMode === "doc"
                             ? "text-info hover:text-info"
                             : "text-base-content/70 hover:bg-base-300/60 hover:text-info",
                         ].join(" ")}
-                        data-tip={contentMode === "doc" ? "返回房间视图" : "进入文档视图"}
                         aria-label={contentMode === "doc" ? "返回房间视图" : "进入文档视图"}
                         aria-pressed={contentMode === "doc"}
                         title={contentMode === "doc" ? "返回房间视图" : "进入文档视图"}
                         onClick={onToggleContentMode}
                       >
                         <ArticleIcon className="size-6" />
-                      </button>
+                        </button>
+                      </PortalTooltip>
                       <ToolbarDivider />
-                      <button
-                        type="button"
-                        className={[
-                          "tooltip tooltip-bottom relative z-50 inline-flex size-8 items-center justify-center rounded-md transition-all duration-150",
+                      <PortalTooltip label={`${chatBubbleStyleLabel}，${chatBubbleStyleToggleLabel}`} placement="bottom">
+                        <button
+                          type="button"
+                          className={[
+                          "relative z-50 inline-flex size-8 items-center justify-center rounded-md transition-all duration-150",
                           useChatBubbleStyle
                             ? "text-info hover:text-info"
                             : "text-base-content/70 hover:bg-base-300/60 hover:text-info",
                         ].join(" ")}
-                        data-tip={`${chatBubbleStyleLabel}，${chatBubbleStyleToggleLabel}`}
                         aria-label={`${chatBubbleStyleLabel}，${chatBubbleStyleToggleLabel}`}
                         aria-pressed={useChatBubbleStyle}
                         onClick={() => {
@@ -345,16 +349,16 @@ function RoomHeaderBarImpl({
                         }}
                       >
                         <Bubble2 className="size-6" />
-                      </button>
+                        </button>
+                      </PortalTooltip>
                       <ToolbarDivider />
-                      <SearchBar className="w-64" />
+                      <ChatSearchTrigger onClick={openMessageSearch} />
                     </>
                   )}
             </div>
           </div>
         </div>
       </div>
-      <MobileSearchPage isOpen={isMobileSearchOpen} onClose={() => setIsMobileSearchOpen(false)} />
       <ConfirmDialog
         open={isClearReloadConfirmOpen}
         onOpenChange={() => {

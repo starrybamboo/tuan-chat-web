@@ -2,11 +2,41 @@
 
 本目录提供了统一的 TTS (Text-to-Speech) 引擎抽象和多后端支持。
 
+## 当前实时渲染接入：VoiceBox
+
+WebGAL 实时渲染的 AI 配音通过 VoiceBox REST API 调用 Qwen CustomVoice 0.6B：
+
+- 默认服务地址：`http://127.0.0.1:17493`
+- 模型：`Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice`
+- Profile：团剧共创会按选中的预设音色自动查询或创建
+- 生成流程：`POST /generate` → `GET /history/{id}` → `GET /audio/{id}`
+- 配置位置：空间 WebGAL 实时渲染设置的“TTS 配音层”
+
+VoiceBox 源码位于 `D:\A_collection\voicebox`。仅运行 REST 后端时使用：
+
+```powershell
+cd D:\A_collection\voicebox
+just setup
+just dev-backend
+```
+
+部署域名调用本机 VoiceBox 时，在启动后端前追加允许的来源：
+
+```powershell
+$env:VOICEBOX_CORS_ORIGINS="https://你的团剧共创域名"
+just dev-backend
+```
+
+多个来源使用英文逗号分隔。VoiceBox 默认允许本地 Vite、VoiceBox 自身和 Tauri 来源。首次生成会下载 Qwen CustomVoice 0.6B 模型，生成任务会在 VoiceBox 中持续运行并由团剧共创轮询结果。
+
 ## 目录结构
 
 ```
 app/tts/
 ├── engines/                    # 后端引擎实现
+│   ├── voicebox/              # VoiceBox REST API 客户端
+│   │   ├── api.ts             # Qwen CustomVoice 0.6B 生成流程
+│   │   └── api.test.ts        # REST 契约与恢复逻辑测试
 │   ├── index/                 # IndexTTS2 引擎
 │   │   ├── apiClient.ts       # IndexTTS2 API 客户端
 │   │   └── examples.ts        # 使用示例和工具函数

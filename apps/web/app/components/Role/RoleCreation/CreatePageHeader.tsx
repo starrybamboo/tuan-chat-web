@@ -1,7 +1,11 @@
+import type { ReactNode } from "react";
+
+import { Button } from "@/components/common/Button";
+
 type ToolButton = {
   id: string;
   label: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   onClick: () => void;
   disabled?: boolean;
   variant?: "primary" | "secondary";
@@ -11,7 +15,7 @@ type CreatePageHeaderProps = {
   title: string;
   description: string;
   onBack?: () => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
   toolButtons?: ToolButton[];
 }
 
@@ -34,12 +38,15 @@ export default function CreatePageHeader({
     ">
       <div className="flex items-center gap-4">
         {onBack && (
-          <button type="button" className="
-            btn btn-lg btn-outline rounded-md btn-ghost mr-4
-          " onClick={onBack}>
+          <Button
+            size="lg"
+            variant="outline"
+            className="mr-4 rounded-md"
+            onClick={onBack}
+          >
             <span aria-hidden="true">←</span>
             返回上一步
-          </button>
+          </Button>
         )}
         <div>
           <h1 className="
@@ -58,19 +65,11 @@ export default function CreatePageHeader({
       {toolButtons && toolButtons.length > 0 && (
         <div className="flex items-center gap-2">
           {toolButtons.map(button => (
-            <button
+            <Button
               key={button.id}
-              type="button"
-              className={`
-                btn btn-sm
-                md:btn-lg
-                rounded-lg
-                ${
-                button.variant === "primary"
-                  ? "btn-primary"
-                  : "bg-info/70 text-info-content"
-              }
-              `}
+              size="sm"
+              variant={button.variant === "primary" ? "primary" : "outline"}
+              className={`rounded-lg md:h-12 md:min-h-12 md:px-6 md:text-lg ${button.variant === "primary" ? "" : "border-info/45 text-info hover:border-info/70 hover:bg-info/10"}`}
               onClick={button.onClick}
               disabled={button.disabled}
               title={button.label}
@@ -83,7 +82,7 @@ export default function CreatePageHeader({
                   md:inline
                 ">{button.label}</span>
               </span>
-            </button>
+            </Button>
           ))}
         </div>
       )}

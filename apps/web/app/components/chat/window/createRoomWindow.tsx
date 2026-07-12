@@ -6,6 +6,9 @@ import { useEffect, useId, useState } from "react";
 import { appToast } from "@/components/common/appToast/appToast";
 
 import checkBack from "@/components/common/autoContrastText";
+import { Button } from "@/components/common/Button";
+import { TextInput } from "@/components/common/FormField";
+import { IconButton } from "@/components/common/IconButton";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
@@ -152,12 +155,15 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
                     className="
                       size-full object-cover transition duration-200
                       group-hover:scale-105 group-hover:brightness-75
+                      motion-reduce:transition-none
+                      motion-reduce:group-hover:scale-100
                     "
                     fallbackSrc="/favicon.ico"
                   />
                   <div className="
                     absolute inset-0 flex items-center justify-center
                     bg-base-100/10 opacity-0 backdrop-blur-[2px] transition
+                    motion-reduce:transition-none
                     duration-200
                     group-hover:opacity-100
                   ">
@@ -179,13 +185,13 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
                 ">
                   房间名称
                 </label>
-                <input
+                <TextInput
                   id={roomNameInputId}
                   type="text"
                   autoComplete="off"
                   value={roomName}
                   placeholder={defaultRoomName}
-                  className="input input-bordered w-full bg-base-100 text-base"
+                  className="text-base"
                   disabled={isSubmitting}
                   onChange={(e) => {
                     setRoomNameDraft(createRoomNameDraftFromInput(e.target.value));
@@ -213,26 +219,25 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {initialImportMessages.length > 0 && (
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm btn-square"
+                        <IconButton
+                          size="sm"
+                          shape="square"
+                          label="清空初始对话"
                           title="清空初始对话"
-                          aria-label="清空初始对话"
                           onClick={() => setInitialImportMessages([])}
                           disabled={isSubmitting}
-                        >
-                          <Trash className="size-4" />
-                        </button>
+                          icon={<Trash className="size-4" />}
+                        />
                       )}
-                      <button
-                        type="button"
-                        className="btn btn-outline btn-sm"
+                      <Button
+                        size="sm"
+                        variant="outline"
                         onClick={() => setIsImportDialogOpen(true)}
                         disabled={isSubmitting}
+                        icon={<RoomChatIcon className="size-4" />}
                       >
-                        <RoomChatIcon className="size-4" />
                         {initialImportMessages.length > 0 ? "重新配置" : "导入对话"}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -245,33 +250,29 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
           flex justify-end gap-2 border-t border-base-300/70 pt-4
         ">
           {onCancel && (
-            <button type="button" className="btn btn-ghost min-w-24" onClick={onCancel} disabled={isSubmitting}>
+            <Button variant="ghost" className="min-w-24" onClick={onCancel} disabled={isSubmitting}>
               取消
-            </button>
+            </Button>
           )}
-          <button
-            type="button"
-            className="btn btn-primary min-w-36"
+          <Button
+            variant="primary"
+            className="min-w-36"
             disabled={!canSubmit}
-            aria-busy={isSubmitting}
+            loading={isSubmitting}
+            icon={<PlusIcon className="size-4" />}
             title={!canSubmit ? (isSubmitting ? "正在创建房间" : "请输入房间名称") : undefined}
             onClick={() => {
               void createRoom();
             }}
           >
-            {isSubmitting && <span className="
-              loading loading-spinner loading-sm
-            " />}
-            <PlusIcon className="size-4" />
             {isSubmitting ? "创建中..." : "创建房间"}
-          </button>
+          </Button>
         </footer>
       </div>
 
       <ToastWindow
         isOpen={isImportDialogOpen}
         onClose={() => setIsImportDialogOpen(false)}
-        showCloseButton={false}
         disableScroll
         panelClassName="overflow-hidden rounded-2xl border border-base-300 p-0 shadow-2xl"
         bodyClassName="overflow-hidden"

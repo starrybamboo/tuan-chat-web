@@ -2,7 +2,6 @@ import type { Room } from "@tuanchat/openapi-client/models/Room";
 
 import { useState } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   StyleSheet,
   TextInput,
@@ -11,6 +10,7 @@ import {
 import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
+import { MobileButton } from "@/components/MobileButton";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobileMessageAttachments } from "@/features/messages/mobileMessageAttachment";
@@ -43,19 +43,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-  },
-  button: {
-    alignItems: "center",
-    borderRadius: Radius.md,
-    justifyContent: "center",
-    minHeight: 44,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
   },
 });
 
@@ -160,22 +147,15 @@ export function CreateRoomSheet({ onClose, onCreated, spaceId, visible }: Create
           )
         : null}
 
-      <Pressable
+      <MobileButton
         accessibilityLabel={loading ? "正在创建房间" : "创建房间"}
-        accessibilityRole="button"
-        accessibilityState={{ busy: loading, disabled: !name.trim() || loading }}
         disabled={!name.trim() || loading}
+        loading={loading}
         onPress={handleCreate}
-        style={[styles.button, { backgroundColor: name.trim() ? theme.accent : theme.backgroundElement, opacity: loading ? 0.6 : 1 }]}
+        variant={name.trim() ? "primary" : "secondary"}
       >
-        {loading
-          ? (
-              <ActivityIndicator color="#fff" size="small" />
-            )
-          : (
-              <ThemedText style={styles.buttonText}>创建</ThemedText>
-            )}
-      </Pressable>
+        创建
+      </MobileButton>
     </BottomSheetModal>
   );
 }

@@ -109,20 +109,6 @@ export default function CreateEntry({
               onClick={() => router.history.push(card.to)}
             />
           ))}
-
-          {/* 占位符
-          <div className="bg-base-100 rounded-xl p-6 shadow-sm border-2 border-dashed border-base-300 h-auto md:h-100">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-dashed border-base-300 bg-base-200/30 text-base-content/40 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-8 h-8">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold text-base-content mb-2 text-center">更多功能</h3>
-            <p className="text-sm text-base-content/70 text-center leading-relaxed">
-              敬请期待
-            </p>
-          </div>
-          */}
         </div>
 
         <p className="mt-10 text-xs text-base-content/70 text-center">

@@ -10,6 +10,7 @@ import { AiGatewayControllerService } from './services/AiGatewayControllerServic
 import { AiGatewayOpenAiControllerService } from './services/AiGatewayOpenAiControllerService';
 import { AvatarControllerService } from './services/AvatarControllerService';
 import { ChatControllerService } from './services/ChatControllerService';
+import { ClientMetadataControllerService } from './services/ClientMetadataControllerService';
 import { CommentControllerService } from './services/CommentControllerService';
 import { CounterService } from './services/CounterService';
 import { DatabaseBackupService } from './services/DatabaseBackupService';
@@ -50,6 +51,7 @@ export class TuanChat {
     public readonly aiGatewayOpenAiController: AiGatewayOpenAiControllerService;
     public readonly avatarController: AvatarControllerService;
     public readonly chatController: ChatControllerService;
+    public readonly clientMetadataController: ClientMetadataControllerService;
     public readonly commentController: CommentControllerService;
     public readonly counter: CounterService;
     public readonly databaseBackup: DatabaseBackupService;
@@ -101,6 +103,7 @@ export class TuanChat {
         this.aiGatewayOpenAiController = new AiGatewayOpenAiControllerService(this.request);
         this.avatarController = new AvatarControllerService(this.request);
         this.chatController = new ChatControllerService(this.request);
+        this.clientMetadataController = new ClientMetadataControllerService(this.request);
         this.commentController = new CommentControllerService(this.request);
         this.counter = new CounterService(this.request);
         this.databaseBackup = new DatabaseBackupService(this.request);
@@ -136,3 +139,4 @@ export class TuanChat {
         this.websocketDoc = new WebsocketDocService(this.request);
     }
 }
+

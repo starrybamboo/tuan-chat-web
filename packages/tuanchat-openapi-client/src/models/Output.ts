@@ -11,3 +11,4 @@ export type Output = {
      */
     format?: string;
 };
+

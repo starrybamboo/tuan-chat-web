@@ -1,12 +1,17 @@
+import type { AvatarCropContext, RoleAvatar, RoleAvatarVariant, RoleAvatarVariantCompositionConfig, SpriteCropContext } from "api";
 import type { PixelCrop } from "react-image-crop";
-import { appToast } from "@/components/common/appToast/appToast";
 
+import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateRoleAvatarVariantMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
 
 import type { ImageLoadContext } from "@/utils/imgCropper";
-import type { AvatarCropContext, RoleAvatar, RoleAvatarVariant, RoleAvatarVariantCompositionConfig, SpriteCropContext } from "api";
 
+import { appToast } from "@/components/common/appToast/appToast";
+import { Button, buttonClassName } from "@/components/common/Button";
+import { DialogFrame } from "@/components/common/DialogFrame";
+import { MediaImage } from "@/components/common/mediaImage";
+import { Badge } from "@/components/common/StatusPrimitives";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import {
   canvasPreview,
@@ -15,7 +20,6 @@ import {
   useCropPreview,
 } from "@/utils/imgCropper";
 import { imageOriginalUrlFromUrl } from "@/utils/media/mediaUrl";
-import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateRoleAvatarVariantMutation } from "api/hooks/RoleAndAvatarHooks";
 
 import type { PreviewAnchorPosition } from "../../Preview/previewAnchor";
 import type { Transform } from "../TransformControl";
@@ -1283,11 +1287,10 @@ export function SpriteCropper({
         ? "图片仍在上传，完成后可应用裁剪。"
       : "";
   const cropApplyButton = (
-    <button
-      className={`
-        btn btn-primary btn-sm min-w-24 rounded-md px-4 font-semibold
-        ${actionButtonSizeClass}
-      `}
+    <Button
+      variant="primary"
+      size="sm"
+      className={`min-w-24 rounded-md px-4 font-semibold ${actionButtonSizeClass}`}
       data-no-crop-modal="true"
       onClick={(e) => {
         e.stopPropagation();
@@ -1297,17 +1300,11 @@ export function SpriteCropper({
         }
         handleApplyCrop(!isAvatarMode);
       }}
-      type="button"
       disabled={isManualApplyDisabled}
+      loading={isCropping}
     >
-      {isCropping
-        ? (
-            <span className="loading loading-spinner loading-xs"></span>
-          )
-        : (
-            cropApplyButtonLabel
-          )}
-    </button>
+      {cropApplyButtonLabel}
+    </Button>
   );
   return (
     <div className="max-w-7xl mx-auto flex flex-col h-full">
@@ -1387,11 +1384,11 @@ export function SpriteCropper({
             flex flex-wrap items-center justify-end gap-2
           ">
             {isMultiSelectMode && selectedIndices.size > 1 && (
-              <div className="badge badge-info">
+              <Badge tone="info">
                 选中
                 {selectedIndices.size}
                 个头像
-              </div>
+              </Badge>
             )}
             {cropApplyButton}
           </div>
@@ -1421,11 +1418,11 @@ export function SpriteCropper({
                   <div className="absolute top-2 right-2 z-10 flex gap-2">
                     <button
                       type="button"
-                      className="
-                        btn btn-xs btn-circle bg-base-100/80
-                        hover:bg-base-100
-                        shadow
-                      "
+                      className={buttonClassName({
+                        size: "xs",
+                        shape: "circle",
+                        className: "bg-base-100/80 hover:bg-base-100 shadow",
+                      })}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSelectedSwitch("prev");
@@ -1439,11 +1436,11 @@ export function SpriteCropper({
                     </button>
                     <button
                       type="button"
-                      className="
-                        btn btn-xs btn-circle bg-base-100/80
-                        hover:bg-base-100
-                        shadow
-                      "
+                      className={buttonClassName({
+                        size: "xs",
+                        shape: "circle",
+                        className: "bg-base-100/80 hover:bg-base-100 shadow",
+                      })}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSelectedSwitch("next");
@@ -1474,7 +1471,7 @@ export function SpriteCropper({
                   minHeight={10}
                   disabled={isManualCropLocked}
                 >
-                  <img
+                  <MediaImage
                     ref={imgRef}
                     alt="Sprite to crop"
                     src={currentUrl}
@@ -1571,25 +1568,20 @@ export function SpriteCropper({
       </div>
 
       {/* 移动端裁剪弹窗 */}
-      {isCropModalOpen && (
-        <div className="
-          fixed inset-0 z-50 flex items-center justify-center bg-black/50
-          md:hidden
-        ">
-          <div className="
-            bg-base-100 rounded-lg p-4 m-4 max-h-[90vh] overflow-auto w-full
-            max-w-lg
-          ">
-            <div className="flex justify-between items-center mb-4">
+      <DialogFrame
+        open={isCropModalOpen}
+        mode="inline"
+        onClose={() => setIsCropModalOpen(false)}
+        ariaLabel="调整裁剪区域"
+        closeButtonLabel="关闭裁剪区域调整"
+        rootClassName="z-50 bg-black/50 md:hidden"
+        panelClassName="
+          bg-base-100 rounded-lg p-4 m-4 max-h-[90vh] overflow-auto w-full
+          max-w-lg
+        "
+      >
+            <div className="mb-4">
               <h3 className="text-lg font-bold">调整裁剪区域</h3>
-              <button
-                type="button"
-                className="btn btn-sm btn-circle btn-ghost"
-                aria-label="关闭裁剪区域调整"
-                onClick={() => setIsCropModalOpen(false)}
-              >
-                ✕
-              </button>
             </div>
             <div className="flex items-center justify-center">
               {currentUrl && (
@@ -1598,11 +1590,11 @@ export function SpriteCropper({
                     <div className="absolute top-2 right-2 z-10 flex gap-2">
                       <button
                         type="button"
-                        className="
-                          btn btn-xs btn-circle bg-base-100/80
-                          hover:bg-base-100
-                          shadow
-                        "
+                        className={buttonClassName({
+                          size: "xs",
+                          shape: "circle",
+                          className: "bg-base-100/80 hover:bg-base-100 shadow",
+                        })}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleSelectedSwitch("prev");
@@ -1618,11 +1610,11 @@ export function SpriteCropper({
                       </button>
                       <button
                         type="button"
-                        className="
-                          btn btn-xs btn-circle bg-base-100/80
-                          hover:bg-base-100
-                          shadow
-                        "
+                        className={buttonClassName({
+                          size: "xs",
+                          shape: "circle",
+                          className: "bg-base-100/80 hover:bg-base-100 shadow",
+                        })}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleSelectedSwitch("next");
@@ -1654,7 +1646,7 @@ export function SpriteCropper({
                     minHeight={10}
                     disabled={isManualCropLocked}
                   >
-                    <img
+                    <MediaImage
                       ref={imgRef}
                       alt="Sprite to crop modal"
                       src={currentUrl}
@@ -1669,17 +1661,14 @@ export function SpriteCropper({
               )}
             </div>
             <div className="mt-4 flex justify-end">
-              <button
-                type="button"
-                className="btn btn-primary"
+              <Button
+                variant="primary"
                 onClick={() => setIsCropModalOpen(false)}
               >
                 确定
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
-      )}
+      </DialogFrame>
     </div>
   );
 }

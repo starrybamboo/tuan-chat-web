@@ -15,6 +15,7 @@ import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea"
 
 import { handleAtMentionInputMouseDown } from "@/components/atMentionMouseDown";
 import { resolveNextAtMentionSelectionIndex } from "@/components/atMentionSelection";
+import { createChatMentionElement } from "@/components/chat/input/chatMentionNode";
 import { FloatingMotionList, FloatingMotionListItem } from "@/components/common/motion/FloatingMotionPanel";
 import { Mounter } from "@/components/common/mounter";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
@@ -39,7 +40,11 @@ export type AtMentionHandle = {
   onInput: () => void; // 处理输入事件
 }
 
-function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & { ref?: React.RefObject<AtMentionHandle | null> }) {
+function AtMentionController({
+  ref,
+  chatInputRef,
+  allRoles,
+}: AtMentionProps & { ref?: React.RefObject<AtMentionHandle | null> }) {
   // 1. 将所有 @ 相关的状态移动到这里
   const [showDialog, setShowDialog] = useState(false);
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
@@ -106,14 +111,12 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
     range.setEnd(textNode, offset);
     range.deleteContents();
 
-    const span = document.createElement("span");
-    span.textContent = `@${role.roleName}` + "\u00A0"; // 非断行空格
-    span.className = "inline text-info bg-transparent px-0 py-0 border-none";
-    span.contentEditable = "false";
-    span.style.display = "inline-block";
-    span.dataset.role = JSON.stringify(role);
-
-    chatInputRef.current.insertNodeAtCursor(span, { moveCursorToEnd: true });
+    const span = createChatMentionElement(role);
+    if (!chatInputRef.current.insertNodeAtCursor(span, { moveCursorToEnd: false })) {
+      return;
+    }
+    const trailingSpace = document.createTextNode("\u00A0");
+    span.after(trailingSpace);
     setShowDialog(false);
     chatInputRef.current.triggerSync();
 
@@ -127,7 +130,7 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
       // A. 创建一个新的、空白的 Range (光标)
       const newRange = document.createRange();
       // B. 将此 Range 的起始点设置在我们的 span 节点 *之后*
-      newRange.setStartAfter(span);
+      newRange.setStart(trailingSpace, trailingSpace.length);
       // C. 将 Range 折叠到其起始点 (使其成为光标，而不是选区)
       newRange.collapse(true);
       // D. 移除所有旧的/损坏的选区
@@ -195,13 +198,14 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
 
   useEffect(() => {
     if (showDialog) {
-      const { x: cursorX, y: cursorY } = getSelectionCoords();
+      const editorEl = chatInputRef.current?.getRawElement();
+      const { x: cursorX, y: cursorY } = getSelectionCoords(editorEl);
       queueMicrotask(() => setDialogPosition({
         x: Math.min(cursorX, screen.width - 100),
         y: cursorY,
       }));
     }
-  }, [showDialog, searchKey]);
+  }, [chatInputRef, showDialog, searchKey]);
 
   useEffect(() => {
     if (!showDialog)
@@ -275,7 +279,7 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
         ref={listRef}
         className="
           absolute z-50 flex max-h-[40vh] min-w-[220px] flex-col gap-1 overflow-x-hidden overflow-y-auto
-          rounded-box border border-base-200 bg-base-100 p-1 shadow-xl
+          rounded-md border border-base-200 bg-base-100 p-1 shadow-xl
           [scrollbar-width:none] [&::-webkit-scrollbar]:hidden
         "
         style={{

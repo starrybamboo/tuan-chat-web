@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
+import { IconButton } from "@/components/common/IconButton";
+import { FieldGroup, TextInput } from "@/components/common/FormField";
+import { Text } from "@/components/common/DesignLanguage";
+
 type EditableFieldProps = {
   fieldKey: string;
   value: string;
@@ -225,7 +229,7 @@ export default function EditableField({
         <span
           ref={keyScrollRef}
           className={`
-            font-medium overflow-x-auto whitespace-nowrap
+            font-medium overflow-x-auto overscroll-x-none whitespace-nowrap
             [&::-webkit-scrollbar]:hidden
             shrink-0 text-left
             md:mr-4
@@ -238,13 +242,13 @@ export default function EditableField({
         >
           {fieldKey}
         </span>
-        <span
+        <Text
+          variant="data"
           ref={scrollRef}
           className={`
-            badge badge-ghost shrink overflow-x-auto whitespace-nowrap min-w-0
-            justify-start
+            inline-flex min-h-control-compact shrink items-center overflow-x-auto overscroll-x-none whitespace-nowrap min-w-0
             [&::-webkit-scrollbar]:hidden
-            ${isCompact ? `badge-xs` : `
+              ${isCompact ? `text-xs` : `
               text-sm
               md:text-base
             `}
@@ -252,16 +256,13 @@ export default function EditableField({
           style={{ scrollbarWidth: "none" }}
         >
           {String(value)}
-        </span>
+        </Text>
       </div>
     );
   }
 
   return (
-    <div className={`
-      form-control
-      ${className}
-    `}>
+    <FieldGroup className={className}>
       <label className={`
         relative flex items-center gap-2 rounded-lg transition-all duration-200
         border
@@ -282,7 +283,8 @@ export default function EditableField({
         ">
           {editingFieldKey === fieldKey
             ? (
-                <input
+                <TextInput
+                  appearance="bare"
                   type="text"
                   autoComplete="off"
                   aria-label="字段名"
@@ -331,7 +333,7 @@ export default function EditableField({
                   className={`
                     cursor-pointer
                     hover:text-info
-                    font-medium whitespace-nowrap overflow-x-auto
+                    font-medium whitespace-nowrap overflow-x-auto overscroll-x-none
                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30
                     ${isCompact ? `
                       text-[10px]
@@ -372,7 +374,8 @@ export default function EditableField({
         "></div>
 
         {/* 字段值编辑 */}
-        <input
+        <TextInput
+          appearance="bare"
           type="text"
           autoComplete="off"
           aria-label="字段值"
@@ -403,28 +406,29 @@ export default function EditableField({
 
         {/* 删除按钮 */}
         {showDeleteButton && (
-          <button
-            type="button"
+          <IconButton
+            size="xs"
+            label={`删除字段 ${fieldKey}`}
             onClick={() => onDelete(fieldKey)}
             className={`
-              btn btn-ghost btn-circle text-base-content/40
+              text-base-content/40
               hover:text-error hover:bg-error/10
-              md:static md:btn-xs
+              md:static
               max-md:absolute max-md:top-1 max-md:right-1 max-md:size-6
               max-md:min-h-0
             `}
             title="删除字段"
-            aria-label={`删除字段 ${fieldKey}`}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="
-              size-3
-              md:size-3.5
-            " viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-          </button>
+            icon={(
+              <svg xmlns="http://www.w3.org/2000/svg" className="
+                size-3
+                md:size-3.5
+              " viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            )}
+          />
         )}
       </label>
-    </div>
+    </FieldGroup>
   );
 }

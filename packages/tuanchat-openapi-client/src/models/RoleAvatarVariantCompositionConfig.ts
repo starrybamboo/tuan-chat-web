@@ -15,10 +15,26 @@ export type RoleAvatarVariantCompositionConfig = {
      * 合成模式
      */
     mode?: string;
+    /**
+     * 合成画布
+     */
     canvas?: Canvas;
+    /**
+     * 头像覆盖槽位
+     */
     avatarSlot?: AvatarSlot;
+    /**
+     * 原图生成立绘的裁剪配置
+     */
     spriteCrop?: SpriteCrop;
+    /**
+     * WebGAL 立绘变换参数
+     */
     spriteTransform?: SpriteTransform;
+    /**
+     * 输出设置
+     */
     output?: Output;
     complete?: boolean;
 };
+

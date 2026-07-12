@@ -1,6 +1,7 @@
 import type { Ref } from "react";
 import { appToast } from "@/components/common/appToast/appToast";
 
+import { AnimatePresence, motion } from "motion/react";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -11,8 +12,13 @@ import {
   hasHostPrivileges,
   SPACE_MEMBER_TYPE,
 } from "@/components/chat/utils/memberPermissions";
+import { Button } from "@/components/common/Button";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
+import { MenuItem } from "@/components/common/MenuPopover";
+import { FloatingMotionList } from "@/components/common/motion/FloatingMotionPanel";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { useGlobalUserId } from "@/components/globalContextProvider";
+import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
 
 import type { SpaceMember } from "../../../../../api";
 
@@ -133,26 +139,18 @@ function MemberActionMenuItem({
   firstItemRef: Ref<HTMLButtonElement>;
 }) {
   return (
-    <li>
-      <button
+    <li role="none">
+      <MenuItem
         ref={first ? firstItemRef : undefined}
-        type="button"
-        className={`
-          justify-start w-full text-left
-          ${danger ? `
-            text-error
-            hover:text-error
-          ` : ""}
-        `}
+        tone={danger ? "danger" : "default"}
         onClick={() => {
           onClick();
           onAfterClick();
         }}
-        role="menuitem"
         aria-label={ariaLabel ?? label}
       >
         {label}
-      </button>
+      </MenuItem>
     </li>
   );
 }
@@ -184,17 +182,15 @@ function RoomMemberActionButton({
   }
 
   return (
-    <button
-      type="button"
-      className={`
-        btn btn-xs btn-ghost px-2
-        ${action.danger ? "text-error" : `text-info`}
-      `}
+    <Button
+      variant="ghost"
+      size="xs"
+      className={`px-2 ${action.danger ? "text-error" : `text-info`}`}
       onClick={action.kind === "invite" ? onInvite : onRemove}
       aria-label={action.label}
     >
       {action.label}
-    </button>
+    </Button>
   );
 }
 
@@ -299,10 +295,11 @@ function SpaceMemberActionMenu({
 
   return (
     <div className="relative" ref={wrapperRef}>
-      <button
+      <Button
         ref={triggerBtnRef}
-        type="button"
-        className="btn btn-ghost btn-xs px-2"
+        variant="ghost"
+        size="xs"
+        className="px-2"
         onClick={() => setOpen(openState => !openState)}
         aria-label={`更多 ${memberName} 的成员操作`}
         aria-expanded={open}
@@ -313,20 +310,18 @@ function SpaceMemberActionMenu({
           <circle cx="12" cy="12" r="2" />
           <circle cx="19" cy="12" r="2" />
         </svg>
-      </button>
-      {open && (
-        <ul
-          id={`member-menu-${member.userId}`}
-          className={`
-            menu menu-xs dropdown-content absolute right-0 z-20 max-h-60 w-48
-            overflow-auto rounded-box bg-base-200 p-2 shadow animate-fadeIn
-            ${placeUp ? `bottom-full mb-1 origin-bottom` : `
-              top-full mt-1 origin-top
-            `}
-          `}
-          role="menu"
-          aria-label="成员操作菜单"
-        >
+      </Button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <FloatingMotionList
+            id={`member-menu-${member.userId}`}
+            className={surfaceClassName({
+              level: "floating",
+              className: `absolute right-0 z-20 max-h-60 w-48 overflow-auto bg-base-200 p-2 shadow ${placeUp ? "bottom-full mb-1 origin-bottom" : "top-full mt-1 origin-top"}`,
+            })}
+            role="menu"
+            aria-label="成员操作菜单"
+          >
           {menuLabels.includes("退出空间") && (
             <MemberActionMenuItem
               first={true}
@@ -355,8 +350,9 @@ function SpaceMemberActionMenu({
               <MemberActionMenuItem firstItemRef={firstItemRef} label="移出空间" ariaLabel={`将 ${memberName} 移出空间`} onClick={onRemove} onAfterClick={closeMenuAndRefocus} danger={true} />
             </>
           )}
-        </ul>
-      )}
+          </FloatingMotionList>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -547,39 +543,45 @@ export default function MemberLists({
   function renderMemberCards(memberRows: SpaceMember[], isRoomMember: boolean, testId: string) {
     return (
       <div className="flex flex-col gap-2" data-testid={testId}>
-        {memberRows.map((member) => {
-          const { onInvite, onRemove, onTransfer, onUpdateMemberType } = buildHandlers(member, isRoomMember);
-          const spaceMemberTypeActions = isSpace ? getSpaceMemberTypeActions(member.memberType) : [];
+        <AnimatePresence initial={false} mode="popLayout">
+          {memberRows.map((member) => {
+            const { onInvite, onRemove, onTransfer, onUpdateMemberType } = buildHandlers(member, isRoomMember);
+            const spaceMemberTypeActions = isSpace ? getSpaceMemberTypeActions(member.memberType) : [];
 
-          return (
-            <div className={`
-              rounded-lg bg-base-200 p-3
-              ${className ?? ""}
-            `} key={member.userId}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex flex-row items-center gap-3">
-                  <UserAvatarByUser user={member} width={10} isRounded={true} withName={true} />
+            return (
+              <motion.div
+                key={member.userId}
+                className={`
+                  rounded-lg bg-base-200 p-3
+                  ${className ?? ""}
+                `}
+                {...structuralListItemMotionProps()}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex flex-row items-center gap-3">
+                    <UserAvatarByUser user={member} width={10} isRounded={true} withName={true} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isSpace && <MemberTypeTag memberType={member.memberType} />}
+                    <ActionButtons
+                      member={member}
+                      isRoomMember={isRoomMember}
+                      isSpace={isSpace}
+                      canManageRoomMembership={canManageRoomMembership}
+                      canManageSpaceMemberPermissions={canManageSpaceMemberPermissions}
+                      curUserId={curUserId}
+                      onRemove={onRemove}
+                      onInvite={onInvite}
+                      onTransfer={onTransfer}
+                      onUpdateMemberType={onUpdateMemberType}
+                      spaceMemberTypeActions={spaceMemberTypeActions}
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {isSpace && <MemberTypeTag memberType={member.memberType} />}
-                  <ActionButtons
-                    member={member}
-                    isRoomMember={isRoomMember}
-                    isSpace={isSpace}
-                    canManageRoomMembership={canManageRoomMembership}
-                    canManageSpaceMemberPermissions={canManageSpaceMemberPermissions}
-                    curUserId={curUserId}
-                    onRemove={onRemove}
-                    onInvite={onInvite}
-                    onTransfer={onTransfer}
-                    onUpdateMemberType={onUpdateMemberType}
-                    spaceMemberTypeActions={spaceMemberTypeActions}
-                  />
-                </div>
-              </div>
-            </div>
-          );
-        })}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
     );
   }

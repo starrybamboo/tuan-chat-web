@@ -1,12 +1,13 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
-import { useQueries } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { clientMetadataBatchQueryKey, loadClientMetadataBatch, seedClientMetadataCaches } from "@tuanchat/query/metadata";
 import { getRoomMessageLocalRenderKey, isOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
-import { getUserInfoQueryKey, USER_INFO_STALE_TIME_MS } from "@tuanchat/query/users";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   InteractionManager,
   Pressable,
@@ -21,13 +22,17 @@ import { mobileApiClient } from "@/lib/api";
 import { avatarThumbUrl } from "@/lib/media-url";
 import { prefetchImages } from "@/lib/mobile-image-cache";
 
+import type { MessageActionMenuAnchor } from "./messageActionMenuLayout";
+import type { MessageDropPlacement } from "./messageDragDrop";
 import type { ChatMessageListItem } from "./messageListModel";
 
 import { collectChatAvatarThumbUrls, collectChatImageThumbUrls, selectChatMessagePrefetchWindow } from "./chat-avatar-prefetch";
+import { collectUnresolvedOocUserIds, collectUnresolvedRoleAvatarIds } from "./chat-avatar-resolution";
 import { buildRoomRolesById, resolveMessageAvatarFileId, resolveMessageAvatarId } from "./chat-avatar-utils";
 import { ChatMessageItem } from "./ChatMessageItem";
 import { ChatNewMessagesPill } from "./ChatNewMessagesPill";
 import { getMobileMessageAuthorLabel, isOutOfCharacterMessage } from "./messageAuthorLabel";
+import { resolveMessageDropTarget } from "./messageDragDrop";
 import {
   buildChatMessageListModel,
   getMessageListItemKey,
@@ -35,11 +40,20 @@ import {
   getReplyPreviewText,
 } from "./messageListModel";
 import { resolveBottomThresholdTransition, resolveVisibleMessageAppendAction, shouldAutoScrollOnContentSizeChange } from "./messageListScrollState";
+import { shouldGroupWithPrevious } from "./mobileMessageGrouping";
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   listContent: {
     paddingVertical: Spacing.md,
+  },
+  draggingRow: {
+    opacity: 0.72,
+  },
+  dropMarker: {
+    borderRadius: 999,
+    height: 3,
+    marginHorizontal: Spacing.xxl,
   },
   stateBlock: {
     alignItems: "center",
@@ -54,63 +68,12 @@ const MESSAGE_INITIAL_RENDER_COUNT = 10;
 const MESSAGE_RENDER_BATCH_SIZE = 8;
 const MESSAGE_SCROLL_TO_BOTTOM_ANIMATION_DISTANCE = 600;
 const MESSAGE_WINDOW_SIZE = 7;
-const ROLE_AVATAR_STALE_TIME_MS = 24 * 60 * 60_000;
+const DEFERRED_METADATA_QUERY_LIMIT = 6;
 
 function getReplyAuthorName(msg: Message, roomRolesById: ReadonlyMap<number, UserRole>): string {
   return getMobileMessageAuthorLabel(msg, roomRolesById, {
     unknownRoleLabel: typeof msg.userId === "number" && msg.userId > 0 ? `用户 #${msg.userId}` : "未知角色",
   });
-}
-
-function shouldGroupWithPrevious(current: Message, previous: Message | undefined): boolean {
-  if (!previous)
-    return false;
-  if (current.userId !== previous.userId)
-    return false;
-  if ((current.roleId ?? 0) !== (previous.roleId ?? 0))
-    return false;
-  if ((current.avatarId ?? 0) !== (previous.avatarId ?? 0))
-    return false;
-  if ((current.avatarFileId ?? 0) !== (previous.avatarFileId ?? 0))
-    return false;
-  return true;
-}
-
-function readPositiveAvatarFileId(value: unknown): number | null {
-  const avatarFileId = (value as { avatarFileId?: unknown } | null)?.avatarFileId;
-  return typeof avatarFileId === "number" && Number.isFinite(avatarFileId) && avatarFileId > 0
-    ? avatarFileId
-    : null;
-}
-
-function collectUnresolvedRoleAvatarIds(messages: readonly Message[], roomRolesById: ReadonlyMap<number, UserRole>): number[] {
-  const avatarIds = new Set<number>();
-  for (const message of messages) {
-    if (isOutOfCharacterMessage(message)) {
-      continue;
-    }
-    if (resolveMessageAvatarFileId(message, roomRolesById) != null) {
-      continue;
-    }
-    const avatarId = resolveMessageAvatarId(message, roomRolesById);
-    if (avatarId != null) {
-      avatarIds.add(avatarId);
-    }
-  }
-  return [...avatarIds].sort((left, right) => left - right);
-}
-
-function collectUnresolvedOocUserIds(messages: readonly Message[], roomRolesById: ReadonlyMap<number, UserRole>): number[] {
-  const userIds = new Set<number>();
-  for (const message of messages) {
-    if (!isOutOfCharacterMessage(message)) {
-      continue;
-    }
-    if (typeof message.userId === "number" && message.userId > 0) {
-      userIds.add(message.userId);
-    }
-  }
-  return [...userIds].sort((left, right) => left - right);
 }
 
 function resolveChatMessageAvatarUrl(
@@ -141,6 +104,7 @@ function resolveChatMessageAvatarUrl(
 }
 
 type ChatMessageListProps = {
+  allowDeferredMetadataQueries?: boolean;
   currentRoleId?: number;
   error: unknown;
   isCommandRequestConsumed?: (messageId: number) => boolean;
@@ -152,10 +116,16 @@ type ChatMessageListProps = {
   multiSelectedIds?: Set<number>;
   noRole?: boolean;
   onExecuteCommandRequest?: (payload: { command: string; messageId: number }) => void;
-  onLongPressMessage: (message: Message) => void;
+  onDropMessage?: (payload: { message: Message; placement: MessageDropPlacement; targetMessage: Message }) => void;
+  onLongPressMessage: (payload: { anchor: MessageActionMenuAnchor; message: Message }) => void;
+  onPokeAvatar?: (message: Message) => void;
   onRetry?: () => void;
   onToggleMultiSelect?: (message: Message) => void;
   roomRoles: UserRole[];
+  roomMembers?: Array<{
+    avatarFileId?: number;
+    userId?: number;
+  }>;
   selectedAnchorId: number | null;
 };
 
@@ -187,6 +157,7 @@ function getOptimisticMessageRenderKeys(messages: readonly ChatMessageListItem[]
 }
 
 function ChatMessageListInner({
+  allowDeferredMetadataQueries = true,
   currentRoleId,
   error,
   isCommandRequestConsumed,
@@ -198,9 +169,12 @@ function ChatMessageListInner({
   multiSelectedIds,
   noRole,
   onExecuteCommandRequest,
+  onDropMessage,
   onLongPressMessage,
+  onPokeAvatar,
   onRetry,
   onToggleMultiSelect,
+  roomMembers = [],
   roomRoles,
   selectedAnchorId,
 }: ChatMessageListProps) {
@@ -215,6 +189,14 @@ function ChatMessageListInner({
   const didInitializeMessageTrackingRef = useRef(false);
   const scrollToBottomTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollToBottomTaskRef = useRef<ReturnType<typeof InteractionManager.runAfterInteractions> | null>(null);
+  const rowLayoutsRef = useRef(new Map<number, { height: number; pageY: number }>());
+  const rowRefsRef = useRef(new Map<number, View>());
+  const rowMeasureVersionRef = useRef(0);
+  const draggingMessageIdRef = useRef<number | null>(null);
+  const latestDragPageYRef = useRef(0);
+  const dragTranslationY = useRef(new Animated.Value(0)).current;
+  const [draggingMessageId, setDraggingMessageId] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ messageId: number; placement: MessageDropPlacement } | null>(null);
   const roomRolesById = useMemo(() => buildRoomRolesById(roomRoles), [roomRoles]);
   const messageListModel = useMemo(
     () => buildChatMessageListModel(messages),
@@ -227,60 +209,65 @@ function ChatMessageListInner({
     [messageListModel.visibleMessages],
   );
 
-  const roleAvatarIds = useMemo(
-    () => collectUnresolvedRoleAvatarIds(messageListModel.visibleChatMessages, roomRolesById),
-    [messageListModel.visibleChatMessages, roomRolesById],
-  );
-  const roleAvatarQueryOptions = useMemo(() => roleAvatarIds.map(avatarId => ({
-    enabled: avatarId > 0,
-    queryFn: async () => {
-      const response = await mobileApiClient.avatarController.getRoleAvatar(avatarId);
-      return response.data ?? null;
-    },
-    queryKey: ["getRoleAvatar", avatarId] as const,
-    staleTime: ROLE_AVATAR_STALE_TIME_MS,
-  })), [roleAvatarIds]);
-  const roleAvatarQueries = useQueries({ queries: roleAvatarQueryOptions });
-  const roleAvatarFileIdByAvatarId = useMemo(() => {
-    const map = new Map<number, number>();
-    roleAvatarIds.forEach((avatarId, index) => {
-      const avatarFileId = readPositiveAvatarFileId(roleAvatarQueries[index]?.data);
-      if (avatarFileId != null) {
-        map.set(avatarId, avatarFileId);
-      }
-    });
-    return map;
-  }, [roleAvatarIds, roleAvatarQueries]);
-
-  const oocUserIds = useMemo(
-    () => collectUnresolvedOocUserIds(messageListModel.visibleChatMessages, roomRolesById),
-    [messageListModel.visibleChatMessages, roomRolesById],
-  );
-  const userInfoQueryOptions = useMemo(() => oocUserIds.map(userId => ({
-    enabled: userId > 0,
-    queryFn: async () => {
-      const response = await mobileApiClient.userController.getUserInfo(userId);
-      return response.data ?? null;
-    },
-    queryKey: getUserInfoQueryKey(userId),
-    staleTime: USER_INFO_STALE_TIME_MS,
-  })), [oocUserIds]);
-  const userInfoQueries = useQueries({ queries: userInfoQueryOptions });
-  const userAvatarFileIdByUserId = useMemo(() => {
-    const map = new Map<number, number>();
-    oocUserIds.forEach((userId, index) => {
-      const avatarFileId = readPositiveAvatarFileId(userInfoQueries[index]?.data);
-      if (avatarFileId != null) {
-        map.set(userId, avatarFileId);
-      }
-    });
-    return map;
-  }, [oocUserIds, userInfoQueries]);
-
   const prefetchCandidateMessages = useMemo(
     () => selectChatMessagePrefetchWindow(messageListModel.visibleChatMessages),
     [messageListModel.visibleChatMessages],
   );
+
+  const roleAvatarIds = useMemo(
+    () => collectUnresolvedRoleAvatarIds(prefetchCandidateMessages, roomRolesById).slice(0, DEFERRED_METADATA_QUERY_LIMIT),
+    [prefetchCandidateMessages, roomRolesById],
+  );
+
+  const roomMemberAvatarFileIdByUserId = useMemo(() => {
+    const map = new Map<number, number>();
+    roomMembers.forEach((member) => {
+      const userId = member.userId;
+      const avatarFileId = member.avatarFileId;
+      if (typeof userId === "number" && userId > 0 && typeof avatarFileId === "number" && avatarFileId > 0) {
+        map.set(userId, avatarFileId);
+      }
+    });
+    return map;
+  }, [roomMembers]);
+  const oocUserIds = useMemo(
+    () => collectUnresolvedOocUserIds(prefetchCandidateMessages)
+      .filter(userId => !roomMemberAvatarFileIdByUserId.has(userId))
+      .slice(0, DEFERRED_METADATA_QUERY_LIMIT),
+    [prefetchCandidateMessages, roomMemberAvatarFileIdByUserId],
+  );
+  const queryClient = useQueryClient();
+  const metadataRequest = useMemo(() => ({ avatarIds: roleAvatarIds, userIds: oocUserIds }), [oocUserIds, roleAvatarIds]);
+  const metadataQuery = useQuery({
+    enabled: allowDeferredMetadataQueries && (roleAvatarIds.length > 0 || oocUserIds.length > 0),
+    queryFn: () => loadClientMetadataBatch(mobileApiClient, metadataRequest),
+    queryKey: clientMetadataBatchQueryKey(metadataRequest, mobileApiClient),
+    staleTime: 600_000,
+  });
+  useEffect(() => {
+    if (metadataQuery.data) {
+      seedClientMetadataCaches(queryClient, metadataQuery.data);
+    }
+  }, [metadataQuery.data, queryClient]);
+  const roleAvatarFileIdByAvatarId = useMemo(() => {
+    const map = new Map<number, number>();
+    Object.values(metadataQuery.data?.avatars ?? {}).forEach((avatar) => {
+      if (avatar.avatarId && avatar.avatarFileId) {
+        map.set(avatar.avatarId, avatar.avatarFileId);
+      }
+    });
+    return map;
+  }, [metadataQuery.data?.avatars]);
+  const userAvatarFileIdByUserId = useMemo(() => {
+    const map = new Map(roomMemberAvatarFileIdByUserId);
+    Object.values(metadataQuery.data?.users ?? {}).forEach((user) => {
+      if (user.userId && user.avatarFileId) {
+        map.set(user.userId, user.avatarFileId);
+      }
+    });
+    return map;
+  }, [metadataQuery.data?.users, roomMemberAvatarFileIdByUserId]);
+
   const avatarThumbUrls = useMemo(
     () => collectChatAvatarThumbUrls(prefetchCandidateMessages, roomRolesById),
     [prefetchCandidateMessages, roomRolesById],
@@ -321,6 +308,8 @@ function ChatMessageListInner({
   const handleScroll = useCallback((e: { nativeEvent: { contentOffset: { y: number } } }) => {
     const offsetY = e.nativeEvent.contentOffset.y;
     currentScrollOffsetYRef.current = offsetY;
+    rowMeasureVersionRef.current += 1;
+    rowLayoutsRef.current.clear();
     const transition = resolveBottomThresholdTransition(isAtBottomRef.current, offsetY);
     if (transition.changed) {
       commitBottomState(transition.isAtBottom);
@@ -362,6 +351,7 @@ function ChatMessageListInner({
   useEffect(() => {
     return () => {
       cancelScheduledScrollToBottom();
+      rowMeasureVersionRef.current += 1;
     };
   }, [cancelScheduledScrollToBottom]);
 
@@ -426,9 +416,132 @@ function ChatMessageListInner({
     setNewMessageCount(0);
   }, [cancelScheduledScrollToBottom]);
 
+  const measureMountedRowLayouts = useCallback((onComplete: () => void) => {
+    const entries = [...rowRefsRef.current.entries()];
+    const measureVersion = rowMeasureVersionRef.current + 1;
+    rowMeasureVersionRef.current = measureVersion;
+    if (entries.length === 0) {
+      rowLayoutsRef.current.clear();
+      onComplete();
+      return;
+    }
+
+    const measuredLayouts = new Map<number, { height: number; pageY: number }>();
+    let remaining = entries.length;
+    const completeMeasurement = () => {
+      remaining -= 1;
+      if (remaining === 0 && rowMeasureVersionRef.current === measureVersion) {
+        rowLayoutsRef.current = measuredLayouts;
+        onComplete();
+      }
+    };
+
+    entries.forEach(([messageId, rowRef]) => {
+      rowRef.measureInWindow((_x, pageY, _width, height) => {
+        if (height > 0) {
+          measuredLayouts.set(messageId, { height, pageY });
+        }
+        completeMeasurement();
+      });
+    });
+  }, []);
+
+  const resolveDropTargetMessage = useCallback((pageY: number, draggingId: number) => {
+    return resolveMessageDropTarget({
+      candidates: messageListModel.visibleMessages.flatMap((candidate) => {
+        const messageId = candidate.message.messageId;
+        const layout = typeof messageId === "number" ? rowLayoutsRef.current.get(messageId) : undefined;
+        return layout ? [{ ...layout, message: candidate.message }] : [];
+      }),
+      draggingMessageId: draggingId,
+      pointerPageY: pageY,
+    });
+  }, [messageListModel.visibleMessages]);
+
+  const updateDropTarget = useCallback((pageY: number, draggingId: number) => {
+    const target = resolveDropTargetMessage(pageY, draggingId);
+    const targetMessageId = target?.message.messageId;
+    setDropTarget(target && typeof targetMessageId === "number"
+      ? { messageId: targetMessageId, placement: target.placement }
+      : null);
+  }, [resolveDropTargetMessage]);
+
+  const handleDragMessage = useCallback(({ message, pageY, translationY }: { message: Message; pageY: number; translationY: number }) => {
+    const messageId = message.messageId;
+    if (typeof messageId !== "number") {
+      return;
+    }
+    latestDragPageYRef.current = pageY;
+    dragTranslationY.setValue(translationY);
+    if (draggingMessageIdRef.current !== messageId) {
+      draggingMessageIdRef.current = messageId;
+      setDraggingMessageId(messageId);
+      setDropTarget(null);
+      measureMountedRowLayouts(() => {
+        if (draggingMessageIdRef.current === messageId) {
+          updateDropTarget(latestDragPageYRef.current, messageId);
+        }
+      });
+      return;
+    }
+    updateDropTarget(pageY, messageId);
+  }, [dragTranslationY, measureMountedRowLayouts, updateDropTarget]);
+
+  const handleDropMessage = useCallback(({ message, pageY }: { message: Message; pageY: number }) => {
+    const messageId = message.messageId;
+    if (typeof messageId !== "number") {
+      draggingMessageIdRef.current = null;
+      setDraggingMessageId(null);
+      dragTranslationY.setValue(0);
+      setDropTarget(null);
+      return;
+    }
+    measureMountedRowLayouts(() => {
+      const target = resolveDropTargetMessage(pageY, messageId);
+      draggingMessageIdRef.current = null;
+      setDraggingMessageId(null);
+      dragTranslationY.setValue(0);
+      setDropTarget(null);
+      if (target) {
+        onDropMessage?.({ message, placement: target.placement, targetMessage: target.message });
+      }
+    });
+  }, [dragTranslationY, measureMountedRowLayouts, onDropMessage, resolveDropTargetMessage]);
+
+  const handleCancelDragMessage = useCallback(() => {
+    rowMeasureVersionRef.current += 1;
+    draggingMessageIdRef.current = null;
+    setDraggingMessageId(null);
+    dragTranslationY.setValue(0);
+    setDropTarget(null);
+  }, [dragTranslationY]);
+
+  const handleLongPressMessage = useCallback(({ message, pageX, pageY }: { message: Message; pageX: number; pageY: number }) => {
+    const messageId = message.messageId;
+    const rowRef = typeof messageId === "number" ? rowRefsRef.current.get(messageId) : undefined;
+    if (!rowRef) {
+      onLongPressMessage({ anchor: { bottom: pageY, top: pageY, x: pageX }, message });
+      return;
+    }
+
+    rowRef.measureInWindow((rowX, rowY, width, height) => {
+      onLongPressMessage({
+        anchor: {
+          bottom: rowY + height,
+          top: rowY,
+          x: Number.isFinite(pageX) && pageX > 0 ? pageX : rowX + width / 2,
+        },
+        message,
+      });
+    });
+  }, [onLongPressMessage]);
+
   const renderItem = useCallback(({ item, index }: { item: ChatMessageListItem; index: number }) => {
     const nextItem = messageListModel.invertedData[index + 1];
     const isGrouped = shouldGroupWithPrevious(item.message, nextItem?.message);
+    const messageId = item.message.messageId;
+    const isDragging = typeof messageId === "number" && draggingMessageId === messageId;
+    const isDropTarget = typeof messageId === "number" && dropTarget?.messageId === messageId;
     const replyId = item.message.replyMessageId;
     const replyMsg = replyId ? messageListModel.messageMap.get(replyId) : undefined;
     const replyPreviewText = getReplyPreviewText(messageListModel.messageMap, replyId);
@@ -440,26 +553,51 @@ function ChatMessageListInner({
       userAvatarFileIdByUserId,
     );
     return (
-      <ChatMessageItem
-        avatarUrl={avatarUrl}
-        currentRoleId={currentRoleId}
-        isCommandRequestConsumed={isCommandRequestConsumed}
-        isGrouped={isGrouped}
-        isMultiSelected={item.message.messageId != null && multiSelectedIds?.has(item.message.messageId)}
-        isSelectedAnchor={selectedAnchorId === item.message.messageId}
-        isSpaceOwner={isSpaceOwner}
-        message={item.message}
-        multiSelectMode={multiSelectMode}
-        noRole={noRole}
-        onExecuteCommandRequest={onExecuteCommandRequest}
-        onLongPress={onLongPressMessage}
-        onToggleMultiSelect={onToggleMultiSelect}
-        replyAuthorName={replyAuthorName}
-        replyPreviewText={replyPreviewText}
-        roomRolesById={roomRolesById}
-      />
+      <View
+        collapsable={false}
+        ref={(row) => {
+          if (typeof messageId !== "number") {
+            return;
+          }
+          if (row) {
+            rowRefsRef.current.set(messageId, row);
+          }
+          else {
+            rowRefsRef.current.delete(messageId);
+            rowLayoutsRef.current.delete(messageId);
+          }
+        }}
+      >
+        <Animated.View style={isDragging ? [styles.draggingRow, { transform: [{ translateY: dragTranslationY }] }] : undefined}>
+          {isDropTarget && dropTarget.placement === "before" ? <View style={[styles.dropMarker, { backgroundColor: theme.accent }]} /> : null}
+          <ChatMessageItem
+            avatarUrl={avatarUrl}
+            currentRoleId={currentRoleId}
+            isCommandRequestConsumed={isCommandRequestConsumed}
+            isGrouped={isGrouped}
+            isMultiSelected={item.message.messageId != null && multiSelectedIds?.has(item.message.messageId)}
+            isSelectedAnchor={selectedAnchorId === item.message.messageId}
+            isSpaceOwner={isSpaceOwner}
+            message={item.message}
+            multiSelectMode={multiSelectMode}
+            noRole={noRole}
+            onCancelDragMessage={handleCancelDragMessage}
+            onDragMessage={handleDragMessage}
+            onDropMessage={handleDropMessage}
+            onExecuteCommandRequest={onExecuteCommandRequest}
+            onLongPress={handleLongPressMessage}
+            onPokeAvatar={onPokeAvatar}
+            onToggleMultiSelect={onToggleMultiSelect}
+            replyAuthorName={replyAuthorName}
+            replyPreviewText={replyPreviewText}
+            roomRolesById={roomRolesById}
+            shouldFetchMissingAvatar={allowDeferredMetadataQueries}
+          />
+          {isDropTarget && dropTarget.placement === "after" ? <View style={[styles.dropMarker, { backgroundColor: theme.accent }]} /> : null}
+        </Animated.View>
+      </View>
     );
-  }, [currentRoleId, isCommandRequestConsumed, isSpaceOwner, messageListModel.invertedData, messageListModel.messageMap, multiSelectMode, multiSelectedIds, noRole, onExecuteCommandRequest, onLongPressMessage, onToggleMultiSelect, roleAvatarFileIdByAvatarId, roomRolesById, selectedAnchorId, userAvatarFileIdByUserId]);
+  }, [allowDeferredMetadataQueries, currentRoleId, dragTranslationY, draggingMessageId, dropTarget, handleCancelDragMessage, handleDragMessage, handleDropMessage, handleLongPressMessage, isCommandRequestConsumed, isSpaceOwner, messageListModel.invertedData, messageListModel.messageMap, multiSelectMode, multiSelectedIds, noRole, onExecuteCommandRequest, onPokeAvatar, onToggleMultiSelect, roleAvatarFileIdByAvatarId, roomRolesById, selectedAnchorId, theme.accent, userAvatarFileIdByUserId]);
 
   const keyExtractor = useCallback((item: ChatMessageListItem, index: number) => getMessageListItemKey(item.message, index), []);
 
@@ -517,6 +655,7 @@ function ChatMessageListInner({
         onContentSizeChange={handleContentSizeChange}
         onScroll={handleScroll}
         onScrollBeginDrag={handleScrollBeginDrag}
+        scrollEnabled={draggingMessageId === null}
         scrollEventThrottle={16}
         initialNumToRender={MESSAGE_INITIAL_RENDER_COUNT}
         maxToRenderPerBatch={MESSAGE_RENDER_BATCH_SIZE}

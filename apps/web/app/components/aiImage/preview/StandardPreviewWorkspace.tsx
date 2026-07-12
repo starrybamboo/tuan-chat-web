@@ -11,6 +11,7 @@ import {
 import type { AiImagePreviewPaneProps } from "@/components/aiImage/preview/types";
 
 import { EmptyPreviewPlaceholder } from "@/components/aiImage/preview/EmptyPreviewPlaceholder";
+import { MediaImage } from "@/components/common/mediaImage";
 import { ExpandCornersIcon, SharpDownload } from "@/icons";
 
 export function StandardPreviewWorkspace({
@@ -44,13 +45,13 @@ export function StandardPreviewWorkspace({
     <>
       {results.length > 1
         ? (
-            <div className="flex gap-2 overflow-x-auto">
+            <div className="flex gap-2 overflow-x-auto overscroll-x-none">
               {results.map((item, index) => (
                 <button
                   key={`${item.batchId}-${item.batchIndex}`}
                   type="button"
                   className={`
-                    overflow-hidden rounded-box border bg-base-100
+                    overflow-hidden rounded-md border bg-base-100
                     ${!selectedHistoryPreviewKey && selectedResultIndex === index ? `
                       border-info
                     ` : `border-base-300`}
@@ -59,7 +60,7 @@ export function StandardPreviewWorkspace({
                   aria-label={`选择第 ${index + 1} 张生成结果`}
                   aria-pressed={!selectedHistoryPreviewKey && selectedResultIndex === index}
                 >
-                  <img src={item.dataUrl} alt={`result-${index + 1}`} className={previewThumbnailImageClassName} />
+                  <MediaImage src={item.dataUrl} alt={`result-${index + 1}`} className={previewThumbnailImageClassName} />
                 </button>
               ))}
             </div>
@@ -118,15 +119,18 @@ export function StandardPreviewWorkspace({
               </div>
             )
           : null}
-        <div className="
-          relative flex min-h-0 flex-1 items-center justify-center
-          overflow-hidden p-3
-        ">
+        <div
+          aria-busy={isGeneratingImage}
+          className="
+            relative flex min-h-0 flex-1 items-center justify-center
+            overflow-hidden p-3
+          "
+        >
           {isGeneratingImage
             ? (
                 <div className="
                   pointer-events-none absolute inset-x-0 top-0 z-10 h-px
-                  animate-pulse bg-info/65
+                  animate-pulse bg-info/65 motion-reduce:animate-none
                 " />
               )
             : null}
@@ -146,9 +150,9 @@ export function StandardPreviewWorkspace({
           >
             {selectedPreviewResult
               ? (
-                  <img
+                  <MediaImage
                     src={selectedPreviewResult.dataUrl}
-                    className="max-h-full max-w-full rounded-box object-contain"
+                    className="max-h-full max-w-full rounded-md object-contain"
                     alt={previewMeta || "result"}
                   />
                 )

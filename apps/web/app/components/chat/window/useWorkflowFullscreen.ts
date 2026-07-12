@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 
 type UseWorkflowFullscreenResult = {
   isFullscreen: boolean;
+  closeFullscreen: () => void;
   toggleFullscreen: () => void;
 };
 
@@ -16,16 +17,10 @@ export function useWorkflowFullscreen(
   useEffect(() => {
     if (!isFullscreen)
       return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape")
-        setIsFullscreen(false);
-    };
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = originalOverflow;
-      window.removeEventListener("keydown", onKeyDown);
     };
   }, [isFullscreen]);
 
@@ -41,8 +36,13 @@ export function useWorkflowFullscreen(
     setIsFullscreen(prev => !prev);
   }, []);
 
+  const closeFullscreen = useCallback(() => {
+    setIsFullscreen(false);
+  }, []);
+
   return {
     isFullscreen,
+    closeFullscreen,
     toggleFullscreen,
   };
 }

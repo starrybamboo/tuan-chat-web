@@ -6,3 +6,4 @@ import type { Snapshot } from './Snapshot';
 export type ClueMessage = {
     snapshot: Snapshot;
 };
+

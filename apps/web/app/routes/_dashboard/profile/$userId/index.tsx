@@ -8,7 +8,7 @@ import { createSeoMeta } from "@/utils/seo";
 export function meta({ params }: RouteMetaArgs) {
   return createSeoMeta({
     title: `用户 ${params.userId} 的主页`,
-    description: `查看团剧共创用户 ${params.userId} 的公开主页、简介与作品。`,
+    description: `查看团剧共创用户 ${params.userId} 的公开主页与简介。`,
     path: `/profile/${params.userId}`,
     index: true,
     type: "profile",

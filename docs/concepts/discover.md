@@ -34,7 +34,3 @@
 - `Space` 包含 `repositoryId` 与 `parentCommitId`，空间可映射到仓库或提交。
 - `Repository` 关键字段：`repositoryId`、`repositoryName`、`parentRepositoryId`、`rootRepositoryId`、`commitId`。
 - `MaterialPackageResponse` 关键字段：`packageId`、`name`、`description`、`isPublic`、`content`。
-
-## 关联模块
-- 仓库详情页（`/repository/detail/:id`）新增 fork 列表入口，展示根仓库的 fork 仓库选项。
-- fork 列表数据来源：`repositoryController.pageForks()`。

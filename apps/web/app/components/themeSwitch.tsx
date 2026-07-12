@@ -1,6 +1,7 @@
 import { DesktopIcon, MoonIcon, SunIcon } from "@phosphor-icons/react";
 import { useEffect, useLayoutEffect } from "react";
 
+import { IconButton } from "@/components/common/IconButton";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 
 type Theme = "light" | "dark" | "system";
@@ -75,17 +76,17 @@ export default function ThemeSwitch() {
       {THEME_OPTIONS.map(({ value, label, Icon }) => {
         const isActive = theme === value;
         return (
-          <button
+          <IconButton
             key={value}
-            type="button"
-            className={`btn btn-ghost btn-xs btn-square ${isActive ? "text-info" : "text-base-content/55"}`}
-            aria-label={label}
+            label={label}
+            size="xs"
+            shape="square"
+            className={isActive ? "text-info" : "text-base-content/55"}
             aria-pressed={isActive ? "true" : "false"}
             title={label}
             onClick={() => setTheme(value)}
-          >
-            <Icon className="size-4" weight="regular" />
-          </button>
+            icon={<Icon className="size-4" weight="regular" />}
+          />
         );
       })}
     </div>

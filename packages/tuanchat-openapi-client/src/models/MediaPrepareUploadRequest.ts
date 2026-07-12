@@ -37,6 +37,7 @@ export type MediaPrepareUploadRequest = {
     /**
      * 客户端解析出的媒体元数据，例如 width/height/durationMs
      */
-    metadata?: Record<string, Record<string, any>>;
+    metadata?: Record<string, any>;
     chatroomScene?: boolean;
 };
+

@@ -1,3 +1,5 @@
+import { MenuItem, MenuSurface } from "@/components/common/MenuPopover";
+
 export default function ContextMenuCommon({
   menuItems,
   contextMenu,
@@ -15,20 +17,21 @@ export default function ContextMenuCommon({
       className="fixed bg-base-100 shadow-lg rounded-md z-50"
       style={{ top: contextMenu.y, left: contextMenu.x }}
     >
-      <ul className="menu p-2 w-40">
+      <MenuSurface as="ul" ariaLabel="私聊操作" className="w-40 p-2">
         {menuItems.map(item => (
-          <li key={`${item.label}-${contextMenu.id}`}>
-            <a onClick={(e) => {
-              e.preventDefault();
-              item.onClick();
-              closeContextMenu();
-            }}
+          <li key={`${item.label}-${contextMenu.id}`} role="none">
+            <MenuItem
+              onClick={(e) => {
+                e.preventDefault();
+                item.onClick();
+                closeContextMenu();
+              }}
             >
               {item.label}
-            </a>
+            </MenuItem>
           </li>
         ))}
-      </ul>
+      </MenuSurface>
     </div>
   );
 }

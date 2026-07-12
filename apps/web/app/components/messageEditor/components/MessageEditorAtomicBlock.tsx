@@ -4,6 +4,7 @@ import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessa
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import { MediaImage } from "@/components/common/mediaImage";
+import { FileInput } from "@/components/common/FormField";
 import { TrashIcon } from "@/icons";
 import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -629,9 +630,8 @@ export function MessageEditorAtomicBlock({
       onDrop={handleFileDrop}
     >
       {uploadable && (
-        <input
+        <FileInput
           ref={fileInputRef}
-          type="file"
           accept={uploadMeta.accept}
           className="hidden"
           onChange={handleFileInputChange}

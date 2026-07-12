@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 
 import { appToast } from "@/components/common/appToast/appToast";
 
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { Button } from "@/components/common/Button";
+import { FieldGroup, FieldLabel, TextArea, TextInput } from "@/components/common/FormField";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { imageLowUrl } from "@/utils/media/mediaUrl";
@@ -227,9 +229,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               {cloneSourceId
                 ? (
                     <div className="mb-4">
-                      <label className="label mb-2">
-                        <span className="label-text">克隆来源</span>
-                      </label>
+                      <FieldLabel className="mb-2">克隆来源</FieldLabel>
                       <div className="
                         flex items-center justify-between gap-3 rounded border
                         border-neutral-200
@@ -263,9 +263,8 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
 
                         {cloneSourceSpace?.spaceId
                           ? (
-                              <button
-                                type="button"
-                                className="btn btn-sm"
+                              <Button
+                                size="sm"
                                 onClick={() => {
                                   setActiveSpaceId(cloneSourceSpace.spaceId!);
                                   onClose();
@@ -273,7 +272,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                                 aria-label={`前往来源空间 ${cloneSourceSpace?.name ?? `ID ${cloneSourceId}`}`}
                               >
                                 前往来源空间
-                              </button>
+                              </Button>
                             )
                           : null}
                       </div>
@@ -283,10 +282,8 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
 
               <div className="flex-1 min-w-0 min-h-0 overflow-y-auto p-4">
                 <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-                  <div className="form-control">
-                    <div className="label">
-                      <span className="label-text">空间头像</span>
-                    </div>
+                  <FieldGroup>
+                    <FieldLabel>空间头像</FieldLabel>
                     <ImgUploaderWithCopper
                       mutate={(payload) => {
                         if (typeof payload?.avatarFileId !== "number") {
@@ -312,12 +309,15 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                           className="
                             size-full object-cover transition duration-200
                             group-hover:scale-105 group-hover:brightness-75
+                            motion-reduce:transition-none
+                            motion-reduce:group-hover:scale-100
                           "
                           fallbackSrc="/favicon.ico"
                         />
                         <div className="
                           absolute inset-0 flex items-center justify-center
                           bg-black/20 opacity-0 transition duration-200
+                          motion-reduce:transition-none
                           group-hover:opacity-100
                         ">
                           <span className="rounded bg-base-100/85 px-2 py-1 text-xs font-medium text-base-content">
@@ -326,37 +326,33 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                         </div>
                       </div>
                     </ImgUploaderWithCopper>
-                  </div>
+                  </FieldGroup>
 
-                  <label className="form-control">
-                    <div className="label">
-                      <span className="label-text">空间名称</span>
-                    </div>
-                    <input
-                      className="input input-bordered w-full"
+                  <FieldGroup>
+                    <FieldLabel htmlFor="space-settings-name">空间名称</FieldLabel>
+                    <TextInput
+                      id="space-settings-name"
+                      className="w-full"
                       autoComplete="off"
                       value={formData.name}
                       onChange={(event) => {
                         setFormData(prev => ({ ...prev, name: event.target.value }));
                       }}
                     />
-                  </label>
+                  </FieldGroup>
 
-                  <label className="form-control">
-                    <div className="label">
-                      <span className="label-text">空间描述</span>
-                    </div>
-                    <textarea
-                      className="
-                        textarea textarea-bordered min-h-40 w-full resize-y
-                      "
+                  <FieldGroup>
+                    <FieldLabel htmlFor="space-settings-description">空间描述</FieldLabel>
+                    <TextArea
+                      id="space-settings-description"
+                      className="min-h-40"
                       autoComplete="off"
                       value={formData.description}
                       onChange={(event) => {
                         setFormData(prev => ({ ...prev, description: event.target.value }));
                       }}
                     />
-                  </label>
+                  </FieldGroup>
                 </div>
               </div>
             </div>

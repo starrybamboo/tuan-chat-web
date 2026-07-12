@@ -10,7 +10,11 @@ import { useGetUserInfoQuery } from "api/hooks/UserHooks";
 import { useGetUserRolesQuery } from "api/queryHooks";
 import { useEffect, useId, useMemo, useState } from "react";
 
+import { Button } from "@/components/common/Button";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
+import { Switch, TextInput } from "@/components/common/FormField";
 import checkBack from "@/components/common/autoContrastText";
+import { IconButton } from "@/components/common/IconButton";
 import { MediaImage } from "@/components/common/mediaImage";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
@@ -270,12 +274,15 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                   className="
                     size-full object-cover transition duration-200
                     group-hover:scale-105 group-hover:brightness-75
+                    motion-reduce:transition-none
+                    motion-reduce:group-hover:scale-100
                   "
                   fallbackSrc="/favicon.ico"
                 />
                 <div className="
                   absolute inset-0 flex items-center justify-center
                   bg-base-100/10 opacity-0 backdrop-blur-[2px] transition
+                  motion-reduce:transition-none
                   duration-200
                   group-hover:opacity-100
                 ">
@@ -296,14 +303,14 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
             ">
               空间名称
             </label>
-            <input
+            <TextInput
               id={spaceNameInputId}
               type="text"
               autoComplete="off"
               value={spaceName}
               placeholder={defaultSpaceName}
               maxLength={32}
-              className="input input-bordered w-full bg-base-100 text-base"
+              className="text-base"
               onChange={(e) => {
                 const inputValue = e.target.value;
                 setSpaceNameDraft(inputValue === "" ? null : inputValue);
@@ -326,10 +333,11 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
             sm:flex-row
             lg:flex-col
           ">
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              loading={isSubmitting}
               className="
-                btn btn-primary order-1 min-w-36
+                order-1 min-w-36
                 sm:flex-1 sm:order-2
                 lg:flex-none lg:order-1
               "
@@ -338,17 +346,14 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                 void createSpace();
               }}
             >
-              {isSubmitting && <span className="
-                loading loading-spinner loading-sm
-              " />}
               <PlusIcon className="size-4" />
               {isSubmitting ? "创建中..." : "创建空间"}
-            </button>
+            </Button>
             {onCancel && (
-              <button
-                type="button"
+              <Button
+                variant="ghost"
                 className="
-                  btn btn-ghost order-2 min-w-24
+                  order-2 min-w-24
                   sm:flex-1 sm:order-1
                   lg:flex-none lg:order-2
                 "
@@ -356,7 +361,7 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                 disabled={isSubmitting}
               >
                 取消
-              </button>
+              </Button>
             )}
           </footer>
         </aside>
@@ -387,26 +392,26 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 {initialImportMessages.length > 0 && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm btn-square"
+                  <IconButton
+                    variant="ghost"
+                    size="sm"
+                    shape="square"
                     title="清空初始对话"
-                    aria-label="清空初始对话"
+                    label="清空初始对话"
                     onClick={() => setInitialImportMessages([])}
                     disabled={isSubmitting}
-                  >
-                    <Trash className="size-4" />
-                  </button>
+                    icon={<Trash className="size-4" />}
+                  />
                 )}
-                <button
-                  type="button"
-                  className="btn btn-outline btn-sm"
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setIsImportDialogOpen(true)}
                   disabled={isSubmitting || initialImportMessages.length > 0}
                 >
                   <RoomChatIcon className="size-4" />
                   {initialImportMessages.length > 0 ? "已导入" : "导入对话"}
-                </button>
+                </Button>
               </div>
             </div>
           </section>
@@ -481,12 +486,10 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                 <ul
                   id={ruleDropdownListId}
                   role="listbox"
-                  className={`
-                    menu absolute left-0 right-0 top-full z-50 mt-2 max-h-60
-                    w-full overflow-y-auto rounded-xl border border-base-300/70
-                    bg-base-100 p-1.5 shadow-2xl
-                    ${isRuleDropdownOpen ? "" : "hidden"}
-                  `}
+                  className={surfaceClassName({
+                    level: "floating",
+                    className: `absolute left-0 right-0 top-full z-50 mt-2 max-h-60 w-full overflow-y-auto p-1.5 shadow-2xl ${isRuleDropdownOpen ? "" : "hidden"}`,
+                  })}
                 >
                   {rules.map((rule) => {
                     const isActive = rule.ruleId === selectedRuleId;
@@ -634,9 +637,9 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                         mt-1 block text-xs/5 text-base-content/55
                       ">{option.description}</span>
                     </span>
-                    <input
-                      type="checkbox"
-                      className="toggle toggle-info toggle-sm shrink-0"
+                    <Switch
+                      density="compact"
+                      className="shrink-0"
                       checked={checked}
                       onChange={event => updateWebgalInitialSetting(option.key, event.target.checked)}
                     />
@@ -656,7 +659,6 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
       <ToastWindow
         isOpen={isImportDialogOpen}
         onClose={() => setIsImportDialogOpen(false)}
-        showCloseButton={false}
         disableScroll
         panelClassName="overflow-hidden rounded-2xl border border-base-300 p-0 shadow-2xl"
         bodyClassName="overflow-hidden"

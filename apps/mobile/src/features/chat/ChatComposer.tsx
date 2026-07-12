@@ -5,9 +5,10 @@ import type { IconProps } from "phosphor-react-native";
 import type { ComponentType } from "react";
 
 import { CaretDown, ImageSquare, PaperPlaneTilt, PencilSimple, Smiley, X, XCircle } from "phosphor-react-native";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
+import type { MobilePokeComposerTarget } from "@/features/chat/mobilePokeTemplateStorage";
 import type { MobileChatStatusType } from "@/features/messages/mobileChatStatus";
 import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
 import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
@@ -46,6 +47,7 @@ const CHAT_STATUS_OPTIONS: Array<{
 ];
 
 export type MobileVisibleChatStatus = {
+  description: string;
   label: string;
   status: Exclude<MobileChatStatusType, "idle">;
   userId: number;
@@ -347,6 +349,7 @@ type ChatComposerProps = {
   isSubmitting: boolean;
   messageAttachments: MobileMessageAttachment[];
   messageMode: MobileMessageMode;
+  pokeTarget?: MobilePokeComposerTarget | null;
   myChatStatus?: MobileChatStatusType;
   otherChatStatuses?: readonly MobileVisibleChatStatus[];
   onChangeDraftMessage: (v: string) => void;
@@ -357,6 +360,7 @@ type ChatComposerProps = {
   onOpenExpressionPicker?: () => void;
   onOpenRoleSwitch: () => void;
   onPickAttachment: (kind: MobileMessageAttachmentKind) => void;
+  onCancelPoke?: () => void;
   onRemoveAttachment: (id: string) => void;
   onSend: () => void;
   roomName?: string | null;
@@ -387,6 +391,7 @@ function ChatComposerInner({
   isSubmitting,
   messageAttachments,
   messageMode,
+  pokeTarget,
   myChatStatus = "idle",
   otherChatStatuses = [],
   onChangeDraftMessage,
@@ -397,6 +402,7 @@ function ChatComposerInner({
   onOpenExpressionPicker,
   onOpenRoleSwitch,
   onPickAttachment,
+  onCancelPoke,
   onRemoveAttachment,
   onSend,
   roomName,
@@ -405,6 +411,7 @@ function ChatComposerInner({
   shortcutActions,
 }: ChatComposerProps) {
   const theme = useTheme();
+  const inputRef = useRef<TextInput>(null);
   const [inputHeight, setInputHeight] = useState(COMPOSER_MIN_HEIGHT);
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const [composerHeight, setComposerHeight] = useState(0);
@@ -413,9 +420,21 @@ function ChatComposerInner({
   const currentStatusOption = CHAT_STATUS_OPTIONS.find(option => option.value === myChatStatus) ?? CHAT_STATUS_OPTIONS[0];
   const currentStatusTone = resolveChatStatusTone(myChatStatus, theme);
   const visibleOtherChatStatuses = useMemo(() => otherChatStatuses, [otherChatStatuses]);
-  const inputPlaceholder = messageMode === MOBILE_MESSAGE_MODE.TEXT
+  const inputPlaceholder = pokeTarget
+    ? "输入戳一戳正文"
+    : messageMode === MOBILE_MESSAGE_MODE.TEXT
     ? `给 #${roomName ?? "频道"}...`
     : "输入先攻指令，例如 .ri";
+
+  useEffect(() => {
+    if (!pokeTarget) {
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [pokeTarget]);
 
   // @mention logic
   const mentionQuery = getMentionQuery(draftMessage);
@@ -512,7 +531,7 @@ function ChatComposerInner({
           )
         : null}
 
-      {!showMentionList && messageMode === MOBILE_MESSAGE_MODE.TEXT
+      {!pokeTarget && !showMentionList && messageMode === MOBILE_MESSAGE_MODE.TEXT
         ? (
             <MobileCommandPanel
               maxHeight={resolvedCommandPanelMaxHeight}
@@ -580,9 +599,7 @@ function ChatComposerInner({
               >
                 {visibleOtherChatStatuses.map((item) => {
                   const tone = resolveChatStatusTone(item.status, theme);
-                  const statusLabel = item.status === "input"
-                    ? "正在输入"
-                    : CHAT_STATUS_OPTIONS.find(option => option.value === item.status)?.label ?? item.status;
+                  const statusLabel = item.description;
                   return (
                     <View key={`${item.userId}:${item.status}`} style={styles.chatStatusContent}>
                       <ThemedText
@@ -599,7 +616,39 @@ function ChatComposerInner({
             )
           : null}
 
-        {editingMessage
+        {pokeTarget
+          ? (
+              <View
+                style={[
+                  styles.editBar,
+                  {
+                    backgroundColor: "rgba(236, 72, 153, 0.10)",
+                    borderColor: "#ec4899",
+                  },
+                ]}
+              >
+                <View style={[styles.editIcon, { backgroundColor: "#ec4899" }]}>
+                  <ThemedText style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>戳</ThemedText>
+                </View>
+                <View style={styles.editText}>
+                  <ThemedText style={[styles.editTitle, { color: "#ec4899" }]}>戳一戳</ThemedText>
+                  <ThemedText style={[styles.editPreview, { color: theme.textSecondary }]} numberOfLines={1}>
+                    {pokeTarget.initiatorRoleName}
+                    {" → "}
+                    {pokeTarget.targetRoleName}
+                  </ThemedText>
+                </View>
+                <Pressable
+                  accessibilityLabel="取消戳一戳"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={onCancelPoke}
+                >
+                  <X size={16} color={theme.textSecondary} />
+                </Pressable>
+              </View>
+            )
+          : editingMessage
           ? (
               <View
                 style={[
@@ -688,6 +737,7 @@ function ChatComposerInner({
 
         <View style={styles.inputRow}>
           <TextInput
+            ref={inputRef}
             multiline
             onChangeText={handleChangeMessageText}
             onContentSizeChange={handleContentSizeChange}
@@ -723,7 +773,7 @@ function ChatComposerInner({
         </View>
 
         <View style={styles.toolbarRow}>
-          {canUseAttachments
+          {canUseAttachments && !pokeTarget
             ? (
                 <Pressable
                   accessibilityLabel="添加图片附件"

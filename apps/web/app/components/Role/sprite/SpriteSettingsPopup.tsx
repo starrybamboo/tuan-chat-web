@@ -1,3 +1,5 @@
+import type { RoleAvatar, RoleAvatarVariant, RoleAvatarVariantCompositionConfig } from "api";
+
 import {
   ArrowLeftIcon,
   CaretDownIcon,
@@ -15,20 +17,7 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Drawer } from "vaul";
-import { appToast } from "@/components/common/appToast/appToast";
-
-import type { RoleAvatar, RoleAvatarVariant, RoleAvatarVariantCompositionConfig } from "api";
-
-import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import { MediaImage } from "@/components/common/mediaImage";
-import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
-import { ensureRoleAvatarDefaultMedia } from "@/components/Role/RoleCreation/hooks/createRoleDefaultAvatar";
-import { isMobileScreen } from "@/utils/getScreenSize";
-import { canvasPreview, canvasToBlob } from "@/utils/imgCropper";
-import { normalizeImageFileOrNull } from "@/utils/media/mediaMime";
-import { imageOriginalUrlFromUrl } from "@/utils/media/mediaUrl";
+import { FieldGroup, FieldLabel, TextInput } from "@/components/common/FormField";
 import {
   useApplyCropAvatarMutation,
   useApplyCropMutation,
@@ -43,6 +32,23 @@ import {
   useUpdateRoleAvatarVariantMutation,
   useUploadAvatarMutation,
 } from "api/hooks/RoleAndAvatarHooks";
+import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Drawer } from "vaul";
+
+import { appToast } from "@/components/common/appToast/appToast";
+import { Button } from "@/components/common/Button";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { DialogActions, DialogFrame } from "@/components/common/DialogFrame";
+import { IconButton } from "@/components/common/IconButton";
+import { MediaImage } from "@/components/common/mediaImage";
+import { DropdownMenu, MenuItem } from "@/components/common/MenuPopover";
+import { CountBadge, InlineAlert } from "@/components/common/StatusPrimitives";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { ensureRoleAvatarDefaultMedia } from "@/components/Role/RoleCreation/hooks/createRoleDefaultAvatar";
+import { isMobileScreen } from "@/utils/getScreenSize";
+import { canvasPreview, canvasToBlob } from "@/utils/imgCropper";
+import { normalizeImageFileOrNull } from "@/utils/media/mediaMime";
+import { imageOriginalUrlFromUrl } from "@/utils/media/mediaUrl";
 
 import type { AvatarUploadFilesContext } from "../RoleInfoCard/AvatarUploadCropper";
 import type { Role } from "../types";
@@ -59,7 +65,6 @@ import {
 import { resolveAvatarUploadName } from "./avatarUploadName";
 import { uploadOriginAndDefaultSpriteMedia } from "./defaultSpriteMedia";
 import { useAvatarDeletion } from "./hooks/useAvatarDeletion";
-import { getVariantFolderClickAction } from "./variantFolderInteraction";
 import {
   AvatarCalibrationPreviewPanel,
   AvatarSettingsTab,
@@ -78,6 +83,7 @@ import {
   parseTransformFromVariantConfig,
   toSpriteTransformPayload,
 } from "./utils";
+import { getVariantFolderClickAction } from "./variantFolderInteraction";
 
 export type SettingsTab = "cropper" | "avatarCropper" | "setting" | "trash";
 
@@ -341,35 +347,18 @@ function VariantNameDialog({
   }, [onConfirm, trimmedDraft]);
 
   return (
-    <div
-      className="
-        absolute inset-0 z-40 flex items-center justify-center
-        p-4
+    <DialogFrame
+      open
+      mode="inline"
+      onClose={onCancel}
+      ariaLabel="新建立绘组"
+      closeButtonLabel="关闭新建立绘组弹窗"
+      rootClassName="absolute z-40 p-4 bg-black/55"
+      panelClassName="
+        relative z-10 w-full max-w-md rounded-md border border-base-300
+        bg-base-100 p-6 shadow-2xl
       "
     >
-      <button
-        type="button"
-        className="absolute inset-0 cursor-default bg-black/55"
-        onClick={onCancel}
-        aria-label="关闭新建立绘组弹窗"
-      />
-      <div
-        className="
-          relative z-10 w-full max-w-md rounded-md border border-base-300
-          bg-base-100 p-6 shadow-2xl
-        "
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="variant-name-dialog-title"
-        onKeyDown={(event) => {
-          if (event.key !== "Escape" || event.nativeEvent.isComposing || isComposingRef.current) {
-            return;
-          }
-          event.preventDefault();
-          event.stopPropagation();
-          onCancel();
-        }}
-      >
         <h3 id="variant-name-dialog-title" className="text-lg font-bold">新建立绘组</h3>
         <p className="py-3 text-sm text-base-content/60">
           将使用当前选择的
@@ -380,11 +369,12 @@ function VariantNameDialog({
           {" "}
           个头像初始化立绘组。
         </p>
-        <label className="form-control w-full">
-          <span className="label-text mb-1 text-sm">名称</span>
-          <input
+        <FieldGroup className="w-full">
+          <FieldLabel htmlFor="sprite-variant-name">名称</FieldLabel>
+          <TextInput
+            id="sprite-variant-name"
             ref={inputRef}
-            className="input input-bordered w-full"
+            className="w-full"
             autoComplete="off"
             value={draft}
             onChange={event => setDraft(event.currentTarget.value)}
@@ -406,26 +396,23 @@ function VariantNameDialog({
             maxLength={40}
             placeholder="立绘组名称"
           />
-        </label>
-        <div className="modal-action">
-          <button
-            type="button"
-            className="btn btn-ghost"
+        </FieldGroup>
+        <DialogActions>
+          <Button
+            variant="ghost"
             onClick={onCancel}
           >
             取消
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleSubmit}
             disabled={!trimmedDraft}
           >
             继续裁剪
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogActions>
+    </DialogFrame>
   );
 }
 
@@ -2501,15 +2488,16 @@ export function SpriteSettingsPopup({
         <span className="truncate text-xs font-semibold text-base-content/75">
           立绘组
         </span>
-        <button
-          type="button"
-          className="btn btn-ghost btn-xs h-6 min-h-0 gap-1 px-1.5"
+        <Button
+          variant="ghost"
+          size="xs"
+          className="h-6 min-h-0 gap-1 px-1.5"
           onClick={handleCreateVariantFromCurrentAvatar}
           disabled={isVariantWorkflowPending}
         >
           <PlusIcon className="size-3.5 shrink-0" aria-hidden="true" />
           <span>{isVariantWorkflowPending ? "新建中" : "新建"}</span>
-        </button>
+        </Button>
       </div>
       <div
         className="grid w-full min-w-0 gap-2"
@@ -2520,7 +2508,7 @@ export function SpriteSettingsPopup({
           const isSelected = selectedVariantKey === item.variantKey;
           return (
             <div key={item.variantKey} className="min-w-0">
-              <div className="group/variant-folder relative w-full overflow-visible">
+              <div className={`group/variant-folder relative w-full overflow-visible ${isSelected ? "z-10" : ""}`}>
               <button
                 type="button"
                 className={`
@@ -2529,7 +2517,7 @@ export function SpriteSettingsPopup({
                   hover:-translate-y-0.5 hover:bg-base-300/70 hover:shadow-md
                   motion-reduce:transition-none motion-reduce:hover:translate-y-0
                   ${isSelected
-                    ? "border-warning shadow-lg ring-2 ring-warning/30"
+                    ? "border-warning shadow-lg ring-2 ring-inset ring-warning/30"
                     : "border-base-300/80 hover:border-info/50"}
                   ${isDropTarget ? "border-info bg-info/10 ring-2 ring-info/40" : ""}
                 `}
@@ -2744,25 +2732,25 @@ export function SpriteSettingsPopup({
         ">
           {!isVariantBatchSelection && (
             <>
-              <div className="dropdown dropdown-end w-44">
-                <button
-                  type="button"
-                  tabIndex={0}
-                  className="
-                    btn btn-outline btn-sm h-8 min-h-8 w-full justify-between
-                    gap-2 rounded-md px-3
-                  "
-                  disabled={isVariantMutationPending || bindableVariantGroups.length === 0}
-                  title={`目标立绘组：${batchTargetVariantLabel}`}
-                  aria-label="选择目标立绘组"
-                >
-                  <span className="truncate">{batchTargetVariantLabel}</span>
-                  <CaretDownIcon className="size-3.5 shrink-0" aria-hidden="true" />
-                </button>
-                <ul className="
-                  dropdown-content menu bg-base-100 rounded-box shadow-xl border
-                  border-base-300 z-40 mt-1 w-56 p-2
-                ">
+              <DropdownMenu
+                ariaLabel="选择目标立绘组"
+                placement="bottom-end"
+                className="w-44"
+                menuClassName="z-40 w-56 p-2 shadow-xl"
+                trigger={(
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 min-h-8 w-full justify-between gap-2 rounded-md px-3"
+                    disabled={isVariantMutationPending || bindableVariantGroups.length === 0}
+                    title={`目标立绘组：${batchTargetVariantLabel}`}
+                    aria-label="选择目标立绘组"
+                  >
+                    <span className="truncate">{batchTargetVariantLabel}</span>
+                    <CaretDownIcon className="size-3.5 shrink-0" aria-hidden="true" />
+                  </Button>
+                )}
+              >
                   {bindableVariantGroups.length === 0
                     ? (
                         <li>
@@ -2777,21 +2765,21 @@ export function SpriteSettingsPopup({
                         const variantLabel = getVariantDisplayName(variant);
                         return (
                           <li key={variantId}>
-                            <button
-                              type="button"
-                              className={String(variantId) === batchTargetVariantId ? "active font-semibold" : ""}
+                            <MenuItem
+                              selected={String(variantId) === batchTargetVariantId}
+                              className="justify-between gap-2"
                               onClick={() => setBatchTargetVariantId(String(variantId))}
                             >
                               <span className="min-w-0 flex-1 truncate text-left">{variantLabel}</span>
-                            </button>
+                            </MenuItem>
                           </li>
                         );
                       })}
-                </ul>
-              </div>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm h-8 min-h-8 rounded-md px-3"
+              </DropdownMenu>
+              <Button
+                variant="primary"
+                size="sm"
+                className="h-8 min-h-8 rounded-md px-3"
                 onClick={handleBatchAssignVariant}
                 disabled={
                   isVariantMutationPending
@@ -2800,35 +2788,36 @@ export function SpriteSettingsPopup({
                 }
               >
                 {isVariantMutationPending ? "绑定中" : "绑定"}
-              </button>
+              </Button>
             </>
           )}
 
           {!isVariantBatchSelection && (
-            <button
-              type="button"
-              className="btn btn-error btn-square btn-sm h-8 min-h-8 rounded-md"
+            <IconButton
+              variant="error"
+              size="sm"
+              shape="square"
+              className="h-8 min-h-8 rounded-md"
               onClick={handleRequestVariantRemoval}
               disabled={isVariantMutationPending || selectedWithVariantCount === 0}
               title="移回未分组"
-              aria-label="移回未分组"
-            >
-              {isVariantMutationPending
-                ? <span className="loading loading-spinner loading-xs" aria-hidden="true" />
-                : <TrashIcon className="size-4" aria-hidden="true" />}
-            </button>
+              label="移回未分组"
+              loading={isVariantMutationPending}
+              icon={<TrashIcon className="size-4" aria-hidden="true" />}
+            />
           )}
           {!isVariantGroupView && !isVariantFolderSelected && (
-            <button
-              type="button"
-              className="btn btn-error btn-square btn-sm h-8 min-h-8 rounded-md"
+            <IconButton
+              variant="error"
+              size="sm"
+              shape="square"
+              className="h-8 min-h-8 rounded-md"
               onClick={handleBatchDeleteRequest}
               disabled={selectedAvatarCount === 0}
               title="删除所选"
-              aria-label="删除所选"
-            >
-              <TrashIcon className="size-4" aria-hidden="true" />
-            </button>
+              label="删除所选"
+              icon={<TrashIcon className="size-4" aria-hidden="true" />}
+            />
           )}
         </div>
       </div>
@@ -2862,15 +2851,15 @@ export function SpriteSettingsPopup({
         ">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             {isVariantGroupView && (
-              <button
-                type="button"
-                className="btn btn-ghost btn-square btn-xs shrink-0"
+              <IconButton
+                size="xs"
+                shape="square"
+                className="shrink-0"
                 onClick={() => handleVariantFilterChange(UNGROUPED_VARIANT_KEY)}
                 title="返回未分组"
-                aria-label="返回未分组"
-              >
-                <ArrowLeftIcon className="size-4" aria-hidden="true" />
-              </button>
+                label="返回未分组"
+                icon={<ArrowLeftIcon className="size-4" aria-hidden="true" />}
+              />
             )}
             <h3 className="min-w-0 truncate text-lg font-semibold" title={avatarListTitle}>
               {avatarListTitle}
@@ -2879,9 +2868,11 @@ export function SpriteSettingsPopup({
           <div className="flex shrink-0 items-center gap-1.5">
             {isMultiSelectMode && (
               <>
-                <button
-                  type="button"
-                  className="btn btn-soft bg-base-200 btn-square btn-xs"
+                <IconButton
+                  variant="outline"
+                  size="xs"
+                  shape="square"
+                  className="bg-base-200"
                   onClick={() => {
                     const allSelected = visibleCount > 0 && filteredSelectedIndices.size === visibleCount;
                     const newSelected = allSelected
@@ -2896,26 +2887,34 @@ export function SpriteSettingsPopup({
                         ? `已选 ${filteredSelectedIndices.size}`
                         : "全选"
                   }
-                >
-                  <ChecksIcon className="size-5" aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-square btn-xs"
+                  label={
+                    visibleCount > 0 && filteredSelectedIndices.size === visibleCount
+                      ? "取消全选"
+                      : filteredSelectedIndices.size > 0 && filteredSelectedIndices.size < visibleCount
+                        ? `已选 ${filteredSelectedIndices.size}`
+                        : "全选"
+                  }
+                  icon={<ChecksIcon className="size-5" aria-hidden="true" />}
+                />
+                <IconButton
+                  size="xs"
+                  shape="square"
                   onClick={() => {
                     setIsMultiSelectMode(false);
                     setSelectedIndices(new Set());
                   }}
                   title="退出选择模式"
-                >
-                  <XIcon className="size-5" aria-hidden="true" />
-                </button>
+                  label="退出选择模式"
+                  icon={<XIcon className="size-5" aria-hidden="true" />}
+                />
               </>
             )}
             {!isMultiSelectMode && visibleCount > 1 && (
-              <button
-                type="button"
-                className="btn btn-soft bg-base-200 btn-square btn-xs"
+              <IconButton
+                variant="outline"
+                size="xs"
+                shape="square"
+                className="bg-base-200"
                 onClick={() => {
                   if (!isVariantGroupView) {
                     setSelectedVariantKey(null);
@@ -2923,9 +2922,9 @@ export function SpriteSettingsPopup({
                   setIsMultiSelectMode(true);
                 }}
                 title="进入选择模式"
-              >
-                <CheckCircleIcon className="size-5" aria-hidden="true" />
-              </button>
+                label="进入选择模式"
+                icon={<CheckCircleIcon className="size-5" aria-hidden="true" />}
+              />
             )}
           </div>
         </div>
@@ -2990,7 +2989,7 @@ export function SpriteSettingsPopup({
     <div className="shrink-0 border-b border-base-300 bg-base-200/50">
       <nav className="
         flex flex-wrap gap-1.5 p-2 overflow-x-hidden
-        md:flex-nowrap md:overflow-x-auto
+        md:flex-nowrap md:overflow-x-auto md:overscroll-x-none
       ">
         {/* 头像设置 Tab */}
         <button
@@ -3045,9 +3044,9 @@ export function SpriteSettingsPopup({
           " aria-hidden="true" />
           <span>回收站</span>
           {trashItems.length > 0 && (
-            <span className="badge badge-sm bg-base-100 text-base-content">
+            <CountBadge tone="neutral">
               {trashItems.length}
-            </span>
+            </CountBadge>
           )}
         </button>
       </nav>
@@ -3066,14 +3065,15 @@ export function SpriteSettingsPopup({
               : <UserFocusIcon className="size-4 shrink-0 text-info" aria-hidden="true" />}
             <span className="min-w-0 truncate font-medium">{activeTabLabel}</span>
           </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm h-8 min-h-8 gap-1.5 rounded-md px-2.5"
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 min-h-8 gap-1.5 rounded-md px-2.5"
             onClick={() => handleTabChange("setting")}
           >
             <ArrowLeftIcon className="size-4" aria-hidden="true" />
             <span>返回头像设置</span>
-          </button>
+          </Button>
         </div>
       )
     : null;
@@ -3086,7 +3086,6 @@ export function SpriteSettingsPopup({
       isOpen={isOpen}
       onClose={onClose}
       fullScreen={isMobile}
-      showCloseButton={!isMobile}
       disableScroll
       panelClassName="
         md:!h-[88vh] md:!max-h-[88vh] md:!w-[90vw]
@@ -3116,12 +3115,10 @@ export function SpriteSettingsPopup({
               shrink-0 border-b border-base-300 bg-base-200/50 p-2.5
             ">
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
+                <Button
+                  variant="outline"
                   onClick={() => setIsMobileControlDrawerOpen(true)}
-                  className="
-                    btn btn-soft bg-base-200 flex-1 justify-between min-w-0
-                  "
+                  className="min-w-0 flex-1 justify-between bg-base-200"
                 >
                   <span className="flex items-center gap-2">
                     <ImageIcon className="size-5" aria-hidden="true" />
@@ -3132,15 +3129,15 @@ export function SpriteSettingsPopup({
                   ">
                     {activeTabLabel}
                   </span>
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <IconButton
+                  size="sm"
+                  shape="square"
+                  className="shrink-0"
                   onClick={onClose}
-                  className="btn btn-ghost btn-square btn-sm shrink-0"
-                  aria-label="关闭头像弹窗"
-                >
-                  <XIcon className="size-5" aria-hidden="true" />
-                </button>
+                  label="返回角色页面"
+                  icon={<ArrowLeftIcon className="size-5" aria-hidden="true" />}
+                />
               </div>
             </div>
           )}
@@ -3173,14 +3170,15 @@ export function SpriteSettingsPopup({
                                 个头像
                               </span>
                             </span>
-                            <button
-                              type="button"
-                              className="btn btn-ghost btn-xs shrink-0"
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              className="shrink-0"
                               onClick={() => setPendingUploadSpriteCalibration(null)}
                               disabled={isVariantMutationPending}
                             >
                               取消
-                            </button>
+                            </Button>
                           </div>
                         )}
                         {pendingVariantSpriteCalibrationIndices && (
@@ -3198,14 +3196,15 @@ export function SpriteSettingsPopup({
                                 个头像
                               </span>
                             </span>
-                            <button
-                              type="button"
-                              className="btn btn-ghost btn-xs shrink-0"
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              className="shrink-0"
                               onClick={() => setPendingVariantSpriteCalibrationIndices(null)}
                               disabled={isVariantMutationPending}
                             >
                               取消
-                            </button>
+                            </Button>
                           </div>
                         )}
                         <div className="min-h-0 flex-1">
@@ -3264,14 +3263,15 @@ export function SpriteSettingsPopup({
                                 {pendingVariantInitialization.name}
                               </span>
                             </span>
-                            <button
-                              type="button"
-                              className="btn btn-ghost btn-xs shrink-0"
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              className="shrink-0"
                               onClick={() => setPendingVariantInitialization(null)}
                               disabled={isVariantMutationPending}
                             >
                               取消
-                            </button>
+                            </Button>
                           </div>
                         )}
                         <div className="min-h-0 flex-1">
@@ -3354,19 +3354,15 @@ export function SpriteSettingsPopup({
                   flex justify-between items-center mb-2 shrink-0 min-h-8
                 ">
                   <h3 className="text-lg font-semibold">回收站</h3>
-                  <button
-                    type="button"
-                    className={`
-                      btn btn-ghost btn-sm
-                      ${trashItems.length === 0 || isClearingTrash ? `
-                        btn-disabled
-                      ` : ""}
-                    `}
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={handleClearTrash}
                     disabled={trashItems.length === 0 || isClearingTrash}
+                    loading={isClearingTrash}
                   >
-                    {isClearingTrash ? "清空中..." : "清空回收站"}
-                  </button>
+                    清空回收站
+                  </Button>
                 </div>
 
                 <div className="
@@ -3449,14 +3445,15 @@ export function SpriteSettingsPopup({
                                       </div>
                                     </div>
                                     <div className="flex justify-end gap-2">
-                                      <button
-                                        type="button"
-                                        className="btn btn-primary btn-sm"
+                                      <Button
+                                        variant="primary"
+                                        size="sm"
                                         onClick={() => handleRestoreFromTrash(avatar)}
                                         disabled={!canRestore || isBusy}
+                                        loading={isRestoring}
                                       >
-                                        {isRestoring ? "恢复中..." : "恢复"}
-                                      </button>
+                                        恢复
+                                      </Button>
                                     </div>
                                   </div>
                                 );
@@ -3498,14 +3495,13 @@ export function SpriteSettingsPopup({
                 <Drawer.Description className="sr-only">
                   在移动端查看头像列表并切换头像设置或回收站。
                 </Drawer.Description>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm btn-square"
+                <IconButton
+                  size="sm"
+                  shape="square"
                   onClick={() => setIsMobileControlDrawerOpen(false)}
-                  aria-label="关闭头像与工具抽屉"
-                >
-                  <XIcon className="size-5" aria-hidden="true" />
-                </button>
+                  label="关闭头像与工具抽屉"
+                  icon={<XIcon className="size-5" aria-hidden="true" />}
+                />
               </div>
               <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
                 {tabNavigation}
@@ -3530,11 +3526,18 @@ export function SpriteSettingsPopup({
         />
       )}
 
-      {batchVariantCreationPrompt && (
-        <div className="modal modal-open">
-          <div className="modal-box w-[92vw] max-w-md">
-            <h3 className="text-lg font-bold">创建新的立绘组？</h3>
-            <p className="py-4 text-sm text-base-content/70">
+      <ConfirmDialog
+        open={Boolean(batchVariantCreationPrompt)}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleCancelBatchVariantCreation();
+          }
+        }}
+        onConfirm={handleConfirmBatchVariantCreation}
+        title="创建新的立绘组？"
+        description={batchVariantCreationPrompt
+          ? (
+              <p className="text-sm text-base-content/70">
               已完成批量立绘上传：成功
               {" "}
               <span className="font-semibold text-base-content">
@@ -3554,40 +3557,29 @@ export function SpriteSettingsPopup({
               )}
               。是否继续为这批头像创建新的立绘组？
             </p>
-            <div className="modal-action">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={handleCancelBatchVariantCreation}
-              >
-                暂不创建
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleConfirmBatchVariantCreation}
-              >
-                创建立绘组
-              </button>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="modal-backdrop"
-            onClick={handleCancelBatchVariantCreation}
-            aria-label="关闭创建立绘组确认弹窗"
-          />
-        </div>
-      )}
+            )
+          : null}
+        confirmLabel="创建立绘组"
+        cancelLabel="暂不创建"
+        variant="info"
+      />
 
-      {variantRemovalConfirm && (
-        <div className="modal modal-open">
-          <div className="modal-box w-[92vw] max-w-md">
-            <h3 className="font-bold text-lg">
-              {variantRemovalConfirm.mode === "deleteVariant" ? "确认解散立绘组" : "确认移回未分组"}
-            </h3>
-            <div className="alert alert-error my-4">
-              <WarningCircleIcon className="shrink-0 size-6" aria-hidden="true" />
+      <ConfirmDialog
+        open={Boolean(variantRemovalConfirm)}
+        onOpenChange={(open) => {
+          if (!open && !isVariantMutationPending) {
+            setVariantRemovalConfirm(null);
+          }
+        }}
+        onConfirm={handleConfirmVariantRemoval}
+        title={variantRemovalConfirm?.mode === "deleteVariant" ? "确认解散立绘组" : "确认移回未分组"}
+        description={variantRemovalConfirm
+          ? (
+              <InlineAlert
+                tone="error"
+                icon={<WarningCircleIcon className="size-6" aria-hidden="true" />}
+                className="my-1 text-left"
+              >
               <span>
                 {variantRemovalConfirm.mode === "deleteVariant"
                   ? (
@@ -3613,40 +3605,16 @@ export function SpriteSettingsPopup({
                       </>
                     )}
               </span>
-            </div>
-            <div className="modal-action">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setVariantRemovalConfirm(null)}
-                disabled={isVariantMutationPending}
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                className="btn btn-error"
-                onClick={handleConfirmVariantRemoval}
-                disabled={isVariantMutationPending}
-              >
-                {isVariantMutationPending
-                  ? "处理中..."
-                  : variantRemovalConfirm.mode === "deleteVariant" ? "确认解散" : "确认移回"}
-              </button>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="modal-backdrop"
-            onClick={() => {
-              if (!isVariantMutationPending) {
-                setVariantRemovalConfirm(null);
-              }
-            }}
-            aria-label="关闭移出立绘组确认弹窗"
-          />
-        </div>
-      )}
+            </InlineAlert>
+            )
+          : null}
+        confirmLabel={isVariantMutationPending
+          ? "处理中..."
+          : variantRemovalConfirm?.mode === "deleteVariant" ? "确认解散" : "确认移回"}
+        cancelLabel="取消"
+        variant="danger"
+        icon={<WarningCircleIcon className="size-6" weight="regular" />}
+      />
 
       <ConfirmDialog
         open={batchDeleteConfirmOpen}
@@ -3666,10 +3634,13 @@ export function SpriteSettingsPopup({
               个头像吗？删除后会进入回收站，可在回收站恢复。
             </p>
             {selectedIndices.size >= spritesAvatars.length && (
-              <div className="alert alert-warning text-left">
-                <WarningCircleIcon className="shrink-0 size-6" aria-hidden="true" />
+              <InlineAlert
+                tone="warning"
+                icon={<WarningCircleIcon className="size-6" aria-hidden="true" />}
+                className="text-left"
+              >
                 <span>无法删除所有头像，至少需要保留一个</span>
-              </div>
+              </InlineAlert>
             )}
           </div>
         )}

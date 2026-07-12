@@ -1,27 +1,20 @@
 import React from "react";
 
-import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
-
 import { RoomContext } from "@/components/chat/core/roomContext";
-import EditableMessageContent from "@/components/chat/message/editableMessageContent";
 import { useOptionalStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
+import { CollapsibleMotion } from "@/components/common/motion/CollapsibleMotion";
 import { collectStateEventScopeLabels, formatStateEventAtomDetail, formatStateEventPreviewText, formatStateRoleLabel, formatStateScopeLabel, getNormalizedStateEventExtra } from "@/types/stateEvent";
 
 import type { Message } from "../../../../api";
 
 type StateMessageCardProps = {
   message: Pick<Message, "content" | "extra"> & Partial<Pick<Message, "messageId">>;
-  canEditContent?: boolean;
-  onContentCommit?: (nextContent: string) => void;
-  onContentEditingChange?: (editing: boolean) => void;
-  editInputRef?: React.RefObject<ChatInputAreaHandle | null>;
-  shouldIgnoreContentBlur?: (relatedTarget: EventTarget | null) => boolean;
 }
 
-const STATE_MESSAGE_CARD_CLASS = "inline-flex min-w-0 max-w-full items-center gap-1 rounded px-1.5 py-0.5 text-[11px] leading-4 transition-colors duration-150";
+const STATE_MESSAGE_CARD_CLASS = "inline-flex min-w-0 max-w-full items-center gap-1 rounded px-1.5 py-0.5 text-[11px] leading-4 transition-colors duration-150 motion-reduce:transition-none";
 const STATE_MESSAGE_IDLE_CLASS = "text-base-content/50 hover:text-base-content/70";
 const STATE_MESSAGE_TEXT_CLASS = "min-w-0 break-words text-center text-current";
-const STATE_MESSAGE_ACTION_CLASS = "shrink-0 text-[11px] text-current opacity-45 transition-opacity hover:opacity-75";
+const STATE_MESSAGE_ACTION_CLASS = "shrink-0 text-[11px] text-current opacity-45 transition-opacity hover:opacity-75 motion-reduce:transition-none";
 const STATE_MESSAGE_DETAIL_CLASS = "mt-1 w-full max-w-[32rem] space-y-2 rounded-md border border-base-content/8 bg-base-100/75 px-2.5 py-2 text-xs text-base-content/65 shadow-sm backdrop-blur-sm";
 
 export function buildStateRoleLabelReplacements(
@@ -56,11 +49,6 @@ export function buildStateRoleLabelReplacements(
 
 export default function StateMessageCard({
   message,
-  canEditContent = false,
-  onContentCommit,
-  onContentEditingChange,
-  editInputRef,
-  shouldIgnoreContentBlur,
 }: StateMessageCardProps) {
   const roomContext = React.use(RoomContext);
   const runtime = useOptionalStateRuntimeContext();
@@ -132,24 +120,9 @@ export default function StateMessageCard({
         ${STATE_MESSAGE_CARD_CLASS}
         ${STATE_MESSAGE_IDLE_CLASS}
       `}>
-        {onContentCommit
-          ? (
-              <EditableMessageContent
-                content={message.content ?? ""}
-                displayContent={compactText}
-                className={`${STATE_MESSAGE_TEXT_CLASS} editable-field`}
-                canEdit={canEditContent}
-                onCommit={onContentCommit}
-                onEditingChange={onContentEditingChange}
-                editInputRef={editInputRef}
-                shouldIgnoreBlur={shouldIgnoreContentBlur}
-              />
-            )
-          : (
-              <span className={STATE_MESSAGE_TEXT_CLASS}>
-                {compactText}
-              </span>
-            )}
+        <span className={STATE_MESSAGE_TEXT_CLASS}>
+          {compactText}
+        </span>
         <button
           type="button"
           className={STATE_MESSAGE_ACTION_CLASS}
@@ -164,7 +137,7 @@ export default function StateMessageCard({
         </button>
       </div>
 
-      {expanded && (
+      <CollapsibleMotion open={expanded}>
         <div className={STATE_MESSAGE_DETAIL_CLASS}>
           <div>
             <div className="
@@ -210,7 +183,7 @@ export default function StateMessageCard({
             </div>
           </div>
         </div>
-      )}
+      </CollapsibleMotion>
     </div>
   );
 }

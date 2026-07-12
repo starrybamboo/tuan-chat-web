@@ -5,10 +5,12 @@
 import type { ApiResultListRoleAvatar } from '../models/ApiResultListRoleAvatar';
 import type { ApiResultListRoleAvatarVariant } from '../models/ApiResultListRoleAvatarVariant';
 import type { ApiResultLong } from '../models/ApiResultLong';
+import type { ApiResultMapStringListRoleAvatar } from '../models/ApiResultMapStringListRoleAvatar';
 import type { ApiResultRoleAvatar } from '../models/ApiResultRoleAvatar';
 import type { ApiResultRoleAvatarVariant } from '../models/ApiResultRoleAvatarVariant';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { RoleAvatarCreateRequest } from '../models/RoleAvatarCreateRequest';
+import type { RoleAvatarListBatchQueryRequest } from '../models/RoleAvatarListBatchQueryRequest';
 import type { RoleAvatarRequest } from '../models/RoleAvatarRequest';
 import type { RoleAvatarVariantCreateRequest } from '../models/RoleAvatarVariantCreateRequest';
 import type { RoleAvatarVariantUpdateRequest } from '../models/RoleAvatarVariantUpdateRequest';
@@ -149,6 +151,22 @@ export class AvatarControllerService {
             query: {
                 'avatarId': avatarId,
             },
+        });
+    }
+    /**
+     * 批量获取多个角色的头像列表
+     * @param requestBody
+     * @returns ApiResultMapStringListRoleAvatar OK
+     * @throws ApiError
+     */
+    public getRoleAvatarsBatch(
+        requestBody: RoleAvatarListBatchQueryRequest,
+    ): CancelablePromise<ApiResultMapStringListRoleAvatar> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/avatar/list/batch',
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**

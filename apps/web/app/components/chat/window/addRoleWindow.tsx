@@ -1,10 +1,16 @@
 import { use, useMemo, useState } from "react";
 import { appToast } from "@/components/common/appToast/appToast";
+import { AnimatePresence, motion } from "motion/react";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { Button } from "@/components/common/Button";
+import { FieldGroup, TextInput } from "@/components/common/FormField";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
 import { ImeAwareSearchInput, useImeSearchValue } from "@/components/common/imeAwareSearchInput";
+import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
+import { Tabs } from "@/components/common/Tabs";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { AddRingLight } from "@/icons";
 
@@ -13,6 +19,11 @@ import { useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { useGetSpaceRepositoryRoleQuery } from "../../../../api/hooks/spaceRepositoryHooks";
 import CreateNpcRoleWindow from "./createNpcRoleWindow";
 import CreateRoleWindow from "./createRoleWindow";
+
+const ROLE_CARD_CLASS_NAME = surfaceClassName({
+  level: "content",
+  className: "cursor-pointer shadow transition-shadow hover:shadow-lg",
+});
 
 export function AddRoleWindow({
   handleAddRole,
@@ -124,55 +135,40 @@ export function AddRoleWindow({
         导入角色
       </p>
 
-      <div role="tablist" aria-label="角色来源" className="tabs tabs-boxed mb-4 mx-auto w-fit">
-        <button
-          type="button"
-          aria-selected={activeTab === "my"}
-          className={`
-            tab
-            ${activeTab === "my" ? "tab-active" : ""}
-          `}
-          onClick={() => setActiveTab("my")}
-          role="tab"
-        >
-          我的角色
-        </button>
-        <button
-          type="button"
-          aria-selected={activeTab === "space"}
-          className={`
-            tab
-            ${activeTab === "space" ? "tab-active" : ""}
-          `}
-          onClick={() => setActiveTab("space")}
-          role="tab"
-        >
-          空间角色
-        </button>
-      </div>
+      <Tabs
+        value={activeTab}
+        options={[
+          { value: "my", label: "我的角色" },
+          { value: "space", label: "空间角色" },
+        ]}
+        onValueChange={setActiveTab}
+        ariaLabel="角色来源"
+        className="mx-auto mb-4 w-fit"
+      />
 
-      <div className="bg-base-100 rounded-box p-6">
-        <div className="form-control mb-4">
+      <div className="bg-base-100 rounded-md p-6">
+        <FieldGroup className="mb-4">
           <ImeAwareSearchInput
             type="text"
             autoComplete="off"
-            className="input input-bordered w-full"
+            className="w-full"
             placeholder={activeTab === "my" ? "搜索我的角色（名称/ID）" : "搜索空间角色（名称/ID）"}
             aria-label={activeTab === "my" ? "搜索我的角色" : "搜索空间角色"}
             {...searchInputProps}
           />
-        </div>
+        </FieldGroup>
         {activeTab === "space" && (
           <div className="
             mb-4 rounded-lg border border-base-300 p-3 bg-base-200/30
           ">
             <div className="text-sm font-semibold text-base-content/80 mb-2">开发调试：按ID强制添加</div>
             <div className="flex items-center gap-2">
-              <input
+              <TextInput
+                density="compact"
                 type="text"
                 inputMode="numeric"
                 autoComplete="off"
-                className="input input-bordered input-sm w-full"
+                className="w-full"
                 placeholder={isRoomScope ? "输入角色ID，强制加入当前房间" : "输入角色ID，强制加入当前空间库"}
                 aria-label="按角色ID强制添加"
                 value={forceRoleIdInput}
@@ -188,14 +184,15 @@ export function AddRoleWindow({
                   }
                 }}
               />
-              <button
-                type="button"
-                className="btn btn-sm btn-info"
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-info/45 text-info hover:border-info/70 hover:bg-info/10"
                 onClick={handleForceAddRoleById}
                 disabled={!canForceAddRole}
               >
                 强制添加
-              </button>
+              </Button>
             </div>
             <div className="text-xs text-base-content/60 mt-1">
               跳过当前列表过滤，直接按角色ID添加。
@@ -218,12 +215,17 @@ export function AddRoleWindow({
                       text-sm font-semibold text-base-content/70 mb-2
                     ">搜索结果</div>
                     <div className="flex flex-wrap gap-3 justify-center">
-                      {filteredAvailableRoles.map(role => (
-                        <div className="
-                          card shadow
-                          hover:shadow-lg
-                          transition-shadow cursor-pointer
-                        " key={`search-${role.roleId}`}>
+                      <AnimatePresence initial={false} mode="popLayout">
+                        {filteredAvailableRoles.map((role, index) => (
+                          <motion.div
+                            className={ROLE_CARD_CLASS_NAME}
+                            key={`search-${role.roleId}`}
+                            {...structuralListItemMotionProps({
+                              index,
+                              staggerDelay: 0.01,
+                              maxDelay: 0.08,
+                            })}
+                          >
                           <div className="flex flex-col items-center p-3">
                             <button
                               type="button"
@@ -240,8 +242,9 @@ export function AddRoleWindow({
                             </button>
                             <p className="text-center block">{role.roleName}</p>
                           </div>
-                        </div>
-                      ))}
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
                     </div>
                   </div>
                 )}
@@ -249,12 +252,17 @@ export function AddRoleWindow({
                   <div className="text-center font-bold py-5">你已经没有角色可以导入了哦</div>
                 )}
                 <div className="flex flex-wrap gap-3 justify-center">
-                  {availableRoles.map(role => (
-                    <div className="
-                      card shadow
-                      hover:shadow-lg
-                      transition-shadow cursor-pointer
-                    " key={role.roleId}>
+                  <AnimatePresence initial={false} mode="popLayout">
+                    {availableRoles.map((role, index) => (
+                      <motion.div
+                        className={ROLE_CARD_CLASS_NAME}
+                        key={role.roleId}
+                        {...structuralListItemMotionProps({
+                          index,
+                          staggerDelay: 0.01,
+                          maxDelay: 0.08,
+                        })}
+                      >
                       <div className="flex flex-col items-center p-3">
                         <button
                           type="button"
@@ -271,15 +279,12 @@ export function AddRoleWindow({
                         </button>
                         <p className="text-center block">{role.roleName}</p>
                       </div>
-                    </div>
-                  ))}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                   <button
                     type="button"
-                    className="
-                      card shadow
-                      hover:shadow-lg
-                      transition-shadow cursor-pointer
-                    "
+                    className={ROLE_CARD_CLASS_NAME}
                     onClick={() => setIsCreatingRole(true)}
                   >
                     <div className="flex flex-col items-center p-3">
@@ -306,12 +311,17 @@ export function AddRoleWindow({
                       text-sm font-semibold text-base-content/70 mb-2
                     ">搜索结果</div>
                     <div className="flex flex-wrap gap-3 justify-center">
-                      {filteredAvailableSpaceRoles.map(role => (
-                        <div className="
-                          card shadow
-                          hover:shadow-lg
-                          transition-shadow cursor-pointer
-                        " key={`search-${role.roleId}`}>
+                      <AnimatePresence initial={false} mode="popLayout">
+                        {filteredAvailableSpaceRoles.map((role, index) => (
+                          <motion.div
+                            className={ROLE_CARD_CLASS_NAME}
+                            key={`search-${role.roleId}`}
+                            {...structuralListItemMotionProps({
+                              index,
+                              staggerDelay: 0.01,
+                              maxDelay: 0.08,
+                            })}
+                          >
                           <div className="flex flex-col items-center p-3">
                             <button
                               type="button"
@@ -328,8 +338,9 @@ export function AddRoleWindow({
                             </button>
                             <p className="text-center block">{role.roleName}</p>
                           </div>
-                        </div>
-                      ))}
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
                     </div>
                   </div>
                 )}
@@ -337,12 +348,17 @@ export function AddRoleWindow({
                   <div className="text-center font-bold py-5">暂无空间角色可导入</div>
                 )}
                 <div className="flex flex-wrap gap-3 justify-center">
-                  {availableSpaceRoles.map(role => (
-                    <div className="
-                      card shadow
-                      hover:shadow-lg
-                      transition-shadow cursor-pointer
-                    " key={role.roleId}>
+                  <AnimatePresence initial={false} mode="popLayout">
+                    {availableSpaceRoles.map((role, index) => (
+                      <motion.div
+                        className={ROLE_CARD_CLASS_NAME}
+                        key={role.roleId}
+                        {...structuralListItemMotionProps({
+                          index,
+                          staggerDelay: 0.01,
+                          maxDelay: 0.08,
+                        })}
+                      >
                       <div className="flex flex-col items-center p-3">
                         <button
                           type="button"
@@ -359,15 +375,12 @@ export function AddRoleWindow({
                         </button>
                         <p className="text-center block">{role.roleName}</p>
                       </div>
-                    </div>
-                  ))}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                   <button
                     type="button"
-                    className="
-                      card shadow
-                      hover:shadow-lg
-                      transition-shadow cursor-pointer
-                    "
+                    className={ROLE_CARD_CLASS_NAME}
                     onClick={() => setIsCreatingNpc(true)}
                   >
                     <div className="flex flex-col items-center p-3">

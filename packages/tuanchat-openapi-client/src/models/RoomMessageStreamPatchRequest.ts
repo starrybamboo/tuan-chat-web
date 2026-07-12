@@ -16,5 +16,9 @@ export type RoomMessageStreamPatchRequest = {
      * 消息级变更操作列表
      */
     operations: Array<RoomMessageStreamPatchOperation>;
+    /**
+     * 消息变更来源元数据
+     */
     mutationMeta: RoomMessageMutationMeta;
 };
+

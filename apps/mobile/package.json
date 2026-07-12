@@ -5,6 +5,7 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start --port 8082",
+    "start:local-backend": "powershell -ExecutionPolicy Bypass -File ./scripts/start-local-backend.ps1",
     "dev": "expo start --port 8082",
     "build:web": "expo export --platform web --output-dir .expo-export-web",
     "reset-project": "node ./scripts/reset-project.js",

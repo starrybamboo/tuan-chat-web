@@ -5,5 +5,6 @@
 export type Snapshot = {
     messageType: number;
     content?: string;
-    extra?: Record<string, any>;
+    extra?: any;
 };
+

@@ -16,5 +16,6 @@ export type NotificationItemResponse = {
     isRead?: boolean;
     readTime?: string;
     createTime?: string;
-    payload?: Record<string, Record<string, any>>;
+    payload?: Record<string, any>;
 };
+

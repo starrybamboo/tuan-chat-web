@@ -28,3 +28,4 @@ export type PageBaseRespRoleAbility = {
      */
     list?: Array<RoleAbility>;
 };
+

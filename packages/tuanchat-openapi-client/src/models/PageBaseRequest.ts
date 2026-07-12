@@ -15,3 +15,4 @@ export type PageBaseRequest = {
      */
     pageSize?: number;
 };
+

@@ -1,9 +1,11 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
-import { appToast } from "@/components/common/appToast/appToast";
-
 import type { RoleAvatarVariant } from "api";
 
-import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+
+import { appToast } from "@/components/common/appToast/appToast";
+import { Button } from "@/components/common/Button";
+import { DialogActions, DialogFrame } from "@/components/common/DialogFrame";
+import { FileInput, Radio, SelectInput, TextInput } from "@/components/common/FormField";
 import { normalizeImageFileOrNull } from "@/utils/media/mediaMime";
 
 export type UploadVariantTarget =
@@ -67,7 +69,6 @@ export function CharacterCopper({
 }: CharacterCopperProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const externalFilesHandledRef = useRef<number | null>(null);
-  const variantTargetDialogRef = useRef<HTMLDivElement | null>(null);
   const variantGroups = useMemo(() => availableVariants ?? [], [availableVariants]);
   const variantGroupById = useMemo(() => {
     const map = new Map<number, RoleAvatarVariant>();
@@ -213,16 +214,9 @@ export function CharacterCopper({
     setPendingUploadFiles(null);
   }, []);
 
-  useEscapeToClose({
-    enabled: variantTargetDialogOpen,
-    onClose: handleCancelVariantTarget,
-    containerRef: variantTargetDialogRef,
-  });
-
   return (
     <div className={wrapperClassName || ""}>
-      <input
-        type="file"
+      <FileInput
         ref={fileInputRef}
         onChange={handleFileChange}
         className="hidden"
@@ -253,16 +247,14 @@ export function CharacterCopper({
         {children}
       </div>
 
-      {variantTargetDialogOpen && (
-        <div
-          ref={variantTargetDialogRef}
-          data-modal-layer="true"
-          role="dialog"
-          aria-modal="true"
-          aria-label="选择头像上传目标"
-          className="modal modal-open"
-        >
-          <div className="modal-box w-[92vw] max-w-md rounded-md">
+      <DialogFrame
+        open={variantTargetDialogOpen}
+        mode="inline"
+        onClose={handleCancelVariantTarget}
+        ariaLabel="选择头像上传目标"
+        closeButtonLabel="关闭上传目标选择"
+        panelClassName="w-[92vw] max-w-md"
+      >
             <h3 className="text-lg font-bold">
               {pendingUploadFiles && pendingUploadFiles.length > 1 ? "批量上传头像" : "上传头像"}
             </h3>
@@ -271,9 +263,8 @@ export function CharacterCopper({
             </p>
             <div className="mt-4 space-y-3">
               <label className="flex cursor-pointer items-center gap-3 rounded-md border border-base-300 px-3 py-2">
-                <input
-                  type="radio"
-                  className="radio radio-sm"
+                <Radio
+                  density="compact"
                   checked={variantTargetDraft.mode === "none"}
                   onChange={() => setVariantTargetDraft(prev => ({ ...prev, mode: "none" }))}
                 />
@@ -285,9 +276,8 @@ export function CharacterCopper({
 
               <label className="block rounded-md border border-base-300 px-3 py-2">
                 <span className="flex cursor-pointer items-center gap-3">
-                  <input
-                    type="radio"
-                    className="radio radio-sm"
+                  <Radio
+                    density="compact"
                     checked={variantTargetDraft.mode === "existing"}
                     onChange={() => setVariantTargetDraft(prev => ({
                       ...prev,
@@ -298,8 +288,9 @@ export function CharacterCopper({
                   />
                   <span className="text-sm font-medium">绑定到已有立绘组</span>
                 </span>
-                <select
-                  className="select select-sm mt-2 w-full"
+                <SelectInput
+                  density="compact"
+                  className="mt-2"
                   value={variantTargetDraft.variantId}
                   onChange={(event) => {
                     const variantId = event.currentTarget.value;
@@ -323,21 +314,23 @@ export function CharacterCopper({
                       </option>
                     );
                   })}
-                </select>
+                </SelectInput>
               </label>
 
               <label className="block rounded-md border border-base-300 px-3 py-2">
                 <span className="flex cursor-pointer items-center gap-3">
-                  <input
-                    type="radio"
-                    className="radio radio-sm"
+                  <Radio
+                    density="compact"
                     checked={variantTargetDraft.mode === "new"}
                     onChange={() => setVariantTargetDraft(prev => ({ ...prev, mode: "new" }))}
                   />
                   <span className="text-sm font-medium">新建立绘组</span>
                 </span>
-                <input
-                  className="input input-sm mt-2 w-full"
+                <TextInput
+                  density="compact"
+                  className="mt-2"
+                  type="text"
+                  name="avatar_variant_group_name"
                   autoComplete="off"
                   aria-label="立绘组名称"
                   value={variantTargetDraft.name}
@@ -354,29 +347,21 @@ export function CharacterCopper({
                 />
               </label>
             </div>
-            <div className="modal-action">
-              <button type="button" className="btn btn-ghost" onClick={handleCancelVariantTarget}>
+            <DialogActions>
+              <Button type="button" variant="ghost" onClick={handleCancelVariantTarget}>
                 取消
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="btn btn-primary"
+                variant="primary"
                 onClick={handleConfirmVariantTarget}
                 disabled={isSubmittingFiles}
                 aria-busy={isSubmittingFiles}
               >
                 {isSubmittingFiles ? "正在准备头像校正..." : "继续校正"}
-              </button>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="modal-backdrop"
-            onClick={handleCancelVariantTarget}
-            aria-label="关闭上传目标选择"
-          />
-        </div>
-      )}
+              </Button>
+            </DialogActions>
+      </DialogFrame>
     </div>
   );
 }

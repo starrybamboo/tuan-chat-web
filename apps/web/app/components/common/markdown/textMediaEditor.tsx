@@ -2,6 +2,8 @@ import type { ChangeEvent, ClipboardEvent } from "react";
 
 import { useEffect, useRef, useState } from "react";
 
+import { Button } from "@/components/common/Button";
+import { FileInput, TextArea } from "@/components/common/FormField";
 import {
   buildImageMarkdown,
   buildMediaReferenceToken,
@@ -152,30 +154,31 @@ export default function TextMediaEditor({
           flex flex-wrap items-center gap-2 text-xs text-base-content/55
         ">
           <ImgUploader setImg={(file) => { void handleImageUpload(file); }}>
-            <button type="button" className="btn btn-ghost btn-xs">
+            <Button variant="ghost" size="xs" type="button">
               上传图片
-            </button>
+            </Button>
           </ImgUploader>
-          <input
+          <FileInput
             ref={videoInputRef}
-            type="file"
             accept="video/*"
             className="hidden"
             onChange={handleVideoFileChange}
           />
-          <button
+          <Button
             type="button"
-            className="btn btn-ghost btn-xs"
+            variant="ghost"
+            size="xs"
             onClick={() => videoInputRef.current?.click()}
           >
             上传视频
-          </button>
+          </Button>
           <span>{helperText}</span>
         </div>
       </div>
 
       <div className={bodyClassName}>
-        <textarea
+        <TextArea
+          appearance="bare"
           ref={textareaRef}
           autoComplete="off"
           value={value}
@@ -188,8 +191,7 @@ export default function TextMediaEditor({
           onBlur={() => onFocusChange?.(false)}
           placeholder={placeholder}
           className={`
-            textarea w-full resize-y border-0 bg-transparent p-0 text-sm
-            leading-6 outline-none focus:ring-2 focus:ring-info/30
+            w-full resize-y p-0 text-sm leading-6
             ${minHeightClassName}
             ${variant === "card" ? `px-4 py-4` : ""}
           `}
@@ -200,8 +202,15 @@ export default function TextMediaEditor({
             flex items-center gap-2 text-xs text-base-content/55
             ${variant === "card" ? `border-t border-base-300 px-4 py-3` : `pt-2`}
           `}>
-            <span className="loading loading-spinner loading-xs" />
-            上传中...
+            <Button
+              variant="ghost"
+              size="xs"
+              loading
+              disabled
+              className="pointer-events-none h-6 min-h-6 px-2"
+            >
+              上传中...
+            </Button>
           </div>
         )}
       </div>

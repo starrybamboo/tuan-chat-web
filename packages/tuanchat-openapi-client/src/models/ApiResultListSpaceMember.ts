@@ -24,3 +24,4 @@ export type ApiResultListSpaceMember = {
      */
     data?: Array<SpaceMember>;
 };
+

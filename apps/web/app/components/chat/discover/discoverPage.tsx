@@ -1,11 +1,8 @@
 import { useLocation, useRouter } from "@tanstack/react-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { ChatDiscoverNavItem } from "@/components/chat/discover/chatDiscoverNavPanel";
-
 import ChatPageLayout from "@/components/chat/chatPageLayout";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import ChatDiscoverNavPanel from "@/components/chat/discover/chatDiscoverNavPanel";
 import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextMenus";
 import useChatPageLeftDrawer, { CHAT_LEFT_DRAWER_STATE_KEY } from "@/components/chat/hooks/useChatPageLeftDrawer";
 import useChatPageNavigation from "@/components/chat/hooks/useChatPageNavigation";
@@ -16,15 +13,12 @@ import ChatSpaceSidebar from "@/components/chat/space/chatSpaceSidebar";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
+import FeaturePlaceholderPage from "@/components/common/featurePlaceholderPage";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 import { scheduleNonCriticalTask } from "@/utils/scheduleNonCriticalTask";
 import { useGetUserActiveSpacesQuery } from "api/hooks/chatQueryHooks";
 
 const EMPTY_ARRAY: never[] = [];
-const isProductionMode = import.meta.env.MODE === "production";
-const LazyDiscoverArchivedSpacesView = React.lazy(() => import("@/components/chat/discover/discoverArchivedSpacesView"));
-const LazyDiscoverProductionPlaceholder = React.lazy(() => import("@/components/chat/discover/discoverProductionPlaceholder"));
-const LazyMaterialLibraryPage = React.lazy(() => import("@/components/material/pages/materialLibraryPage"));
 const LazySpaceContextMenu = React.lazy(() => import("@/components/chat/space/contextMenu/spaceContextMenu"));
 
 type RepositoryDiscoverMode = "square" | "my";
@@ -32,34 +26,16 @@ type MaterialDiscoverMode = "public" | "mine";
 
 type DiscoverPageProps = { section: "repository"; mode: RepositoryDiscoverMode } | { section: "material"; mode: MaterialDiscoverMode };
 
-function getActiveNavItem(props: DiscoverPageProps): ChatDiscoverNavItem {
-  if (props.section === "material") {
-    return props.mode === "mine" ? "material-mine" : "material-public";
-  }
-  return props.mode === "my" ? "repository-my" : "repository-square";
-}
-
-function DiscoverContentFallback({ text }: { text: string }) {
-  return (
-    <div className="
-      flex size-full items-center justify-center text-sm text-base-content/60
-    ">
-      <span className="loading loading-spinner loading-md"></span>
-      <span className="ml-2">{text}</span>
-    </div>
-  );
-}
-
-function getProductionPlaceholderCopy(section: DiscoverPageProps["section"]) {
+function getPlaceholderCopy(section: DiscoverPageProps["section"]) {
   if (section === "material") {
     return {
-      title: "素材功能暂未开放",
-      description: "发现页里的素材模块仍在开发中，仅开发模式可用。",
+      title: "素材功能正在重写",
+      description: "素材库正在重新设计，当前入口暂时保留。",
     };
   }
   return {
-    title: "归档仓库暂未开放",
-    description: "发现页里的归档仓库模块仍在开发中，仅开发模式可用。",
+    title: "发现功能正在重写",
+    description: "归档仓库与公开发现正在重新设计，当前入口暂时保留。",
   };
 }
 
@@ -90,14 +66,12 @@ export default function DiscoverPage(props: DiscoverPageProps) {
   const {
     isOpenLeftDrawer,
     toggleLeftDrawer,
-    closeLeftDrawer,
   } = useChatPageLeftDrawer({
     screenSize,
     isPrivateChatMode: false,
     drawerStateKey: CHAT_LEFT_DRAWER_STATE_KEY,
     mobileStateKey: "chat-discover",
   });
-  const [isLeftDrawerCollapsePreview, setIsLeftDrawerCollapsePreview] = useState(false);
 
   const userSpacesQuery = useGetUserActiveSpacesQuery();
   const spaces = userSpacesQuery.data?.data ?? EMPTY_ARRAY;
@@ -179,31 +153,13 @@ export default function DiscoverPage(props: DiscoverPageProps) {
 
   const chatLeftPanelWidth = useDrawerPreferenceStore(state => state.chatLeftPanelWidth);
   const setChatLeftPanelWidth = useDrawerPreferenceStore(state => state.setChatLeftPanelWidth);
-  const activeNavItem = getActiveNavItem(props);
-  const shouldShowProductionPlaceholder = isProductionMode;
-  const productionPlaceholderCopy = shouldShowProductionPlaceholder
-    ? getProductionPlaceholderCopy(section)
-    : null;
-  const mainContent = shouldShowProductionPlaceholder
-    ? (
-        <React.Suspense fallback={<DiscoverContentFallback text="正在加载发现页..." />}>
-          <LazyDiscoverProductionPlaceholder
-            title={productionPlaceholderCopy?.title}
-            description={productionPlaceholderCopy?.description}
-          />
-        </React.Suspense>
-      )
-    : section === "material"
-      ? (
-          <React.Suspense fallback={<DiscoverContentFallback text="正在加载素材广场..." />}>
-            <LazyMaterialLibraryPage mode={props.mode} embedded />
-          </React.Suspense>
-        )
-      : (
-          <React.Suspense fallback={<DiscoverContentFallback text="正在加载归档广场..." />}>
-            <LazyDiscoverArchivedSpacesView mode={props.mode} />
-          </React.Suspense>
-        );
+  const placeholderCopy = getPlaceholderCopy(section);
+  const mainContent = (
+    <FeaturePlaceholderPage
+      title={placeholderCopy.title}
+      description={placeholderCopy.description}
+    />
+  );
 
   return (
     <SpaceContext value={spaceContextValue}>
@@ -214,8 +170,6 @@ export default function DiscoverPage(props: DiscoverPageProps) {
           toggleLeftDrawer={toggleLeftDrawer}
           chatLeftPanelWidth={chatLeftPanelWidth}
           setChatLeftPanelWidth={setChatLeftPanelWidth}
-          isLeftDrawerCollapsePreview={isLeftDrawerCollapsePreview}
-          setIsLeftDrawerCollapsePreview={setIsLeftDrawerCollapsePreview}
           spaceSidebar={(
             <ChatSpaceSidebar
               isPrivateChatMode={false}
@@ -231,13 +185,6 @@ export default function DiscoverPage(props: DiscoverPageProps) {
               onCreateSpace={handleCreateSpace}
               onToggleLeftDrawer={toggleLeftDrawer}
               isLeftDrawerOpen={isOpenLeftDrawer}
-              isLeftDrawerCollapsePreview={isLeftDrawerCollapsePreview}
-            />
-          )}
-          sidePanelContent={(
-            <ChatDiscoverNavPanel
-              onCloseLeftDrawer={closeLeftDrawer}
-              activeItem={activeNavItem}
             />
           )}
           mainContent={mainContent}

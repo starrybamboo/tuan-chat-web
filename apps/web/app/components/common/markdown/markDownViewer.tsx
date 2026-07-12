@@ -31,7 +31,7 @@ const MARKDOWN_STYLES = `
   [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm
 
   [&_pre]:font-mono [&_pre]:bg-base-200
-  [&_pre]:p-4 [&_pre]:rounded [&_pre]:overflow-x-auto [&_pre]:my-4
+  [&_pre]:p-4 [&_pre]:rounded [&_pre]:overflow-x-auto [&_pre]:overscroll-x-none [&_pre]:my-4
 
   [&_em]:italic
   [&_strong]:font-bold
@@ -97,6 +97,7 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
         <div className="my-4 aspect-video w-full rounded-full">
           <iframe
             src={`//player.bilibili.com/player.html?bvid=${src}&high_quality=1&danmaku=0`}
+            title="Bilibili 视频播放器"
             allowFullScreen
             sandbox={sandbox}
             width="100%"
@@ -112,6 +113,7 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
         <div className="my-4 h-[600px] w-full bg-base-200">
           <iframe
             src={`${src}#view=fitH`}
+            title="PDF 文档预览"
             className="w-full h-full border-none"
             allowFullScreen
             sandbox={sandbox}

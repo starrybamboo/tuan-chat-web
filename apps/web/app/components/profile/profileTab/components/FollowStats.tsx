@@ -1,5 +1,8 @@
 import React from "react";
 
+import { Button } from "@/components/common/Button";
+import { Text } from "@/components/common/DesignLanguage";
+
 type FollowStatsProps = {
   followingCount: number;
   followersCount: number;
@@ -21,27 +24,28 @@ export const FollowStats: React.FC<FollowStatsProps> = ({
 
   return (
     <div className={containerClass}>
-      <button
+      <Button
         type="button"
-        className={`
+        variant="ghost"
+        size="sm"
+        className="
           flex flex-row gap-2 items-center
           hover:text-info
           transition-colors motion-reduce:transition-none cursor-pointer
           rounded-md bg-transparent p-0
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/35
-          ${
-          variant === "mobile" ? "btn-active" : ""
-        }
-        `}
+        "
         onClick={onFollowingClick}
         aria-label={`查看关注列表，共 ${followingCount} 个关注`}
       >
-        <div className="stat-value text-sm">{followingCount}</div>
-        <div className="stat-title text-sm">关注</div>
-      </button>
+        <Text variant="data">{followingCount}</Text>
+        <Text variant="label">关注</Text>
+      </Button>
       <span className="border-l"></span>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         className="
           flex flex-row gap-2 items-center
           hover:text-info
@@ -52,9 +56,9 @@ export const FollowStats: React.FC<FollowStatsProps> = ({
         onClick={onFollowersClick}
         aria-label={`查看粉丝列表，共 ${followersCount} 个粉丝`}
       >
-        <div className="stat-value text-sm">{followersCount}</div>
-        <div className="stat-title text-sm">粉丝</div>
-      </button>
+        <Text variant="data">{followersCount}</Text>
+        <Text variant="label">粉丝</Text>
+      </Button>
     </div>
   );
 };

@@ -1,13 +1,17 @@
 import { Link, useRouter } from "@tanstack/react-router";
-import { LayoutGroup, motion, useAnimate } from "motion/react";
+import { AnimatePresence, LayoutGroup, motion, useAnimate } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { chatSidebarFocusClassName, getChatSidebarActiveTextClassName } from "@/components/chat/shared/components/chatSidebarActiveTone";
 import SidebarActiveCursor from "@/components/chat/shared/components/sidebarActiveCursor";
 import SpaceButton from "@/components/chat/shared/components/spaceButton";
-import { getChatSidebarActiveButtonClass } from "@/components/chat/shared/components/chatSidebarActiveTone";
 import { type ChatSidebarActiveCursorTarget, getChatSidebarActiveCursorTarget, isChatSidebarSpaceCursorTarget, shouldSelectSpaceFromSidebar } from "@/components/chat/space/chatSpaceSidebarNavigation";
+import { buttonClassName } from "@/components/common/Button";
+import { IconButton } from "@/components/common/IconButton";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
+import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
 import PortalTooltip from "@/components/common/portalTooltip";
+import { CountBadge, StatusIndicator } from "@/components/common/StatusPrimitives";
 import { AddIcon, CompassIcon, RoomChatIcon } from "@/icons";
 
 import type { Space } from "../../../../api";
@@ -31,7 +35,12 @@ type ChatSpaceSidebarProps = {
 }
 
 const MotionLink = motion.create(Link);
-const sidebarIconButtonBaseClass = "w-10 btn btn-square border border-transparent transition-colors";
+const MotionIconButton = motion.create(IconButton);
+const sidebarIconButtonBaseClass = buttonClassName({
+  variant: "ghost",
+  shape: "square",
+  className: `w-10 border border-transparent transition-colors hover:bg-base-300 ${chatSidebarFocusClassName}`,
+});
 const collapsedButtonAnimation = {
   scale: [1, 0.9, 1.12, 0.98, 1],
   rotate: [0, -4, 4, -2, 0],
@@ -102,6 +111,15 @@ export default function ChatSpaceSidebar({
   };
 
   useEffect(() => {
+    const shouldAnimateCollapse = !previousShouldShowCollapsedFeedbackRef.current && shouldShowCollapsedFeedback;
+    previousShouldShowCollapsedFeedbackRef.current = shouldShowCollapsedFeedback;
+    if (!shouldAnimateCollapse || !activeCursorTarget) {
+      return;
+    }
+    runCollapseButtonAnimation(activeCursorTarget);
+  }, [activeCursorTarget, shouldShowCollapsedFeedback]);
+
+  useEffect(() => {
     if (!optimisticCursorTarget) {
       return;
     }
@@ -133,21 +151,6 @@ export default function ChatSpaceSidebar({
       },
     });
   };
-
-  useEffect(() => {
-    const shouldAnimateCollapse = !previousShouldShowCollapsedFeedbackRef.current && shouldShowCollapsedFeedback;
-    previousShouldShowCollapsedFeedbackRef.current = shouldShowCollapsedFeedback;
-    if (!shouldAnimateCollapse) {
-      return;
-    }
-    if (activeCursorTarget?.type === "private") {
-      void animatePrivateButton(privateButtonScope.current, collapsedButtonAnimation, collapsedButtonAnimationOptions);
-      return;
-    }
-    if (activeCursorTarget?.type === "discover") {
-      void animateDiscoverButton(discoverButtonScope.current, collapsedButtonAnimation, collapsedButtonAnimationOptions);
-    }
-  }, [activeCursorTarget?.type, animateDiscoverButton, animatePrivateButton, discoverButtonScope, privateButtonScope, shouldShowCollapsedFeedback]);
 
   const currentIds = useMemo(() => {
     if (Array.isArray(spaceOrderIds) && spaceOrderIds.length > 0) {
@@ -213,7 +216,8 @@ export default function ChatSpaceSidebar({
   return (
     <div
       className={`
-        flex flex-col px-1 bg-base-200 h-full overflow-y-auto overflow-x-visible
+        flex h-full w-16 shrink-0 flex-col overflow-y-auto overflow-x-visible
+        bg-base-200
         ${
         isLeftDrawerCollapsed ? `
           border-r border-base-300
@@ -226,23 +230,22 @@ export default function ChatSpaceSidebar({
       <div className="flex flex-col gap-1">
         {/* 私信入口 */}
         <div className="
-          rounded w-10 relative z-20
+          relative z-20 flex w-full justify-center rounded
           hover:z-50
-          mx-2
         ">
-          <SidebarActiveCursor isActive={activeCursorTarget?.type === "private"} tone={shouldUseCollapsedCursorTone ? "collapsed" : "default"} />
+          <SidebarActiveCursor isActive={activeCursorTarget?.type === "private"} tone={activeTone} />
           <PortalTooltip label="私信" placement="right">
             <motion.button
               className={`
-                ${sidebarIconButtonBaseClass}
-                ${isPrivateChatMode ? getChatSidebarActiveButtonClass(activeTone) : ""}
+                ${sidebarIconButtonBaseClass} relative overflow-visible
+                ${activeCursorTarget?.type === "private" ? getChatSidebarActiveTextClassName(activeTone) : ""}
               `}
               ref={privateButtonScope}
               type="button"
               aria-label={isPrivateChatMode && onToggleLeftDrawer
                 ? (isLeftDrawerCollapsed ? "展开左栏" : "收起左栏")
                 : "私信"}
-              aria-pressed={isPrivateChatMode}
+              aria-current={isPrivateChatMode ? "page" : undefined}
               onClick={() => {
                 if (isPrivateChatMode && onToggleLeftDrawer) {
                   if (!isLeftDrawerCollapsed) {
@@ -258,33 +261,33 @@ export default function ChatSpaceSidebar({
                 ? { whileHover: interactiveButtonMotionProps.whileHover, transition: interactiveButtonMotionProps.transition }
                 : interactiveButtonMotionProps)}
             >
-              <div className="indicator">
-                {(privateUnreadMessagesNumber > 0)
+              <StatusIndicator
+                indicator={privateUnreadMessagesNumber > 0
                   ? (
-                      <span className="indicator-item badge badge-xs bg-error">
+                      <CountBadge tone="error">
                         {privateUnreadMessagesNumber > 99 ? "99+" : privateUnreadMessagesNumber}
-                      </span>
+                      </CountBadge>
                     )
                   : null}
+              >
                 <RoomChatIcon className="size-6" />
-              </div>
+              </StatusIndicator>
             </motion.button>
           </PortalTooltip>
         </div>
 
         {/* 发现入口 */}
         <div className="
-          rounded w-10 relative z-20
+          relative z-20 flex w-full justify-center rounded
           hover:z-50
-          mx-2
         ">
-          <SidebarActiveCursor isActive={activeCursorTarget?.type === "discover"} tone={shouldUseCollapsedCursorTone ? "collapsed" : "default"} />
+          <SidebarActiveCursor isActive={activeCursorTarget?.type === "discover"} tone={activeTone} />
           <PortalTooltip label="发现" placement="right">
             <MotionLink
               to="/chat/discover/material"
               className={`
-                ${sidebarIconButtonBaseClass}
-                ${isDiscoverMode ? getChatSidebarActiveButtonClass(activeTone) : ""}
+                ${sidebarIconButtonBaseClass} relative overflow-visible
+                ${activeCursorTarget?.type === "discover" ? getChatSidebarActiveTextClassName(activeTone) : ""}
               `}
               ref={discoverButtonScope}
               aria-label={isDiscoverMode && onToggleLeftDrawer
@@ -313,23 +316,23 @@ export default function ChatSpaceSidebar({
       </div>
 
       {/* 分隔线 */}
-      <div className="w-8 h-px bg-base-300 mx-3"></div>
+      <div className="mx-auto h-px w-8 bg-base-300"></div>
 
-      <div className="hidden-scrollbar overflow-x-visible flex flex-col p-2">
+      <div className="hidden-scrollbar flex flex-col overflow-x-visible py-2">
         {/* 全部空间列表 */}
-        {renderSpaces.map((space) => {
-          const spaceId = space.spaceId;
-          const isDraggingSpace = typeof spaceId === "number" && draggingSpaceId === spaceId;
-          return (
-            <motion.div
+        <AnimatePresence initial={false} mode="popLayout">
+          {renderSpaces.map((space) => {
+            const spaceId = space.spaceId;
+            const isDraggingSpace = typeof spaceId === "number" && draggingSpaceId === spaceId;
+            return (
+              <motion.div
               key={space.spaceId}
               data-space-id={space.spaceId}
               draggable={Boolean(onReorderSpaceIds)}
-              className={onReorderSpaceIds ? `
-                cursor-grab
-                active:cursor-grabbing
+              className={`relative w-full ${onReorderSpaceIds ? `
+                cursor-grab active:cursor-grabbing
                 ${isDraggingSpace ? "opacity-60" : ""}
-              ` : undefined}
+              ` : ""}`}
               onDragStartCapture={(e) => {
                 if (!onReorderSpaceIds)
                   return;
@@ -389,6 +392,7 @@ export default function ChatSpaceSidebar({
                   isDraggingRef.current = false;
                 }, 0);
               }}
+              {...structuralListItemMotionProps()}
             >
               <SpaceButton
                 space={space}
@@ -434,26 +438,25 @@ export default function ChatSpaceSidebar({
                 }
               >
               </SpaceButton>
-            </motion.div>
-          );
-        })}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
       </LayoutGroup>
-      <PortalTooltip label="创建" placement="right">
-        <motion.button
+      <PortalTooltip label="创建空间" placement="right">
+        <MotionIconButton
+          variant="outline"
+          shape="square"
           className="
-            btn btn-square btn-dash btn-info w-10 mx-2 relative z-20
-            hover:z-50
+            relative z-20 mx-auto w-10 border-dashed border-info/45
+            text-info hover:z-50 hover:border-info/70 hover:bg-info/10
           "
-          type="button"
-          aria-label="创建空间"
+          label="创建空间"
           onClick={onCreateSpace}
+          icon={<AddIcon />}
           {...interactiveButtonMotionProps}
-        >
-          <div className="avatar mask mask-squircle flex content-center">
-            <AddIcon></AddIcon>
-          </div>
-        </motion.button>
+        />
       </PortalTooltip>
     </div>
   );

@@ -3,6 +3,10 @@ import { useCallback, useMemo, useState } from "react";
 
 import type { ForwardMode } from "@/components/chat/hooks/useChatFrameMessageActions";
 
+import { Button } from "@/components/common/Button";
+import { formControlShellClassName, TextInput } from "@/components/common/FormField";
+import { CountBadge } from "@/components/common/StatusPrimitives";
+import { IconButton } from "@/components/common/IconButton";
 import { MediaImage } from "@/components/common/mediaImage";
 import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/media/mediaUrl";
 
@@ -139,11 +143,11 @@ function ForwardWindow({
           px-6 pt-6
           md:px-7 md:pt-7
         ">
-          <div className="badge badge-info badge-lg">
+          <CountBadge tone="info" className="min-h-8 min-w-8 px-3 text-base">
             {selectedMessages.length}
             {" "}
             条已选
-          </div>
+          </CountBadge>
         </div>
       </div>
 
@@ -230,18 +234,19 @@ function ForwardWindow({
                     个可选
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-xs"
+                <Button
+                  variant="ghost"
+                  size="xs"
                   onClick={selectFilteredRooms}
                   disabled={filteredRooms.length === 0 || isForwarding}
                 >
                   全选
-                </button>
+                </Button>
               </div>
-              <label aria-label="搜索目标房间" className="
-                input input-bordered input-sm mt-3 w-full
-              ">
+              <label
+                aria-label="搜索目标房间"
+                className={formControlShellClassName({ className: "mt-3 w-full gap-2 px-2" })}
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -255,7 +260,8 @@ function ForwardWindow({
                   <circle cx="11" cy="11" r="8"></circle>
                   <path d="m21 21-4.3-4.3"></path>
                 </svg>
-                <input
+                <TextInput
+                  appearance="bare"
                   type="search"
                   autoComplete="off"
                   aria-label="搜索房间"
@@ -329,12 +335,13 @@ function ForwardWindow({
                         >
                           <Check size={13} weight="regular" />
                         </span>
-                        <div className="avatar">
-                          <div className="mask mask-squircle size-9">
+                        <div className="relative inline-flex align-middle">
+                          <div className="size-9 overflow-hidden rounded-md">
                             <MediaImage
                               src={avatar}
                               alt={displayName}
                               fallbackSrc="/favicon.ico"
+                              className="size-full object-cover"
                             />
                           </div>
                         </div>
@@ -365,14 +372,14 @@ function ForwardWindow({
                   个房间
                 </div>
               </div>
-              <button
-                type="button"
-                className="btn btn-ghost btn-xs"
+              <Button
+                variant="ghost"
+                size="xs"
                 onClick={clearSelectedRooms}
                 disabled={selectedTargetCount === 0 || isForwarding}
               >
                 清空
-              </button>
+              </Button>
             </div>
 
             <div className="max-h-80 min-h-60 overflow-auto p-2">
@@ -402,12 +409,13 @@ function ForwardWindow({
                             "
                           >
                             <div className="flex min-w-0 items-center gap-2.5">
-                              <div className="avatar">
-                                <div className="mask mask-squircle size-8">
+                              <div className="relative inline-flex align-middle">
+                                <div className="size-8 overflow-hidden rounded-md">
                                   <MediaImage
                                     src={avatar}
                                     alt={displayName}
                                     fallbackSrc="/favicon.ico"
+                                    className="size-full object-cover"
                                   />
                                 </div>
                               </div>
@@ -415,17 +423,16 @@ function ForwardWindow({
                                 min-w-0 truncate text-sm font-medium
                               ">{displayName}</div>
                             </div>
-                            <button
-                              type="button"
-                              className="
-                                btn btn-ghost btn-xs btn-square shrink-0
-                              "
+                            <IconButton
+                              variant="ghost"
+                              size="xs"
+                              shape="square"
+                              className="shrink-0"
                               onClick={() => toggleRoomSelection(roomId)}
                               disabled={isForwarding}
-                              aria-label={`移除 ${displayName}`}
-                            >
-                              <X size={14} weight="regular" />
-                            </button>
+                              label={`移除 ${displayName}`}
+                              icon={<X size={14} weight="regular" />}
+                            />
                           </div>
                         );
                       })}
@@ -461,29 +468,27 @@ function ForwardWindow({
             )}
           </div>
           <div className="flex shrink-0 items-center justify-end gap-2">
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
+            <Button
+              variant="ghost"
+              size="sm"
               aria-label="清空已选择的转发目标房间"
               onClick={clearSelectedRooms}
               disabled={selectedTargetCount === 0 || isForwarding}
             >
               清空
-            </button>
-            <button
-              type="button"
-              className="btn btn-info btn-sm min-w-32"
-              aria-busy={isForwarding}
+            </Button>
+            <Button
+              variant="info"
+              size="sm"
+              className="min-w-32"
+              loading={isForwarding}
               onClick={handleForwardSelectedRooms}
               disabled={!canForward}
             >
-              {isForwarding && <span className="
-                loading loading-spinner loading-xs
-              "></span>}
               {selectedTargetCount > 0
                 ? `发送到 ${selectedTargetCount} 个房间`
                 : "发送"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

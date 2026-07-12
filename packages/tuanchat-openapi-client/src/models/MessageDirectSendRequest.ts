@@ -23,5 +23,9 @@ export type MessageDirectSendRequest = {
      * 回复的消息ID
      */
     replyMessageId?: number;
+    /**
+     * 扩展信息
+     */
     extra: MessageExtra;
 };
+

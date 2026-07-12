@@ -4,6 +4,11 @@ import { appToast } from "@/components/common/appToast/appToast";
 import { useRouter } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 
+import { Button } from "@/components/common/Button";
+import { Disclosure } from "@/components/common/Disclosure";
+import { TextInput } from "@/components/common/FormField";
+import { Badge, InlineAlert } from "@/components/common/StatusPrimitives";
+import { IconButton } from "@/components/common/IconButton";
 import { ImeAwareSearchInput } from "@/components/common/imeAwareSearchInput";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { HomeIcon, Search, XMarkICon } from "@/icons";
@@ -116,10 +121,10 @@ export default function UserSearch() {
         w-full px-2 pb-6 flex items-center justify-center relative
       ">
         <ImeAwareSearchInput
+          density="default"
           type="text"
           autoComplete="off"
           aria-label="搜索用户"
-          className="input input-md w-full"
           placeholder="输入用户ID或用户名，按 Enter 或搜索按钮"
           value={inputKeyword}
           onSubmit={searchInputKeyword}
@@ -129,7 +134,7 @@ export default function UserSearch() {
           type="button"
           className="
             absolute right-4 cursor-pointer w-8 h-8 flex items-center
-            justify-center rounded-box
+            justify-center rounded-md
             hover:bg-base-300
           "
           onClick={searchInputKeyword}
@@ -141,7 +146,7 @@ export default function UserSearch() {
           type="button"
           className="
             absolute right-14 cursor-pointer w-8 h-8 flex items-center
-            justify-center rounded-box
+            justify-center rounded-md
             hover:bg-base-300
           "
           onClick={() => {
@@ -161,13 +166,17 @@ export default function UserSearch() {
 
       {pendingReceivedRequests.length > 0 && (
         <div className="w-full px-2 pb-4">
-          <details className="collapse collapse-arrow bg-base-200">
-            <summary className="collapse-title text-sm font-medium">
+          <Disclosure
+            className="bg-base-200"
+            titleClassName="text-sm font-medium"
+            title={(
+              <>
               好友申请（待处理）(
               {pendingReceivedRequests.length}
               )
-            </summary>
-            <div className="collapse-content">
+              </>
+            )}
+          >
               <div className="flex flex-col gap-2">
                 {pendingReceivedRequests.map((req) => {
                   const user = req.fromUser;
@@ -197,9 +206,9 @@ export default function UserSearch() {
                         {req.verifyMsg && <span className="text-xs opacity-60">{req.verifyMsg}</span>}
                       </div>
                       <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          className="btn btn-xs btn-info"
+                        <Button
+                          variant="info"
+                          size="xs"
                           disabled={acceptFriendRequestMutation.isPending || !req.id}
                           onClick={() => {
                             if (!req.id)
@@ -208,10 +217,10 @@ export default function UserSearch() {
                           }}
                         >
                           同意
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-xs"
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="xs"
                           disabled={rejectFriendRequestMutation.isPending || !req.id}
                           onClick={() => {
                             if (!req.id)
@@ -220,22 +229,21 @@ export default function UserSearch() {
                           }}
                         >
                           拒绝
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
-          </details>
+          </Disclosure>
         </div>
       )}
 
       {notice && (
         <div className="w-full px-2 pb-2">
-          <div className="alert alert-warning py-2">
+          <InlineAlert tone="warning" className="py-2">
             <span className="text-sm">{notice}</span>
-          </div>
+          </InlineAlert>
         </div>
       )}
 
@@ -277,29 +285,30 @@ export default function UserSearch() {
                         <span>{searchUserInfo?.userId}</span>
                         <span className="font-bold">{searchUserInfo?.username}</span>
                         {friendCheck?.statusDesc && (
-                          <span className="badge badge-ghost badge-sm">{friendCheck.statusDesc}</span>
+                          <Badge appearance="ghost">{friendCheck.statusDesc}</Badge>
                         )}
                         {friendCheckQuery.isLoading && (
-                          <span className="badge badge-ghost badge-sm">查询中</span>
+                          <Badge appearance="ghost">查询中</Badge>
                         )}
                       </button>
                       <div className="flex items-center gap-2">
                         <div className="flex flex-col items-end gap-2">
                           {!friendCheck?.isFriend && friendCheck?.status !== 3 && (
                             <>
-                              <input
+                              <TextInput
+                                density="compact"
                                 type="text"
                                 autoComplete="off"
                                 aria-label="验证信息"
-                                className="input input-xs w-48"
+                                className="w-48"
                                 placeholder="验证信息（必填）"
                                 value={verifyMsg}
                                 onClick={e => e.stopPropagation()}
                                 onChange={e => setVerifyMsg(e.target.value)}
                               />
-                              <button
-                                type="button"
-                                className="btn btn-xs btn-info"
+                              <Button
+                                variant="info"
+                                size="xs"
                                 disabled={
                                   sendFriendRequestMutation.isPending
                                   || !searchUserInfo?.userId
@@ -333,7 +342,7 @@ export default function UserSearch() {
                                 }}
                               >
                                 {friendCheck?.status === 1 ? "已申请" : "加好友"}
-                              </button>
+                              </Button>
                             </>
                           )}
 
@@ -342,20 +351,18 @@ export default function UserSearch() {
                           )}
                         </div>
 
-                        <button
-                          type="button"
-                          className="
-                            w-8 h-8 flex items-center justify-center rounded-box
-                            hover:bg-base-100
-                          "
+                        <IconButton
+                          icon={<HomeIcon className="size-5" />}
+                          label="查看用户主页"
+                          variant="ghost"
+                          size="sm"
+                          shape="square"
+                          className="w-8 h-8 rounded-md hover:bg-base-100"
                           onClick={(e) => {
                             e.stopPropagation();
                             router.history.push(`/profile/${searchUserInfo?.userId}`);
                           }}
-                          aria-label="查看用户主页"
-                        >
-                          <HomeIcon className="size-5" />
-                        </button>
+                        />
                       </div>
                     </div>
                   )
@@ -397,20 +404,18 @@ export default function UserSearch() {
                         <span>{friend?.userId}</span>
                         <span className="font-bold">{friend?.username}</span>
                       </button>
-                      <button
-                        type="button"
-                        className="
-                          w-8 h-8 flex items-center justify-center rounded-box
-                          hover:bg-base-100
-                        "
+                      <IconButton
+                        icon={<HomeIcon className="size-5" />}
+                        label="查看用户主页"
+                        variant="ghost"
+                        size="sm"
+                        shape="square"
+                        className="w-8 h-8 rounded-md hover:bg-base-100"
                         onClick={(e) => {
                           e.stopPropagation();
                           router.history.push(`/profile/${friend?.userId}`);
                         }}
-                        aria-label="查看用户主页"
-                      >
-                        <HomeIcon className="size-5" />
-                      </button>
+                      />
                     </div>
                   );
                 })

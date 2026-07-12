@@ -28,3 +28,4 @@ export type PageBaseRespSpaceMaterialPackageResponse = {
      */
     list?: Array<SpaceMaterialPackageResponse>;
 };
+

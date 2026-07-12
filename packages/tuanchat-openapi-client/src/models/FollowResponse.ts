@@ -2,9 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * 数据列表
- */
 export type FollowResponse = {
     /**
      * 用户的uid，全局唯一
@@ -27,3 +24,4 @@ export type FollowResponse = {
      */
     avatarMediaType?: string;
 };
+

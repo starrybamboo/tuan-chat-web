@@ -23,6 +23,9 @@ export type CommentVO = {
      * 用户ID
      */
     userId?: number;
+    /**
+     * 用户信息
+     */
     userInfo?: UserInfoResponse;
     /**
      * 评论内容
@@ -49,3 +52,4 @@ export type CommentVO = {
      */
     totalChildren?: number;
 };
+

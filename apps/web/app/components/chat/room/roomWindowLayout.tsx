@@ -123,7 +123,7 @@ export default function RoomWindowLayout({
       <div
         className="
           absolute inset-0 bg-cover bg-center bg-no-repeat transition-all
-          duration-500 z-0
+          duration-500 z-0 motion-reduce:transition-none
         "
         style={{
           backgroundImage: displayedBgUrl ? `url('${displayedBgUrl}')` : "none",
@@ -135,6 +135,7 @@ export default function RoomWindowLayout({
           absolute inset-0 bg-white/30
           dark:bg-base-300/40
           backdrop-blur-xs transition-opacity duration-500 z-0
+          motion-reduce:transition-none
         "
         style={{
           opacity: backgroundUrl ? 1 : 0,
@@ -143,6 +144,7 @@ export default function RoomWindowLayout({
       <div
         className="
           pointer-events-none absolute inset-0 z-0 transition-opacity
+          motion-reduce:transition-none
           duration-500
         "
         style={{
@@ -160,6 +162,8 @@ export default function RoomWindowLayout({
       <div className="relative z-10 flex h-full min-h-0">
         <div className="flex-1 min-w-0 flex flex-col h-full min-h-0">
           <RoomHeaderBar
+            spaceId={spaceId}
+            roomId={roomId}
             roomName={roomName}
             room={room}
             contentMode={contentMode}

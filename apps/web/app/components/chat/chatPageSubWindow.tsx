@@ -6,13 +6,15 @@ import type { Room } from "api";
 
 import { ChatPageDocContent } from "@/components/chat/chatPageMainContent";
 import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
-import { getMaterialItemDragData, isMaterialItemDrag } from "@/components/chat/utils/materialItemDrag";
 import { getSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
+import FeaturePlaceholderPage from "@/components/common/featurePlaceholderPage";
+import { IconButton } from "@/components/common/IconButton";
+import PortalTooltip from "@/components/common/portalTooltip";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
+import { StateView } from "@/components/common/StateView";
 import { BaselineArrowBackIosNew, XMarkICon } from "@/icons";
 
 const LazyRoomWindow = React.lazy(() => import("@/components/chat/room/roomWindow"));
-const LazySpaceMaterialSubWindow = React.lazy(() => import("@/components/chat/space/drawers/spaceMaterialSubWindow"));
 
 type ScreenSize = "sm" | "md" | "lg";
 
@@ -28,14 +30,11 @@ type ChatPageSubWindowProps = {
   tab: ChatPageSubWindowTab;
   roomId: number | null;
   docId: string | null;
-  materialPackageId: number | null;
-  materialPathKey: string | null;
   setIsOpen: (next: boolean) => void;
   setWidth: (next: number) => void;
   setTab: (tab: ChatPageSubWindowTab) => void;
   setRoomId: (roomId: number | null) => void;
   setDocId: (docId: string | null) => void;
-  setMaterialSelection: (selection: { spacePackageId: number | null; materialPathKey?: string | null }) => void;
 }
 
 const MIN_WIDTH = 420;
@@ -52,7 +51,6 @@ function clampWidth(value: number) {
 type DroppedTarget
   = | { tab: "room"; roomId: number }
     | { tab: "doc"; docId: string }
-    | { tab: "material"; spacePackageId: number; materialPathKey?: string | null }
     | null;
 
 function resolveAllowedDropEffect(dataTransfer: DataTransfer | null | undefined): "copy" | "move" {
@@ -89,9 +87,6 @@ function parseDroppedTarget(dataTransfer: DataTransfer | null | undefined): Drop
     if (fallbackPayload?.tab === "doc" && fallbackPayload.docId) {
       return fallbackPayload;
     }
-    if (fallbackPayload?.tab === "material" && fallbackPayload.spacePackageId > 0) {
-      return fallbackPayload;
-    }
     return null;
   }
 
@@ -108,15 +103,6 @@ function parseDroppedTarget(dataTransfer: DataTransfer | null | undefined): Drop
   const docRef = getDocRefDragData(dataTransfer);
   if (docRef?.docId) {
     return { tab: "doc", docId: docRef.docId };
-  }
-
-  const materialItem = getMaterialItemDragData(dataTransfer);
-  if (materialItem?.spacePackageId) {
-    return {
-      tab: "material",
-      spacePackageId: materialItem.spacePackageId,
-      materialPathKey: materialItem.materialPathKey,
-    };
   }
 
   const plainText = dataTransfer.getData("text/plain")?.trim() ?? "";
@@ -141,10 +127,6 @@ function parseDroppedTarget(dataTransfer: DataTransfer | null | undefined): Drop
   if (fallbackPayload?.tab === "doc" && fallbackPayload.docId) {
     return fallbackPayload;
   }
-  if (fallbackPayload?.tab === "material" && fallbackPayload.spacePackageId > 0) {
-    return fallbackPayload;
-  }
-
   return null;
 }
 
@@ -153,9 +135,6 @@ function hasDroppedTargetHint(dataTransfer: DataTransfer | null | undefined): bo
     return false;
   }
   if (isDocRefDrag(dataTransfer)) {
-    return true;
-  }
-  if (isMaterialItemDrag(dataTransfer)) {
     return true;
   }
   const types = Array.from(dataTransfer.types ?? []);
@@ -173,8 +152,7 @@ function SubWindowLoadingFallback({ text }: { text: string }) {
     <div className="
       flex size-full items-center justify-center text-sm text-base-content/60
     ">
-      <span className="loading loading-spinner loading-md"></span>
-      <span className="ml-2">{text}</span>
+      <StateView loading title={text} className="py-0" />
     </div>
   );
 }
@@ -191,14 +169,11 @@ export default function ChatPageSubWindow({
   tab,
   roomId,
   docId,
-  materialPackageId,
-  materialPathKey,
   setIsOpen,
   setWidth,
   setTab,
   setRoomId,
   setDocId,
-  setMaterialSelection,
 }: ChatPageSubWindowProps) {
   const isDesktop = screenSize !== "sm";
   const [isRightEdgeActive, setIsRightEdgeActive] = useState(false);
@@ -274,16 +249,9 @@ export default function ChatPageSubWindow({
       setRoomId(target.roomId);
       return;
     }
-    if (target.tab === "material") {
-      setMaterialSelection({
-        spacePackageId: target.spacePackageId,
-        materialPathKey: target.materialPathKey,
-      });
-      return;
-    }
     setTab("doc");
     setDocId(target.docId);
-  }, [setDocId, setIsOpen, setMaterialSelection, setRoomId, setTab]);
+  }, [setDocId, setIsOpen, setRoomId, setTab]);
 
   const handleDragOver = useCallback((event: React.DragEvent<HTMLElement>) => {
     const target = parseDroppedTarget(event.dataTransfer);
@@ -423,22 +391,23 @@ export default function ChatPageSubWindow({
       <div
         className={`
           absolute right-0 top-1/2 -translate-y-1/2 z-30 pointer-events-none
-          transition-all duration-200
+          transition-[transform,opacity] duration-200 motion-reduce:transition-none
           ${isRightEdgeActive ? `translate-x-0 opacity-100` : `
             translate-x-full opacity-0
           `}
         `}
       >
-        <div className="tooltip tooltip-left" data-tip="向左拖拽打开副窗口">
+        <PortalTooltip label="向左拖拽打开副窗口" placement="left">
           <button
             type="button"
             className={`
               h-24 w-6 rounded-l-xl border-y border-l border-base-300/50
               bg-base-100/90 backdrop-blur-sm text-base-content/50
               shadow-sm
-              hover:w-8 hover:text-base-content/70 hover:bg-base-100
-              active:scale-95
-              transition-all cursor-col-resize flex items-center justify-center
+              hover:text-base-content/70 hover:bg-base-100
+              transition-colors duration-150 cursor-col-resize flex items-center
+              justify-center
+              motion-reduce:transition-none
               ${isRightEdgeActive ? `pointer-events-auto` : `
                 pointer-events-none
               `}
@@ -455,7 +424,7 @@ export default function ChatPageSubWindow({
           >
             <BaselineArrowBackIosNew className="size-4 opacity-70" />
           </button>
-        </div>
+        </PortalTooltip>
       </div>
     );
   }
@@ -504,20 +473,17 @@ export default function ChatPageSubWindow({
           </div>
         )}
         {(tab === "doc" || tab === "empty" || tab === "material") && (
-          <div className="absolute left-2 top-2 z-30 tooltip tooltip-right" data-tip="关闭副窗口">
-            <button
-              type="button"
-              className="
-                btn btn-ghost btn-square btn-xs min-h-0 size-7 bg-base-200/70
-                backdrop-blur-sm
-              "
+          <PortalTooltip label="关闭副窗口" placement="right" anchorClassName="absolute left-2 top-2 z-30">
+            <IconButton
+              size="xs"
+              shape="square"
+              className="min-h-0 size-7 bg-base-200/70 backdrop-blur-sm"
               onClick={() => setIsOpen(false)}
-              aria-label="关闭副窗口"
+              label="关闭副窗口"
               title="关闭副窗口"
-            >
-              <XMarkICon className="size-4" />
-            </button>
-          </div>
+              icon={<XMarkICon className="size-4" />}
+            />
+          </PortalTooltip>
         )}
         <div className="flex-1 min-h-0 overflow-hidden">
           {tab === "empty" && (
@@ -527,7 +493,7 @@ export default function ChatPageSubWindow({
               <div className="max-w-sm text-center px-8">
                 <div className="text-base font-semibold">副窗口为空</div>
                 <div className="mt-2 text-sm text-base-content/60">
-                  将左侧的群聊、文档或素材拖入此区域即可打开
+                  将左侧的群聊或文档拖入此区域即可打开
                 </div>
               </div>
             </div>
@@ -603,17 +569,11 @@ export default function ChatPageSubWindow({
 
           {tab === "material" && (
             <div className="h-full overflow-hidden bg-base-100">
-              <React.Suspense fallback={<SubWindowLoadingFallback text="正在加载素材副窗口..." />}>
-                <LazySpaceMaterialSubWindow
-                  spaceId={activeSpaceId}
-                  spacePackageId={materialPackageId}
-                  materialPathKey={materialPathKey}
-                  onClearSelection={() => {
-                    setTab("empty");
-                    setMaterialSelection({ spacePackageId: null });
-                  }}
-                />
-              </React.Suspense>
+              <FeaturePlaceholderPage
+                compact
+                title="素材功能重构中"
+                description="素材库将在新版体验完成后重新开放。"
+              />
             </div>
           )}
         </div>

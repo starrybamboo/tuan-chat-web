@@ -4,8 +4,8 @@ import { ChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { CommentContext } from "@/components/common/comment/commentContext";
+import { ContentPermissionContext } from "@/components/common/toastWindow/contentPermissionContext";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
-import { ContentPermissionContext } from "@/components/repository/detail/ContentTab/ContentPermissionContext";
 
 export type ToastWindowStateProps = {
   isOpen: boolean;
@@ -15,7 +15,6 @@ export type ToastWindowStateProps = {
   transparent?: boolean;
   hiddenScrollbar?: boolean;
   disableScroll?: boolean;
-  showCloseButton?: boolean;
   rootClassName?: string;
   panelClassName?: string;
   bodyClassName?: string;
@@ -29,7 +28,6 @@ export function useToastWindow({
   transparent = false,
   hiddenScrollbar = false,
   disableScroll = false,
-  showCloseButton = true,
   rootClassName,
   panelClassName,
   bodyClassName,
@@ -47,7 +45,6 @@ export function useToastWindow({
     transparent: boolean;
     hiddenScrollbar: boolean;
     disableScroll: boolean;
-    showCloseButton: boolean;
     rootClassName?: string;
     panelClassName?: string;
     bodyClassName?: string;
@@ -121,7 +118,6 @@ export function useToastWindow({
       transparent,
       hiddenScrollbar,
       disableScroll,
-      showCloseButton,
       rootClassName,
       panelClassName,
       bodyClassName,
@@ -131,7 +127,6 @@ export function useToastWindow({
       || prevOptionsRef.current.transparent !== nextOptions.transparent
       || prevOptionsRef.current.hiddenScrollbar !== nextOptions.hiddenScrollbar
       || prevOptionsRef.current.disableScroll !== nextOptions.disableScroll
-      || prevOptionsRef.current.showCloseButton !== nextOptions.showCloseButton
       || prevOptionsRef.current.rootClassName !== nextOptions.rootClassName
       || prevOptionsRef.current.panelClassName !== nextOptions.panelClassName
       || prevOptionsRef.current.bodyClassName !== nextOptions.bodyClassName;
@@ -146,7 +141,6 @@ export function useToastWindow({
         transparent,
         hiddenScrollbar,
         disableScroll,
-        showCloseButton,
         rootClassName,
         panelClassName,
         bodyClassName,
@@ -164,7 +158,7 @@ export function useToastWindow({
     }
 
     prevOptionsRef.current = nextOptions;
-  }, [isOpen, wrappedChildren, fullScreen, transparent, hiddenScrollbar, disableScroll, showCloseButton, rootClassName, panelClassName, bodyClassName, handleClose]);
+  }, [isOpen, wrappedChildren, fullScreen, transparent, hiddenScrollbar, disableScroll, rootClassName, panelClassName, bodyClassName, handleClose]);
 
   useEffect(() => {
     return () => {

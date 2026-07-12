@@ -1,6 +1,8 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { appToast } from "@/components/common/appToast/appToast";
+import type { PokeTarget } from "@tuanchat/domain/poke-message";
 
+import { buildPokeMessageRequest } from "@tuanchat/domain/poke-message";
+import { parseSimpleStateCommand } from "@tuanchat/domain/state-command";
 import { useCallback, useRef } from "react";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
@@ -11,14 +13,13 @@ import { resolveAudioAutoPlayPurposeFromAnnotationTransition } from "@/component
 import { triggerAudioAutoPlay } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayRuntime";
 import { internalMessageMediaSource, resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import { mergeRoleVarOpSnapshotsIntoEvents, writeRoleVarOpsThroughAbilities } from "@/components/chat/state/roleVarWriteThrough";
-import { parseSimpleStateCommand } from "@/components/chat/state/stateCommandParser";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { buildMessageDraftUploadResultFromComposerSnapshot } from "@/components/chat/utils/messageDraftBuilder";
 import { buildOutOfCharacterSpeechContent } from "@/components/chat/utils/outOfCharacterSpeech";
 import { isRoomJumpCommandText, parseRoomJumpCommand } from "@/components/chat/utils/roomJump";
-
+import { appToast } from "@/components/common/appToast/appToast";
 import { isCommand } from "@/components/common/dicer/cmdPre";
 import { buildDiceTurnMessageExtra } from "@/components/common/dicer/diceTurnMessageExtra";
 import { buildRoleScopedStateDiceReply } from "@/components/common/dicer/stateDiceFeedback";
@@ -66,6 +67,8 @@ type UseChatMessageSubmitParams = {
   containsCommandRequestAllToken: (text: string) => boolean;
   stripCommandRequestAllToken: (text: string) => string;
   extractFirstCommandText: (text: string) => string | null;
+  onPokeMessageSent?: (content: string) => void;
+  pokeTarget?: PokeTarget | null;
   setInputText: (text: string) => void;
   queryClient?: QueryClient;
   roomUiStoreApi: RoomUiStoreApi;
@@ -374,6 +377,8 @@ export default function useChatMessageSubmit({
   containsCommandRequestAllToken,
   stripCommandRequestAllToken,
   extractFirstCommandText,
+  onPokeMessageSent,
+  pokeTarget,
   setInputText,
   queryClient,
   roomUiStoreApi,
@@ -462,6 +467,10 @@ export default function useChatMessageSubmit({
       appToast.error("观战发言长度不能超过 1022 字");
       return;
     }
+    if (pokeTarget && hasPendingAttachmentPayload) {
+      appToast.error("戳一戳消息只支持文本内容");
+      return;
+    }
 
     const submittedInputSnapshot: SubmittedInputSnapshot = {
       plainText: inputText,
@@ -499,6 +508,30 @@ export default function useChatMessageSubmit({
         const trimmedCustomRoleName = rawCustomRoleName.trim();
         return trimmedCustomRoleName || undefined;
       })();
+
+      if (pokeTarget) {
+        const pokeContent = trimmedInputText || inputText;
+        const resolvedAvatarId = senderRoleId > 0
+          ? await ensureRuntimeAvatarIdForRole(senderRoleId)
+          : -1;
+        const pokeRequest = buildPokeMessageRequest({
+          roomId,
+          roleId: senderRoleId,
+          avatarId: resolvedAvatarId,
+          content: pokeContent,
+          targetRoleId: pokeTarget.targetRoleId,
+        });
+        if (draftCustomRoleName) {
+          pokeRequest.customRoleName = draftCustomRoleName;
+        }
+        const createdPokeMessage = await sendMessageWithInsert(pokeRequest);
+        if (!createdPokeMessage) {
+          return;
+        }
+        hasCommittedOutboundMessage = true;
+        onPokeMessageSent?.(pokeContent);
+        return;
+      }
 
       let regularInputText = isSpectator
         ? (spectatorTextContent ?? "")
@@ -916,6 +949,8 @@ export default function useChatMessageSubmit({
     isSpaceOwner,
     noRole,
     notMember,
+    onPokeMessageSent,
+    pokeTarget,
     queryClient,
     ruleId,
     roomId,

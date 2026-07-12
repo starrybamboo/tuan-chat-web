@@ -35,3 +35,4 @@ export type TutorialBootstrapResponse = {
      */
     updateAvailable?: boolean;
 };
+

@@ -1,5 +1,7 @@
 import { useDeferredValue } from "react";
 
+import { Button } from "@/components/common/Button";
+
 import type { MessageTextDiff, MessageTextDiffSegment } from "@/components/chat/message/diff/messageTextDiff";
 
 type MessageTextDiffPreviewProps = {
@@ -87,20 +89,21 @@ export default function MessageTextDiffPreview({
           <span className="mr-auto text-xs text-base-content/60">接受后会替换当前消息文本</span>
           {footerAction}
           {onCancel && (
-            <button type="button" className="btn btn-ghost btn-xs" onClick={onCancel} title="拒绝，保留当前消息文本">
+            <Button type="button" variant="ghost" size="xs" onClick={onCancel} title="拒绝，保留当前消息文本">
               拒绝
-            </button>
+            </Button>
           )}
           {onAccept && (
-            <button
+            <Button
               type="button"
-              className="btn btn-success btn-xs text-success-content"
+              variant="primary"
+              size="xs"
               onClick={onAccept}
               disabled={!activeDiff.afterText || isStreaming}
               title="接受后会替换当前消息文本"
             >
               接受
-            </button>
+            </Button>
           )}
         </div>
       )}

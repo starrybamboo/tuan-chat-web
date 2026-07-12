@@ -1,5 +1,6 @@
 import { WarningCircleIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "motion/react";
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { appToast } from "@/components/common/appToast/appToast";
 
@@ -8,8 +9,12 @@ import type { StateEventAtom } from "@/types/stateEvent";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useOptionalStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
+import { Button } from "@/components/common/Button";
+import { TextInput } from "@/components/common/FormField";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { MediaImage } from "@/components/common/mediaImage";
+import { StateView } from "@/components/common/StateView";
+import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
@@ -23,7 +28,6 @@ import { UploadUtils } from "@/utils/media/UploadUtils";
 import type { ChatMessageRequest, UserRole } from "../../../../../api";
 import type { RoomDndMapToken } from "./roomDndMapApi";
 
-import { useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../../../api/instance";
 import { MessageType } from "../../../../../api/wsModels";
 import {
@@ -363,14 +367,20 @@ function MapStateStrip({
       flex min-w-0 flex-wrap gap-2 overflow-x-hidden rounded-md border
       border-base-300 bg-base-100 p-2
     ">
-      {rows.map(({ activeStates, hp, id, initiative, maxHp, name }) => (
-        <div
-          key={id}
-          className="
-            flex min-w-0 flex-[1_1_12rem] flex-col gap-1 rounded-md border
-            border-base-300/70 bg-base-200/60 px-2 py-1.5
-          "
-        >
+      <AnimatePresence initial={false} mode="popLayout">
+        {rows.map(({ activeStates, hp, id, initiative, maxHp, name }, index) => (
+          <motion.div
+            key={id}
+            className="
+              flex min-w-0 flex-[1_1_12rem] flex-col gap-1 rounded-md border
+              border-base-300/70 bg-base-200/60 px-2 py-1.5
+            "
+            {...structuralListItemMotionProps({
+              index,
+              staggerDelay: 0.015,
+              maxDelay: 0.1,
+            })}
+          >
           <div className="flex min-w-0 items-center gap-2">
             <span className="
               min-w-0 truncate text-xs font-semibold text-base-content
@@ -410,8 +420,9 @@ function MapStateStrip({
               ))}
             </div>
           )}
-        </div>
-      ))}
+          </motion.div>
+        ))}
+      </AnimatePresence>
     </section>
   );
 }
@@ -429,13 +440,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
   const mapConfigUpdateChainRef = useRef<Promise<void>>(Promise.resolve());
   const suppressNextTokenClickRef = useRef(false);
 
-  const { data: roomRolesData } = useGetRoomRoleQuery(roomId);
-  const { data: roomNpcRolesData } = useGetRoomNpcRoleQuery(roomId);
-  const roomRoles = useMemo(() => {
-    const roles = roomRolesData?.data ?? [];
-    const npcRoles = roomNpcRolesData?.data ?? [];
-    return [...roles, ...npcRoles];
-  }, [roomRolesData, roomNpcRolesData]);
+  const roomRoles = roomContext.roomAllRoles ?? [];
 
   const mapQuery = useQuery({
     queryKey: roomDndMapQueryKey(roomId),
@@ -945,13 +950,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
     : undefined;
 
   if (mapQuery.isLoading && !effectiveMapConfig) {
-    return (
-      <div className="
-        w-full h-full flex items-center justify-center bg-base-200
-      ">
-        <span className="loading loading-spinner loading-md" />
-      </div>
-    );
+    return <StateView loading className="h-full w-full bg-base-200 py-0" />;
   }
 
   if (!mapImageUrl) {
@@ -962,7 +961,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
         <div className="text-center space-y-2">
           <p className="text-sm">请上传地图</p>
           <ImgUploader setImg={file => handleUploadMap(file)}>
-            <button className="btn btn-primary" type="button">上传地图</button>
+            <Button variant="primary">上传地图</Button>
           </ImgUploader>
         </div>
       </div>
@@ -1118,7 +1117,8 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
               flex items-center gap-1 rounded-md border border-base-300
               bg-base-200 px-2 py-1
             ">
-              <input
+              <TextInput
+                appearance="bare"
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
@@ -1146,7 +1146,8 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
                 "
               />
               <span className="px-1 text-xs text-base-content/50">×</span>
-              <input
+              <TextInput
+                appearance="bare"
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
@@ -1202,14 +1203,15 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
               })}
             </div>
           </div>
-          <button
-            className="btn btn-error btn-xs ml-auto shrink-0"
-            type="button"
+          <Button
+            variant="error"
+            size="xs"
+            className="ml-auto shrink-0"
             aria-label="清空地图"
             onClick={handleReset}
           >
             清空
-          </button>
+          </Button>
         </div>
 
         <div className="flex min-h-0 min-w-0 flex-col gap-2 overflow-x-hidden">
@@ -1230,26 +1232,36 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
             onClick={handleRolePoolClick}
           >
             <div className="flex items-center gap-2 flex-wrap content-start">
-              {unplacedRoles.map(role => (
-                <RoleToken
-                  key={role.roleId}
-                  role={role}
-                  size={rolePoolTokenSize}
-                  isSelected={selectedRoleId === role.roleId}
-                  status={roleStatusById[role.roleId]}
-                  onPointerDown={event => handleRolePoolTokenPointerDown(event, role.roleId)}
-                  onPointerMove={handleTokenPointerMove}
-                  onPointerUp={handleTokenPointerEnd}
-                  onPointerCancel={handleTokenPointerEnd}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    if (suppressNextTokenClickRef.current) {
-                      return;
-                    }
-                    setSelectedRoleId(prev => (prev === role.roleId ? null : role.roleId));
-                  }}
-                />
-              ))}
+              <AnimatePresence initial={false} mode="popLayout">
+                {unplacedRoles.map((role, index) => (
+                  <motion.div
+                    key={role.roleId}
+                    {...structuralListItemMotionProps({
+                      index,
+                      staggerDelay: 0.015,
+                      maxDelay: 0.1,
+                    })}
+                  >
+                    <RoleToken
+                      role={role}
+                      size={rolePoolTokenSize}
+                      isSelected={selectedRoleId === role.roleId}
+                      status={roleStatusById[role.roleId]}
+                      onPointerDown={event => handleRolePoolTokenPointerDown(event, role.roleId)}
+                      onPointerMove={handleTokenPointerMove}
+                      onPointerUp={handleTokenPointerEnd}
+                      onPointerCancel={handleTokenPointerEnd}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (suppressNextTokenClickRef.current) {
+                          return;
+                        }
+                        setSelectedRoleId(prev => (prev === role.roleId ? null : role.roleId));
+                      }}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           </div>
           <MapStateStrip runtime={stateRuntime} roomRoles={roomRoles} />

@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { Button } from "@/components/common/Button";
+import { ControlGroup } from "@/components/common/ControlGroup";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
+import { TextArea, TextInput } from "@/components/common/FormField";
+import { IconButton } from "@/components/common/IconButton";
+import PortalTooltip from "@/components/common/portalTooltip";
+import { CountBadge } from "@/components/common/StatusPrimitives";
+
 type CopywritingEditorProps = {
   value: Record<string, string[]>;
   onChange: (next: Record<string, string[]>) => void;
@@ -136,15 +144,15 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
   return (
     <div className="space-y-6">
       {/* 新增分组 */}
-      <div className="card bg-base-200 rounded-xl">
-        <div className="card-body p-4">
+      <div className={surfaceClassName({ level: "inset", className: "p-4" })}>
+        <div>
           <h4 className="text-sm font-medium text-base-content/70 mb-2">添加新分组</h4>
-          <div className="join w-full">
-            <input
+          <ControlGroup className="w-full" aria-label="新分组">
+            <TextInput
               type="text"
               autoComplete="off"
               aria-label="文案组名称"
-              className="input input-bordered join-item flex-1"
+              className="flex-1"
               placeholder="输入文案组名称，如：成功、失败、问候"
               value={groupNameInput}
               onChange={e => setGroupNameInput(e.target.value)}
@@ -155,9 +163,8 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                   addGroup();
               }}
             />
-            <button
-              type="button"
-              className="btn btn-primary join-item"
+            <Button
+              variant="primary"
               onClick={addGroup}
               disabled={!groupNameInput.trim() || !!value[groupNameInput.trim()]}
               title={
@@ -172,8 +179,8 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               添加
-            </button>
-          </div>
+            </Button>
+          </ControlGroup>
         </div>
       </div>
 
@@ -191,38 +198,36 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
             <div className="
               flex items-center gap-2 p-3 border-b border-base-content/10
             ">
-              <input
+              <TextInput
+                appearance="bare"
+                density="compact"
                 type="text"
                 autoComplete="off"
                 defaultValue={name}
                 onBlur={e => renameGroup(name, e.target.value)}
-                className="
-                  input input-sm input-ghost font-semibold text-base flex-1
-                  focus:input-bordered
-                "
+                className="flex-1 text-base font-semibold"
                 title="点击编辑分组名"
               />
-              <span className="badge badge-outline badge-sm">{entries.length}</span>
-              <div className="tooltip tooltip-left" data-tip="删除分组">
-                <button
-                  type="button"
-                  className="
-                    btn btn-ghost btn-sm btn-square text-error
-                    hover:bg-error/10
-                  "
+              <CountBadge tone="neutral">{entries.length}</CountBadge>
+              <PortalTooltip label="删除分组" placement="left">
+                <IconButton
+                  size="sm"
+                  shape="square"
+                  className="text-error hover:bg-error/10"
                   onClick={() => deleteGroup(name)}
-                  aria-label={`删除文案分组 ${name}`}
-                >
-                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </div>
+                  label={`删除文案分组 ${name}`}
+                  icon={(
+                    <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  )}
+                />
+              </PortalTooltip>
             </div>
 
             {/* 组内文案条目 */}
             <div className="p-3">
-              <ul className="list bg-base-100 rounded-lg">
+              <ul className="space-y-1 rounded-md bg-base-100">
                 {entries.map((text, idx) => {
                   let entryKey = entryKeysRef.current[name]?.[idx];
                   if (!entryKey) {
@@ -235,7 +240,7 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                   return (
                     <li
                       key={entryKey}
-                      className="list-row items-start gap-3 py-2"
+                      className="flex items-start gap-3 py-2"
                     >
                       <div className="
                         text-xs font-mono opacity-50 tabular-nums pt-3
@@ -243,12 +248,9 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                         {String(idx + 1).padStart(2, "0")}
                       </div>
                       <div className="flex-1">
-                        <textarea
-                          className="
-                            textarea w-full
-                            focus:outline-none focus:ring-2 focus:ring-info/30
-                            border-none outline-none bg-transparent resize-none
-                          "
+                        <TextArea
+                          appearance="bare"
+                          className="resize-none"
                           placeholder={`文案 #${idx + 1}`}
                           autoComplete="off"
                           aria-label={`文案 ${idx + 1}`}
@@ -257,27 +259,25 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                           rows={2}
                         />
                       </div>
-                      <div className="tooltip tooltip-left" data-tip="删除文案">
-                        <button
-                          type="button"
-                          className="
-                            btn btn-ghost btn-sm btn-square text-error
-                            hover:bg-error/10
-                            mt-2
-                          "
+                      <PortalTooltip label="删除文案" placement="left">
+                        <IconButton
+                          size="sm"
+                          shape="square"
+                          className="text-error hover:bg-error/10 mt-2"
                           onClick={() => deleteEntry(name, idx)}
-                          aria-label={`删除${name}的第 ${idx + 1} 条文案`}
-                        >
-                          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
+                          label={`删除${name}的第 ${idx + 1} 条文案`}
+                          icon={(
+                            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          )}
+                        />
+                      </PortalTooltip>
                     </li>
                   );
                 })}
                 {/* 添加新文案的空行 */}
-                <li className="list-row items-start gap-3 py-2">
+                <li className="flex items-start gap-3 py-2">
                   <div className="
                     text-xs font-mono opacity-50 tabular-nums pt-3
                   ">
@@ -286,12 +286,9 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <textarea
-                      className="
-                        textarea w-full
-                        focus:outline-none focus:ring-2 focus:ring-info/30
-                        border-none outline-none bg-transparent resize-none
-                      "
+                    <TextArea
+                      appearance="bare"
+                      className="resize-none"
                       autoComplete="off"
                       aria-label="新文案"
                       placeholder="输入新文案..."
@@ -300,17 +297,14 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                       rows={2}
                     />
                   </div>
-                  <div className="tooltip tooltip-left" data-tip="添加文案">
-                    <button
-                      type="button"
-                      className="
-                        btn btn-ghost btn-sm btn-square text-info
-                        hover:bg-info/10
-                        mt-2
-                      "
+                  <PortalTooltip label="添加文案" placement="left">
+                    <IconButton
+                      size="sm"
+                      shape="square"
+                      className="mt-2 text-base-content/55 hover:bg-info/10 hover:text-info"
                       disabled={!newEntryInputs[name]?.trim()}
                       title={newEntryInputs[name]?.trim() ? "添加文案" : "请输入文案内容"}
-                      aria-label={`添加${name}的新文案`}
+                      label={`添加${name}的新文案`}
                       onClick={() => {
                         const text = newEntryInputs[name]?.trim();
                         if (text) {
@@ -323,12 +317,13 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                           setNewEntryInputs(prev => ({ ...prev, [name]: "" }));
                         }
                       }}
-                    >
-                      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </button>
-                  </div>
+                      icon={(
+                        <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    />
+                  </PortalTooltip>
                 </li>
               </ul>
             </div>

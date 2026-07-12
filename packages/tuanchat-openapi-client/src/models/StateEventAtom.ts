@@ -3,14 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { StateEventScope } from './StateEventScope';
-/**
- * 状态原子事件列表
- */
 export type StateEventAtom = {
     /**
      * 事件类型
      */
     type?: string;
+    /**
+     * 事件作用域；nextTurn 不需要
+     */
     scope?: StateEventScope;
     /**
      * 变量名，仅 varOp 使用
@@ -69,3 +69,4 @@ export type StateEventAtom = {
      */
     clearTokens?: boolean;
 };
+

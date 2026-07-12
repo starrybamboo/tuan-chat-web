@@ -9,7 +9,6 @@
     "api/**/*",
     "functions/**/*",
     "vite.config.ts",
-    "vitest.config.ts",
-    "vitest.e2e.config.ts"
+    "vitest.config.ts"
   ]
 }

@@ -41,6 +41,8 @@ function buildSnapshot(gameConfig: RealtimeWebgalGameConfig) {
     roomContentAlertThreshold: 78,
     terrePortOverride: 3001,
     ttsApiUrl: "http://127.0.0.1:9000",
+    ttsInstruct: "温柔、自然地讲述",
+    ttsVoiceId: "Serena",
   });
 }
 
@@ -54,6 +56,15 @@ describe("buildRealtimeRenderCloudSettingsSnapshot", () => {
     expect(useRealtimeRenderStore.getState().gameConfig.figureDefaultExitDuration).toBe(300);
     expect(useRealtimeRenderStore.getState().gameConfig.figureDefaultEnterAnimation).toBe("tuanchat/default-enter");
     expect(useRealtimeRenderStore.getState().gameConfig.figureDefaultExitAnimation).toBe("tuanchat/default-exit");
+  });
+
+  it("保存 VoiceBox 配置版本、音色和风格指令", () => {
+    expect(buildSnapshot(createGameConfig())).toMatchObject({
+      settingsVersion: 4,
+      ttsApiUrl: "http://127.0.0.1:9000",
+      ttsVoiceId: "Serena",
+      ttsInstruct: "温柔、自然地讲述",
+    });
   });
 
   it("不再把运行态 URL 写入云端配置", () => {

@@ -1,6 +1,11 @@
 import type { QueryClient } from "@tanstack/react-query";
 
-import UTILS from "@/components/common/dicer/utils/utils";
+import {
+  COC_ABILITY_ALIASES,
+  FU_PROPERTY_ALIASES,
+  resolveRoleAbilityAlias,
+} from "@tuanchat/domain/dicer";
+
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { formatStateKeyLabel } from "@/types/stateEvent";
 
@@ -63,6 +68,11 @@ const SPECIAL_DISPLAY_LABELS: Record<string, string> = {
   build: "BUILD",
 };
 
+const RULE_ABILITY_ALIASES: Record<number, Record<string, string>> = {
+  1: COC_ABILITY_ALIASES,
+  3: FU_PROPERTY_ALIASES,
+};
+
 function normalizeKeyToken(key: string): string {
   return key.trim().toLowerCase();
 }
@@ -83,16 +93,7 @@ function resolveCanonicalKey(key: string, keyAliasMap?: Record<string, string>, 
     return aliasResolvedKey;
   }
 
-  if (ruleId && ruleId > 0) {
-    try {
-      return UTILS.getAlias(normalizedKey, String(ruleId));
-    }
-    catch {
-      // 单测等未初始化 AliasMap 的场景回退到原始键。
-    }
-  }
-
-  return trimmedKey;
+  return resolveRoleAbilityAlias(trimmedKey, RULE_ABILITY_ALIASES[ruleId ?? 0]);
 }
 
 function readAbilityValue(ability: RoleAbility, key: string): string | undefined {

@@ -1,4 +1,4 @@
-import { FileTextIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, FileTextIcon } from "@phosphor-icons/react";
 import React, { use, useMemo, useState } from "react";
 import { appToast } from "@/components/common/appToast/appToast";
 
@@ -6,7 +6,9 @@ import { ChatPageDocContent } from "@/components/chat/chatPageMainContent";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { documentModalShellClassName, getDocumentModalFrameClassName } from "@/components/chat/shared/components/documentModalShell";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
+import { Button } from "@/components/common/Button";
 import { MediaImage } from "@/components/common/mediaImage";
+import { Badge } from "@/components/common/StatusPrimitives";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { useIsMobile } from "@/utils/getScreenSize";
 
@@ -52,7 +54,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
           type="button"
           className={`
             group w-full rounded-xl border border-base-300 bg-base-100 text-left
-            shadow-sm transition-shadow
+            shadow-sm transition-shadow motion-reduce:transition-none
             hover:shadow-md
             ${
             isDisabled ? "cursor-not-allowed opacity-70" : ""
@@ -109,7 +111,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
                     </div>
                   )}
               <div className="absolute left-1 top-1">
-                <span className="badge badge-info badge-xs">文档</span>
+                <Badge tone="info">文档</Badge>
               </div>
             </div>
 
@@ -147,6 +149,18 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
           ${getDocumentModalFrameClassName(isMobile)}
         `}>
           <div className="flex h-full min-h-0 flex-col overflow-hidden">
+            {isMobile && (
+              <div className="shrink-0 border-b border-base-300 px-3 py-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<ArrowLeftIcon className="size-4" aria-hidden="true" />}
+                  onClick={() => setIsOpen(false)}
+                >
+                  返回
+                </Button>
+              </div>
+            )}
             <div className="flex-1 min-h-0 overflow-hidden">
               {isOpen && !isDisabled && (
                 <div className="size-full overflow-hidden bg-base-100">

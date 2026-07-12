@@ -197,4 +197,27 @@ describe("privateChatUI - ChatItem avatar", () => {
     expect(html).toContain('data-width="9"');
     expect(html).toContain("https://media.tuan.chat/media/v1/files/2082/2082/image/low.webp");
   });
+
+  it("使用强选中态标记当前私聊", () => {
+    const html = renderToStaticMarkup(createElement(ChatItem, {
+      currentContactUserId: 2082,
+      deletedContactId: vi.fn(),
+      id: 2082,
+      isSmallScreen: false,
+      lastMessage: null,
+      openContextMenu: vi.fn(),
+      setIsOpenLeftDrawer: vi.fn(),
+      unreadMessageNumber: 3,
+      updateReadlinePosition: vi.fn(),
+      user: {
+        userId: 2082,
+        username: "吟风",
+      },
+    }));
+
+    expect(html).toContain('aria-current="page"');
+    expect(html).toContain("bg-info/15");
+    expect(html).toContain("ring-info/70");
+    expect(html).not.toContain("3 条未读");
+  });
 });

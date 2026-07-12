@@ -22,6 +22,9 @@ import { buildWebGALEditorUrl } from "@/components/chat/shared/webgal/webgalPrev
 import { useOptionalStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import { Button, buttonClassName } from "@/components/common/Button";
+import { Switch } from "@/components/common/FormField";
+import { IconButton } from "@/components/common/IconButton";
 import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 
 type WebGALPreviewProps = {
@@ -167,17 +170,15 @@ export default function WebGALPreview({
               className="flex items-center gap-1.5 text-xs text-base-content/80"
               title="开启后，尾部新消息到达时自动推进 WebGAL 预览"
             >
-              <input
-                type="checkbox"
-                className="toggle toggle-info toggle-xs"
+              <Switch
+                density="compact"
                 checked={autoAdvanceEnabled}
                 onChange={event => setAutoAdvanceEnabled(event.currentTarget.checked)}
               />
               <span>实时渲染</span>
             </label>
-            <button
-              type="button"
-              className="btn btn-ghost btn-xs"
+            <Button
+              size="xs"
               aria-label="空间级 WebGAL 渲染设置"
               title={canOpenSpaceWebgalSettings ? "打开空间级 WebGAL 渲染设置" : "当前空间不可用"}
               disabled={!canOpenSpaceWebgalSettings}
@@ -187,16 +188,16 @@ export default function WebGALPreview({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-            </button>
+            </Button>
             {onClose && (
-              <button
-                type="button"
-                className="btn btn-ghost btn-xs btn-circle"
+              <IconButton
+                size="xs"
+                shape="circle"
                 onClick={onClose}
                 title="关闭预览"
-              >
-                ✕
-              </button>
+                label="关闭预览"
+                icon={<span aria-hidden="true">✕</span>}
+              />
             )}
           </div>
         </div>
@@ -227,17 +228,15 @@ export default function WebGALPreview({
             className="flex items-center gap-1.5 text-xs text-base-content/80"
             title="开启后，尾部新消息到达时自动推进 WebGAL 预览"
           >
-            <input
-              type="checkbox"
-              className="toggle toggle-info toggle-xs"
+            <Switch
+              density="compact"
               checked={autoAdvanceEnabled}
               onChange={event => setAutoAdvanceEnabled(event.currentTarget.checked)}
             />
             <span>实时渲染</span>
           </label>
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs"
+          <Button
+            size="xs"
             title={canOpenSpaceWebgalSettings ? "打开空间级 WebGAL 渲染设置" : "当前空间不可用"}
             disabled={!canOpenSpaceWebgalSettings}
             onClick={handleOpenSpaceWebgalSettings}
@@ -246,13 +245,13 @@ export default function WebGALPreview({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-          </button>
+          </Button>
 
           <a
             href={webgalEditorUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn btn-ghost btn-xs"
+            className={buttonClassName({ variant: "ghost", size: "xs" })}
             title="打开 WebGAL 编辑器"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

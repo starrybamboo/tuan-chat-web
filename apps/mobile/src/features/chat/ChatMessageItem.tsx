@@ -3,9 +3,11 @@ import type { Message } from "@tuanchat/openapi-client/models/Message";
 import { getDiceResultExtra, getDiceTurnExtra, getImageMessageExtra, getSoundMessageExtra } from "@tuanchat/domain/message-extra";
 import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { isSystemRowMessageType } from "@tuanchat/domain/poke-message";
 import { isOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
-import { memo } from "react";
-import { Pressable, StyleSheet, Vibration, View } from "react-native";
+import { memo, useCallback, useMemo, useRef } from "react";
+import type { GestureResponderEvent } from "react-native";
+import { PanResponder, Pressable, StyleSheet, Vibration, View } from "react-native";
 
 import { CachedImage } from "@/components/CachedImage";
 import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
@@ -31,6 +33,7 @@ import {
   StateEventCard,
   WebgalChooseCard,
 } from "./MobileMessageCards";
+import { resolveMobilePokeTap } from "./mobilePokeDoubleTap";
 
 const AVATAR_SIZE = 40;
 
@@ -167,12 +170,17 @@ type ChatMessageItemProps = {
   message: Message;
   multiSelectMode?: boolean;
   noRole?: boolean;
+  onCancelDragMessage?: () => void;
   onExecuteCommandRequest?: (payload: { command: string; messageId: number }) => void;
-  onLongPress: (message: Message) => void;
+  onDragMessage?: (payload: { message: Message; pageY: number; translationY: number }) => void;
+  onDropMessage?: (payload: { message: Message; pageY: number }) => void;
+  onLongPress: (payload: { message: Message; pageX: number; pageY: number }) => void;
+  onPokeAvatar?: (message: Message) => void;
   onToggleMultiSelect?: (message: Message) => void;
   replyAuthorName?: string | null;
   replyPreviewText?: string | null;
   roomRolesById: RoomRolesById;
+  shouldFetchMissingAvatar?: boolean;
 };
 
 export const ChatMessageItem = memo(({
@@ -186,22 +194,77 @@ export const ChatMessageItem = memo(({
   message,
   multiSelectMode,
   noRole = false,
+  onCancelDragMessage,
   onExecuteCommandRequest,
+  onDragMessage,
+  onDropMessage,
   onLongPress,
+  onPokeAvatar,
   onToggleMultiSelect,
   replyAuthorName,
   replyPreviewText,
   roomRolesById,
+  shouldFetchMissingAvatar = true,
 }: ChatMessageItemProps) => {
   const theme = useTheme();
   const isOOC = isOutOfCharacterMessage(message);
   const narrator = isNarratorMessage(message);
-  const isStateEvent = message.messageType === MESSAGE_TYPE.STATE_EVENT;
-  const usesSystemRow = narrator || isStateEvent;
+  const usesSystemRow = narrator || isSystemRowMessageType(message.messageType);
   const isSending = isOptimisticRoomMessage(message);
   const displayName = getDisplayRoleName(message, roomRolesById);
   const shouldRenderTextPreview = shouldRenderMobileMessageTextPreview(message.messageType);
   const canViewHiddenDiceReply = isSpaceOwner || (currentRoleId > 0 && currentRoleId === message.roleId);
+  const longPressActiveRef = useRef(false);
+  const hasDraggedAfterLongPressRef = useRef(false);
+  const lastLongPressPointRef = useRef<{ pageX: number; pageY: number } | null>(null);
+  const openLongPressMenu = useCallback(() => {
+    const lastPoint = lastLongPressPointRef.current;
+    if (!lastPoint) {
+      return;
+    }
+    longPressActiveRef.current = false;
+    hasDraggedAfterLongPressRef.current = false;
+    lastLongPressPointRef.current = null;
+    onLongPress({ message, pageX: lastPoint.pageX, pageY: lastPoint.pageY });
+  }, [message, onLongPress]);
+  const panResponder = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_event, gestureState) => {
+      if (!longPressActiveRef.current || Math.abs(gestureState.dy) < 8) {
+        return false;
+      }
+      hasDraggedAfterLongPressRef.current = true;
+      return true;
+    },
+    onPanResponderMove: (_event, gestureState) => {
+      if (!longPressActiveRef.current) {
+        return;
+      }
+      const startPoint = lastLongPressPointRef.current;
+      onDragMessage?.({
+        message,
+        pageY: gestureState.moveY,
+        translationY: startPoint ? gestureState.moveY - startPoint.pageY : gestureState.dy,
+      });
+    },
+    onPanResponderRelease: (_event, gestureState) => {
+      const lastPoint = lastLongPressPointRef.current;
+      longPressActiveRef.current = false;
+      if (hasDraggedAfterLongPressRef.current) {
+        onDropMessage?.({ message, pageY: gestureState.moveY || lastPoint?.pageY || 0 });
+      }
+      else if (lastPoint) {
+        openLongPressMenu();
+      }
+      hasDraggedAfterLongPressRef.current = false;
+      lastLongPressPointRef.current = null;
+    },
+    onPanResponderTerminate: () => {
+      longPressActiveRef.current = false;
+      hasDraggedAfterLongPressRef.current = false;
+      lastLongPressPointRef.current = null;
+      onCancelDragMessage?.();
+    },
+  }), [message, onCancelDragMessage, onDragMessage, onDropMessage, openLongPressMenu]);
   const renderDiceTurnContent = (numberOfLines?: number) => {
     const diceTurn = getDiceTurnExtra(message.extra);
     if (!diceTurn) {
@@ -266,8 +329,26 @@ export const ChatMessageItem = memo(({
       ? styles.rowOOC
       : isGrouped ? styles.rowGrouped : styles.row;
 
-  const renderAvatar = () => {
-    return (
+  const avatarTapRef = useRef<{ roleId: number; timestamp: number } | null>(null);
+  const handleAvatarPress = useCallback(() => {
+    const roleId = message.roleId ?? -1;
+    if (!(roleId > 0) || !onPokeAvatar || multiSelectMode) {
+      return;
+    }
+    const result = resolveMobilePokeTap(avatarTapRef.current, roleId, Date.now());
+    avatarTapRef.current = result.next;
+    if (result.matched) {
+      Vibration.vibrate(10);
+      onPokeAvatar(message);
+    }
+  }, [message, multiSelectMode, onPokeAvatar]);
+  const handleAvatarLongPress = useCallback((event: GestureResponderEvent) => {
+    const { pageX, pageY } = event.nativeEvent;
+    Vibration.vibrate(10);
+    onLongPress({ message, pageX, pageY });
+  }, [message, onLongPress]);
+
+  const avatar = (
       <MessageAvatar
         avatarFileId={message.avatarFileId}
         avatarId={message.avatarId}
@@ -276,9 +357,25 @@ export const ChatMessageItem = memo(({
         preferUserAvatar={isOOC}
         roleId={message.roleId}
         roomRolesById={roomRolesById}
+        shouldFetchMissingAvatar={shouldFetchMissingAvatar}
         size={AVATAR_SIZE}
         userId={message.userId}
       />
+  );
+  const renderAvatar = () => {
+    if (!onPokeAvatar || !(message.roleId && message.roleId > 0) || multiSelectMode) {
+      return avatar;
+    }
+    return (
+      <Pressable
+        accessibilityLabel={`双击${displayName}头像戳一戳`}
+        accessibilityRole="button"
+        delayLongPress={500}
+        onLongPress={handleAvatarLongPress}
+        onPress={handleAvatarPress}
+      >
+        {avatar}
+      </Pressable>
     );
   };
 
@@ -344,7 +441,7 @@ export const ChatMessageItem = memo(({
                       ? renderDiceTurnContent(2)
                       : (
                           <TextEnhanceRenderer
-                            content={getMessagePreview(message)}
+                            content={message.messageType === MESSAGE_TYPE.POKE ? message.content ?? "" : getMessagePreview(message)}
                             style={[
                               styles.content,
                               { color: usesSystemRow ? theme.textSecondary : theme.text },
@@ -360,27 +457,37 @@ export const ChatMessageItem = memo(({
   }
 
   return (
-    <Pressable
-      delayLongPress={500}
-      onLongPress={() => {
-        Vibration.vibrate(10);
-        onLongPress(message);
-      }}
-      accessibilityLabel={`${displayName}：${getMessagePreview(message)}${replyPreviewText ? `，回复${replyAuthorName ? ` ${replyAuthorName}` : ""}：${replyPreviewText}` : ""}`}
-      accessibilityHint="长按打开消息操作"
-    >
-      <View
-        style={[
-          messageRowStyle,
-          shouldRenderAvatar && styles.rowFull,
-          isSending && styles.rowSending,
-          isSelectedAnchor && styles.rowHighlight,
-          isSelectedAnchor && { backgroundColor: theme.accentMuted },
-          isOOC && { backgroundColor: "rgba(150, 150, 150, 0.05)" },
-        ]}
+    <View {...panResponder.panHandlers}>
+      <Pressable
+        delayLongPress={500}
+        onLongPress={(event) => {
+          const { pageX, pageY } = event.nativeEvent;
+          Vibration.vibrate(10);
+          longPressActiveRef.current = true;
+          hasDraggedAfterLongPressRef.current = false;
+          lastLongPressPointRef.current = { pageX, pageY };
+        }}
+        onPressOut={() => {
+          if (!longPressActiveRef.current || hasDraggedAfterLongPressRef.current) {
+            return;
+          }
+          openLongPressMenu();
+        }}
+        accessibilityLabel={`${displayName}：${getMessagePreview(message)}${replyPreviewText ? `，回复${replyAuthorName ? ` ${replyAuthorName}` : ""}：${replyPreviewText}` : ""}`}
+        accessibilityHint="长按打开消息操作"
       >
-        {shouldRenderAvatar ? renderAvatar() : null}
-        <View style={styles.body}>
+        <View
+          style={[
+            messageRowStyle,
+            shouldRenderAvatar && styles.rowFull,
+            isSending && styles.rowSending,
+            isSelectedAnchor && styles.rowHighlight,
+            isSelectedAnchor && { backgroundColor: theme.accentMuted },
+            isOOC && { backgroundColor: "rgba(150, 150, 150, 0.05)" },
+          ]}
+        >
+          {shouldRenderAvatar ? renderAvatar() : null}
+          <View style={styles.body}>
           {!isGrouped && !usesSystemRow
             ? (
                 <View style={styles.authorRow}>
@@ -413,7 +520,7 @@ export const ChatMessageItem = memo(({
               ? renderDiceTurnContent()
               : (
                   <TextEnhanceRenderer
-                    content={getMessagePreview(message)}
+                    content={message.messageType === MESSAGE_TYPE.POKE ? message.content ?? "" : getMessagePreview(message)}
                     style={[
                       styles.content,
                       { color: usesSystemRow ? theme.textSecondary : isOOC ? theme.textSecondary : theme.text },
@@ -478,8 +585,9 @@ export const ChatMessageItem = memo(({
                 );
               })()
             : null}
+          </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+    </View>
   );
 });

@@ -5,6 +5,8 @@ import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { bindCancelablePromiseToSignal } from "./cancelable";
+
 export type UserQueryOptions = {
   enabled?: boolean;
   staleTime?: number;
@@ -33,7 +35,7 @@ export function getUserInfoByUsernameQueryKey(username: string) {
 export function useGetUserInfoQuery(client: UserClient, userId: number, options?: UserQueryOptions) {
   return useQuery({
     queryKey: getUserInfoQueryKey(userId),
-    queryFn: () => client.userController.getUserInfo(userId),
+    queryFn: ({ signal }) => bindCancelablePromiseToSignal(client.userController.getUserInfo(userId), signal),
     staleTime: options?.staleTime ?? USER_INFO_STALE_TIME_MS,
     refetchOnMount: options?.refetchOnMount,
     enabled: (options?.enabled ?? true) && userId > 0,
@@ -57,7 +59,7 @@ export function useGetMyUserInfoQuery(client: UserClient, enabledOrOptions: bool
 
   return useQuery({
     queryKey: getMyUserInfoQueryKey(),
-    queryFn: () => client.userController.getMyUserInfo(),
+    queryFn: ({ signal }) => bindCancelablePromiseToSignal(client.userController.getMyUserInfo(), signal),
     staleTime: options.staleTime ?? USER_INFO_STALE_TIME_MS,
     refetchOnMount: options.refetchOnMount,
     enabled: options.enabled ?? true,

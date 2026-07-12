@@ -1,87 +1,63 @@
-/**
- * TTS 集成修改说明文档
- * 
- * 这个文档说明了如何将新的 TTS API 集成到 WebGAL 渲染系统中
- */
+# VoiceBox TTS 集成
 
-## 修改概述
+团剧共创的 WebGAL 实时渲染通过 VoiceBox REST API 生成对话配音。
 
-已成功将 TTS 文件夹从 `app/webGAL/` 移动到 `app/tts/`，并更新了相关代码以使用新的 TTS API 接口。
+## 运行约定
 
-## 主要修改
+- VoiceBox 地址：`http://127.0.0.1:17493`
+- 引擎：`qwen_custom_voice`
+- 模型：`0.6B`
+- 默认音色：`Serena`
+- 默认语言：`zh`
+- 音频格式：WAV
 
-### 1. SceneEditor.ts 修改
+VoiceBox 会按选中的预设音色自动创建 `TuanChat CustomVoice <voiceId>` Profile。团剧共创提交异步生成任务，轮询完成状态，再下载音频并上传到实时工程的 `game/vocal` 目录。
 
-**文件位置**: `app/webGAL/sceneEditor.ts`
+## REST 调用
 
-**主要更改**:
-- 添加了新的 TTS API 导入：
-  ```typescript
-  import { EmotionControlMethod, generateSpeechSimple } from "@/tts/ttsService";
-  ```
+1. `GET /profiles` 查询已存在的预设 Profile。
+2. `POST /profiles` 创建缺失的 Qwen CustomVoice Profile。
+3. `POST /generate` 创建 0.6B 配音任务。
+4. `GET /history/{generationId}` 轮询任务状态。
+5. `GET /audio/{generationId}` 下载 WAV 文件。
 
-- 重写了 `uploadVocal` 方法：
-  - 移除了旧的 `tuanchat.ttsController.textToVoiceHobbyist` 调用
-  - 改用新的 `generateSpeechSimple` API
-  - 添加了参考音频文件支持 (`refVocal?: File`)
-  - 使用 `EmotionControlMethod.SAME_AS_VOICE` 作为默认情感控制
-  - 改进了错误处理和日志记录
+## 配置
 
-**新的方法签名**:
-```typescript
-public async uploadVocal(message: ChatMessageResponse, refVocal?: File): Promise<string | undefined>
+空间 WebGAL 实时渲染设置会保存以下字段：
+
+- `ttsApiUrl`
+- `ttsVoiceId`
+- `ttsInstruct`
+
+## 官方后端启动
+
+VoiceBox 上游源码保持原样。Windows 本地运行使用项目自带的 `justfile`：
+
+```powershell
+cd D:\A_collection\voicebox
+just setup
+just dev-backend
 ```
 
-### 2. ChatRenderer.ts 修改
+部署域名调用本机服务时，在同一终端中配置允许来源后启动：
 
-**文件位置**: `app/webGAL/chatRenderer.ts`
-
-**主要更改**:
-- 修改了 `uploadVocal` 调用，传递参考音频文件：
-  ```typescript
-  vocalFileName = await this.sceneEditor.uploadVocal(
-    { ...messageResponse, message: { ...messageResponse.message, content: segment } }, 
-    this.renderProps.referenceAudio
-  );
-  ```
-
-### 3. RenderProps 接口统一
-
-**文件位置**: `app/components/chat/window/renderWindow.tsx`
-
-**主要更改**:
-- 在 `RenderProps` 接口中添加了 `referenceAudio?: File` 字段，与 `roomSettingWindow.tsx` 保持一致
-
-## 新的语音生成流程
-
-1. **用户上传参考音频**: 在房间设置窗口中，用户可以上传参考音频文件
-2. **传递参考音频**: 渲染过程中，参考音频会传递给 `uploadVocal` 方法
-3. **TTS 生成**: 使用新的 TTS API (`generateSpeechSimple`) 生成语音
-4. **文件缓存**: 使用 hash 作为文件名，避免重复生成
-5. **上传到 WebGAL**: 将生成的音频文件上传到 WebGAL 引擎
-
-## 兼容性
-
-- **向后兼容**: 如果没有提供参考音频，系统会优雅地跳过语音生成
-- **错误处理**: 添加了完善的错误处理，TTS 生成失败时不会影响其他功能
-- **缓存机制**: 保持了原有的文件缓存机制，避免重复生成相同内容的语音
-
-## 配置要求
-
-确保在 `.env.development` 文件中配置了正确的 TTS 服务 URL：
-```env
-VITE_TTS_URL=http://localhost:8000
+```powershell
+$env:VOICEBOX_CORS_ORIGINS="https://你的团剧共创域名"
+just dev-backend
 ```
 
-## 使用方式
+多个来源使用英文逗号分隔。VoiceBox 默认允许 `localhost:5173`、`127.0.0.1:5173`、VoiceBox 自身和 Tauri 来源。
 
-1. 在房间设置中启用语音合成功能
-2. 上传参考音频文件（可选）
-3. 开始渲染，系统会自动使用新的 TTS API 生成语音
+## 实时渲染行为
 
-## 注意事项
+- 普通角色文本在启用 TTS 后自动生成配音。
+- 旁白、开场文字、语音消息和非文本消息跳过自动生成。
+- 缓存键包含 API 地址、音色、语言、风格指令和文本。
+- 生成结果以 `voicebox_<hash>.wav` 上传到当前实时工程的 `game/vocal`。
+- 强制重新生成会跳过现有 WAV 缓存。
+- Profile 在 VoiceBox 中被删除后，客户端会清理本地缓存、重新创建并重试一次。
+- 单条配音失败会记录警告，文本渲染继续执行。
 
-- 参考音频文件是可选的，如果没有提供，会跳过语音生成
-- TTS 生成过程是异步的，会有适当的错误处理
-- 生成的语音文件会自动缓存，避免重复生成
-- 新的 TTS API 支持更多的情感控制选项，当前使用默认设置
+## 浏览器访问
+
+线上 Web 页面访问本机 `127.0.0.1:17493` 时，需要同时满足 VoiceBox CORS 放行和浏览器本地网络访问策略。首次访问出现本地网络授权提示时，需要允许该站点访问本机服务。

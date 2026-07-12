@@ -23,7 +23,11 @@ export type RoleAvatarVariant = {
      * 基准立绘头像 ID
      */
     baseAvatarId?: number;
+    /**
+     * WebGAL 合成配置
+     */
     compositionConfig?: RoleAvatarVariantCompositionConfig;
     createTime?: string;
     updateTime?: string;
 };
+

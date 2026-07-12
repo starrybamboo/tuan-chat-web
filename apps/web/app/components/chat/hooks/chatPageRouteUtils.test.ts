@@ -118,8 +118,8 @@ describe("chatPageRouteUtils", () => {
       expect(resolvePrivateChatTab("unknown")).toBe("chat");
     });
 
-    it("keeps friends and new-friends tabs", () => {
-      expect(resolvePrivateChatTab("friends")).toBe("friends");
+    it("maps the legacy friends tab to chat and keeps new-friends", () => {
+      expect(resolvePrivateChatTab("friends")).toBe("chat");
       expect(resolvePrivateChatTab("new-friends")).toBe("new-friends");
     });
   });
@@ -131,7 +131,7 @@ describe("chatPageRouteUtils", () => {
     });
 
     it("keeps the requested tab when no private room is selected", () => {
-      expect(resolvePrivateChatTabForRoute({ activeRoomId: null, tabParam: "friends" })).toBe("friends");
+      expect(resolvePrivateChatTabForRoute({ activeRoomId: null, tabParam: "friends" })).toBe("chat");
       expect(resolvePrivateChatTabForRoute({ activeRoomId: undefined, tabParam: "new-friends" })).toBe("new-friends");
     });
   });

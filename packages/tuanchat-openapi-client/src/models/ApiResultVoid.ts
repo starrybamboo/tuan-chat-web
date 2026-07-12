@@ -21,5 +21,6 @@ export type ApiResultVoid = {
     /**
      * 返回对象
      */
-    data?: Record<string, any>;
+    data?: any;
 };
+

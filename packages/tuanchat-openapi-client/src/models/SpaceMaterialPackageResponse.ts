@@ -55,6 +55,9 @@ export type SpaceMaterialPackageResponse = {
      * 消息总数
      */
     messageCount?: number;
+    /**
+     * 素材包内容
+     */
     content?: MaterialPackageContent;
     /**
      * 创建时间
@@ -65,3 +68,4 @@ export type SpaceMaterialPackageResponse = {
      */
     updateTime?: string;
 };
+

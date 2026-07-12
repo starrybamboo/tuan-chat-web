@@ -23,6 +23,11 @@ import { renderProBottomSettingsDrawerContent } from "@/components/aiImage/sideb
 import { ProEditorContent } from "@/components/aiImage/sidebar/ProEditorContent";
 import { renderResolutionGlyph as renderResolutionGlyphContent } from "@/components/aiImage/sidebar/renderResolutionGlyph";
 import { SimpleEditorContent } from "@/components/aiImage/sidebar/SimpleEditorContent";
+import { Button, buttonClassName } from "@/components/common/Button";
+import { controlGroupClassName } from "@/components/common/ControlGroup";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
+import { formControlClassName, TextInput } from "@/components/common/FormField";
+import { Badge } from "@/components/common/StatusPrimitives";
 import { useDelayedPresence } from "@/components/aiImage/sidebar/useDelayedPresence";
 import { useDismissibleLayer } from "@/components/aiImage/sidebar/useDismissibleLayer";
 import { useFloatingPanelPosition } from "@/components/aiImage/sidebar/useFloatingPanelPosition";
@@ -216,10 +221,13 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     });
   }, [charPromptTabs, handleUpdateV4Char, isToggleLineCommentShortcut]);
 
-  const sideCardClassName = "card border-x-0 border-b border-t-0 border-base-300 bg-base-100 shadow-none";
+  const sideCardClassName = surfaceClassName({ level: "content", className: "border-x-0 border-b border-t-0 border-base-300 shadow-none" });
   const editorPanelClassName = "rounded-2xl border border-base-300 bg-base-100 p-3 shadow-none";
-  const segmentedControlClassName = "join rounded-xl bg-transparent p-0";
-  const segmentedButtonBaseClassName = "btn btn-xs join-item border-0";
+  const segmentedControlClassName = controlGroupClassName({ className: "bg-transparent p-0" });
+  const segmentedButtonBaseClassName = buttonClassName({
+    size: "xs",
+    className: "border-0",
+  });
   const featureUploadActionClassName = "inline-flex size-11 items-center justify-center rounded-md border border-base-300 bg-base-100 text-base-content/78 transition hover:border-info/40 hover:bg-base-200 hover:text-info focus:outline-none focus:ring-2 focus:ring-info/20";
   const characterAddTriggerClassName = "inline-flex h-8 items-center gap-1 rounded-md border border-base-300 bg-base-100 px-2.5 text-xs font-semibold text-base-content transition hover:border-info/40 hover:bg-base-200 hover:text-info focus:outline-none focus:ring-2 focus:ring-info/20";
   const characterAddMenuPanelClassName = "absolute right-0 top-0 z-30 w-36 overflow-hidden rounded-md border border-base-300 bg-base-100 shadow-2xl";
@@ -229,17 +237,23 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
   const characterCardTitleIconClassName = "size-4 shrink-0 text-base-content/80";
   const characterPositionsSectionClassName = "flex items-center justify-between gap-3 bg-base-100 py-3 pr-4";
   const characterPositionsToggleBaseClassName = "inline-flex h-9 min-w-28 items-center justify-center rounded-md border px-3 text-sm font-semibold transition whitespace-nowrap focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-info/30";
-  const promptTextareaClassName = "textarea textarea-bordered min-h-36 w-full resize-none border-base-300 bg-base-200 text-base-content leading-7 transition-colors hover:border-info active:border-info focus:border-info focus:bg-info/[0.03] focus:outline-none   dark:hover:border-info";
+  const promptTextareaClassName = formControlClassName({
+    surface: "muted",
+    className: "min-h-36 resize-none leading-7 hover:border-info active:border-info focus:bg-info/[0.03] dark:hover:border-info",
+  });
   const simplePromptTextareaClassName = promptTextareaClassName;
-  const subtleInputClassName = "input input-bordered input-sm border-base-300 bg-base-200 text-base-content  ";
-  const subtleSelectClassName = "select select-bordered select-sm border-base-300 bg-base-200 text-base-content  ";
+  const subtleSelectClassName = formControlClassName({ density: "compact", surface: "muted" });
   const simpleResolutionValueInputClassName = "min-w-0 appearance-none bg-transparent text-center text-xs font-semibold leading-none tabular-nums text-base-content focus:outline-none focus:ring-2 focus:ring-info/30 [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
   const highlightPromptSurfaceClassName = "relative min-h-36 w-full overflow-hidden border border-base-300 bg-base-200 shadow-none transition-colors hover:border-info active:border-info focus-within:border-info focus-within:bg-info/[0.03]   dark:hover:border-info";
   const highlightPromptContentClassName = "min-h-36 px-3 py-2 text-sm leading-6";
   const highlightCharSurfaceClassName = "relative min-h-28 w-full overflow-hidden border border-base-300 bg-base-200 shadow-none transition-colors hover:border-info active:border-info focus-within:border-info focus-within:bg-info/[0.03]   dark:hover:border-info";
   const highlightCharContentClassName = "min-h-28 px-3 py-2 text-sm leading-6";
   const infillAppendInputClassName = "block w-full resize-none overflow-hidden rounded-md border border-base-300 bg-base-200 px-3 py-2 text-sm leading-6 text-base-content transition focus:border-info focus:outline-none focus:ring-2 focus:ring-info/20  ";
-  const floatingInputActionBaseClassName = "btn btn-xs btn-ghost border-0 bg-transparent px-2 text-base-content/50 shadow-none transition-colors backdrop-blur-0 hover:bg-black/28 hover:text-white focus-visible:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:text-base-content/50 dark:hover:bg-white/12";
+  const floatingInputActionBaseClassName = buttonClassName({
+    variant: "ghost",
+    size: "xs",
+    className: "border-0 bg-transparent px-2 text-base-content/50 shadow-none transition-colors backdrop-blur-0 hover:bg-black/28 hover:text-white focus-visible:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:text-base-content/50 dark:hover:bg-white/12",
+  });
   const floatingInputActionClassName = `${floatingInputActionBaseClassName} absolute right-3 top-3 z-10`;
   const baseImageToggleButtonClassName = "inline-flex size-11 items-center justify-center bg-transparent text-base-content/60 transition hover:text-base-content focus:outline-none focus:ring-2 focus:ring-info/30 focus-visible:text-base-content dark:text-white/58 dark:hover:text-white dark:focus-visible:text-white";
   const baseImageActionButtonClassName = "inline-flex h-11 items-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 text-sm font-semibold text-base-content transition hover:border-info/40 hover:bg-base-200 hover:text-info focus:outline-none focus:ring-2 focus:ring-info/20";
@@ -553,8 +567,6 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
       seed,
       sampler,
       samplerOptions,
-      subtleInputClassName,
-      subtleSelectClassName,
       noiseScheduleOptions,
       noiseSchedule,
       isNAI4,
@@ -763,7 +775,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
             )
           : null}
         <div className={sideCardClassName}>
-          <div className="card-body p-4">
+          <div className="p-4">
             <div className="mb-3 flex items-stretch gap-2">
               <button
                 type="button"
@@ -853,13 +865,13 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                               text-sm font-medium text-base-content
                             ">模式选择</div>
                           </div>
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-xs"
+                          <Button
+                            variant="ghost"
+                            size="xs"
                             onClick={closeModeSelector}
                           >
                             关闭
-                          </button>
+                          </Button>
                         </div>
                         <div className="flex flex-col gap-2">
                           {MODE_OPTIONS.map(option => (
@@ -910,7 +922,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
 
         <div className={sideCardClassName}>
           <div className={`
-            card-body p-4
+            p-4
             ${uiMode === "simple" && isSimpleTagsEditor ? `gap-2` : `gap-3`}
           `}>
             {uiMode === "simple"
@@ -929,7 +941,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
           </div>
         </div>
         <div className={sideCardClassName}>
-          <div className="card-body gap-3 p-4">
+          <div className="flex flex-col gap-3 p-4">
             <div className="flex items-center gap-2">
               <div className="font-medium">绘图设置</div>
             </div>
@@ -1021,8 +1033,10 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                         items-center gap-1 border border-base-300
                         bg-base-200 px-3 py-2 shadow-sm
                                                ">
-                        <input
-                          className={simpleResolutionValueInputClassName}
+                        <TextInput
+                          appearance="bare"
+                          density="compact"
+                          className={`!min-h-0 !p-0 ${simpleResolutionValueInputClassName}`}
                           type="number"
                           min={1}
                           step={64}
@@ -1033,8 +1047,10 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                         <span className="
                           text-center text-xs font-medium text-base-content/55
                         ">×</span>
-                        <input
-                          className={simpleResolutionValueInputClassName}
+                        <TextInput
+                          appearance="bare"
+                          density="compact"
+                          className={`!min-h-0 !p-0 ${simpleResolutionValueInputClassName}`}
                           type="number"
                           min={1}
                           step={64}
@@ -1055,15 +1071,14 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                       ">
                         <span>种子 (Seed)</span>
                       </div>
-                      <input
-                        className={`
-                          h-8 w-full appearance-none
-                          focus:border-info focus:outline-none focus:ring-2
-                          focus:ring-info/20
+                      <TextInput
+                        density="compact"
+                        surface="muted"
+                        className="
+                          h-8 appearance-none
                           [&::-webkit-inner-spin-button]:appearance-none
                           [&::-webkit-outer-spin-button]:appearance-none
-                          ${subtleInputClassName}
-                        `}
+                        "
                         type="number"
                         value={seedIsRandom ? "" : seed}
                         onChange={(e) => {
@@ -1161,8 +1176,10 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                         items-center gap-1 border border-base-300
                         bg-base-200 px-3 py-2 shadow-sm
                                                ">
-                        <input
-                          className={simpleResolutionValueInputClassName}
+                        <TextInput
+                          appearance="bare"
+                          density="compact"
+                          className={`!min-h-0 !p-0 ${simpleResolutionValueInputClassName}`}
                           type="number"
                           min={1}
                           step={64}
@@ -1183,8 +1200,10 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                         >
                           ×
                         </button>
-                        <input
-                          className={simpleResolutionValueInputClassName}
+                        <TextInput
+                          appearance="bare"
+                          density="compact"
+                          className={`!min-h-0 !p-0 ${simpleResolutionValueInputClassName}`}
                           type="number"
                           min={1}
                           step={64}
@@ -1251,17 +1270,13 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
       {uiMode === "simple" || uiMode === "pro"
         ? (
             <div className="shrink-0 bg-base-100 p-4 backdrop-blur">
-              <button
-                type="button"
+              <Button
+                variant={uiMode === "simple" ? "ghost" : "primary"}
                 className={`
-                  btn h-12 w-full justify-between border px-4
+                  h-12 w-full justify-between border px-4
                   disabled:border-base-300 disabled:bg-base-200
                   disabled:text-base-content/50
-                  ${
-                  uiMode === "simple"
-                    ? simplePrimaryActionToneClassName
-                    : "btn-primary"
-                }
+                  ${uiMode === "simple" ? simplePrimaryActionToneClassName : ""}
                 `}
                 disabled={uiMode === "simple" ? !canTriggerSimplePrimaryAction : !canTriggerProGenerate}
                 title={uiMode === "pro" && freeGenerationViolation ? freeGenerationViolation : undefined}
@@ -1282,13 +1297,12 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                   ? (
                       hasReadySimpleTags
                         ? (
-                            <span className={`
-                              badge badge-sm badge-outline px-2 py-1 text-xs
-                              font-semibold
+                            <Badge appearance="outline" className={`
+                              px-2 py-1 font-semibold
                               ${simplePrimaryActionBadgeClassName}
                             `}>
                               1x
-                            </span>
+                            </Badge>
                           )
                         : (
                             simpleConverting
@@ -1297,14 +1311,11 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                           )
                     )
                   : (
-                      <span className="
-                        badge badge-sm badge-outline px-2 py-1 text-xs
-                        font-semibold text-current
-                      ">
+                      <Badge appearance="outline" className="px-2 py-1 font-semibold text-current">
                         {`${imageCount}x`}
-                      </span>
+                      </Badge>
                     )}
-              </button>
+              </Button>
             </div>
           )
         : null}

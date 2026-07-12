@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+import { TextInput } from "@/components/common/FormField";
+
 export type WorkflowConditionEditorProps = {
   initialValue: string;
   onCancel: () => void;
@@ -21,7 +23,7 @@ export default function WorkflowConditionEditor({
           <label htmlFor="workflow-condition-input" className="
             mb-2 block text-center text-sm font-medium text-base-content/70
           ">修改后的工作流条件：</label>
-          <input
+          <TextInput
             id="workflow-condition-input"
             type="text"
             autoComplete="off"

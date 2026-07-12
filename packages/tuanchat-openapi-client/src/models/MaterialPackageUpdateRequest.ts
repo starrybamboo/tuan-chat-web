@@ -27,5 +27,9 @@ export type MaterialPackageUpdateRequest = {
      * 是否公开
      */
     isPublic: boolean;
+    /**
+     * 素材包树形内容
+     */
     content: MaterialPackageContent;
 };
+

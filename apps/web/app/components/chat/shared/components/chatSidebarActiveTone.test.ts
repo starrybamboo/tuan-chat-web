@@ -1,13 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { getChatSidebarActiveButtonClass } from "./chatSidebarActiveTone";
+import { chatSidebarFocusClassName } from "./chatSidebarActiveTone";
 
-describe("getChatSidebarActiveButtonClass", () => {
-  it("展开态使用信息色突出当前入口", () => {
-    expect(getChatSidebarActiveButtonClass("default")).toBe("border-info/40 text-info");
-  });
-
-  it("折叠可点击态使用警告色提示可展开", () => {
-    expect(getChatSidebarActiveButtonClass("collapsed")).toBe("text-warning");
+describe("聊天侧栏按钮状态", () => {
+  it("仅保留键盘焦点环，不绘制按钮选中层", () => {
+    expect(chatSidebarFocusClassName).toContain("focus-visible:ring-2");
   });
 });

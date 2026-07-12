@@ -1,8 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { appToast } from "@/components/common/appToast/appToast";
 
 import type { SecurityTab } from "@/components/profile/profileTab/components/AccountSecurityModal";
 
+import {
+  CHAT_STATUS_LABEL_MAX_LENGTH,
+  DEFAULT_CHAT_STATUS_LABELS,
+  normalizeChatStatusDescription,
+  readChatStatusLabelsFromLocalStorage,
+  writeChatStatusLabelsToLocalStorage,
+} from "@/components/chat/chatStatusLabels";
+import { appToast } from "@/components/common/appToast/appToast";
+import { Button } from "@/components/common/Button";
+import { Switch, TextInput } from "@/components/common/FormField";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { AccountSecurityModal } from "@/components/profile/profileTab/components/AccountSecurityModal";
 import {
@@ -17,6 +26,8 @@ import {
 } from "@/components/settings/notificationPreferences";
 import { useGetMyUserInfoQuery, useUpdateUserInfoMutation } from "api/hooks/UserHooks";
 
+import type { ChatStatusType } from "../../../api/wsModels";
+
 export default function SettingsPage() {
   const currentUserId = useGlobalUserId() ?? -1;
   const isLoggedIn = currentUserId > 0;
@@ -30,6 +41,7 @@ export default function SettingsPage() {
   const [groupMessagePopupEnabled, setGroupMessagePopupEnabled] = useState(localDefaultGroupPopupEnabled);
   const [feedbackInAppEnabled, setFeedbackInAppEnabled] = useState(localDefaultFeedbackInAppEnabled);
   const [feedbackDesktopEnabled, setFeedbackDesktopEnabled] = useState(localDefaultFeedbackDesktopEnabled);
+  const [chatStatusLabels, setChatStatusLabels] = useState(() => readChatStatusLabelsFromLocalStorage());
   const [initializedFromServer, setInitializedFromServer] = useState(false);
   const [accountSecurityState, setAccountSecurityState] = useState<{
     isOpen: boolean;
@@ -138,6 +150,21 @@ export default function SettingsPage() {
     }));
   };
 
+  const updateChatStatusLabel = (status: ChatStatusType, value: string) => {
+    const nextLabel = normalizeChatStatusDescription(status, value);
+    setChatStatusLabels((prev) => {
+      const next = { ...prev, [status]: nextLabel };
+      writeChatStatusLabelsToLocalStorage(next);
+      return next;
+    });
+  };
+
+  const resetChatStatusLabels = () => {
+    setChatStatusLabels(DEFAULT_CHAT_STATUS_LABELS);
+    writeChatStatusLabelsToLocalStorage(DEFAULT_CHAT_STATUS_LABELS);
+    appToast.success("聊天状态文案已恢复默认");
+  };
+
   return (
     <div className="mx-auto w-full max-w-3xl p-6">
       <div className="rounded-2xl border border-base-300 bg-base-100 shadow-sm">
@@ -159,9 +186,7 @@ export default function SettingsPage() {
               <div className="font-medium">其他群聊新消息弹窗</div>
               <div className="mt-1 text-sm opacity-70">开启后，当前未打开的其他群聊来消息时会弹出提示，点击可跳转。</div>
             </div>
-            <input
-              type="checkbox"
-              className="toggle toggle-info"
+            <Switch
               checked={groupMessagePopupEnabled}
               disabled={updateUserInfoMutation.isPending}
               onChange={e => void onGroupMessagePopupToggle(e.target.checked)}
@@ -179,9 +204,7 @@ export default function SettingsPage() {
               <div className="font-medium">反馈站内提醒</div>
               <div className="mt-1 text-sm opacity-70">开启后，收到反馈通知时会在页面内弹出提醒卡片。</div>
             </div>
-            <input
-              type="checkbox"
-              className="toggle toggle-info"
+            <Switch
               checked={feedbackInAppEnabled}
               disabled={updateUserInfoMutation.isPending}
               onChange={e => void onFeedbackInAppToggle(e.target.checked)}
@@ -199,9 +222,7 @@ export default function SettingsPage() {
               <div className="font-medium">反馈桌面通知</div>
               <div className="mt-1 text-sm opacity-70">开启后，后台页签收到反馈通知时会尝试弹系统桌面通知。</div>
             </div>
-            <input
-              type="checkbox"
-              className="toggle toggle-info"
+            <Switch
               checked={feedbackDesktopEnabled}
               disabled={updateUserInfoMutation.isPending}
               onChange={e => void onFeedbackDesktopToggle(e.target.checked)}
@@ -214,25 +235,55 @@ export default function SettingsPage() {
         </div>
 
         <div className="border-t border-base-300 px-6 py-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-medium">聊天状态文案</h2>
+              <p className="mt-1 text-sm opacity-70">仅修改本机显示文案，不改变聊天状态协议。</p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={resetChatStatusLabels}>
+              恢复默认
+            </Button>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {(Object.keys(DEFAULT_CHAT_STATUS_LABELS) as ChatStatusType[]).map(status => (
+              <label
+                key={status}
+                className="rounded-xl border border-base-300 px-4 py-3"
+              >
+                <span className="text-xs font-medium uppercase tracking-wide opacity-55">{status}</span>
+                <TextInput
+                  density="compact"
+                  type="text"
+                  className="mt-2"
+                  maxLength={CHAT_STATUS_LABEL_MAX_LENGTH}
+                  value={chatStatusLabels[status]}
+                  onChange={event => updateChatStatusLabel(status, event.target.value)}
+                />
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="border-t border-base-300 px-6 py-5">
           <h2 className="text-lg font-medium">账号安全</h2>
           <p className="mt-1 text-sm opacity-70">修改密码、绑定或换绑邮箱请在这里操作。</p>
           <div className="mt-4 flex flex-wrap gap-3">
-            <button
-              type="button"
-              className="btn btn-outline btn-info"
+            <Button
+              variant="outline"
+              className="border-info/45 text-info hover:border-info/70 hover:bg-info/10"
               onClick={() => openAccountSecurity("password")}
               disabled={!isLoggedIn}
             >
               修改密码
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline btn-info"
+            </Button>
+            <Button
+              variant="outline"
+              className="border-info/45 text-info hover:border-info/70 hover:bg-info/10"
               onClick={() => openAccountSecurity("email")}
               disabled={!isLoggedIn}
             >
               绑定/换绑邮箱
-            </button>
+            </Button>
           </div>
           {!isLoggedIn
             ? <p className="mt-3 text-xs text-warning">请先登录后再修改账号安全信息。</p>

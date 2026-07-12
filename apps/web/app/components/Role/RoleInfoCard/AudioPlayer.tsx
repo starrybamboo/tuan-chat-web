@@ -3,6 +3,7 @@
 import type { MouseEvent } from "react";
 
 import AudioMessage from "@/components/chat/message/media/AudioMessage";
+import { IconButton } from "@/components/common/IconButton";
 
 import type { Role } from "../types";
 
@@ -57,27 +58,23 @@ export default function AudioPlayer({ role, size = "default", onRoleUpdate, onDe
             />
           </div>
 
-          <button
-            type="button"
-            className={`
-              btn
-              ${isCompact ? "btn-xs" : "btn-sm"}
-              btn-ghost btn-circle text-error
-              hover:bg-error/10
-            `}
+          <IconButton
+            size={isCompact ? "xs" : "sm"}
+            label="删除角色音频"
+            className="text-error hover:bg-error/10"
             onClick={handleDeleteAudio}
             title="删除音频"
-            aria-label="删除角色音频"
-          >
-            <svg className={isCompact ? "size-3.5" : "size-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-              />
-            </svg>
-          </button>
+            icon={(
+              <svg className={isCompact ? "size-3.5" : "size-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+            )}
+          />
         </div>
       </div>
     </div>

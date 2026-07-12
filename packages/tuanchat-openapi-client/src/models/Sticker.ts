@@ -2,9 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * 返回对象
- */
 export type Sticker = {
     stickerId?: number;
     userId?: number;
@@ -18,3 +15,4 @@ export type Sticker = {
     createTime?: string;
     updateTime?: string;
 };
+

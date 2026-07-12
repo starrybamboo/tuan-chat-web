@@ -29,7 +29,6 @@ pnpm dev:force
 pnpm build
 pnpm start
 pnpm test
-pnpm test:e2e
 pnpm test:coverage
 pnpm lint
 pnpm lint:fix
@@ -44,9 +43,8 @@ pnpm openapi
 - `pnpm dev:force`：清理隔离的 Vite optimize deps 缓存后启动开发服务。
 - `pnpm build`：构建 Web 产物。
 - `pnpm start`：服务化运行已构建产物；运行前需要先 `pnpm build`。
-- `pnpm test`：运行 Web 端 `*.test.ts` Vitest 单元测试，不包含 `*.e2e.test.ts`。
+- `pnpm test`：运行 Web 端 Vitest 单元测试。
 - `pnpm test:coverage`：运行同一组 Web Vitest 测试并启用 V8 覆盖率阈值，当前阈值为行、分支、函数、语句各 70%。
-- `pnpm test:e2e`：运行 `*.e2e.test.ts` 浏览器端测试。
 - `pnpm lint` / `pnpm typecheck`：默认覆盖 repo、Web 与桌面端；需要连同移动端一起验收时使用 `pnpm lint:all` / `pnpm typecheck:all`。
 - `pnpm openapi`：从 `packages/tuanchat-openapi-client/tuanchat_OpenAPI.json` 重新生成 OpenAPI client，并执行结果守卫补丁。
 
@@ -90,42 +88,6 @@ VITE_TERRE_WS=ws://localhost:3001/api/webgalsync
 ```
 
 除非明确需要调整 WebGAL_Terre 联动地址，否则不要修改这两个变量。
-
-## 自动测试登录态
-
-需要跑依赖登录态的 Playwright、Codex Browser 或 Computer Use 测试时，不要反复走登录页 UI。先在本机 `.env.development.local` 配置测试账号：
-
-```plain text
-TC_E2E_USER_ID=10001
-TC_E2E_PASSWORD=<本地测试账号密码>
-TC_E2E_LOGIN_METHOD=userId
-TC_E2E_API_BASE_URL=http://localhost:8081
-TC_E2E_APP_ORIGIN=http://localhost:5177
-```
-
-后端可用后运行：
-
-```bash
-pnpm test:e2e:auth-state
-```
-
-脚本会调用 `/user/login`，并把 Playwright 可复用的本机登录态写到 `.auth/e2e-storage-state.json`。`.auth/` 是固定的本机认证缓存目录，已被 gitignore 忽略，不要提交。
-
-Playwright 测试复用方式：
-
-```ts
-const context = await browser.newContext({
-  storageState: ".auth/e2e-storage-state.json",
-});
-```
-
-已经打开页面的 Browser / Computer Use 测试可生成页面注入脚本：
-
-```bash
-pnpm e2e:browser-auth-snippet -- --output .auth/e2e-browser-auth-snippet.js
-```
-
-在目标页面执行生成脚本即可写入同一份 `token` / `uid` 并自动刷新页面。目标页面 origin 必须与 `TC_E2E_APP_ORIGIN` 一致；如果 storageState 中有多个 origin，可加 `--origin http://localhost:5177` 指定。
 
 ## OpenAPI 与共享包
 
@@ -213,7 +175,7 @@ scripts/                     仓库级开发、生成、导入脚本
 
 ## 开发约定
 
-- 新增或修改测试文件后，按影响范围运行对应 Vitest、e2e 或 package 测试；不要因为局部测试改动默认扩大到全量。
+- 新增或修改测试文件后，按影响范围运行对应 Vitest 或 package 测试；不要因为局部测试改动默认扩大到全量。
 - 修改 Web / 桌面端 / 根配置后，优先运行相关 Vitest 目标、相关 `lint` / `typecheck` 或更小范围的验收；只有改动触及共享基础逻辑、构建配置、跨模块契约，或明确要求完整验收时，才运行 `pnpm test`、`pnpm lint`、`pnpm typecheck` 全量组合。
 - 修改移动端代码时，优先运行 `pnpm lint:mobile`、`pnpm typecheck:mobile` 或受影响共享逻辑的对应测试；需要覆盖所有端时再使用 `pnpm lint:all` / `pnpm typecheck:all`。
 - 仅修改文档时至少运行 `pnpm encoding:check`。

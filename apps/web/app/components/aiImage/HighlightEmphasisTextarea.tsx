@@ -2,6 +2,8 @@ import type { MutableRefObject, TextareaHTMLAttributes } from "react";
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef } from "react";
 
+import { TextArea } from "@/components/common/FormField";
+
 type SegmentTone = "neutral" | "strengthen" | "weaken" | "inverse";
 type SegmentKind = "text" | "syntax" | "numeric-close" | "comment";
 
@@ -355,8 +357,9 @@ export function HighlightEmphasisTextarea({
           )
         : null}
 
-      <textarea
+      <TextArea
         {...textareaProps}
+        appearance="bare"
         id={textareaId}
         ref={handleTextareaRef}
         aria-label={ariaLabel ?? placeholder}
@@ -366,7 +369,7 @@ export function HighlightEmphasisTextarea({
         placeholder={highlightEnabled ? "" : placeholder}
         className={`
           ${contentClassName}
-          whitespace-pre-wrap break-words relative z-10 block w-full resize-none
+          whitespace-pre-wrap break-words relative z-10 block w-full !min-h-0 resize-none
           overflow-hidden bg-transparent
           focus:outline-none focus:ring-2 focus:ring-info/30
           ${

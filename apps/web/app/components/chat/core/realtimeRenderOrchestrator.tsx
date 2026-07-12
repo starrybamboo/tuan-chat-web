@@ -1,6 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { appToast } from "@/components/common/appToast/appToast";
 
 import {
   getMaxRenderedMessagePosition,
@@ -13,6 +12,8 @@ import {
 } from "@/components/chat/core/realtimeRenderGuards";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
+import { appToast } from "@/components/common/appToast/appToast";
+import { DEFAULT_VOICEBOX_API_URL } from "@/tts/engines/voicebox/api";
 import { isImageMessageBackground } from "@/types/messageAnnotations";
 import launchWebGal, { appendWebgalLaunchHints } from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
@@ -91,17 +92,18 @@ export default function RealtimeRenderOrchestrator({
   const realtimeAutoAdvanceEnabled = useRealtimeRenderStore(state => state.autoAdvanceEnabled);
   const realtimeGameConfig = useRealtimeRenderStore(state => state.gameConfig);
   const ttsApiUrl = useRealtimeRenderStore(state => state.ttsApiUrl);
+  const ttsVoiceId = useRealtimeRenderStore(state => state.ttsVoiceId);
+  const ttsInstruct = useRealtimeRenderStore(state => state.ttsInstruct);
 
   const realtimeTTSConfig = useMemo(() => ({
     enabled: realtimeTTSEnabled,
-    engine: "index" as const,
-    apiUrl: ttsApiUrl || undefined,
-    emotionMode: 2,
-    emotionWeight: 0.8,
-    temperature: 0.8,
-    topP: 0.8,
-    maxTokensPerSegment: 120,
-  }), [realtimeTTSEnabled, ttsApiUrl]);
+    engine: "voicebox" as const,
+    apiUrl: ttsApiUrl.trim() || DEFAULT_VOICEBOX_API_URL,
+    voiceId: ttsVoiceId,
+    language: "zh" as const,
+    instruct: ttsInstruct.trim() || undefined,
+    modelSize: "0.6B" as const,
+  }), [realtimeTTSEnabled, ttsApiUrl, ttsInstruct, ttsVoiceId]);
 
   const realtimeRender = useRealtimeRender({
     spaceId,
@@ -498,7 +500,7 @@ export default function RealtimeRenderOrchestrator({
     }
     catch (error) {
       console.error("[RealtimeRender] 同步 WebGAL 顺序失败:", error);
-      appToast.error("WebGAL 顺序同步失败", { id: "webgal-rerender-history" });
+      appToast.error("WebGAL 顺序同步失败，请重新打开实时渲染后重试", { id: "webgal-rerender-history" });
       return false;
     }
     finally {

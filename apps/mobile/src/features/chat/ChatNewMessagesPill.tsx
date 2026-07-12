@@ -1,11 +1,15 @@
 import { ArrowDown } from "phosphor-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
-import Animated, { useAnimatedStyle, withTiming } from "react-native-reanimated";
+import Animated, { ReduceMotion, useAnimatedStyle, withTiming } from "react-native-reanimated";
 
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
 const FAB_SIZE = 40;
+const VISIBILITY_ANIMATION_CONFIG = {
+  duration: 200,
+  reduceMotion: ReduceMotion.System,
+};
 
 const styles = StyleSheet.create({
   fab: {
@@ -40,9 +44,9 @@ export function ChatNewMessagesPill({ count, onPress, visible }: ChatNewMessages
   const theme = useTheme();
 
   const animatedStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(visible ? 1 : 0, { duration: 200 }),
+    opacity: withTiming(visible ? 1 : 0, VISIBILITY_ANIMATION_CONFIG),
     transform: [
-      { scale: withTiming(visible ? 1 : 0.8, { duration: 200 }) },
+      { scale: withTiming(visible ? 1 : 0.8, VISIBILITY_ANIMATION_CONFIG) },
     ],
   }));
 

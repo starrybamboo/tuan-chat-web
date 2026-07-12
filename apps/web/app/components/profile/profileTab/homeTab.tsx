@@ -8,7 +8,7 @@ import { useGetUserProfileQuery } from "../../../../api/hooks/UserHooks";
 import { FollowStats } from "./components/FollowStats";
 import { ProfileEditPanel } from "./components/ProfileEditPanel";
 import { UserActions } from "./components/UserActions";
-import { UserAvatar } from "./components/UserAvatar";
+import { ProfileAvatarEditor } from "./components/ProfileAvatarEditor";
 import { UserProfile } from "./components/UserProfile";
 import { UserReadMe } from "./components/UserReadMe";
 import { useFollowData } from "./hooks/useFollowData";
@@ -48,7 +48,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
           ">
             {/* 头像和用户名 */}
             <div className="flex gap-4">
-              <UserAvatar
+              <ProfileAvatarEditor
                 user={user}
                 userId={userId}
                 loginUserId={loginUserId}
@@ -112,7 +112,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
               profileEditing={profileEditing}
               variant="desktop"
               avatar={(
-                <UserAvatar
+                <ProfileAvatarEditor
                   user={user}
                   userId={userId}
                   loginUserId={loginUserId}
@@ -162,3 +162,4 @@ const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
 };
 
 export default HomeTab;
+

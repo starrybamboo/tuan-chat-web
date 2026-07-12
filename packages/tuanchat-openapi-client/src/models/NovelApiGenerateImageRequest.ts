@@ -21,12 +21,13 @@ export type NovelApiGenerateImageRequest = {
     /**
      * 生图参数对象（透传到 NovelAI）
      */
-    parameters: Record<string, Record<string, any>>;
+    parameters: Record<string, any>;
     /**
      * 可选自定义 URL（为安全起见，服务端不会信任该字段）
      */
     url?: string;
-    img2ImgAction?: boolean;
     infillAction?: boolean;
     generateAction?: boolean;
+    img2ImgAction?: boolean;
 };
+

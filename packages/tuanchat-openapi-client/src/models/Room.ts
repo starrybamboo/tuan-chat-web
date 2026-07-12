@@ -51,6 +51,9 @@ export type Room = {
      * 其他信息
      */
     extra?: string;
+    /**
+     * DND 地图元数据
+     */
     dndMap?: RoomDndMapState;
     createTime?: string;
     updateTime?: string;
@@ -65,4 +68,6 @@ export type Room = {
     active?: boolean;
     archived?: boolean;
     docRoom?: boolean;
+    archiving?: boolean;
 };
+

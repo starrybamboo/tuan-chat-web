@@ -24,7 +24,6 @@ describe("invalidateRoleCreateQueries", () => {
     invalidateRoleCreateQueries(queryClient, 99);
 
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["spaceRole", 99] });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["spaceRepositoryRole", 99] });
   });
 
   it("创建普通角色时不会误伤空间角色缓存", () => {
@@ -49,5 +48,7 @@ describe("invalidateUpdatedRoleQueries", () => {
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["getUserRolesByTypes"] });
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["getUserRoles"] });
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["roomRole"] });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["roomRoles"] });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["roomNpcRole"] });
   });
 });

@@ -1,11 +1,16 @@
 import React from "react";
 
+import { maskClassName, selectionClassName } from "@/components/common/DesignLanguage";
 import { MediaImage } from "@/components/common/mediaImage";
+import { CountBadge, StatusIndicator } from "@/components/common/StatusPrimitives";
 import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/media/mediaUrl";
 
 import type { Room } from "../../../../../api";
 
+import { chatSidebarFocusClassName } from "./chatSidebarActiveTone";
 import { resolveEntityImageUrl } from "./entityImageUrl";
+
+const currentNavigationItemClassName = selectionClassName({ level: "strong" });
 
 export default function RoomButton({
   room,
@@ -34,10 +39,7 @@ export default function RoomButton({
   return (
     <div
       key={room.roomId}
-      className={`
-        group relative w-full min-w-0
-        ${isActive ? "text-base-content" : ""}
-      `}
+      className="group relative w-full min-w-0"
       draggable={draggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
@@ -45,31 +47,21 @@ export default function RoomButton({
       <button
         type="button"
         className={`
-          flex w-full min-w-0 items-center justify-start gap-2 rounded-lg p-1
-          pr-10 text-left text-sm font-bold select-none transition-colors
-          ${
-          isActive ? `
-            bg-info/15 text-base-content ring-1 ring-info/40
-            dark:bg-info/20 dark:ring-info/55
-          ` : `hover:bg-base-300`
-        }
+          relative flex w-full min-w-0 items-center justify-start gap-2 overflow-visible rounded-lg p-1
+          pr-10 text-left text-sm font-bold select-none transition-colors ${chatSidebarFocusClassName}
+          ${isActive ? currentNavigationItemClassName : "hover:bg-base-300"}
         `}
-        aria-pressed={isActive}
+        aria-current={isActive ? "page" : undefined}
         aria-label={`${isActive ? "当前房间" : "切换到房间"} ${displayName}${unreadCount > 0 ? `，${unreadCount > 99 ? "99 条以上" : unreadCount} 条未读` : ""}`}
         title={displayName}
         onClick={onclick}
       >
-        <div className="indicator">
-          {(!isActive && unreadCount > 0)
-            ? (
-                <span
-                  className="indicator-item badge badge-xs bg-error"
-                >
-                  {unreadCount}
-                </span>
-              )
+        <StatusIndicator
+          indicator={!isActive && unreadCount > 0
+            ? <CountBadge tone="error">{unreadCount > 99 ? "99+" : unreadCount}</CountBadge>
             : null}
-          <div className="mask mask-squircle size-8">
+        >
+          <div className={maskClassName({ className: "size-8" })}>
             <MediaImage
               src={displayAvatar}
               alt={displayName}
@@ -77,7 +69,7 @@ export default function RoomButton({
               fallbackSrc={fallbackAvatar}
             />
           </div>
-        </div>
+        </StatusIndicator>
         <span className="flex-1 min-w-0 truncate text-left">{displayName}</span>
       </button>
 

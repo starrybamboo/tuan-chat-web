@@ -2,7 +2,7 @@ import { createContext, use } from "react";
 
 import type { DocTcHeaderPayload, RoomSettingState, SelectRoomOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
 
-export type PrivateChatTab = "chat" | "friends" | "new-friends";
+export type PrivateChatTab = "chat" | "new-friends";
 
 export type ChatPageLayoutContextValue = {
   isPrivateChatMode: boolean;

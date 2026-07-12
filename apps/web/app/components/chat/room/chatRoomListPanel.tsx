@@ -1,13 +1,10 @@
-import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
+import { LayoutGroup } from "motion/react";
+import React, { useEffect, useMemo, useRef } from "react";
 
-import { PackageIcon } from "@phosphor-icons/react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
-
-import type { ActiveMaterialSelection, OpenSpaceDetailPanelOptions, SelectRoomOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
+import type { OpenSpaceDetailPanelOptions, SelectRoomOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
 
 import { partitionClueFolderRooms } from "@/components/chat/clues/clueRooms";
 import RoomSidebarCategory from "@/components/chat/room/roomSidebarCategory";
-import RoomSidebarMaterialPackageItem from "@/components/chat/room/roomSidebarMaterialPackageItem";
 import SidebarSection from "@/components/chat/room/sidebarSection";
 import usePersistedSidebarExpandedState from "@/components/chat/room/usePersistedSidebarExpandedState";
 import useRoomSidebarAddPanelState from "@/components/chat/room/useRoomSidebarAddPanelState";
@@ -19,28 +16,52 @@ import useRoomSidebarDocMetas from "@/components/chat/room/useRoomSidebarDocMeta
 import useRoomSidebarDragState from "@/components/chat/room/useRoomSidebarDragState";
 import useRoomSidebarDropHandler from "@/components/chat/room/useRoomSidebarDropHandler";
 import useRoomSidebarNormalizer from "@/components/chat/room/useRoomSidebarNormalizer";
-import useRoomSidebarSplitLayout, { ROOM_SIDEBAR_SPLIT_HANDLE_HEIGHT } from "@/components/chat/room/useRoomSidebarSplitLayout";
 import useRoomSidebarTreeActions from "@/components/chat/room/useRoomSidebarTreeActions";
 import useRoomSidebarTreeState from "@/components/chat/room/useRoomSidebarTreeState";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
-import MaterialPackageImportModal from "@/components/material/components/materialPackageImportModal";
-import { useMaterialEditorActionStore } from "@/components/material/stores/materialEditorActionStore";
+import { Skeleton } from "@/components/common/StatusPrimitives";
 import LeftChatList from "@/components/privateChat/LeftChatList";
 
 import type { Room } from "../../../../api";
 import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
 
-import {
-  getRoomSidebarMaterialSectionClassName,
-  shouldShowRoomSidebarSplitLayout,
-  shouldStretchRoomSidebarMaterialSection,
-} from "./chatRoomListPanelLayout";
-import { buildMaterialSidebarTree, collectMaterialExpandableKeys } from "./materialSidebarTree";
 import { collectExistingDocIds, collectExistingRoomIds } from "./sidebarTree";
 import SidebarTreeOverlays from "./sidebarTreeOverlays";
 
 const ROOM_DOC_SECTION_KEY = "section:room-docs";
-const MATERIAL_SECTION_KEY = "section:materials";
+
+function RoomDocTreeLoadingSkeleton() {
+  return (
+    <div
+      className="space-y-4 px-2 py-2 text-base-content/15"
+      aria-busy="true"
+      aria-label="正在加载频道与文档"
+    >
+      {[0, 1].map(sectionIndex => (
+        <div key={`room-doc-tree-skeleton-section-${sectionIndex}`} className="space-y-2">
+          <div className="flex items-center gap-2 px-1">
+            <Skeleton className="size-4 shrink-0" />
+            <Skeleton className={sectionIndex === 0 ? "h-3.5 w-28" : "h-3.5 w-20"} />
+          </div>
+          <div className="space-y-1">
+            {["w-10/12", "w-7/12", "w-8/12"].map((width, itemIndex) => (
+              <div
+                key={`room-doc-tree-skeleton-item-${sectionIndex}-${itemIndex}`}
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5"
+              >
+                <Skeleton className="size-8 shrink-0" />
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <Skeleton className={`h-3.5 ${width}`} />
+                  {itemIndex === 0 && <Skeleton className="h-2.5 w-5/12" />}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 type ChatRoomListPanelProps = {
   isPrivateChatMode: boolean;
@@ -62,14 +83,12 @@ type ChatRoomListPanelProps = {
   isSidebarTreeReady?: boolean;
   sidebarTreeRemoteUpdateKey?: string | null;
   docMetas?: MinimalDocMeta[];
-  materialPackages?: SpaceMaterialPackageResponse[];
   onSelectDoc?: (docId: string) => void;
   onDeleteDoc?: (docId: string) => void;
   onSaveSidebarTree?: (tree: SidebarTree) => void;
   onResetSidebarTreeToDefault?: () => void;
   activeRoomId: number | null;
   activeDocId?: string | null;
-  activeMaterialSelection?: ActiveMaterialSelection;
   unreadMessagesNumber: Record<number, number>;
 
   onContextMenu: (e: React.MouseEvent, roomId?: number | null) => void;
@@ -83,7 +102,6 @@ type ChatRoomListPanelProps = {
   setIsOpenLeftDrawer: (isOpen: boolean) => void;
 
   onOpenCreateInCategory: (categoryId: string) => void;
-  isKPInSpace: boolean;
   canViewDocs: boolean;
 }
 
@@ -95,21 +113,18 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     activeSpaceName,
     activeSpaceIsArchived,
     isSpaceOwner,
-    isKPInSpace,
     rooms,
     roomOrderIds,
     sidebarTree,
     isSidebarTreeReady = true,
     sidebarTreeRemoteUpdateKey,
     docMetas,
-    materialPackages,
     onSelectDoc,
     onDeleteDoc,
     onSaveSidebarTree,
     onResetSidebarTreeToDefault,
     activeRoomId,
     activeDocId,
-    activeMaterialSelection,
     unreadMessagesNumber,
     onContextMenu,
     onOpenRoomContextMenu,
@@ -144,25 +159,6 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     }
     return map;
   }, [mainRoomsInSpace]);
-
-  const materialSidebarPackages = useMemo(() => {
-    return (materialPackages ?? []).filter((item) => {
-      return typeof item.spacePackageId === "number" && Number.isFinite(item.spacePackageId);
-    });
-  }, [materialPackages]);
-
-  const materialTreeExpandableKeys = useMemo(() => {
-    const keys: string[] = [];
-    for (const item of materialSidebarPackages) {
-      const spacePackageId = item.spacePackageId as number;
-      keys.push(`material-package:${spacePackageId}`);
-      keys.push(...collectMaterialExpandableKeys(buildMaterialSidebarTree({
-        spacePackageId,
-        nodes: item.content?.root,
-      })));
-    }
-    return keys;
-  }, [materialSidebarPackages]);
 
   const orderedRoomIdsFallback = useMemo(() => {
     if (Array.isArray(roomOrderIds) && roomOrderIds.length > 0) {
@@ -229,17 +225,8 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     activeSpaceId,
     currentUserId,
     storageScope: "sidebar-sections",
-    validKeys: [ROOM_DOC_SECTION_KEY, MATERIAL_SECTION_KEY],
-    initialExpandedKeys: [ROOM_DOC_SECTION_KEY, MATERIAL_SECTION_KEY],
-  });
-  const {
-    expandedByKey: materialExpandedByKey,
-    toggleExpanded: toggleMaterialExpanded,
-  } = usePersistedSidebarExpandedState({
-    activeSpaceId,
-    currentUserId,
-    storageScope: "material-tree",
-    validKeys: materialTreeExpandableKeys,
+    validKeys: [ROOM_DOC_SECTION_KEY],
+    initialExpandedKeys: [ROOM_DOC_SECTION_KEY],
   });
   const isRoomDocSectionExpanded = Boolean(expandedSidebarSections?.[ROOM_DOC_SECTION_KEY]);
   const activeRoomDocSectionTargetKey = activeDocId
@@ -271,25 +258,6 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     setSidebarSectionExpanded,
     sidebarTreeRemoteUpdateKey,
   ]);
-  const canViewMaterialSection = isKPInSpace;
-  const hasMaterialSidebarPackages = materialSidebarPackages.length > 0;
-  const isMaterialSectionExpanded = canViewMaterialSection && Boolean(expandedSidebarSections?.[MATERIAL_SECTION_KEY]);
-  const shouldUseSidebarSplitLayout = shouldShowRoomSidebarSplitLayout({
-    canViewMaterialSection,
-    hasMaterialPackages: hasMaterialSidebarPackages,
-    isRoomDocSectionExpanded,
-    isMaterialSectionExpanded,
-  });
-  const stretchMaterialSection = shouldStretchRoomSidebarMaterialSection({
-    hasMaterialPackages: hasMaterialSidebarPackages,
-    isRoomDocSectionExpanded,
-    isMaterialSectionExpanded,
-  });
-  const activeMaterialController = useMaterialEditorActionStore((state) => {
-    const scope = activeMaterialSelection?.scope;
-    return scope ? state.controllers[scope] : undefined;
-  });
-
   const {
     addPanelCategoryId,
     pendingAddRoomId,
@@ -299,8 +267,6 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     setPendingAddDocId,
     toggleAddPanel,
   } = useRoomSidebarAddPanelState();
-  const [isMaterialImportOpen, setIsMaterialImportOpen] = useState(false);
-
   const { contextMenu, setContextMenu, closeContextMenu } = useRoomSidebarContextMenu();
 
   const normalizeAndSet = useRoomSidebarNormalizer({
@@ -386,10 +352,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
   }, [treeToRender]);
   const shouldShowRoomDocTreeLoading = Boolean(activeSpaceId && !isSidebarTreeReady);
   const roomDocSectionContent = shouldShowRoomDocTreeLoading ? (
-    <div className="flex items-center gap-2 px-3 py-3 text-xs text-base-content/55">
-      <span className="loading loading-spinner loading-sm"></span>
-      <span>正在加载频道与文档...</span>
-    </div>
+    <RoomDocTreeLoadingSkeleton />
   ) : (
     <div
       className="space-y-1"
@@ -444,99 +407,17 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
       ))}
     </div>
   );
-  const materialSectionContent = (
-    <div className="space-y-1 px-1">
-      {materialSidebarPackages.length > 0
-        ? materialSidebarPackages.map((item) => {
-            const currentMaterialController = activeMaterialController?.packageId === item.spacePackageId
-              ? activeMaterialController
-              : null;
-
-            return (
-              <RoomSidebarMaterialPackageItem
-                key={item.spacePackageId}
-                materialPackageId={item.spacePackageId as number}
-                materialPackage={item}
-                isActivePackage={activeMaterialSelection?.spacePackageId === item.spacePackageId}
-                activeNodePathKey={activeMaterialSelection?.spacePackageId === item.spacePackageId
-                  ? activeMaterialSelection?.materialPathKey
-                  : null}
-                onCreateFolderAtRoot={currentMaterialController
-                  ? () => currentMaterialController.addFolder()
-                  : undefined}
-                onCreateMaterialAtRoot={currentMaterialController
-                  ? () => currentMaterialController.addMaterial()
-                  : undefined}
-                onCreateFolderAtNode={currentMaterialController
-                  ? materialPathKey => currentMaterialController.addFolder(materialPathKey)
-                  : undefined}
-                onCreateMaterialAtNode={currentMaterialController
-                  ? materialPathKey => currentMaterialController.addMaterial(materialPathKey)
-                  : undefined}
-                expandedState={materialExpandedByKey}
-                onToggleExpanded={toggleMaterialExpanded}
-                onOpenPackageDetail={() => {
-                  onOpenSpaceDetailPanel("material", {
-                    spacePackageId: item.spacePackageId as number,
-                  });
-                  onCloseLeftDrawer();
-                }}
-                onOpenNodeDetail={(materialPathKey) => {
-                  onOpenSpaceDetailPanel("material", {
-                    spacePackageId: item.spacePackageId as number,
-                    materialPathKey,
-                  });
-                  onCloseLeftDrawer();
-                }}
-              />
-            );
-          })
-        : (
-            <div className="px-3 py-2 text-xs text-base-content/50">
-              当前素材库还没有导入素材包
-            </div>
-          )}
-    </div>
-  );
-  const {
-    containerRef: splitContainerRef,
-    isDragging: isDraggingSplitHandle,
-    topPaneStyle,
-    bottomPaneStyle,
-    handlePointerDown: handleSplitPointerDown,
-    handleKeyDown: handleSplitKeyDown,
-    resetSplitRatio,
-  } = useRoomSidebarSplitLayout({
-    activeSpaceId,
-    currentUserId,
-    enabled: shouldUseSidebarSplitLayout,
-  });
   const fillSectionClassName = "flex min-h-0 flex-1 flex-col";
   const roomDocSectionContentClassName = "mt-0.5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden";
-  const fillSectionContentClassName = "min-h-0 flex-1 overflow-y-auto overflow-x-hidden";
-  const splitPaneClassName = isDraggingSplitHandle
-    ? "min-h-0 shrink-0 overflow-hidden"
-    : "min-h-0 shrink-0 overflow-hidden transition-[height,flex] duration-300 ease-out";
-  const materialSectionClassName = getRoomSidebarMaterialSectionClassName({
-    fillSectionClassName,
-    isRoomDocSectionExpanded,
-    isMaterialSectionExpanded,
-    stretchMaterialSection,
-  });
-  const handleOpenMaterialDetail = () => {
-    onOpenSpaceDetailPanel("material");
-    onCloseLeftDrawer();
-  };
 
   return (
-    <>
-      <div
-        className="
-          flex flex-col gap-2 size-full flex-1 bg-base-200 min-h-0 min-w-0
-          rounded-tl-xl border-l border-t border-base-300
-          dark:border-base-300
-        "
-      >
+    <div
+      className="
+        flex flex-col gap-2 size-full flex-1 bg-base-200 min-h-0 min-w-0
+        rounded-tl-xl border-l border-t border-base-300
+        dark:border-base-300
+      "
+    >
         {isPrivateChatMode
           ? (
               <LeftChatList
@@ -561,88 +442,24 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                   </>
                 )}
 
-                <div
-                  className="flex min-h-0 flex-1 flex-col py-1.5"
-                >
-                  <div ref={splitContainerRef} className="
-                    flex w-full min-h-0 flex-1 flex-col gap-0.5 overflow-hidden px-1
+                <div className="flex min-h-0 flex-1 flex-col py-1.5">
+                  <div className="
+                    flex w-full min-h-0 flex-1 flex-col overflow-hidden px-1
                   ">
-                    <div
-                      className={shouldUseSidebarSplitLayout
-                        ? splitPaneClassName
-                        : "min-h-0 flex-1 overflow-hidden"}
-                      style={shouldUseSidebarSplitLayout ? topPaneStyle : undefined}
-                    >
+                    <LayoutGroup id="chat-room-sidebar-active-cursor">
                       <SidebarSection
                         title="频道与文档"
                         isExpanded={isRoomDocSectionExpanded}
                         onToggleExpanded={() => toggleSidebarSection(ROOM_DOC_SECTION_KEY)}
                         actionTitle={canEdit ? "新增分类" : undefined}
                         onAction={canEdit ? openAddCategory : undefined}
-                        className={shouldUseSidebarSplitLayout ? "flex h-full min-h-0 flex-col" : fillSectionClassName}
-                        contentClassName={shouldUseSidebarSplitLayout ? fillSectionContentClassName : roomDocSectionContentClassName}
+                        className={fillSectionClassName}
+                        contentClassName={roomDocSectionContentClassName}
                         fillContent
                       >
                         {roomDocSectionContent}
                       </SidebarSection>
-                    </div>
-
-                    {shouldUseSidebarSplitLayout && (
-                      <button
-                        type="button"
-                        className={`
-                          group mx-2 my-0.5 flex items-center justify-center
-                          rounded-md cursor-row-resize touch-none opacity-0
-                          transition-[opacity,background-color] duration-150
-                          focus:outline-none
-                          focus-visible:ring-2 focus-visible:ring-info/40
-                          hover:opacity-100
-                          focus-visible:opacity-100
-                          ${isDraggingSplitHandle ? `
-                            opacity-100 bg-base-300/80
-                          ` : `hover:bg-base-300/55`}
-                        `}
-                        style={{ height: ROOM_SIDEBAR_SPLIT_HANDLE_HEIGHT }}
-                        aria-label="调整侧边栏分栏高度"
-                        title="拖拽调整“频道与文档”和“素材库”的高度分配"
-                        onPointerDown={handleSplitPointerDown}
-                        onKeyDown={handleSplitKeyDown}
-                        onDoubleClick={resetSplitRatio}
-                      >
-                        <div className={`
-                          h-px w-full transition-colors
-                          ${isDraggingSplitHandle ? `bg-info/45` : `
-                            bg-base-300/80
-                            group-hover:bg-base-content/28
-                          `}
-                        `}></div>
-                      </button>
-                    )}
-
-                    {canViewMaterialSection && (
-                      <div
-                        className={shouldUseSidebarSplitLayout
-                          ? splitPaneClassName
-                          : "shrink-0 overflow-hidden"}
-                        style={shouldUseSidebarSplitLayout ? bottomPaneStyle : undefined}
-                      >
-                        <SidebarSection
-                          title="素材库"
-                          isExpanded={isMaterialSectionExpanded}
-                          onToggleExpanded={() => toggleSidebarSection(MATERIAL_SECTION_KEY)}
-                          expandDirection="up"
-                          withDivider={!shouldUseSidebarSplitLayout}
-                          actionTitle="局内素材库"
-                          onAction={handleOpenMaterialDetail}
-                          actionIcon={<PackageIcon className="size-4" weight="regular" />}
-                          className={shouldUseSidebarSplitLayout ? "flex h-full min-h-0 flex-col" : materialSectionClassName}
-                          contentClassName={shouldUseSidebarSplitLayout ? fillSectionContentClassName : undefined}
-                          fillContent={shouldUseSidebarSplitLayout}
-                        >
-                          {materialSectionContent}
-                        </SidebarSection>
-                      </div>
-                    )}
+                    </LayoutGroup>
                   </div>
                 </div>
 
@@ -679,15 +496,6 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                 />
               </>
             )}
-      </div>
-
-      {activeSpaceId && activeSpaceId > 0 && (
-        <MaterialPackageImportModal
-          isOpen={isMaterialImportOpen}
-          spaceId={activeSpaceId}
-          onClose={() => setIsMaterialImportOpen(false)}
-        />
-      )}
-    </>
+    </div>
   );
 }

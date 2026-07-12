@@ -1,5 +1,8 @@
 import { useState } from "react";
 
+import { IconButton } from "@/components/common/IconButton";
+import { FieldGroup, formControlShellClassName, TextArea, TextInput } from "@/components/common/FormField";
+
 type PerformanceFieldProps = {
   fieldKey: string;
   value: string;
@@ -44,8 +47,8 @@ export default function PerformanceField({
   };
 
   return (
-    <div className="
-      group/form-field form-control h-full w-full rounded-xl border
+    <FieldGroup className="
+      group/form-field h-full w-full rounded-xl border
       border-base-content/10 bg-base-100/55 p-3
       transition-colors hover:border-base-content/18 hover:bg-base-100/75
       focus-within:border-info/45 focus-within:bg-base-100
@@ -56,16 +59,13 @@ export default function PerformanceField({
       `}>
         {editingFieldKey === fieldKey
           ? (
-              <label className={`
-                input flex flex-1 items-center gap-2 rounded-md bg-base-200/60
-                transition focus-within:border-info focus-within:outline-none
-                focus-within:ring-2 focus-within:ring-info/20
-                ${
-                isCompact ? "input-xs" : "input-sm"
-              }
-              `}
-              >
-                <input
+              <label className={formControlShellClassName({
+                surface: "muted",
+                className: "flex-1 gap-2 bg-base-200/60",
+              })}>
+                <TextInput
+                  appearance="bare"
+                  density={isCompact ? "compact" : "default"}
                   type="text"
                   autoComplete="off"
                   aria-label="字段名"
@@ -102,7 +102,7 @@ export default function PerformanceField({
               <button
                 type="button"
                 className={`
-                  label-text min-w-0 flex-1 cursor-pointer truncate bg-transparent p-0
+                  min-w-0 flex-1 cursor-pointer truncate bg-transparent p-0
                   text-left font-semibold
                   text-base-content/90 hover:text-info
                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30
@@ -119,37 +119,31 @@ export default function PerformanceField({
                 {fieldKey}
               </button>
             )}
-        <button
-          type="button"
-          aria-label={`删除字段 ${fieldKey}`}
+        <IconButton
+          size="xs"
+          label={`删除字段 ${fieldKey}`}
           onClick={() => onDelete(fieldKey)}
           className="
-            btn btn-ghost btn-xs size-6 min-h-6 shrink-0 rounded-md p-0
+            size-6 min-h-6 shrink-0 rounded-md p-0
             text-base-content/50 opacity-100 transition
             hover:bg-error/10 hover:text-error
             md:opacity-0 md:group-hover/form-field:opacity-100
             md:focus-visible:opacity-100
           "
           title="删除字段"
-        >
-          ✕
-        </button>
+          icon="✕"
+        />
       </div>
 
-      <label className={`
-        textarea flex size-full items-center gap-2 rounded-lg border-base-content/10
-        bg-base-200/45 p-0 transition
-        focus-within:border-info focus-within:outline-none
-        focus-within:ring-2 focus-within:ring-info/20
-        ${
-        isCompact ? "textarea-sm" : ""
-      }
-      `}
-      >
-        <textarea
+      <label className={formControlShellClassName({
+        surface: "muted",
+        className: "size-full gap-2 rounded-lg border-base-content/10 bg-base-200/45 p-0",
+      })}>
+        <TextArea
+          appearance="bare"
+          density={isCompact ? "compact" : "default"}
           className={`
-            textarea h-full grow resize-none border-none bg-transparent
-            leading-relaxed outline-none focus:outline-none focus:ring-2 focus:ring-info/30
+            h-full grow resize-none leading-relaxed
             placeholder:text-base-content/35
             ${
             isCompact ? "text-xs" : ""
@@ -164,6 +158,6 @@ export default function PerformanceField({
           data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
         />
       </label>
-    </div>
+    </FieldGroup>
   );
 }

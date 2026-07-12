@@ -15,11 +15,17 @@ export type FriendReqResponse = {
      * 发起用户ID
      */
     fromId?: number;
+    /**
+     * 发起用户信息
+     */
     fromUser?: UserInfo;
     /**
      * 目标用户ID
      */
     toId?: number;
+    /**
+     * 目标用户信息
+     */
     toUser?: UserInfo;
     /**
      * 请求状态
@@ -42,3 +48,4 @@ export type FriendReqResponse = {
      */
     type?: string;
 };
+

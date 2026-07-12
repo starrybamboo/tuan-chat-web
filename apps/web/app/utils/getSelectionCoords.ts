@@ -60,7 +60,7 @@ export function getEditorRange(contextElement?: HTMLElement | null): { range: Ra
 /**
  * 获取光标坐标
  */
-export function getSelectionCoords() {
+export function getSelectionCoords(contextElement?: HTMLElement | null) {
   const win = window;
   const doc = win.document;
   let range;
@@ -68,9 +68,11 @@ export function getSelectionCoords() {
   let rect;
   let x = 0;
   let y = 0;
-  const sel = win.getSelection();
-  if (sel?.rangeCount) {
-    range = sel.getRangeAt(0).cloneRange();
+  const selectionInfo = getEditorRange(contextElement);
+  const sel = selectionInfo?.selection;
+  if (sel && selectionInfo?.range) {
+    const originalRange = selectionInfo.range.cloneRange();
+    range = selectionInfo.range.cloneRange();
     if (range.getClientRects) {
       range.collapse(true);
       rects = range.getClientRects();
@@ -94,6 +96,8 @@ export function getSelectionCoords() {
         const spanParent = span.parentNode;
         spanParent?.removeChild(span);
         spanParent?.normalize();
+        sel.removeAllRanges();
+        sel.addRange(originalRange);
       }
     }
   }

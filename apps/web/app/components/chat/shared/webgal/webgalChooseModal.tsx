@@ -2,6 +2,10 @@ import type { ReactNode } from "react";
 
 import { createPortal } from "react-dom";
 
+import { Button } from "@/components/common/Button";
+import { DialogActions, DialogFrame } from "@/components/common/DialogFrame";
+import { TextArea, TextInput } from "@/components/common/FormField";
+
 import type { WebgalChooseOptionDraft } from "./webgalChooseDraft";
 
 type WebgalChooseModalProps = {
@@ -41,18 +45,15 @@ export default function WebgalChooseModal({
   const webgalChooseInputClass = "w-full rounded-md border border-base-300 bg-base-100 px-3 py-2 text-sm transition focus:outline-none focus:ring-2 focus:ring-info/20 focus:border-info";
 
   return createPortal(
-    <div className="modal modal-open z-9999">
-      <div
-        className="modal-box max-w-2xl"
-        role="dialog"
-        aria-modal="true"
-        aria-label="WebGAL 选项设置"
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            onClose();
-          }
-        }}
-      >
+    <DialogFrame
+      open
+      mode="inline"
+      onClose={onClose}
+      ariaLabel="WebGAL 选项设置"
+      closeButtonLabel="关闭 WebGAL 选项弹窗"
+      rootClassName="z-9999"
+      panelClassName="max-w-2xl"
+    >
         <h3 className="font-bold text-lg">{title}</h3>
         <div className="py-4 space-y-3">
           {description && (
@@ -68,18 +69,18 @@ export default function WebgalChooseModal({
                     选项
                     {index + 1}
                   </span>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-xs"
+                  <Button
+                    variant="ghost"
+                    size="xs"
                     aria-label={`删除第 ${index + 1} 个选项`}
                     onClick={() => onRemoveOption(index)}
                     disabled={options.length <= 1}
                   >
                     删除
-                  </button>
+                  </Button>
                 </div>
                 <div className="grid grid-cols-1 gap-2">
-                  <input
+                  <TextInput
                     className={webgalChooseInputClass}
                     autoComplete="off"
                     aria-label="选项文本"
@@ -87,7 +88,7 @@ export default function WebgalChooseModal({
                     value={option.text}
                     onChange={e => onChangeOption(index, "text", e.target.value)}
                   />
-                  <textarea
+                  <TextArea
                     className={`
                       ${webgalChooseInputClass}
                       min-h-24 font-mono
@@ -105,20 +106,18 @@ export default function WebgalChooseModal({
               </div>
             ))}
           </div>
-          <button type="button" className="btn btn-sm" onClick={onAddOption}>
+          <Button size="sm" onClick={onAddOption}>
             添加选项
-          </button>
+          </Button>
           {error && (
             <div className="text-error text-sm" role="alert">{error}</div>
           )}
         </div>
-        <div className="modal-action">
-          <button type="button" className="btn" onClick={onClose}>取消</button>
-          <button type="button" className="btn btn-primary" onClick={onSubmit} disabled={isSubmitting} aria-busy={isSubmitting ? "true" : "false"}>{submitLabel}</button>
-        </div>
-      </div>
-      <button type="button" className="modal-backdrop" onClick={onClose} aria-label="关闭 WebGAL 选项弹窗" />
-    </div>,
+        <DialogActions>
+          <Button onClick={onClose}>取消</Button>
+          <Button variant="primary" onClick={onSubmit} loading={isSubmitting}>{submitLabel}</Button>
+        </DialogActions>
+    </DialogFrame>,
     document.body,
   );
 }

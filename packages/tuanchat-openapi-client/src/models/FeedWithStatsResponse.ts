@@ -13,9 +13,10 @@ export type FeedWithStatsResponse = {
     /**
      * Feed基础信息
      */
-    response?: Record<string, any>;
+    response?: any;
     /**
      * Feed统计信息
      */
-    stats?: Record<string, any>;
+    stats?: any;
 };
+

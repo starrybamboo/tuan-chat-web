@@ -1,18 +1,25 @@
 import { motion, useAnimate } from "motion/react";
 import { useEffect, useRef } from "react";
 
+import { buttonClassName } from "@/components/common/Button";
+import { maskClassName } from "@/components/common/DesignLanguage";
 import { MediaImage } from "@/components/common/mediaImage";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import PortalTooltip from "@/components/common/portalTooltip";
+import { CountBadge, StatusIndicator } from "@/components/common/StatusPrimitives";
 import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/media/mediaUrl";
 
 import type { Space } from "../../../../../api";
 
-import { getChatSidebarActiveButtonClass, type ChatSidebarActiveTone } from "./chatSidebarActiveTone";
+import { chatSidebarFocusClassName, type ChatSidebarActiveTone, getChatSidebarActiveTextClassName } from "./chatSidebarActiveTone";
 import { resolveEntityImageUrl } from "./entityImageUrl";
 import SidebarActiveCursor from "./sidebarActiveCursor";
 
-const sidebarIconButtonBaseClass = "w-10 btn btn-square border border-transparent relative transition-colors";
+const sidebarIconButtonBaseClass = buttonClassName({
+  variant: "ghost",
+  shape: "square",
+  className: `w-10 border border-transparent relative transition-colors hover:bg-base-300 ${chatSidebarFocusClassName}`,
+});
 const collapsedButtonAnimation = {
   scale: [1, 0.9, 1.12, 0.98, 1],
   rotate: [0, -4, 4, -2, 0],
@@ -59,9 +66,8 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, onPre
   return (
     <div
       className="
-        group relative z-20
+        group relative z-20 flex w-full justify-center py-1
         hover:z-50
-        w-10 my-1 rounded
       "
       key={space.spaceId}
     >
@@ -69,13 +75,13 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, onPre
       <PortalTooltip label={displayName} placement="right">
         <motion.button
           className={`
-            ${sidebarIconButtonBaseClass}
-            ${isActive ? getChatSidebarActiveButtonClass(activeTone) : ""}
+            ${sidebarIconButtonBaseClass} overflow-visible
+            ${isActive ? getChatSidebarActiveTextClassName(activeTone) : ""}
           `}
           ref={buttonScope}
           type="button"
           aria-label={displayName}
-          aria-pressed={isActive}
+          aria-current={isActive ? "page" : undefined}
           onClick={handleClick}
           onFocus={onPreload}
           onPointerEnter={onPreload}
@@ -83,17 +89,12 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, onPre
             ? { whileHover: interactiveButtonMotionProps.whileHover, transition: interactiveButtonMotionProps.transition }
             : interactiveButtonMotionProps)}
         >
-          <div className="indicator">
-            {(unreadMessageNumber && unreadMessageNumber > 0)
-              ? (
-                  <span
-                    className="indicator-item badge badge-xs bg-error"
-                  >
-                    {unreadMessageNumber}
-                  </span>
-                )
+          <StatusIndicator
+            indicator={unreadMessageNumber && unreadMessageNumber > 0
+              ? <CountBadge tone="error">{unreadMessageNumber > 99 ? "99+" : unreadMessageNumber}</CountBadge>
               : null}
-            <div className="avatar mask mask-squircle size-10">
+          >
+            <div className={maskClassName({ className: "size-10" })}>
               <MediaImage
                 src={displayAvatar}
                 alt={displayName}
@@ -112,7 +113,7 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, onPre
                 }}
               />
             </div>
-          </div>
+          </StatusIndicator>
         </motion.button>
       </PortalTooltip>
     </div>

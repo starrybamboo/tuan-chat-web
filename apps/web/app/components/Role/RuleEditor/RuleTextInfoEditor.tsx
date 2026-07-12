@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
+import { Button } from "@/components/common/Button";
+import { FieldError, FieldGroup, TextArea, TextInput } from "@/components/common/FormField";
+
 const RULE_NAME_MAX_LENGTH = 20;
 const RULE_DESCRIPTION_MAX_LENGTH = 200;
 
@@ -127,17 +130,15 @@ export default function RuleTextInfoEditor({
         items-center justify-between gap-3
       `}>
         <h2 className="
-          card-title hidden
+          hidden text-component-title font-medium
           md:flex
           items-center gap-2 mb-2
         ">规则信息</h2>
         {shouldShowHeader && (
-          <button
-            type="button"
-            className={`
-              btn btn-sm btn-info
-              ${isEditing ? `invisible pointer-events-none` : ""}
-            `}
+          <Button
+            variant="outline"
+            size="sm"
+            className={`border-info/45 text-info hover:border-info/70 hover:bg-info/10 ${isEditing ? "invisible pointer-events-none" : ""}`}
             onClick={handleStartEditing}
             disabled={isEditing}
             tabIndex={isEditing ? -1 : 0}
@@ -150,7 +151,7 @@ export default function RuleTextInfoEditor({
               </svg>
               编辑
             </span>
-          </button>
+          </Button>
         )}
       </div>
 
@@ -158,7 +159,7 @@ export default function RuleTextInfoEditor({
         ? (
           // 非编辑态：展示模式
             <div className="space-y-4">
-              <div className="form-control">
+              <FieldGroup>
                 <div className="flex gap-2 mb-2 items-center font-semibold">
                   <span>规则名称</span>
                 </div>
@@ -169,9 +170,9 @@ export default function RuleTextInfoEditor({
                 ">
                   {ruleName || <span className="text-base-content/50">未命名规则</span>}
                 </div>
-              </div>
+              </FieldGroup>
 
-              <div className="form-control">
+              <FieldGroup>
                 <div className="flex gap-2 mb-2 items-center font-semibold">
                   <span>规则描述</span>
                 </div>
@@ -182,19 +183,19 @@ export default function RuleTextInfoEditor({
                 ">
                   {ruleDescription || <span className="text-base-content/50">暂无描述</span>}
                 </div>
-              </div>
+              </FieldGroup>
             </div>
           )
         : (
           // 编辑态：表单控件
             <div className="space-y-4">
-              <div className="form-control flex-1 min-w-0">
+              <FieldGroup className="min-w-0 flex-1">
                 <div className="
                   flex flex-wrap gap-x-2 gap-y-1 mb-2 items-center font-semibold
                 ">
                   <span>规则名称</span>
                   <span className={`
-                    label-text-alt font-normal
+                    text-xs font-normal
                     ${nameCounterClass}
                   `}>
                     {nameLength}
@@ -202,30 +203,17 @@ export default function RuleTextInfoEditor({
                     {RULE_NAME_MAX_LENGTH}
                   </span>
                   {hasRuleNameError && (
-                    <span className="
-                      label-text-alt text-xs font-normal text-error
-                    ">
+                    <FieldError as="span" className="font-normal">
                       {ruleNameError}
-                    </span>
+                    </FieldError>
                   )}
                 </div>
-                <input
+                <TextInput
                   type="text"
                   autoComplete="off"
                   aria-label="规则名称"
-                  className={`
-                    input input-bordered bg-base-200 rounded-md w-full
-                    transition
-                    focus:outline-none focus:ring-2
-                    ${
-                    hasRuleNameError
-                      ? `
-                        input-error border-error
-                        focus:ring-error/20 focus:border-error
-                      `
-                      : "focus:ring-info/20 focus:border-info"
-                  }
-                  `}
+                  surface="muted"
+                  aria-invalid={hasRuleNameError || undefined}
                   placeholder="输入规则名称"
                   value={localName}
                   maxLength={RULE_NAME_MAX_LENGTH}
@@ -237,15 +225,15 @@ export default function RuleTextInfoEditor({
                     }
                   }}
                 />
-              </div>
+              </FieldGroup>
 
-              <div className="form-control">
+              <FieldGroup>
                 <div className="
                   flex flex-wrap gap-x-2 gap-y-1 mb-2 items-center font-semibold
                 ">
                   <span>规则描述</span>
                   <span className={`
-                    label-text-alt font-normal
+                    text-xs font-normal
                     ${descriptionCounterClass}
                   `}>
                     {descriptionLength}
@@ -253,13 +241,9 @@ export default function RuleTextInfoEditor({
                     {RULE_DESCRIPTION_MAX_LENGTH}
                   </span>
                 </div>
-                <textarea
-                  className="
-                    textarea textarea-bordered bg-base-200 rounded-md min-h-50
-                    resize-y w-full transition
-                    focus:outline-none focus:ring-2 focus:ring-info/20
-                    focus:border-info
-                  "
+                <TextArea
+                  surface="muted"
+                  className="min-h-50"
                   placeholder="描述规则定位、核心机制和适用场景"
                   value={localDescription}
                   maxLength={RULE_DESCRIPTION_MAX_LENGTH}
@@ -271,22 +255,22 @@ export default function RuleTextInfoEditor({
                     }
                   }}
                 />
-              </div>
+              </FieldGroup>
             </div>
           )}
 
       {isEditing && typeof forcedEditing !== "boolean" && (
         <div className="flex items-center justify-end gap-2 pt-2">
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleCancel}
           >
             取消
-          </button>
-          <button
-            type="button"
-            className="btn btn-sm btn-primary"
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleApply}
           >
             <span className="flex items-center gap-1">
@@ -295,7 +279,7 @@ export default function RuleTextInfoEditor({
               </svg>
               应用
             </span>
-          </button>
+          </Button>
         </div>
       )}
     </div>

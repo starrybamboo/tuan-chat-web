@@ -1,8 +1,11 @@
 import type { MouseEvent } from "react";
 
+import { AnimatePresence, motion } from "motion/react";
+
 import RoomSidebarDocItem from "@/components/chat/room/roomSidebarDocItem";
 import RoomSidebarInsertLine from "@/components/chat/room/roomSidebarInsertLine";
 import RoomSidebarRoomItem from "@/components/chat/room/roomSidebarRoomItem";
+import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
 
 import type { Room } from "../../../../api";
 import type { MinimalDocMeta, SidebarLeafNode } from "./sidebarTree";
@@ -66,13 +69,14 @@ export default function RoomSidebarCategoryItems({
         <RoomSidebarInsertLine className="top-0 -translate-y-1/2" />
       )}
 
-      {items
-        .filter((node) => {
-          if (!isSpaceOwner && node.type === "doc")
-            return false;
-          return true;
-        })
-        .map((node, index) => {
+      <AnimatePresence initial={false} mode="popLayout">
+        {items
+          .filter((node) => {
+            if (!isSpaceOwner && node.type === "doc")
+              return false;
+            return true;
+          })
+          .map((node, index) => {
           const nodeId = String((node as any).nodeId);
 
           const showInsertBefore = canEdit
@@ -88,7 +92,7 @@ export default function RoomSidebarCategoryItems({
               return null;
 
             return (
-              <div key={nodeId} className="relative">
+              <motion.div key={nodeId} className="relative" {...structuralListItemMotionProps()}>
                 {showInsertBefore && (
                   <RoomSidebarInsertLine className="top-0 -translate-y-1/2" />
                 )}
@@ -114,12 +118,12 @@ export default function RoomSidebarCategoryItems({
                   onSelectRoom={onSelectRoom}
                   onCloseLeftDrawer={onCloseLeftDrawer}
                 />
-              </div>
+              </motion.div>
             );
           }
 
           return (
-            <div key={nodeId} className="relative">
+            <motion.div key={nodeId} className="relative" {...structuralListItemMotionProps()}>
               {showInsertBefore && (
                 <RoomSidebarInsertLine className="top-0 -translate-y-1/2" />
               )}
@@ -142,9 +146,10 @@ export default function RoomSidebarCategoryItems({
                 onSelectDoc={onSelectDoc}
                 onCloseLeftDrawer={onCloseLeftDrawer}
               />
-            </div>
+            </motion.div>
           );
-        })}
+          })}
+      </AnimatePresence>
 
       {canEdit && dragging?.kind === "node" && dropTarget?.kind === "node" && dropTarget.toCategoryId === categoryId && dropTarget.insertIndex === items.length && (
         <RoomSidebarInsertLine className="bottom-0 translate-y-1/2" />

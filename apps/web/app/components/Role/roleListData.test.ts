@@ -1,16 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import type { RoleAvatar } from "api";
-
-import { hydrateRoleList, mergeRoleList, resolveRoleAvatarUrls } from "./roleListData";
-
-function createQueryClientMock(cachedAvatar?: RoleAvatar) {
-  const getQueryData = vi.fn<() => { data: RoleAvatar } | undefined>(() => (cachedAvatar ? { data: cachedAvatar } : undefined));
-  return {
-    getQueryData,
-    fetchQuery: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
-  };
-}
+import { mergeRoleList, resolveRoleAvatarUrls } from "./roleListData";
 
 describe("roleListData", () => {
   it("解析角色列表头像时只使用 fileId", () => {
@@ -56,42 +46,4 @@ describe("roleListData", () => {
     ]);
   });
 
-  it("能在没有侧边栏参与的情况下独立补齐角色头像", async () => {
-    const cachedAvatar: RoleAvatar = {
-      roleId: 7,
-      avatarId: 55,
-      avatarFileId: 1001,
-    };
-    const queryClient = createQueryClientMock(cachedAvatar);
-    const seedRoleAvatarQueryCaches = vi.fn<(...args: unknown[]) => void>();
-
-    const roles = await hydrateRoleList({
-      previousRoles: [],
-      diceRoles: [],
-      normalRoles: [
-        {
-          userId: 1,
-          roleId: 7,
-          roleName: "调查员",
-          description: "desc",
-          avatarId: 55,
-          type: 0,
-        },
-      ],
-      queryClient: queryClient as any,
-      seedRoleAvatarQueryCaches,
-      fetchRoleAvatar: vi.fn<(avatarId: number) => Promise<{ success: boolean; data?: RoleAvatar }>>(),
-    });
-
-    expect(roles).toEqual([
-      expect.objectContaining({
-        id: 7,
-        name: "调查员",
-        avatar: "https://media.tuan.chat/media/v1/files/001/1001/image/medium.webp",
-        avatarThumb: "https://media.tuan.chat/media/v1/files/001/1001/image/low.webp",
-      }),
-    ]);
-    expect(queryClient.getQueryData).toHaveBeenCalledWith(["getRoleAvatar", 55]);
-    expect(seedRoleAvatarQueryCaches).not.toHaveBeenCalled();
-  });
 });

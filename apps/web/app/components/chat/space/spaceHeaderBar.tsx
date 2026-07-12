@@ -1,6 +1,5 @@
 import { AddressBookIcon, ArchiveIcon, ArrowCounterClockwise, SignOutIcon, TrashIcon, UserPlusIcon } from "@phosphor-icons/react";
 import { useRouter } from "@tanstack/react-router";
-import { AnimatePresence, motion } from "motion/react";
 import React from "react";
 import { appToast } from "@/components/common/appToast/appToast";
 
@@ -11,7 +10,11 @@ import { prepareSpaceDocsForArchive } from "@/components/chat/infra/doc/space/pr
 import { getSpaceArchiveActionDisabledReason } from "@/components/chat/space/spaceArchiveActionPolicy";
 import { canInviteSpectators } from "@/components/chat/utils/memberPermissions";
 import { canViewSpaceDetailTab } from "@/components/chat/utils/spaceDetailPermissions";
+import { buttonClassName } from "@/components/common/Button";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { DropdownMenu, MenuItem } from "@/components/common/MenuPopover";
+import PortalTooltip from "@/components/common/portalTooltip";
+import { Badge } from "@/components/common/StatusPrimitives";
 import { ChevronDown, DiceD6Icon, MemberIcon, Setting, WebgalIcon } from "@/icons";
 
 import { useDissolveSpaceMutation, useExitSpaceMutation, useRecoverSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../api/hooks/chatQueryHooks";
@@ -35,10 +38,20 @@ type SpaceHeaderIconButtonProps = {
   title?: string;
 };
 
-const spaceHeaderIconButtonClassName = `
-  btn btn-ghost btn-sm btn-square
-  text-base-content/70 hover:text-info
-`;
+type SpaceMenuActionTone = "default" | "danger" | "warning";
+
+type SpaceMenuActionProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children"> & {
+  children: React.ReactNode;
+  icon: React.ReactNode;
+  tone?: SpaceMenuActionTone;
+};
+
+const spaceHeaderIconButtonClassName = buttonClassName({
+  variant: "ghost",
+  size: "sm",
+  shape: "square",
+  className: "text-base-content/70 hover:text-info",
+});
 const spaceHeaderIconClassName = "size-4 shrink-0";
 
 function SpaceHeaderIconButton({
@@ -49,7 +62,7 @@ function SpaceHeaderIconButton({
   title,
 }: SpaceHeaderIconButtonProps) {
   return (
-    <div className="tooltip tooltip-bottom" data-tip={label}>
+    <PortalTooltip label={label} placement="bottom">
       <button
         type="button"
         className={spaceHeaderIconButtonClassName}
@@ -60,7 +73,36 @@ function SpaceHeaderIconButton({
       >
         {children}
       </button>
-    </div>
+    </PortalTooltip>
+  );
+}
+
+function SpaceMenuAction({
+  children,
+  icon,
+  tone = "default",
+  className = "",
+  ...rest
+}: SpaceMenuActionProps) {
+  const iconToneClassName = tone === "danger"
+    ? "bg-error/10 text-error"
+    : tone === "warning"
+      ? "bg-warning/10 text-warning"
+      : "bg-base-200 text-base-content/65 group-hover:bg-base-300 group-hover:text-base-content";
+
+  return (
+    <MenuItem
+      {...rest}
+      tone={tone === "danger" ? "danger" : "default"}
+      className={`group min-h-10 gap-3 px-2 font-medium ${tone === "warning" ? "text-warning hover:bg-warning/10" : ""} ${className}`}
+      icon={(
+        <span className={`flex size-7 shrink-0 items-center justify-center rounded-md transition-colors duration-150 ${iconToneClassName}`}>
+          {icon}
+        </span>
+      )}
+    >
+      <span className="min-w-0 flex-1 truncate">{children}</span>
+    </MenuItem>
   );
 }
 
@@ -90,7 +132,6 @@ export default function SpaceHeaderBar({
   const [isResetConfirmOpen, setIsResetConfirmOpen] = React.useState(false);
   const [isResettingSidebarTree, setIsResettingSidebarTree] = React.useState(false);
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = React.useState(false);
-  const optionsMenuRef = React.useRef<HTMLDivElement | null>(null);
   const isDevOrTest = Boolean(import.meta.env?.DEV) || import.meta.env.MODE === "test";
   const archiveActionPending = updateArchiveStatus.isPending || recoverSpace.isPending;
   const archiveActionLabel = archived
@@ -119,33 +160,6 @@ export default function SpaceHeaderBar({
     spaceContext.setActiveRoomId?.(null);
     router.history.replace("/chat/discover/material");
   }, [router, spaceContext]);
-
-  React.useEffect(() => {
-    if (!isOptionsMenuOpen) {
-      return;
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (optionsMenuRef.current?.contains(event.target as Node)) {
-        return;
-      }
-      setIsOptionsMenuOpen(false);
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsOptionsMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isOptionsMenuOpen]);
 
   const handleToggleArchive = async (targetSpaceId: number, nextArchived: boolean) => {
     if (getSpaceArchiveActionDisabledReason({
@@ -284,118 +298,96 @@ export default function SpaceHeaderBar({
         dark:border-base-300
         rounded-tl-xl px-2
       ">
-        <div ref={optionsMenuRef} className="dropdown dropdown-bottom min-w-0">
-          <button
-            type="button"
-            className="
-              btn btn-ghost btn-sm px-0 min-w-0 gap-2 justify-start rounded-lg
-              w-full
-            "
-            aria-label={`空间选项：${spaceName}`}
-            aria-expanded={isOptionsMenuOpen}
-            aria-haspopup="menu"
-            title={`${spaceName}，打开空间菜单`}
-            onClick={() => setIsOptionsMenuOpen(current => !current)}
-          >
-            <span className="
-              text-base font-bold truncate leading-none min-w-0 flex-1 text-left
-            " title={spaceName}>
-              {spaceName}
-            </span>
-            {archived && (
-              <span className="badge badge-sm">已归档</span>
-            )}
-            <ChevronDown className="size-4 opacity-60 shrink-0" />
-          </button>
-          <AnimatePresence initial={false}>
-            {isOptionsMenuOpen && (
-              <motion.ul
-                tabIndex={0}
-                className="
-                  dropdown-content menu bg-base-100 rounded-box shadow-xl border
-                  border-base-300 z-40 w-56 p-2
-                "
-                initial={{ opacity: 0, scale: 0.96, y: -6 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: -6 }}
-                transition={{ type: "spring", stiffness: 520, damping: 34, mass: 0.55 }}
-                style={{ transformOrigin: "top left" }}
-              >
+        <DropdownMenu
+          open={isOptionsMenuOpen}
+          onOpenChange={setIsOptionsMenuOpen}
+          ariaLabel="空间操作"
+          className="min-w-0 flex-1"
+          menuClassName="max-h-[min(32rem,calc(100dvh-1rem))] w-56 max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain p-1.5 shadow-2xl"
+          trigger={(
+            <button
+              type="button"
+              className={buttonClassName({
+                variant: "ghost",
+                size: "sm",
+                className: `w-full min-w-0 justify-start gap-2 rounded-lg px-2 ${isOptionsMenuOpen ? "bg-base-200" : ""}`,
+              })}
+              aria-label={`空间选项：${spaceName}`}
+              title={`${spaceName}，打开空间菜单`}
+            >
+              <span className="min-w-0 flex-1 truncate text-left text-base font-bold leading-none" title={spaceName}>
+                {spaceName}
+              </span>
+              {archived ? <Badge density="default">已归档</Badge> : null}
+              <ChevronDown className={`size-4 shrink-0 opacity-60 transition-transform duration-150 ${isOptionsMenuOpen ? "rotate-180" : ""}`} />
+            </button>
+          )}
+        >
                 {canViewMembersDetail && (
-                  <li>
-                    <button
-                      type="button"
-                      className="gap-3"
+                  <li role="none">
+                    <SpaceMenuAction
+                      icon={<MemberIcon className="size-4" />}
                       onClick={() => {
                         handleOpenSpaceDetail("members");
                       }}
                     >
-                      <MemberIcon className="size-4 opacity-70" />
-                      <span className="flex-1 text-left">空间成员</span>
-                    </button>
+                      空间成员
+                    </SpaceMenuAction>
                   </li>
                 )}
                 {canViewRolesDetail && (
-                  <li>
-                    <button
-                      type="button"
-                      className="gap-3"
+                  <li role="none">
+                    <SpaceMenuAction
+                      icon={<AddressBookIcon className="size-4" />}
                       onClick={() => {
                         handleOpenSpaceDetail("roles");
                       }}
                     >
-                      <AddressBookIcon className="size-4 opacity-70" />
-                      <span className="flex-1 text-left">空间角色</span>
-                    </button>
+                      空间角色
+                    </SpaceMenuAction>
                   </li>
                 )}
                 {canViewTrpgDetail && (
-                  <li>
-                    <button
-                      type="button"
-                      className="gap-3"
+                  <li role="none">
+                    <SpaceMenuAction
+                      icon={<DiceD6Icon className="size-4" />}
                       onClick={() => {
                         handleOpenSpaceDetail("trpg");
                       }}
                     >
-                      <DiceD6Icon className="size-4 opacity-70" />
-                      <span className="flex-1 text-left">跑团设置</span>
-                    </button>
+                      跑团设置
+                    </SpaceMenuAction>
                   </li>
                 )}
                 {canViewWebgalDetail && (
-                  <li>
-                    <button
-                      type="button"
-                      className="gap-3"
+                  <li role="none">
+                    <SpaceMenuAction
+                      icon={<WebgalIcon className="size-4" />}
                       onClick={() => {
                         handleOpenSpaceDetail("webgal");
                       }}
                     >
-                      <WebgalIcon className="size-4 opacity-70" />
-                      <span className="flex-1 text-left">WebGAL 渲染</span>
-                    </button>
+                      WebGAL 渲染
+                    </SpaceMenuAction>
                   </li>
                 )}
                 {isSpaceOwner && (
-                  <li>
-                    <button
-                      type="button"
-                      className="gap-3"
+                  <li role="none">
+                    <SpaceMenuAction
+                      icon={<Setting className="size-4" />}
                       onClick={() => {
                         handleOpenSpaceDetail("setting");
                       }}
                     >
-                      <Setting className="size-4 opacity-70" />
-                      <span className="flex-1 text-left">空间资料</span>
-                    </button>
+                      空间资料
+                    </SpaceMenuAction>
                   </li>
                 )}
+                <li role="separator" aria-hidden="true" className="my-1 h-px bg-base-300/80" />
                 {isSpaceOwner && (
-                  <li>
-                    <button
-                      type="button"
-                      className="gap-3"
+                  <li role="none">
+                    <SpaceMenuAction
+                      icon={<ArchiveIcon className="size-4" />}
                       disabled={archiveActionDisabled}
                       title={archiveActionDisabledReason ?? archiveActionLabel}
                       onClick={() => {
@@ -403,15 +395,16 @@ export default function SpaceHeaderBar({
                         handleArchiveAction();
                       }}
                     >
-                      <ArchiveIcon className="size-4 opacity-70" />
-                      <span className="flex-1 text-left">{archiveActionLabel}</span>
-                    </button>
+                      {archiveActionLabel}
+                    </SpaceMenuAction>
                   </li>
                 )}
-                <li>
-                  <button
-                    type="button"
-                    className="gap-3 text-error"
+                <li role="none">
+                  <SpaceMenuAction
+                    tone="danger"
+                    icon={isSpaceOwner
+                      ? <TrashIcon className="size-4" />
+                      : <SignOutIcon className="size-4" />}
                     disabled={isSpaceOwner ? dissolveSpace.isPending || spaceId <= 0 : exitSpace.isPending || spaceId <= 0}
                     onClick={() => {
                       setIsOptionsMenuOpen(false);
@@ -422,35 +415,30 @@ export default function SpaceHeaderBar({
                       handleRequestExitSpace();
                     }}
                   >
-                    {isSpaceOwner
-                      ? <TrashIcon className="size-4 opacity-80" />
-                      : <SignOutIcon className="size-4 opacity-80" />}
-                    <span className="flex-1 text-left">
-                      {isSpaceOwner ? dissolveActionLabel : leaveActionLabel}
-                    </span>
-                  </button>
+                    {isSpaceOwner ? dissolveActionLabel : leaveActionLabel}
+                  </SpaceMenuAction>
                 </li>
                 {canResetSidebarTree && (
-                  <li>
-                    <button
-                      type="button"
-                      className="gap-3 text-warning"
-                      disabled={isResettingSidebarTree}
-                      onClick={handleRequestResetSidebarTree}
-                    >
-                      <ArrowCounterClockwise className="size-4 opacity-80" />
-                      <span className="flex-1 text-left">重置侧边树（开发）</span>
-                    </button>
-                  </li>
+                  <>
+                    <li role="separator" aria-hidden="true" className="my-1 h-px bg-base-300/80" />
+                    <li role="none">
+                      <SpaceMenuAction
+                        tone="warning"
+                        icon={<ArrowCounterClockwise className="size-4" />}
+                        disabled={isResettingSidebarTree}
+                        title="将空间侧边树恢复为默认结构"
+                        onClick={handleRequestResetSidebarTree}
+                      >
+                        重置侧边树（开发）
+                      </SpaceMenuAction>
+                    </li>
+                  </>
                 )}
-              </motion.ul>
-            )}
-          </AnimatePresence>
-        </div>
+        </DropdownMenu>
         <div className="flex gap-2 shrink-0 mr-2">
           {canInviteMembers && (
             <SpaceHeaderIconButton label="邀请成员" onClick={onInviteMember}>
-              <UserPlusIcon className={spaceHeaderIconClassName} weight="regular" />
+              <UserPlusIcon className={spaceHeaderIconClassName} weight="bold" />
             </SpaceHeaderIconButton>
           )}
         </div>

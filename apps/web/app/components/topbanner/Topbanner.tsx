@@ -1,15 +1,21 @@
 import type { ComponentType, SVGProps } from "react";
 import { appToast } from "@/components/common/appToast/appToast";
 
-import { BugBeetleIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
+import { BugBeetleIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, TreeStructureIcon, UserIcon } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { buildAccountInviteRegisterUrl } from "@tuanchat/domain/account-invite";
 import { motion, useAnimationControls } from "motion/react";
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useLayoutEffect, useRef, useState } from "react";
 
 import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { Button, buttonClassName } from "@/components/common/Button";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
+import PortalTooltip from "@/components/common/portalTooltip";
+import { MediaImage } from "@/components/common/mediaImage";
+import { Badge } from "@/components/common/StatusPrimitives";
+import { useDismissibleLayer } from "@/components/common/customHooks/useDismissibleLayer";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import UserAvatarComponent from "@/components/common/userAvatar";
@@ -24,6 +30,12 @@ import { useGetMyUserInfoQuery } from "../../../api/hooks/UserHooks";
 import ThemeSwitch from "../themeSwitch";
 
 const LazyLoginButton = lazy(() => import("../auth/LoginButton"));
+const LazyTanStackRouterDevtoolsPanel = import.meta.env.DEV
+  ? lazy(async () => {
+      const module = await import("@tanstack/react-router-devtools");
+      return { default: module.TanStackRouterDevtoolsPanel };
+    })
+  : null;
 const MotionLink = motion.create(Link);
 const topNavMotionVariants = {
   rest: { scale: 1, y: 0 },
@@ -63,17 +75,21 @@ function TopNavMotionLink({
     <MotionLink
       ref={linkRef}
       to={to}
-      className={compact
-        ? `
-          btn btn-ghost btn-square btn-sm
-          hover:bg-base-200
-          ${isActive ? "bg-base-300 text-info shadow-sm" : ""}
-        `
-        : `
-          btn btn-ghost btn-sm gap-1 px-2
-          hover:bg-base-200
-          ${isActive ? "bg-base-300 text-info shadow-sm" : ""}
-        `}
+      className={buttonClassName({
+        variant: "ghost",
+        size: "sm",
+        shape: compact ? "square" : "default",
+        className: compact
+          ? `
+            hover:bg-base-200
+            ${isActive ? "bg-base-300 text-info shadow-sm" : ""}
+          `
+          : `
+            gap-1 px-2
+            hover:bg-base-200
+            ${isActive ? "bg-base-300 text-info shadow-sm" : ""}
+          `,
+      })}
       aria-label={label}
       aria-current={isActive ? "page" : undefined}
       initial="rest"
@@ -94,6 +110,7 @@ function TopNavMotionLink({
 export default function Topbar() {
   const queryClient = useQueryClient(); // 使用 hook 获取 QueryClient 实例
   const [isBugQqOpen, setIsBugQqOpen] = useState(false);
+  const [isRouterDevtoolsOpen, setIsRouterDevtoolsOpen] = useState(false);
   const [bugReportExportStatus, setBugReportExportStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const userDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -116,52 +133,17 @@ export default function Topbar() {
   });
   const canUseFeedback = import.meta.env.DEV || import.meta.env.MODE === "test";
 
-  // 点击外部关闭下拉菜单
-  useEffect(() => {
-    const handleClickOutside = (event: Event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
+  useDismissibleLayer({
+    enabled: isDropdownOpen,
+    containerRef: dropdownRef,
+    onDismiss: () => setIsDropdownOpen(false),
+  });
 
-    if (isDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("touchstart", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
-    };
-  }, [isDropdownOpen]);
-
-  // 点击外部关闭用户菜单（Popover）
-  useEffect(() => {
-    if (!isUserDropdownOpen)
-      return;
-
-    const handleClickOutside = (event: Event) => {
-      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
-        setIsUserDropdownOpen(false);
-      }
-    };
-
-    const handleEsc = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsUserDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("touchstart", handleClickOutside);
-    document.addEventListener("keydown", handleEsc);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
-      document.removeEventListener("keydown", handleEsc);
-    };
-  }, [isUserDropdownOpen]);
+  useDismissibleLayer({
+    enabled: isUserDropdownOpen,
+    containerRef: userDropdownRef,
+    onDismiss: () => setIsUserDropdownOpen(false),
+  });
 
   const isLoggedIn = authStatus?.isLoggedIn || false;
   const userId = isLoggedIn ? (authStatus?.uid ?? 0) : 0;
@@ -251,7 +233,7 @@ export default function Topbar() {
         overflow-visible py-1
       ">
         {/* 左侧导航区域 */}
-        <div className="navbar-start gap-4">
+        <div className="inline-flex w-1/2 items-center justify-start gap-4">
           <div className="
             hidden
             md:flex
@@ -261,7 +243,7 @@ export default function Topbar() {
               className="flex items-center"
               {...interactiveButtonMotionProps}
             >
-              <img
+              <MediaImage
                 src="/tuanchat-logo.png"
                 alt="团剧共创 Logo"
                 className="
@@ -300,7 +282,7 @@ export default function Topbar() {
         {/* 右侧用户区域 */}
         {!isLoading && (
           <div className="
-            navbar-end gap-1
+            inline-flex w-1/2 items-center justify-end gap-1
             md:gap-2
           ">
             <div className="
@@ -325,11 +307,11 @@ export default function Topbar() {
               <div className="mx-2 border h-5 opacity-40" />
             </div>
             <div className="flex items-center gap-1">
-              <div className="tooltip tooltip-bottom" data-tip="下载日志并打开 QQ 群反馈">
+              <PortalTooltip label="下载日志并打开 QQ 群反馈" placement="bottom">
                 <motion.button
                   type="button"
                   aria-label="Bug反馈：下载日志并打开 QQ 群"
-                  className="btn btn-error btn-sm gap-1 px-2 shadow-sm"
+                  className={buttonClassName({ variant: "error", size: "sm", className: "gap-1 px-2 shadow-sm" })}
                   onClick={handleOpenBugReport}
                   {...interactiveButtonMotionProps}
                 >
@@ -340,56 +322,81 @@ export default function Topbar() {
                     text-sm whitespace-nowrap
                   ">Bug反馈</span>
                 </motion.button>
-              </div>
-              <div className="tooltip tooltip-bottom" data-tip="QQ：扫码反馈 Bug">
+              </PortalTooltip>
+              {LazyTanStackRouterDevtoolsPanel
+                ? (
+                    <PortalTooltip
+                      label={`${isRouterDevtoolsOpen ? "关闭" : "打开"} TanStack Router 调试面板`}
+                      placement="bottom"
+                    >
+                      <motion.button
+                        type="button"
+                        aria-label={`${isRouterDevtoolsOpen ? "关闭" : "打开"} TanStack Router 调试面板`}
+                        aria-pressed={isRouterDevtoolsOpen}
+                        className={buttonClassName({
+                          variant: "outline",
+                          size: "sm",
+                          className: `gap-1 px-2 ${isRouterDevtoolsOpen ? "border-info/45 bg-info/10 text-info" : ""}`,
+                        })}
+                        onClick={() => setIsRouterDevtoolsOpen(open => !open)}
+                        {...interactiveButtonMotionProps}
+                      >
+                        <TreeStructureIcon className="size-5" weight="regular" />
+                        <span className="hidden text-sm whitespace-nowrap sm:inline">Router</span>
+                      </motion.button>
+                    </PortalTooltip>
+                  )
+                : null}
+              <PortalTooltip label="QQ：扫码反馈 Bug" placement="bottom">
                 <motion.button
                   type="button"
                   aria-label="QQ Bug反馈"
-                  className="
-                    btn btn-ghost btn-square btn-sm
-                    hover:bg-base-200
-                    transition-colors duration-200
-                  "
+                  className={buttonClassName({
+                    variant: "ghost",
+                    size: "sm",
+                    shape: "square",
+                    className: "hover:bg-base-200 transition-colors duration-200",
+                  })}
                   onClick={() => setIsBugQqOpen(true)}
                   {...interactiveButtonMotionProps}
                 >
                   <QQIcon className="size-6 opacity-80" />
                 </motion.button>
-              </div>
-              <div className="tooltip tooltip-bottom" data-tip="访问作者的个人空间">
+              </PortalTooltip>
+              <PortalTooltip label="访问作者的个人空间" placement="bottom">
                 <motion.a
                   href="https://space.bilibili.com/108753930"
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="打开降星驰的 Bilibili 个人空间"
-                  className="
-                    btn btn-ghost btn-square btn-sm
-                    hover:bg-base-200
-                    transition-colors duration-200
-                  "
+                  className={buttonClassName({
+                    variant: "ghost",
+                    size: "sm",
+                    shape: "square",
+                    className: "hover:bg-base-200 transition-colors duration-200",
+                  })}
                   {...interactiveButtonMotionProps}
                 >
                   <BilibiliIcon className="size-6 opacity-80" />
                 </motion.a>
-              </div>
+              </PortalTooltip>
             </div>
             {isLoggedIn ? <NotificationBell /> : null}
             {isLoggedIn
               ? (
                   <div
                     ref={userDropdownRef}
-                    className={`
-                      dropdown dropdown-end
-                      ${isUserDropdownOpen ? `dropdown-open` : ""}
-                    `}
+                    className="relative inline-flex"
                   >
                     <motion.button
                       tabIndex={0}
                       type="button"
-                      className="
-                        btn btn-ghost btn-circle btn-sm
-                        hover:bg-base-200
-                      "
+                      className={buttonClassName({
+                        variant: "ghost",
+                        size: "sm",
+                        shape: "circle",
+                        className: "hover:bg-base-200",
+                      })}
                       onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
                       {...interactiveButtonMotionProps}
                     >
@@ -402,12 +409,16 @@ export default function Topbar() {
                         clickEnterProfilePage={false}
                       />
                     </motion.button>
-                    <div tabIndex={0} className="
-                      dropdown-content z-50 card card-compact w-64 p-0 shadow-lg
-                      bg-base-100 rounded-lg mt-2
-                    ">
+                    <div
+                      tabIndex={0}
+                      className={surfaceClassName({
+                        level: "floating",
+                        className: `absolute right-0 top-full z-50 mt-2 w-64 p-0 shadow-lg ${isUserDropdownOpen ? "" : "hidden"}`,
+                      })}
+                      data-dismissible-layer="true"
+                    >
                       {/* Header */}
-                      <div className="card-body p-4 border-b border-base-300">
+                      <div className="border-b border-base-300 p-4">
                         <div className="flex items-center gap-3">
                           <UserAvatarComponent
                             userId={userId || 1}
@@ -446,16 +457,15 @@ export default function Topbar() {
                                     <IdentificationCardIcon className="size-4" />
                                     <span>邀请码</span>
                                   </div>
-                                  <button
-                                    type="button"
-                                    className="
-                                      btn btn-ghost btn-xs h-7 min-h-7 px-2
-                                    "
+                                  <Button
+                                    size="xs"
+                                    variant="ghost"
+                                    className="h-7 min-h-7 px-2"
                                     onClick={handleCopyInviteLink}
                                     aria-label={`复制邀请链接（${username || `用户 ${userId}`} · ID ${userId}）`}
                                   >
                                     复制链接
-                                  </button>
+                                  </Button>
                                 </div>
                                 <div className="
                                   mt-1 font-mono text-lg font-semibold
@@ -470,33 +480,30 @@ export default function Topbar() {
 
                       {/* Body */}
                       <div className="p-2 space-y-1">
-                        <button
-                          type="button"
-                          className="
-                            btn btn-ghost btn-sm w-full justify-start gap-2
-                            font-normal
-                          "
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="w-full justify-start gap-2 font-normal"
                           onClick={() => handleUserNavigation(`/profile/${userId}`)}
                         >
                           <UserIcon className="size-4" />
                           个人中心
-                        </button>
-                        <button
-                          type="button"
-                          className="
-                            btn btn-ghost btn-sm w-full justify-start gap-2
-                            font-normal
-                          "
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="w-full justify-start gap-2 font-normal"
                           onClick={() => handleUserNavigation("/settings")}
                         >
                           <GearSixIcon className="size-4" />
                           设置
-                        </button>
+                        </Button>
                         <div
-                          className="
-                            btn btn-ghost btn-sm w-full justify-between gap-2
-                            font-normal
-                          "
+                          className={buttonClassName({
+                            variant: "ghost",
+                            size: "sm",
+                            className: "w-full justify-between gap-2 font-normal",
+                          })}
                         >
                           <div className="flex items-center gap-2">
                             <div className="scale-75">
@@ -507,45 +514,50 @@ export default function Topbar() {
                         </div>
                         {isElectronEnv() && webgalLinkMode && !runModeEnabled && (
                           <WebgalStarter className="w-full">
-                            <button
-                              type="button"
-                              className="
-                                btn btn-ghost btn-sm w-full justify-start gap-2
-                                font-normal
-                              "
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="w-full justify-start gap-2 font-normal"
                             >
                               <WebgalIcon className="size-4" />
                               启动 WebGAL
-                            </button>
+                            </Button>
                           </WebgalStarter>
                         )}
                       </div>
 
                       {/* Footer */}
                       <div className="p-2 border-t border-base-300">
-                        <button
-                          type="button"
-                          className="btn btn-outline btn-sm w-full gap-2"
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full gap-2"
                           onClick={handleLogout}
                           title="退出当前账号"
                         >
                           <SignOutIcon className="size-4" />
                           退出登录
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
                 )
               : (
-                  <Suspense fallback={<button type="button" className="
-                    btn btn-primary
-                  " disabled>登录/注册</button>}>
+                  <Suspense fallback={<Button variant="primary" disabled>登录/注册</Button>}>
                     <LazyLoginButton autoOpen />
                   </Suspense>
                 )}
           </div>
         )}
       </div>
+
+      {LazyTanStackRouterDevtoolsPanel && isRouterDevtoolsOpen
+        ? (
+            <Suspense fallback={null}>
+              <LazyTanStackRouterDevtoolsPanel setIsOpen={setIsRouterDevtoolsOpen} />
+            </Suspense>
+          )
+        : null}
 
       <ToastWindow isOpen={isBugQqOpen} onClose={() => setIsBugQqOpen(false)}>
         <div className="p-6 w-[92vw] max-w-md flex flex-col gap-4">
@@ -554,7 +566,7 @@ export default function Topbar() {
           </div>
 
           <div className="w-full flex justify-center">
-            <img
+            <MediaImage
               src="/bug-feedback/qq-qrcode.webp"
               alt="QQ Bug反馈二维码"
               className="w-64 h-64 object-contain"
@@ -565,7 +577,7 @@ export default function Topbar() {
           <div className="
             rounded-md border border-error/30 bg-error/10 p-3 text-sm leading-6
           ">
-            <span className="badge badge-error badge-sm mr-2">Bug反馈</span>
+            <Badge tone="error" className="mr-2">Bug反馈</Badge>
             {bugReportExportStatus?.message ?? "已尝试自动下载控制台日志。"}
             <br />
             请加群提交日志反馈 bug，并尽量说明具体场景和复现步骤；提供截图或录屏能够加快解决 bug 的速度。

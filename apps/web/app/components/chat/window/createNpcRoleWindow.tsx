@@ -8,10 +8,17 @@ import type { Role } from "@/components/Role/types";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
+import { Tabs } from "@/components/common/Tabs";
 import RoleCreationFlow from "@/components/Role/RoleCreation/RoleCreationFlow";
 
 import { useAddRoomRoleMutation, useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetSpaceRepositoryRoleQuery } from "../../../../api/hooks/spaceRepositoryHooks";
+
+const IMPORT_ROLE_CARD_CLASS_NAME = surfaceClassName({
+  level: "content",
+  className: "cursor-pointer shadow transition-shadow hover:shadow-lg",
+});
 
 export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }) {
   const spaceContext = use(SpaceContext);
@@ -55,7 +62,7 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
   }, [ruleId]);
 
   const handleCreateNpcComplete = (_createdRole: Role) => {
-    void queryClient.invalidateQueries({ queryKey: ["spaceRepositoryRole", spaceId] });
+    void queryClient.invalidateQueries({ queryKey: ["spaceRole", spaceId] });
     appToast.success("NPC创建成功");
     onClose();
   };
@@ -81,36 +88,20 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
 
   return (
     <div className="justify-center w-full">
-      <div role="tablist" aria-label="NPC 创建方式" className="tabs tabs-boxed w-full mb-3">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "create"}
-          className={`
-            tab flex-1
-            ${activeTab === "create" ? "tab-active" : ""}
-          `}
-          onClick={() => setActiveTab("create")}
-        >
-          创建NPC
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "import"}
-          className={`
-            tab flex-1
-            ${activeTab === "import" ? "tab-active" : ""}
-          `}
-          onClick={() => setActiveTab("import")}
-        >
-          从NPC库导入
-        </button>
-      </div>
+      <Tabs
+        value={activeTab}
+        options={[
+          { value: "create", label: "创建NPC" },
+          { value: "import", label: "从NPC库导入" },
+        ]}
+        onValueChange={setActiveTab}
+        ariaLabel="NPC 创建方式"
+        className="mb-3 flex w-full [&_[role=tab]]:flex-1"
+      />
 
       {activeTab === "create" && (
         <div className="
-          bg-base-100 rounded-box p-2
+          bg-base-100 rounded-md p-2
           sm:p-4
         ">
           <RoleCreationFlow
@@ -126,7 +117,7 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
       )}
 
       {activeTab === "import" && (
-        <div className="bg-base-100 rounded-box p-6 space-y-4">
+        <div className="bg-base-100 rounded-md p-6 space-y-4">
           {importableSpaceNpcRoles.length === 0 && (
             <div className="text-center py-2">
               <div className="font-bold">无可导入NPC</div>
@@ -136,11 +127,7 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
 
           <div className="flex flex-wrap gap-3 justify-center">
             {importableSpaceNpcRoles.map(role => (
-              <div className="
-                card shadow
-                hover:shadow-lg
-                transition-shadow cursor-pointer
-              " key={role.roleId}>
+              <div className={IMPORT_ROLE_CARD_CLASS_NAME} key={role.roleId}>
                 <div className="flex flex-col items-center p-3">
                   <button
                     type="button"

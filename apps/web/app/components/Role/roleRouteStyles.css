@@ -32,6 +32,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .animate-scale-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
   .avatar-connector-draw-line path {
     animation: none;
     stroke-dashoffset: 0;

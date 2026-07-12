@@ -1,12 +1,16 @@
 import { use, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 
 import type { CommentTimelineVO } from "api";
 
+import { Button } from "@/components/common/Button";
 import { CommentContext } from "@/components/common/comment/commentContext";
 import CommentInputBox from "@/components/common/comment/commentInputBox";
 import CommentPreview from "@/components/common/comment/commentPreview";
 import { buildMediaContentPreview } from "@/components/common/content/mediaContent";
 import MediaContentView from "@/components/common/content/mediaContentView";
+import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
+import { StateView } from "@/components/common/StateView";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { CloseIcon } from "@/icons";
 
@@ -64,18 +68,19 @@ function FeedbackTimelineActionButton({
     : "text-base-content/60 hover:bg-info/10 hover:text-info";
 
   return (
-    <button
-      type="button"
+    <Button
       {...(pressed !== undefined ? { "aria-pressed": pressed ? "true" : "false" } : {})}
+      variant="ghost"
+      size="xs"
       className={`
-        btn btn-ghost btn-xs h-8 min-h-8 rounded-full px-3 transition-colors
+        h-8 min-h-8 rounded-full px-3 transition-colors
         ${toneClass}
       `}
       onClick={onClick}
     >
       {icon}
       <span>{label}</span>
-    </button>
+    </Button>
   );
 }
 
@@ -254,16 +259,17 @@ function TimelineComposerCard({
             {replyTarget ? "回复评论" : "添加评论"}
           </div>
           {replyTarget && (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="xs"
               className="
-                btn btn-ghost btn-xs rounded-full px-3 text-base-content/55
+                rounded-full px-3 text-base-content/55
                 hover:bg-base-200 hover:text-base-content
               "
               onClick={onCancelReply}
             >
               取消回复
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -331,56 +337,62 @@ export default function FeedbackIssueTimeline({
         <div className="space-y-6 px-5 py-5">
           {isInitialLoading
             ? (
-                <div className="
-                  rounded-xl border border-base-300 bg-base-100/80 px-4 py-6
-                ">
-                  <div className="
-                    flex items-center justify-center gap-3 text-sm
-                    text-base-content/60
-                  ">
-                    <span className="loading loading-spinner loading-sm" />
-                    正在加载评论...
-                  </div>
-                </div>
+                <StateView
+                  loading
+                  title="正在加载评论"
+                  className="rounded-xl border border-base-300 bg-base-100/80 px-4 py-6"
+                />
               )
             : timelineComments.length > 0
-              ? timelineComments.map(comment => (
-                  <TimelineItem
-                    key={comment.commentId ?? `comment-${comment.createTime ?? "unknown"}`}
-                    avatarUser={{ userId: comment.userId, ...comment.userInfo }}
-                    isLast={false}
-                  >
-                    <TimelineCommentCard
-                      comment={comment}
-                      currentUserId={loginUserId}
-                      activeReplyCommentId={replyTarget?.commentId}
-                      onReply={(target) => {
-                        setReplyTarget(target);
-                      }}
-                    />
-                  </TimelineItem>
-                ))
+              ? (
+                  <AnimatePresence initial={false} mode="popLayout">
+                    {timelineComments.map((comment, index) => (
+                      <motion.div
+                        key={comment.commentId ?? `comment-${comment.createTime ?? "unknown"}`}
+                        {...structuralListItemMotionProps({
+                          index,
+                          staggerDelay: 0.02,
+                          maxDelay: 0.14,
+                        })}
+                      >
+                        <TimelineItem
+                          avatarUser={{ userId: comment.userId, ...comment.userInfo }}
+                          isLast={false}
+                        >
+                          <TimelineCommentCard
+                            comment={comment}
+                            currentUserId={loginUserId}
+                            activeReplyCommentId={replyTarget?.commentId}
+                            onReply={(target) => {
+                              setReplyTarget(target);
+                            }}
+                          />
+                        </TimelineItem>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                )
               : (
-                  <div className="
-                    rounded-xl border border-dashed border-base-300
-                    bg-base-200/20 px-4 py-6 text-center text-sm
-                    text-base-content/55
-                  ">
-                    还没有讨论，来发第一条评论吧。
-                  </div>
+                  <StateView
+                    title="还没有讨论"
+                    description="来发第一条评论吧。"
+                    className="rounded-xl border border-dashed border-base-300 bg-base-200/20 px-4 py-6"
+                  />
                 )}
 
           {hasNextPage && (
             <div className="flex justify-center">
-              <button
-                type="button"
-                className="btn btn-outline btn-sm rounded-full px-5"
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full px-5"
+                loading={isFetchingNextPage}
                 aria-busy={isFetchingNextPage ? "true" : "false"}
                 disabled={isFetchingNextPage}
                 onClick={() => void getCommentTimelineInfiniteQuery.fetchNextPage()}
               >
-                {isFetchingNextPage ? "正在加载评论..." : "加载更多评论"}
-              </button>
+                加载更多评论
+              </Button>
             </div>
           )}
 

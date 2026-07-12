@@ -2,7 +2,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { appToast } from "@/components/common/appToast/appToast";
 
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { buttonClassName } from "@/components/common/Button";
 import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
+import { FieldLabel } from "@/components/common/FormField";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
+import { DropdownMenu, MenuItem } from "@/components/common/MenuPopover";
 import { MediaImage } from "@/components/common/mediaImage";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
@@ -250,42 +254,35 @@ function SpaceTrpgSettingWindow() {
         : (
             <div className="h-full space-y-4 overflow-y-auto">
               <div className="mb-4">
-                <label className="label mb-2">
-                  <span className="label-text">空间规则</span>
-                </label>
-                <div className="dropdown w-full">
-                  <label
-                    tabIndex={canEdit ? 0 : -1}
-                    className={`
-                      btn btn-outline w-full justify-start
-                      ${canEdit ? "" : `cursor-not-allowed opacity-70`}
-                    `}
-                    aria-disabled={!canEdit}
-                    title={!canEdit ? "无编辑权限" : undefined}
-                    onClick={(event) => {
-                      if (!canEdit) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                      }
-                    }}
-                  >
-                    {rules.find(rule => rule.ruleId === ruleId)?.ruleName ?? "未找到规则"}
-                    <svg xmlns="http://www.w3.org/2000/svg" className="
-                      size-4 ml-auto
-                    " fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </label>
+                <FieldLabel className="mb-2">空间规则</FieldLabel>
+                <DropdownMenu
+                  ariaLabel="选择空间规则"
+                  className="w-full"
+                  matchTriggerWidth
+                  menuClassName="p-2 shadow"
+                  trigger={(
+                    <button
+                      type="button"
+                      disabled={!canEdit}
+                      className={buttonClassName({
+                        variant: "outline",
+                        className: "w-full justify-start",
+                      })}
+                      title={!canEdit ? "无编辑权限" : undefined}
+                    >
+                      {rules.find(rule => rule.ruleId === ruleId)?.ruleName ?? "未找到规则"}
+                      <svg xmlns="http://www.w3.org/2000/svg" className="ml-auto size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  )}
+                >
                   {canEdit && (
-                    <ul tabIndex={0} className="
-                      dropdown-content menu p-2 shadow bg-base-100 rounded-box
-                      w-full
-                    ">
+                    <>
                       {rules.map(rule => (
-                        <li key={rule.ruleId}>
-                          <button
-                            type="button"
-                            className="w-full text-left"
+                        <li key={rule.ruleId} role="none">
+                          <MenuItem
+                            selected={Number(rule.ruleId) === ruleId}
                             onClick={() => {
                               setRuleId(Number(rule.ruleId));
                               if (document.activeElement instanceof HTMLElement) {
@@ -294,26 +291,25 @@ function SpaceTrpgSettingWindow() {
                             }}
                           >
                             {rule.ruleName}
-                          </button>
+                          </MenuItem>
                         </li>
                       ))}
-                    </ul>
+                    </>
                   )}
-                </div>
+                </DropdownMenu>
               </div>
 
               <div className="mb-4">
-                <label className="label mb-2">
-                  <span className="label-text">空间骰娘</span>
-                </label>
+                <FieldLabel className="mb-2">空间骰娘</FieldLabel>
                 <div
-                  className={`
-                    card bg-base-200 transition-all duration-200
+                  className={surfaceClassName({ level: "inset", className: `
+                    transition-colors duration-200
+                    motion-reduce:transition-none
                     ${canEdit ? `
                       cursor-pointer
                       hover:bg-base-300
                     ` : `cursor-not-allowed opacity-70`}
-                  `}
+                  ` })}
                   role="button"
                   tabIndex={canEdit ? 0 : -1}
                   aria-disabled={!canEdit}
@@ -333,17 +329,21 @@ function SpaceTrpgSettingWindow() {
                     }
                   }}
                 >
-                  <div className="card-body p-4">
+                  <div className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         {currentDicerId && !dicerRoleError
                           ? (
-                              <div className="avatar">
+                              <div className="relative inline-flex align-middle">
                                 <div className="
                                   size-10 rounded-full ring ring-info
                                   ring-offset-base-100 ring-offset-2
                                 ">
-                                  <MediaImage src={dicerAvatarUrl} alt={linkedDicerData?.data?.roleName || "骰娘"} />
+                                  <MediaImage
+                                    src={dicerAvatarUrl}
+                                    alt={linkedDicerData?.data?.roleName || "骰娘"}
+                                    className="size-full object-cover"
+                                  />
                                 </div>
                               </div>
                             )

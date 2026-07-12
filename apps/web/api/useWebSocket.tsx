@@ -27,7 +27,7 @@ import { normalizeWebSocketRequestForSend } from "./webSocketProtocol";
 /**
  * 成员的输入状态（不包含roomId）
  * @param userId
- * @param status (0:空闲, 1:正在输入, 2:等待扮演, 3:暂离)
+ * @param status 聊天状态对象，type 用于状态匹配，description 用于显示文案
  */
 /**
  * @property connect 连接WebSocket
@@ -35,8 +35,8 @@ import { normalizeWebSocketRequestForSend } from "./webSocketProtocol";
  * @property isConnected 检查连接状态
  * @property unreadMessagesNumber 未读消息数量（群聊部分）
  * @property updateLastReadSyncId 更新未读消息 （群聊部分） 如果lastReadSyncIdΪundefined，则使用latestSyncId
- * @property chatStatus 成员的输入状态 (0:空闲, 1:正在输入, 2:等待扮演, 3:暂离), 默认为1 (空闲）
- * @property updateChatStatus 成员的输入状态 (0:空闲, 1:正在输入, 2:等待扮演, 3:暂离), 默认为1 (空闲）
+ * @property chatStatus 成员的输入状态，按 roomId 保存 { userId, status: { type, description } }
+ * @property updateChatStatus 更新成员输入状态，匹配逻辑使用 status.type
  */
 export interface WebsocketUtils {
   connect: () => void;

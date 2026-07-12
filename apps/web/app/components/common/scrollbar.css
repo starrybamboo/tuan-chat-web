@@ -9,3 +9,34 @@
   width: 0;
   height: 0;
 }
+
+.subtle-scrollbar {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-base-content) 24%, transparent) transparent;
+}
+
+.subtle-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.subtle-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.subtle-scrollbar::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-color: color-mix(in srgb, var(--color-base-content) 24%, transparent);
+  background-clip: content-box;
+}
+
+.subtle-scrollbar:hover::-webkit-scrollbar-thumb,
+.subtle-scrollbar:focus-within::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--color-base-content) 38%, transparent);
+}
+
+.subtle-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}

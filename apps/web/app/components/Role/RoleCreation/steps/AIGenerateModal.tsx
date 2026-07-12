@@ -1,6 +1,10 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 
-import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
+import { Button } from "@/components/common/Button";
+import { DialogFrame } from "@/components/common/DialogFrame";
+import { Disclosure } from "@/components/common/Disclosure";
+import { TextArea } from "@/components/common/FormField";
+import { Divider, InlineAlert } from "@/components/common/StatusPrimitives";
 
 // AI生成的预览数据类型
 type AIGeneratedData = {
@@ -39,7 +43,6 @@ export default function AIGenerateModal({
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewData, setPreviewData] = useState<AIGeneratedData | null>(null);
-  const dialogRef = useRef<HTMLDialogElement | null>(null);
 
   const handleGenerate = async () => {
     if (!prompt.trim() || ruleId <= 0)
@@ -102,28 +105,26 @@ export default function AIGenerateModal({
     setPrompt("");
   };
 
-  useEscapeToClose({
-    enabled: isOpen,
-    onClose: handleClose,
-    containerRef: dialogRef,
-  });
-
   const renderPreviewSection = (title: string, data: Record<string, string> | undefined) => {
     if (!data || Object.keys(data).length === 0)
       return null;
 
     return (
-      <div className="collapse collapse-arrow bg-base-200/50 rounded-lg">
-        <input type="checkbox" defaultChecked />
-        <div className="collapse-title text-sm font-medium">
+      <Disclosure
+        defaultOpen
+        className="bg-base-200/50"
+        titleClassName="text-sm font-medium"
+        title={(
+          <>
           {title}
           {" "}
           (
           {Object.keys(data).length}
           {" "}
           项)
-        </div>
-        <div className="collapse-content">
+          </>
+        )}
+      >
           <div className="grid grid-cols-2 gap-2">
             {Object.entries(data).map(([key, value]) => (
               <div key={key} className="
@@ -134,8 +135,7 @@ export default function AIGenerateModal({
               </div>
             ))}
           </div>
-        </div>
-      </div>
+      </Disclosure>
     );
   };
 
@@ -143,26 +143,13 @@ export default function AIGenerateModal({
     return null;
 
   return (
-    <dialog
-      ref={dialogRef}
-      data-modal-layer="true"
-      role="dialog"
-      aria-modal="true"
-      aria-label="AI 智能生成角色"
-      className="modal modal-open"
+    <DialogFrame
+      open={isOpen}
+      mode="native"
+      onClose={handleClose}
+      ariaLabel="AI 智能生成角色"
+      panelClassName="max-h-[85vh] max-w-2xl"
     >
-      <div className="modal-box max-w-2xl max-h-[85vh]">
-        <form method="dialog">
-          <button
-            type="button"
-            className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-            aria-label="关闭 AI 生成角色弹窗"
-            onClick={handleClose}
-          >
-            ✕
-          </button>
-        </form>
-
         <div className="flex items-center gap-3 mb-4">
           <div className="
             flex size-12 items-center justify-center rounded-full bg-info text-info-content
@@ -183,15 +170,9 @@ export default function AIGenerateModal({
             <label htmlFor="ai-generate-prompt" className="block text-sm font-medium">
               生成提示词
             </label>
-            <textarea
+            <TextArea
               id="ai-generate-prompt"
-              className="
-                textarea textarea-bordered rounded-md w-full min-h-[100px]
-                bg-base-100
-                focus:outline-none focus:ring-2 focus:ring-info/20
-                focus:border-info
-                resize-y
-              "
+              className="min-h-[100px]"
               autoComplete="off"
               aria-label="生成提示词"
               placeholder="例如：来自北方的勇敢战士，擅长双手剑"
@@ -202,12 +183,17 @@ export default function AIGenerateModal({
             <p className="text-xs text-base-content/60">
               将基于当前规则生成角色表演、基础能力、计算能力与技能字段。
             </p>
-            <button
-              type="button"
-              className="btn btn-info w-full rounded-md"
+            <Button
+              variant="primary"
+              className="w-full rounded-md"
               onClick={handleGenerate}
               disabled={!prompt.trim() || isGenerating || ruleId <= 0}
-              aria-busy={isGenerating}
+              loading={isGenerating}
+              icon={(
+                <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              )}
               title={
                 !prompt.trim()
                   ? "请输入生成提示词"
@@ -216,28 +202,14 @@ export default function AIGenerateModal({
                     : undefined
               }
             >
-              {isGenerating
-                ? (
-                    <>
-                      <span className="loading loading-spinner loading-sm"></span>
-                      AI生成中...
-                    </>
-                  )
-                : (
-                    <>
-                      <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                      </svg>
-                      开始生成
-                    </>
-                  )}
-            </button>
+              {isGenerating ? "AI生成中..." : "开始生成"}
+            </Button>
           </div>
 
           {/* 预览区域 */}
           {previewData && (
             <div className="space-y-3">
-              <div className="divider text-sm text-base-content/60">生成结果预览</div>
+              <Divider>生成结果预览</Divider>
               <div className="space-y-2 max-h-[300px] overflow-y-auto">
                 {renderPreviewSection("角色表演能力", previewData.act)}
                 {renderPreviewSection("基础能力值", previewData.basic)}
@@ -245,44 +217,42 @@ export default function AIGenerateModal({
                 {renderPreviewSection("技能设定", previewData.skill)}
               </div>
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="btn btn-outline rounded-md flex-1"
+                <Button
+                  variant="outline"
+                  className="rounded-md flex-1"
                   onClick={() => setPreviewData(null)}
                 >
                   重新生成
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-success text-white rounded-md flex-1"
+                </Button>
+                <Button
+                  variant="primary"
+                  className="rounded-md flex-1"
                   aria-label="应用 AI 生成结果到角色"
                   onClick={handleApply}
+                  icon={(
+                    <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
                 >
-                  <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
                   应用数据
-                </button>
+                </Button>
               </div>
             </div>
           )}
 
           {/* 提示信息 */}
           {ruleId <= 0 && (
-            <div className="alert alert-warning">
-              <svg xmlns="http://www.w3.org/2000/svg" className="
-                stroke-current shrink-0 size-6
-              " fill="none" viewBox="0 0 24 24">
+            <InlineAlert
+              tone="warning"
+              icon={<svg xmlns="http://www.w3.org/2000/svg" className="size-6 stroke-current" fill="none" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
+              </svg>}
+            >
               <span className="text-sm">请先选择规则后再使用AI生成功能</span>
-            </div>
+            </InlineAlert>
           )}
         </div>
-      </div>
-      <form method="dialog" className="modal-backdrop">
-        <button type="button" onClick={handleClose}>关闭</button>
-      </form>
-    </dialog>
+    </DialogFrame>
   );
 }

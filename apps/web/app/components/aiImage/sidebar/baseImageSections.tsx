@@ -3,6 +3,8 @@ import { ArrowClockwise, CaretLeftIcon, FileArrowUpIcon, PencilSimpleLineIcon, S
 import type { AiImageHistoryMode } from "@/utils/aiImageHistoryDb";
 
 import { clampRange, formatSliderValue } from "@/components/aiImage/helpers";
+import { RangeInput, TextArea } from "@/components/common/FormField";
+import { MediaImage } from "@/components/common/mediaImage";
 import { ChevronDown } from "@/icons";
 
 const INFILL_APPEND_MIN_HEIGHT = 60;
@@ -147,7 +149,7 @@ export function renderSimpleInfillSectionContent({
                     bg-base-200
                   ">
                     <div className="relative h-[220px] w-full">
-                      <img
+                      <MediaImage
                         src={sourceImageDataUrl}
                         alt="Inpaint Mask"
                         className="
@@ -155,7 +157,7 @@ export function renderSimpleInfillSectionContent({
                         "
                         draggable={false}
                       />
-                      <img
+                      <MediaImage
                         src={infillMaskDataUrl}
                         alt="Mask Overlay"
                         className="
@@ -176,8 +178,8 @@ export function renderSimpleInfillSectionContent({
                     <span>Strength</span>
                     <span>{formatSliderValue(strength)}</span>
                   </div>
-                  <input
-                    type="range"
+                  <RangeInput
+                    density="compact"
                     min={0.01}
                     max={1}
                     step={0.01}
@@ -191,7 +193,9 @@ export function renderSimpleInfillSectionContent({
                   <div className="
                     mb-2 text-[13px] font-semibold leading-5 text-base-content
                   ">Append Tags</div>
-                  <textarea
+                  <TextArea
+                    appearance="bare"
+                    density="compact"
                     className={infillAppendInputClassName}
                     rows={1}
                     autoComplete="off"
@@ -319,7 +323,7 @@ export function renderProInfillSectionContent({
                     bg-base-200
                   ">
                     <div className="relative h-[220px] w-full">
-                      <img
+                      <MediaImage
                         src={sourceImageDataUrl}
                         alt="Inpaint Mask"
                         className="
@@ -327,7 +331,7 @@ export function renderProInfillSectionContent({
                         "
                         draggable={false}
                       />
-                      <img
+                      <MediaImage
                         src={infillMaskDataUrl}
                         alt="Mask Overlay"
                         className="
@@ -348,8 +352,8 @@ export function renderProInfillSectionContent({
                     <span>Strength</span>
                     <span>{formatSliderValue(strength)}</span>
                   </div>
-                  <input
-                    type="range"
+                  <RangeInput
+                    density="compact"
                     min={0.01}
                     max={1}
                     step={0.01}
@@ -363,7 +367,9 @@ export function renderProInfillSectionContent({
                   <div className="
                     mb-2 text-[13px] font-semibold leading-5 text-base-content
                   ">Append Tags</div>
-                  <textarea
+                  <TextArea
+                    appearance="bare"
+                    density="compact"
                     className={infillAppendInputClassName}
                     rows={1}
                     autoComplete="off"
@@ -486,7 +492,7 @@ export function renderSimpleBaseImageSectionContent({
   return (
     <div className={simpleBaseImageAttachmentClassName}>
       <div className={baseImagePanelClassName}>
-        <img
+        <MediaImage
           src={sourceImageDataUrl}
           alt="Base Img"
           className="
@@ -568,8 +574,8 @@ export function renderSimpleBaseImageSectionContent({
                     <span>Strength</span>
                     <span>{formatSliderValue(strength)}</span>
                   </div>
-                  <input
-                    type="range"
+                  <RangeInput
+                    density="compact"
                     min={0.01}
                     max={1}
                     step={0.01}
@@ -587,8 +593,8 @@ export function renderSimpleBaseImageSectionContent({
                     <span>Noise</span>
                     <span>{formatSliderValue(noise)}</span>
                   </div>
-                  <input
-                    type="range"
+                  <RangeInput
+                    density="compact"
                     min={0}
                     max={0.99}
                     step={0.01}

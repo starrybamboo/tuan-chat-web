@@ -3,8 +3,12 @@ import { motion } from "motion/react";
 
 import type { FeedbackIssueListFilters, FeedbackIssueListItem, FeedbackIssueStatus } from "@/components/feedback/feedbackTypes";
 
+import { Button } from "@/components/common/Button";
+import { Checkbox, SelectInput } from "@/components/common/FormField";
 import { ImeAwareSearchInput } from "@/components/common/imeAwareSearchInput";
+import { MediaImage } from "@/components/common/mediaImage";
 import { listItemMotionProps } from "@/components/common/motion/listItemMotion";
+import { StateView } from "@/components/common/StateView";
 import {
   FEEDBACK_ISSUE_STATUS_COMPLETED,
   FEEDBACK_ISSUE_STATUS_OPTIONS,
@@ -52,7 +56,7 @@ function FeedbackAuthorAvatar({ issue }: { issue: FeedbackIssueListItem }) {
 
   if (avatar) {
     return (
-      <img
+      <MediaImage
         src={avatar}
         alt={authorName}
         className="h-6 w-6 rounded-full object-cover"
@@ -149,16 +153,9 @@ export default function FeedbackIssueList({
             })}
           </div>
 
-          <button
-            type="button"
-            className={`
-              btn btn-ghost btn-sm
-              ${isFetching ? "loading" : ""}
-            `}
-            onClick={onRefresh}
-          >
+          <Button variant="ghost" size="sm" loading={isFetching} onClick={onRefresh}>
             刷新
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -168,22 +165,22 @@ export default function FeedbackIssueList({
           xl:grid-cols-[minmax(0,1fr)_180px_180px_170px_auto]
         ">
           <ImeAwareSearchInput
+            density="compact"
             type="text"
             id="feedback-search"
             name="feedback-search"
             autoComplete="off"
             aria-label="搜索 issue"
-            className="input input-bordered input-sm w-full rounded-md"
             value={keyword}
             onValueChange={onKeywordChange}
             placeholder="搜索反馈和工单"
           />
 
-          <select
+          <SelectInput
+            density="compact"
             id="feedback-type-filter"
             name="feedback-type-filter"
             aria-label="按类型筛选"
-            className="select select-bordered select-sm rounded-md"
             value={filters.issueType ?? ""}
             onChange={(event) => {
               const nextValue = Number(event.target.value);
@@ -195,13 +192,13 @@ export default function FeedbackIssueList({
             <option value="">所有类型</option>
             <option value="1">Bug反馈</option>
             <option value="2">Prompt 请求</option>
-          </select>
+          </SelectInput>
 
-          <select
+          <SelectInput
+            density="compact"
             id="feedback-status-filter"
             name="feedback-status-filter"
             aria-label="按状态筛选"
-            className="select select-bordered select-sm rounded-md"
             value={filters.status ?? ""}
             onChange={(event) => {
               const nextValue = Number(event.target.value);
@@ -214,31 +211,30 @@ export default function FeedbackIssueList({
             {FEEDBACK_ISSUE_STATUS_OPTIONS.map(option => (
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
-          </select>
+          </SelectInput>
 
-          <select
+          <SelectInput
+            density="compact"
             id="feedback-archive-filter"
             name="feedback-archive-filter"
             aria-label="按归档状态筛选"
-            className="select select-bordered select-sm rounded-md"
             value={toArchiveFilterValue(filters.archived)}
             onChange={event => onFilterChange({ archived: fromArchiveFilterValue(event.target.value) })}
           >
             <option value="active">仅显示活跃</option>
             <option value="archived">仅显示归档</option>
             <option value="all">全部</option>
-          </select>
+          </SelectInput>
 
           <label className="
             flex items-center gap-2 rounded-md border border-base-300
             bg-base-100 px-3 py-2 text-sm cursor-pointer
           ">
-            <input
-              type="checkbox"
+            <Checkbox
+              density="compact"
               id="feedback-mine-only"
               name="feedback-mine-only"
               aria-label="仅看我提出的反馈"
-              className="checkbox checkbox-sm rounded-sm"
               checked={Boolean(filters.mineOnly)}
               onChange={event => onFilterChange({ mineOnly: event.target.checked })}
             />
@@ -249,22 +245,14 @@ export default function FeedbackIssueList({
 
       {isLoading
         ? (
-            <div className="
-              flex flex-col items-center justify-center gap-3 px-5 py-16
-              text-base-content/60
-            ">
-              <span className="loading loading-spinner loading-md" />
-              加载中...
-            </div>
+            <StateView loading title="正在加载反馈记录" />
           )
         : issues.length === 0
           ? (
-              <div className="px-5 py-16 text-center">
-                <div className="text-lg font-medium text-base-content">未找到反馈记录</div>
-                <p className="mt-2 text-sm text-base-content/60">
-                  试试调整筛选条件，或者直接新建一个反馈。
-                </p>
-              </div>
+              <StateView
+                title="未找到反馈记录"
+                description="试试调整筛选条件，或者直接新建一个反馈。"
+              />
             )
           : (
               <div className="divide-y divide-base-300">
@@ -368,14 +356,15 @@ export default function FeedbackIssueList({
         <div className="border-t border-base-300 px-4 py-3">
           {hasNextPage
             ? (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  loading={isFetchingNextPage}
                   disabled={isFetchingNextPage}
                   onClick={onLoadMore}
                 >
-                  {isFetchingNextPage ? "加载中..." : "加载更多"}
-                </button>
+                  加载更多
+                </Button>
               )
             : (
                 <div className="text-sm text-base-content/50">

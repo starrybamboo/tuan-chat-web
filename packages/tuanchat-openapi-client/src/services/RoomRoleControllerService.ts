@@ -3,8 +3,11 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResultListUserRole } from '../models/ApiResultListUserRole';
+import type { ApiResultMapStringRoomRoleListResponse } from '../models/ApiResultMapStringRoomRoleListResponse';
+import type { ApiResultRoomRoleListResponse } from '../models/ApiResultRoomRoleListResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { RoomRoleAddRequest } from '../models/RoomRoleAddRequest';
+import type { RoomRoleBatchQueryRequest } from '../models/RoomRoleBatchQueryRequest';
 import type { RoomRoleDeleteRequest } from '../models/RoomRoleDeleteRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
@@ -32,12 +35,28 @@ export class RoomRoleControllerService {
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public deleteRole(
+    public deleteRole1(
         requestBody: RoomRoleDeleteRequest,
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
             url: '/room/role',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * 批量获取多个房间的全部角色分组
+     * @param requestBody
+     * @returns ApiResultMapStringRoomRoleListResponse OK
+     * @throws ApiError
+     */
+    public roomAllRoleBatch(
+        requestBody: RoomRoleBatchQueryRequest,
+    ): CancelablePromise<ApiResultMapStringRoomRoleListResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/room/role/all/batch',
             body: requestBody,
             mediaType: 'application/json',
         });
@@ -71,6 +90,23 @@ export class RoomRoleControllerService {
         return this.httpRequest.request({
             method: 'GET',
             url: '/room/role/list',
+            query: {
+                'roomId': roomId,
+            },
+        });
+    }
+    /**
+     * 一次获取房间全部角色并按类型分组
+     * @param roomId
+     * @returns ApiResultRoomRoleListResponse OK
+     * @throws ApiError
+     */
+    public roomAllRole(
+        roomId: number,
+    ): CancelablePromise<ApiResultRoomRoleListResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/room/role/all',
             query: {
                 'roomId': roomId,
             },

@@ -1,6 +1,7 @@
 import type { MouseEvent } from "react";
 
 import { CaretRightIcon } from "@phosphor-icons/react";
+import { AnimatePresence, motion } from "motion/react";
 
 import type {
   HistoryDragPayload,
@@ -18,6 +19,9 @@ import {
 import { HistoryActionsFooter } from "@/components/aiImage/history/HistoryActionsFooter";
 import { HistoryHint } from "@/components/aiImage/history/HistoryHint";
 import { HISTORY_THUMBNAIL_IMAGE_CLASS_NAME } from "@/components/aiImage/history/HistoryImageTile";
+import { IconButton } from "@/components/common/IconButton";
+import { MediaImage } from "@/components/common/mediaImage";
+import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
 import { ChevronDown, XMarkICon } from "@/icons";
 
 function HistoryDeleteButton({
@@ -28,20 +32,20 @@ function HistoryDeleteButton({
   onClick: (event: MouseEvent<HTMLButtonElement>) => void;
 }) {
   return (
-    <button
-      type="button"
+    <IconButton
+      size="xs"
+      shape="square"
       className="
-        btn btn-ghost btn-square btn-xs shrink-0 opacity-0 transition-opacity
+        shrink-0 opacity-0 transition-opacity
         hover:text-error
         group-focus-within:opacity-100
         group-hover:opacity-100
       "
-      aria-label={label}
+      label={label}
       title={label}
       onClick={onClick}
-    >
-      <XMarkICon className="size-3.5" />
-    </button>
+      icon={<XMarkICon className="size-3.5" />}
+    />
   );
 }
 
@@ -97,19 +101,19 @@ export function DirectorHistoryPanel({
             ">History</div>
             <HistoryHint />
           </div>
-          <button
-            type="button"
+          <IconButton
+            size="xs"
+            shape="square"
             className="
-              btn btn-ghost btn-square btn-xs ml-auto shrink-0
+              ml-auto shrink-0
               text-base-content/60
               hover:text-base-content
             "
-            aria-label="收起历史记录侧边栏"
+            label="收起历史记录侧边栏"
             title="收起历史记录侧边栏"
             onClick={onCollapse}
-          >
-            <CaretRightIcon className="size-3.5" weight="regular" />
-          </button>
+            icon={<CaretRightIcon className="size-3.5" weight="regular" />}
+          />
         </div>
         <div className="ai-image-fade-scrollbar flex-1 overflow-auto pr-1">
           <div className="mb-4">
@@ -118,13 +122,15 @@ export function DirectorHistoryPanel({
               text-base-content/50
             ">Current</div>
             <div className="flex flex-col gap-2">
-              {currentResultCards.map(({ item, index, row }) => (
-                <div
+              <AnimatePresence initial={false} mode="popLayout">
+                {currentResultCards.map(({ item, index, row }) => (
+                  <motion.div
                   key={`${item.batchId}-${item.batchIndex}`}
                   className={`
                     ${directorHistoryCardClassName}
                     ${directorInputPreviewKey === generatedItemKey(item) ? directorHistoryCardActiveClassName : directorHistoryCardIdleClassName}
                   `}
+                  {...structuralListItemMotionProps()}
                 >
                   <button
                     type="button"
@@ -140,7 +146,7 @@ export function DirectorHistoryPanel({
                       batchIndex: item.batchIndex,
                     })}
                   >
-                    <img src={item.dataUrl} className={`
+                    <MediaImage src={item.dataUrl} className={`
                       ${HISTORY_THUMBNAIL_IMAGE_CLASS_NAME}
                       mx-auto rounded-xl
                     `} alt="director-current-result" />
@@ -165,8 +171,9 @@ export function DirectorHistoryPanel({
                         </div>
                       )
                     : null}
-                </div>
-              ))}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
               {!currentResultCards.length ? <div className="
                 px-1 py-2 text-xs text-base-content/50
               ">暂无当前结果</div> : null}
@@ -200,13 +207,15 @@ export function DirectorHistoryPanel({
               </div>
             </summary>
             <div className="mt-2 flex flex-col gap-2 pb-1">
-              {archivedHistoryRows.map(row => (
-                <div
+              <AnimatePresence initial={false} mode="popLayout">
+                {archivedHistoryRows.map(row => (
+                  <motion.div
                   key={historyRowKey(row)}
                   className={`
                     ${directorHistoryCardClassName}
                     ${directorInputPreviewKey === generatedItemKey(historyRowToGeneratedItem(row)) ? directorHistoryCardActiveClassName : directorHistoryCardIdleClassName}
                   `}
+                  {...structuralListItemMotionProps()}
                 >
                   <button
                     type="button"
@@ -222,7 +231,7 @@ export function DirectorHistoryPanel({
                       batchIndex: row.batchIndex ?? undefined,
                     })}
                   >
-                    <img src={row.dataUrl} className={`
+                    <MediaImage src={row.dataUrl} className={`
                       ${HISTORY_THUMBNAIL_IMAGE_CLASS_NAME}
                       mx-auto rounded-xl
                     `} alt="director-history" />
@@ -247,8 +256,9 @@ export function DirectorHistoryPanel({
                         </div>
                       )
                     : null}
-                </div>
-              ))}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
               {!archivedHistoryRows.length ? <div className="
                 px-1 py-2 text-xs text-base-content/50
               ">暂无历史记录</div> : null}

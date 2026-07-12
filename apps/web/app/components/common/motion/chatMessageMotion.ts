@@ -37,33 +37,6 @@ export function typingDotMotionProps(index: number): MotionProps {
   };
 }
 
-export function waitingPulseMotionProps(index: number): MotionProps {
-  return {
-    animate: {
-      opacity: [0.9, 0],
-      scale: [0.62, 2.15],
-    },
-    transition: {
-      duration: 1.35,
-      repeat: Infinity,
-      delay: index * 0.36,
-      ease: "easeOut",
-    },
-  };
-}
-
-export const waitingCoreMotionProps: MotionProps = {
-  animate: {
-    scale: [1, 1.22, 1],
-    opacity: [0.85, 1, 0.85],
-  },
-  transition: {
-    duration: 1.35,
-    repeat: Infinity,
-    ease: "easeInOut",
-  },
-};
-
 export const skeletonFadeMotionProps: MotionProps = {
   initial: { opacity: 0, y: 4, scale: 0.99 },
   animate: { opacity: 1, y: 0, scale: 1 },

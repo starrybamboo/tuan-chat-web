@@ -3,10 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { WebgalPublishClientFile } from './WebgalPublishClientFile';
-/**
- * 前端预生成的发布包，可选
- */
 export type WebgalPublishClientPackage = {
     entrypoint?: string;
     files?: Array<WebgalPublishClientFile>;
 };
+

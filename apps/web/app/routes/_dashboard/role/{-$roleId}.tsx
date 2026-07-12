@@ -2,6 +2,8 @@ import { createFileRoute, Navigate, useLocation, useParams, useRouter } from "@t
 
 import CharacterDetail from "@/components/Role/CharacterDetail";
 import { useRoleListModel } from "@/components/Role/useRoleListModel";
+import { Surface } from "@/components/common/DesignLanguage";
+import { Divider, Skeleton } from "@/components/common/StatusPrimitives";
 import { appendPathQuery } from "@/utils/pathQuery";
 import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
 
@@ -39,20 +41,16 @@ function RoleDetailPage() {
           items-center justify-between gap-3 mb-4
         ">
           <div className="flex items-center gap-4">
-            <div className="skeleton h-12 w-24 rounded-md"></div>
+            <Skeleton className="h-12 w-24" />
             <div>
-              <div className="skeleton h-8 w-48 mb-2"></div>
-              <div className="skeleton h-4 w-32"></div>
+              <Skeleton className="mb-2 h-8 w-48" />
+              <Skeleton className="h-4 w-32" />
             </div>
           </div>
-          <div className="skeleton h-12 w-20 rounded-md"></div>
+          <Skeleton className="h-12 w-20" />
         </div>
 
-        <div className="
-          hidden
-          md:block
-          divider
-        "></div>
+        <Divider className="my-4 hidden md:block" />
 
         <div className="
           grid grid-cols-1
@@ -64,22 +62,19 @@ function RoleDetailPage() {
             lg:col-span-1
             space-y-6
           ">
-            <div className="
-              card bg-base-100 shadow-xs rounded-xl
-              md:border-2 md:border-base-content/10
-            ">
-              <div className="card-body p-4">
+            <Surface level="content" className="shadow-xs md:border-2 md:border-base-content/10">
+              <div className="flex flex-col gap-2 p-4">
                 <div className="flex justify-center mt-6 mb-2">
                   <div className="flex flex-col items-center gap-3">
-                    <div className="skeleton size-24 rounded-full"></div>
-                    <div className="skeleton h-4 w-20"></div>
+                    <Skeleton className="size-24" rounded="full" />
+                    <Skeleton className="h-4 w-20" />
                   </div>
                 </div>
-                <div className="divider"></div>
-                <div className="skeleton h-4 w-full mb-2"></div>
-                <div className="skeleton h-4 w-3/4"></div>
+                <Divider />
+                <Skeleton className="mb-2 h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
               </div>
-            </div>
+            </Surface>
           </div>
 
           {/* 右侧骨架 */}
@@ -88,24 +83,20 @@ function RoleDetailPage() {
             space-y-6
           ">
             <div className="flex gap-2">
-              <div className="skeleton h-10 w-20 rounded-lg"></div>
-              <div className="skeleton h-10 w-20 rounded-lg"></div>
-              <div className="skeleton h-10 w-20 rounded-lg"></div>
+              <Skeleton className="h-10 w-20" />
+              <Skeleton className="h-10 w-20" />
+              <Skeleton className="h-10 w-20" />
             </div>
-            <div className="
-              card bg-base-100 shadow-xs
-              md:rounded-xl md:border-2
-              border-base-content/10
-            ">
-              <div className="card-body">
-                <div className="skeleton h-6 w-32 mb-4"></div>
+            <Surface level="content" className="border-base-content/10 shadow-xs md:border-2">
+              <div className="flex flex-col gap-2 p-6">
+                <Skeleton className="mb-4 h-6 w-32" />
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="skeleton h-10 w-full"></div>
-                  <div className="skeleton h-10 w-full"></div>
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
                 </div>
-                <div className="skeleton h-20 w-full mt-4"></div>
+                <Skeleton className="mt-4 h-20 w-full" />
               </div>
-            </div>
+            </Surface>
           </div>
         </div>
       </div>

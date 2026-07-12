@@ -14,8 +14,10 @@ import {
   scrollToBottomButtonMotionProps,
   unreadBadgeBounceMotionProps,
 } from "@/components/common/motion/chatMessageMotion";
+import { buttonClassName, type ButtonVariant } from "@/components/common/Button";
 import { FloatingMotionButton, FloatingMotionItem, FloatingMotionPanel } from "@/components/common/motion/FloatingMotionPanel";
 import { motionEase } from "@/components/common/motion/motionTokens";
+import { Divider } from "@/components/common/StatusPrimitives";
 
 import type { ChatMessageResponse } from "../../../api";
 
@@ -25,7 +27,7 @@ import { getChatFrameItemKey } from "./chatFrameListKey";
 function Header() {
   return (
     <div className="py-2">
-      <div className="divider text-xs text-base-content/50 m-0">到顶</div>
+      <Divider className="m-0">到顶</Divider>
     </div>
   );
 }
@@ -55,14 +57,22 @@ const SelectionToolbar = memo(({
 }: SelectionToolbarProps) => {
   const hasSelection = selectedCount > 0;
   const canSelectAll = totalCount > 0;
-  const actions = [
+  const actions: Array<{
+    key: string;
+    label: string;
+    icon: typeof SelectionAll;
+    onClick: () => void;
+    disabled: boolean;
+    variant: ButtonVariant;
+    className?: string;
+  }> = [
     {
       key: "select-all",
       label: "全选",
       icon: SelectionAll,
       onClick: onSelectAll,
       disabled: !canSelectAll,
-      className: "btn-ghost",
+      variant: "ghost",
     },
     {
       key: "export-file",
@@ -70,7 +80,7 @@ const SelectionToolbar = memo(({
       icon: FileArrowDown,
       onClick: onExportFile,
       disabled: !hasSelection,
-      className: "btn-outline",
+      variant: "outline",
     },
     ...(onExportPremiere
       ? [{
@@ -79,7 +89,7 @@ const SelectionToolbar = memo(({
           icon: FilmSlate,
           onClick: onExportPremiere,
           disabled: !hasSelection,
-          className: "btn-outline",
+          variant: "outline" as const,
         }]
       : []),
     {
@@ -88,7 +98,7 @@ const SelectionToolbar = memo(({
       icon: ImageSquare,
       onClick: onExportImage,
       disabled: !hasSelection,
-      className: "btn-outline",
+      variant: "outline",
     },
     {
       key: "forward",
@@ -96,7 +106,8 @@ const SelectionToolbar = memo(({
       icon: ShareFat,
       onClick: onForward,
       disabled: !hasSelection,
-      className: "btn-info",
+      variant: "outline",
+      className: "border-info/45 text-info hover:border-info/70 hover:bg-info/10",
     },
   ];
 
@@ -139,7 +150,7 @@ const SelectionToolbar = memo(({
               <span className="whitespace-nowrap font-medium">{`已选择 ${selectedCount} 条`}</span>
             </FloatingMotionItem>
             <div className="
-              flex min-w-0 items-center gap-1 overflow-x-auto px-1
+              flex min-w-0 items-center gap-1 overflow-x-auto overscroll-x-none px-1
               [scrollbar-width:none]
               [&::-webkit-scrollbar]:hidden
             ">
@@ -150,10 +161,14 @@ const SelectionToolbar = memo(({
                     key={action.key}
                     index={index + 1}
                     type="button"
-                    className={`
-                      btn btn-sm h-8 min-h-0 shrink-0 gap-1.5 rounded-md px-2.5
-                      ${action.className}
-                    `}
+                    className={buttonClassName({
+                      variant: action.variant,
+                      size: "sm",
+                      className: [
+                        "h-8 min-h-0 shrink-0 gap-1.5 rounded-md px-2.5",
+                        action.className ?? "",
+                      ].filter(Boolean).join(" "),
+                    })}
                     onClick={action.onClick}
                     disabled={action.disabled}
                     title={action.label}
@@ -168,10 +183,12 @@ const SelectionToolbar = memo(({
             <FloatingMotionButton
               index={actions.length + 1}
               type="button"
-              className="
-                btn btn-ghost btn-sm btn-circle size-8 min-h-0 shrink-0
-                rounded-md
-              "
+              className={buttonClassName({
+                variant: "ghost",
+                size: "sm",
+                shape: "circle",
+                className: "size-8 min-h-0 shrink-0 rounded-md",
+              })}
               onClick={onCancel}
               title="取消"
               aria-label="取消多选"
@@ -224,15 +241,20 @@ const MessageFilterControl = memo(({
       <motion.button
         key={isActive ? "filter-active" : "filter-inactive"}
         type="button"
-        className={`
-          btn btn-ghost btn-sm btn-circle pointer-events-auto relative size-9
-          min-h-0 rounded-md border shadow-lg backdrop-blur-xl
-          ${
-          isActive
-            ? "border-base-content/10 bg-base-100/78 text-info"
-            : "border-base-content/10 bg-base-100/78 text-base-content/70"
-        }
-        `}
+        className={buttonClassName({
+          variant: "ghost",
+          size: "sm",
+          shape: "circle",
+          className: `
+            pointer-events-auto relative size-9 min-h-0 rounded-md border
+            shadow-lg backdrop-blur-xl
+            ${
+            isActive
+              ? "border-base-content/10 bg-base-100/78 text-info"
+              : "border-base-content/10 bg-base-100/78 text-base-content/70"
+          }
+          `,
+        })}
         initial={{ opacity: 0, scale: 0.92, y: -4 }}
         animate={buttonAnimate}
         transition={{ duration: 0.24, ease: motionEase.emphasized }}

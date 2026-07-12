@@ -35,3 +35,4 @@ export type AbilityByRuleFieldUpdateRequest = {
      */
     extraFields?: Record<string, string>;
 };
+

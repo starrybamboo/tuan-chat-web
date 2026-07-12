@@ -11,3 +11,4 @@ export type FriendReqHandleRequest = {
      */
     friendReqId: number;
 };
+

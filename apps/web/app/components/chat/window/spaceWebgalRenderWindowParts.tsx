@@ -1,6 +1,8 @@
 import type { SyntheticEvent } from "react";
 
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
+import PortalTooltip from "@/components/common/portalTooltip";
+import type { StatusTone } from "@/components/common/StatusPrimitives";
 
 import type { ChatMessageResponse, Room } from "../../../../api";
 
@@ -20,6 +22,12 @@ export type BatchProgress = {
 
 export type CollapsibleSectionKey = "renderLayer" | "ttsLayer" | "gameLayer" | "workflowLayer";
 export type SpaceWebgalSettingsTab = "render" | "roomContent";
+
+type RenderStatusMeta = {
+  label: string;
+  tone: StatusTone;
+  appearance?: "ghost";
+};
 
 export const DEFAULT_SECTION_EXPANDED: Record<CollapsibleSectionKey, boolean> = {
   renderLayer: true,
@@ -89,33 +97,33 @@ export function getErrorMessage(error: unknown): string {
   return "未知错误";
 }
 
-export function buildStatusMeta(status: "idle" | "initializing" | "connected" | "disconnected" | "error") {
+export function buildStatusMeta(status: "idle" | "initializing" | "connected" | "disconnected" | "error"): RenderStatusMeta {
   if (status === "connected") {
-    return { label: "已连接", badgeClass: "badge-success" };
+    return { label: "已连接", tone: "success" };
   }
   if (status === "initializing") {
-    return { label: "初始化中", badgeClass: "badge-info" };
+    return { label: "初始化中", tone: "info" };
   }
   if (status === "disconnected") {
-    return { label: "连接断开", badgeClass: "badge-warning" };
+    return { label: "连接断开", tone: "warning" };
   }
   if (status === "error") {
-    return { label: "连接失败", badgeClass: "badge-error" };
+    return { label: "连接失败", tone: "error" };
   }
-  return { label: "未启动", badgeClass: "badge-ghost" };
+  return { label: "未启动", tone: "neutral", appearance: "ghost" };
 }
 
-export function buildRoomStatusMeta(status: RoomRenderState["status"]) {
+export function buildRoomStatusMeta(status: RoomRenderState["status"]): RenderStatusMeta {
   if (status === "success") {
-    return { label: "完成", badgeClass: "badge-success" };
+    return { label: "完成", tone: "success" };
   }
   if (status === "rendering") {
-    return { label: "渲染中", badgeClass: "badge-info" };
+    return { label: "渲染中", tone: "info" };
   }
   if (status === "error") {
-    return { label: "失败", badgeClass: "badge-error" };
+    return { label: "失败", tone: "error" };
   }
-  return { label: "未渲染", badgeClass: "badge-ghost" };
+  return { label: "未渲染", tone: "neutral", appearance: "ghost" };
 }
 
 export function SectionCollapseToggle({
@@ -133,7 +141,7 @@ export function SectionCollapseToggle({
       className="
         size-8 rounded-md flex items-center justify-center text-base-content/60
         hover:text-base-content hover:bg-base-200
-        transition-colors
+        transition-colors motion-reduce:transition-none
       "
       title={expanded ? `收起${label}` : `展开${label}`}
       aria-label={expanded ? `收起${label}` : `展开${label}`}
@@ -142,7 +150,7 @@ export function SectionCollapseToggle({
       <svg
         xmlns="http://www.w3.org/2000/svg"
         className={`
-          size-4 transition-transform duration-200
+          size-4 transition-transform duration-200 motion-reduce:transition-none
           ${expanded ? `-rotate-90` : ""}
         `}
         fill="none"
@@ -162,7 +170,7 @@ export function ConfigHelpButton({ label, description }: { label: string; descri
   };
 
   return (
-    <span className="tooltip tooltip-top z-20" data-tip={description}>
+    <PortalTooltip label={description} placement="top" anchorClassName="z-20">
       <button
         type="button"
         className="
@@ -193,7 +201,7 @@ export function ConfigHelpButton({ label, description }: { label: string; descri
           <path d="M12 8h.01"></path>
         </svg>
       </button>
-    </span>
+    </PortalTooltip>
   );
 }
 

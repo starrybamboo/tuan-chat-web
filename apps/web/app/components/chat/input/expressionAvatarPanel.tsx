@@ -1,9 +1,15 @@
 import type { MouseEvent } from "react";
 
 import { ArrowLeftIcon, CaretDownIcon, CaretRightIcon, FolderOpenIcon } from "@phosphor-icons/react";
+import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 
 import { MediaImage } from "@/components/common/mediaImage";
+import { Button, buttonClassName } from "@/components/common/Button";
+import { IconButton } from "@/components/common/IconButton";
+import { CollapsibleMotion } from "@/components/common/motion/CollapsibleMotion";
+import { CountBadge } from "@/components/common/StatusPrimitives";
+import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { getEffectiveAvatarThumbUrl, getEffectiveAvatarUrl } from "@/components/Role/sprite/utils";
 import { AddRoleIcon, ExpandCornersIcon, EyedropperIcon, NarratorIcon } from "@/icons";
@@ -192,15 +198,17 @@ export function ExpressionAvatarPanel({
                     text-base-content/70
                   ">
                     {isAvatarVariantGroupView && (
-                      <button
+                      <IconButton
+                        icon={<ArrowLeftIcon className="size-4" aria-hidden="true" />}
+                        label="返回默认头像"
+                        variant="ghost"
+                        size="xs"
+                        shape="square"
+                        className="shrink-0"
                         type="button"
-                        className="btn btn-ghost btn-xs btn-square shrink-0"
                         onClick={handleReturnToUngroupedAvatars}
                         title="返回默认"
-                        aria-label="返回默认头像"
-                      >
-                        <ArrowLeftIcon className="size-4" aria-hidden="true" />
-                      </button>
+                      />
                     )}
                     <span className="truncate">
                       {avatarPanelTitle}
@@ -213,12 +221,11 @@ export function ExpressionAvatarPanel({
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    className={`
-                      btn btn-xs gap-1
-                      ${isAvatarSamplerActive ? `border-info/40 bg-base-300 text-info shadow-sm` : `
-                        btn-ghost
-                      `}
-                    `}
+                    className={buttonClassName({
+                      variant: "ghost",
+                      size: "xs",
+                      className: `gap-1 ${isAvatarSamplerActive ? "border-info/40 bg-base-300 text-info shadow-sm" : ""}`,
+                    })}
                     onClick={handleSamplerToggle}
                     title={isAvatarSamplerActive ? "退出取样" : "墨水取样：点击消息头像"}
                     aria-label={isAvatarSamplerActive ? "退出取样" : "墨水取样：点击消息头像"}
@@ -226,16 +233,18 @@ export function ExpressionAvatarPanel({
                     <EyedropperIcon className="size-4" />
                     <span className="text-xs">{isAvatarSamplerActive ? "取样中" : "取样"}</span>
                   </button>
-                  <button
+                  <Button
                     type="button"
-                    className="btn btn-ghost btn-xs gap-1"
+                    variant="ghost"
+                    size="xs"
+                    className="gap-1"
                     onClick={handleFullscreenToggle}
                     title={isAvatarFullscreen ? "退出全屏" : "全屏"}
                     aria-label={isAvatarFullscreen ? "退出全屏" : "全屏"}
                   >
                     <ExpandCornersIcon className="size-4" />
                     <span className="text-xs">{isAvatarFullscreen ? "退出全屏" : "全屏"}</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
               <div className={`
@@ -243,17 +252,23 @@ export function ExpressionAvatarPanel({
                 w-full overflow-y-auto overflow-x-hidden
                 ${isAvatarFullscreen ? `pb-4` : ""}
               `}>
-                {showAvatarVariantGroups && !isAvatarVariantGroupView && (
-                  <div className={isMobileFullscreen ? `
-                    mb-2
-                  ` : `
-                    mb-3
-                    `}>
-                    <div className={avatarVariantFolderGridClassName}>
-                      {avatarVariantFolders.map((group) => {
+                <CollapsibleMotion
+                  open={showAvatarVariantGroups && !isAvatarVariantGroupView}
+                  className={isMobileFullscreen ? "mb-2" : "mb-3"}
+                >
+                      <div className={avatarVariantFolderGridClassName}>
+                        {avatarVariantFolders.map((group, groupIndex) => {
                         const previewAvatars = group.avatars.slice(0, avatarVariantStackCardClassNames.length);
                         return (
-                          <div key={group.variantId} className="min-w-0">
+                          <motion.div
+                            key={group.variantId}
+                            className="min-w-0"
+                            {...structuralListItemMotionProps({
+                              index: groupIndex,
+                              staggerDelay: 0.02,
+                              maxDelay: 0.12,
+                            })}
+                          >
                             <button
                               type="button"
                               className={`
@@ -344,12 +359,11 @@ export function ExpressionAvatarPanel({
                                 {group.avatars.length}
                               </span>
                             </button>
-                          </div>
+                          </motion.div>
                         );
-                      })}
-                    </div>
-                  </div>
-                )}
+                        })}
+                      </div>
+                </CollapsibleMotion>
                 {visibleAvatarCategorySections.map(section => (
                   <div key={section.variantId} className="min-w-0">
                     {section.categoryGroups.map((group) => {
@@ -383,11 +397,10 @@ export function ExpressionAvatarPanel({
                                 : <CaretDownIcon className="size-3.5 shrink-0" aria-hidden="true" />}
                               <span className="truncate text-base-content/85">{categoryLabel}</span>
                             </span>
-                            <span className="badge badge-ghost badge-xs shrink-0">{avatars.length}</span>
+                            <CountBadge tone="neutral" className="shrink-0">{avatars.length}</CountBadge>
                           </button>
-                          {!isCollapsed && (
-                            <div className={avatarGridClassName}>
-                              {avatars.map((avatar, avatarIndex) => {
+                          <CollapsibleMotion open={!isCollapsed} className={avatarGridClassName}>
+                                {avatars.map((avatar, avatarIndex) => {
                                 const avatarId = avatar.avatarId ?? -1;
                                 const isSelectedAvatar = selectedAvatarId === avatarId;
                                 return (
@@ -422,9 +435,8 @@ export function ExpressionAvatarPanel({
                                     />
                                   </button>
                                 );
-                              })}
-                            </div>
-                          )}
+                                })}
+                          </CollapsibleMotion>
                         </div>
                       );
                     })}

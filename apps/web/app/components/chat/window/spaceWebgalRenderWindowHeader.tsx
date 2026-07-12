@@ -3,6 +3,10 @@ import type { InitProgress, RealtimeRenderStatus } from "@/webGAL/useRealtimeRen
 
 import type { BatchProgress } from "./spaceWebgalRenderWindowParts";
 
+import { Button, buttonClassName } from "@/components/common/Button";
+import { TextInput } from "@/components/common/FormField";
+import { Badge } from "@/components/common/StatusPrimitives";
+
 import { buildStatusMeta } from "./spaceWebgalRenderWindowParts";
 
 type SpaceWebgalRenderWindowHeaderProps = {
@@ -69,10 +73,9 @@ export function SpaceWebgalRenderWindowHeader({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className={`
-            badge
-            ${renderStatusMeta.badgeClass}
-          `}>{renderStatusMeta.label}</div>
+          <Badge tone={renderStatusMeta.tone} appearance={renderStatusMeta.appearance}>
+            {renderStatusMeta.label}
+          </Badge>
           <button
             type="button"
             className="
@@ -104,43 +107,40 @@ export function SpaceWebgalRenderWindowHeader({
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          type="button"
-          className={`
-            btn btn-sm
-            ${isRealtimeActive ? "btn-outline" : `btn-primary`}
-          `}
+        <Button
+          variant={isRealtimeActive ? "outline" : "primary"}
+          size="sm"
           disabled={realtimeStatus === "initializing" || isBatchRendering}
           onClick={onToggleRealtimeRender}
-          aria-busy={realtimeStatus === "initializing" || isBatchRendering}
+          loading={realtimeStatus === "initializing" || isBatchRendering}
           title={renderToggleDisabledReason || undefined}
         >
           {isRealtimeActive ? "停止渲染器" : "启动并渲染全部房间"}
-        </button>
+        </Button>
         <a
           href={webgalEditorUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="btn btn-sm btn-outline"
+          className={buttonClassName({ variant: "outline", size: "sm" })}
           title="打开 WebGAL 编辑器"
         >
           打开 WebGAL 编辑器
         </a>
-        <button
-          type="button"
-          className="btn btn-sm btn-outline"
+        <Button
+          variant="outline"
+          size="sm"
+          loading={isPublishing}
           disabled={isPublishing}
           onClick={onPublish}
-          aria-busy={isPublishing}
         >
           {isPublishing ? "发布中..." : "发布到 Pages"}
-        </button>
+        </Button>
         {publishedUrl && (
           <a
             href={publishedUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn btn-sm btn-outline"
+            className={buttonClassName({ variant: "outline", size: "sm" })}
             title="打开已发布页面"
           >
             打开发布页
@@ -163,10 +163,11 @@ export function SpaceWebgalRenderWindowHeader({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="text-sm">{`Terre 端口（当前：${terrePort}）`}</div>
             <div className="flex items-center gap-2">
-              <input
+              <TextInput
+                density="compact"
                 type="text"
                 inputMode="numeric"
-                className="input input-bordered input-sm w-36"
+                className="w-36"
                 placeholder="默认"
                 value={terrePortInput}
                 onChange={event => onTerrePortInputChange(event.target.value)}
@@ -178,13 +179,13 @@ export function SpaceWebgalRenderWindowHeader({
                   }
                 }}
               />
-              <button
-                type="button"
-                className="btn btn-sm btn-outline"
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={onSaveTerrePort}
               >
                 保存
-              </button>
+              </Button>
             </div>
           </div>
           {terrePortError && <div className="text-xs text-error mt-1">{terrePortError}</div>}

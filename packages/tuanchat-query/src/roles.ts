@@ -1,5 +1,4 @@
 import type { ApiResultPageBaseRespUserRole } from "@tuanchat/openapi-client/models/ApiResultPageBaseRespUserRole";
-import type { ApiResultVoid } from "@tuanchat/openapi-client/models/ApiResultVoid";
 import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 import type { RoleCreateRequest } from "@tuanchat/openapi-client/models/RoleCreateRequest";
 import type { RolePageQueryRequest } from "@tuanchat/openapi-client/models/RolePageQueryRequest";
@@ -8,7 +7,7 @@ import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-type RoleClient = Pick<TuanChat, "avatarController" | "request" | "roleController">;
+type RoleClient = Pick<TuanChat, "avatarController" | "roleController">;
 
 export function getMyRolesQueryKey() {
   return ["myRoles"] as const;
@@ -73,7 +72,7 @@ export function useUpdateRoleMutation(client: RoleClient) {
 export function useDeleteRoleMutation(client: RoleClient) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (roleIds: number[]) => client.roleController.deleteRole1(roleIds),
+    mutationFn: (roleIds: number[]) => client.roleController.deleteRole(roleIds),
     mutationKey: ["deleteRole"],
     onSuccess: (_result, roleIds) => {
       invalidateRoleListQueries(queryClient);
@@ -106,10 +105,7 @@ export function useHardDeleteRolesMutation(client: RoleClient) {
 export function useClearRoleTrashMutation(client: RoleClient) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => client.request.request<ApiResultVoid>({
-      method: "DELETE",
-      url: "/role/trash/clear",
-    }),
+    mutationFn: () => client.roleController.clearRoleTrash(),
     mutationKey: ["clearRoleTrash"],
     onSuccess: () => {
       invalidateRoleListQueries(queryClient);
@@ -128,12 +124,7 @@ export function useDeletedUserRolesPageQuery(
   return useQuery<ApiResultPageBaseRespUserRole>({
     enabled: (options.enabled ?? true) && typeof userId === "number" && Number.isFinite(userId) && userId > 0,
     queryFn: async () => {
-      const res = await client.request.request<ApiResultPageBaseRespUserRole>({
-        method: "POST",
-        url: "/role/trash/page",
-        body: params,
-        mediaType: "application/json",
-      });
+      const res = await client.roleController.getDeletedRolesByPage(params);
       if (!res.success) {
         throw new Error(res.errMsg || "获取角色回收站失败");
       }

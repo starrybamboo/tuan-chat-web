@@ -20,3 +20,4 @@ export type CursorPageBaseResponseFeedbackIssueListItemResponse = {
      */
     list?: Array<FeedbackIssueListItemResponse>;
 };
+

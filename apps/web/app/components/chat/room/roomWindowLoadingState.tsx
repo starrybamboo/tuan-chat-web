@@ -1,11 +1,5 @@
 import ChatFrameLoadingState from "@/components/chat/chatFrameLoadingState";
-
-function SkeletonLine({ className }: { className: string }) {
-  return <div className={`
-    chat-skeleton-line
-    ${className}
-  `} />;
-}
+import { Skeleton } from "@/components/common/StatusPrimitives";
 
 export default function RoomWindowLoadingState() {
   return (
@@ -17,19 +11,19 @@ export default function RoomWindowLoadingState() {
         border-base-300/70 px-3
       ">
         <div className="flex min-w-0 items-center gap-2">
-          <SkeletonLine className="size-8 rounded-md" />
+          <Skeleton className="size-8" />
           <div className="space-y-1.5">
-            <SkeletonLine className="h-3.5 w-28" />
-            <SkeletonLine className="h-2.5 w-16" />
+            <Skeleton className="h-3.5 w-28" />
+            <Skeleton className="h-2.5 w-16" />
           </div>
         </div>
         <div className="
           hidden items-center gap-2
           sm:flex
         ">
-          <SkeletonLine className="h-7 w-16 rounded-md" />
-          <SkeletonLine className="size-7 rounded-md" />
-          <SkeletonLine className="size-7 rounded-md" />
+          <Skeleton className="h-7 w-16" />
+          <Skeleton className="size-7" />
+          <Skeleton className="size-7" />
         </div>
       </div>
 
@@ -39,13 +33,13 @@ export default function RoomWindowLoadingState() {
 
       <div className="shrink-0 border-t border-base-300/70 bg-base-100 p-3">
         <div className="mb-2 flex items-center gap-2">
-          <SkeletonLine className="h-7 w-24 rounded-md" />
-          <SkeletonLine className="h-7 w-20 rounded-md" />
-          <SkeletonLine className="size-7 rounded-md" />
+          <Skeleton className="h-7 w-24" />
+          <Skeleton className="h-7 w-20" />
+          <Skeleton className="size-7" />
         </div>
         <div className="rounded-lg border border-base-300/70 bg-base-200/45 p-3">
-          <SkeletonLine className="h-4 w-5/12" />
-          <SkeletonLine className="mt-2 h-4 w-8/12" />
+          <Skeleton className="h-4 w-5/12" />
+          <Skeleton className="mt-2 h-4 w-8/12" />
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@ import type { CPI, RoleAbility, UserRole } from "../types";
 
 import { CommandExecutor, RuleNameSpace } from "../cmd";
 import { parseDiceExpression, rollDice } from "../dice";
-import { COC_ABILITY_ALIASES } from "../roleAbilityAliasMaps";
+import { COC_ABILITY_ALIASES, resolveRoleAbilityAlias } from "../roleAbilityAliasMaps";
 import UTILS from "../utils/utils";
 import { executeStShowCommand } from "./cmdExePublic";
 
@@ -76,6 +76,61 @@ type CocRepeatArgs = {
   args: string[];
   error?: string;
 };
+
+type CocAbilityArgs = {
+  explicitValue?: number;
+  modifier?: number;
+  name: string;
+};
+
+function parseCocAbilityArgs(args: string[]): CocAbilityArgs {
+  const nameParts: string[] = [];
+  let explicitValue: number | undefined;
+  let modifier: number | undefined;
+
+  for (const rawArg of args) {
+    const arg = rawArg.trim();
+    if (!arg) {
+      continue;
+    }
+
+    if (/^[+-]\d+$/.test(arg)) {
+      modifier ??= Number.parseInt(arg, 10);
+      continue;
+    }
+    if (/^\d+$/.test(arg)) {
+      explicitValue ??= Number.parseInt(arg, 10);
+      continue;
+    }
+
+    const compactValueMatch = arg.match(/^(.+?)(\d+)([+-]\d+)?$/u);
+    if (compactValueMatch) {
+      nameParts.push(compactValueMatch[1]);
+      explicitValue ??= Number.parseInt(compactValueMatch[2], 10);
+      if (compactValueMatch[3]) {
+        modifier ??= Number.parseInt(compactValueMatch[3], 10);
+      }
+      continue;
+    }
+
+    const compactModifierMatch = arg.match(/^(.+?)([+-]\d+)$/u);
+    if (compactModifierMatch) {
+      nameParts.push(compactModifierMatch[1]);
+      modifier ??= Number.parseInt(compactModifierMatch[2], 10);
+      continue;
+    }
+
+    if (!/^\d*[bp]$/i.test(arg)) {
+      nameParts.push(arg);
+    }
+  }
+
+  return {
+    explicitValue,
+    modifier,
+    name: resolveRoleAbilityAlias(nameParts.join(" "), COC_ABILITY_ALIASES),
+  };
+}
 
 const cmdRc = new CommandExecutor(
   "rc",
@@ -601,50 +656,29 @@ const cmdEn = new CommandExecutor(
   "",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
-    // 所有参数转为小写
-    args = args.map(arg => arg.toLowerCase());
-    // 解析参数
-    // 1. 以正负号开头的数字
-    const signedNumbers = args.filter(str => /^[+-]\d+(?:\.\d+)?$/.test(str));
-
-    // 2. 无符号数字
-    const unsignedNumbers = args.filter(str => /^\d+(?:\.\d+)?$/.test(str));
-
-    // 3. 其他
-    const names = args.filter(str =>
-      !/^[+-]\d+(?:\.\d+)?$/.test(str)
-      && !/^\d+(?:\.\d+)?$/.test(str)
-      && !/^\d*[bp]$/.test(str),
-    );
-    const [attr] = unsignedNumbers;
-    const [bonus] = signedNumbers;
-    let [name] = names;
-    // 补丁：添加对于英文简写属性不可读的临时解决方案
-    // TODO 后续添加更健壮的属性解析方案
+    const { explicitValue, modifier, name } = parseCocAbilityArgs(args);
     if (!name) {
-      throw new Error("错误：缺少技能名称");
+      cpi.replyMessage("错误：缺少技能名称");
+      return false;
     }
-    if (COC_ABILITY_ALIASES[name.toLowerCase()]) {
-      name = COC_ABILITY_ALIASES[name.toLowerCase()];
-    }
-    if (!curAbility?.ability && !curAbility?.skill && !curAbility?.basic && unsignedNumbers.length === 0) {
+    if (!curAbility?.ability && !curAbility?.skill && !curAbility?.basic && explicitValue === undefined) {
       cpi.replyMessage(`未设置角色能力？`);
       return false;
     }
 
     let value = Number.parseInt(UTILS.getRoleAbilityValue(curAbility, name) || "");
 
-    if ((value === undefined || Number.isNaN(value)) && attr === undefined) {
+    if (Number.isNaN(value) && explicitValue === undefined) {
       cpi.replyMessage(`错误：未找到技能或属性`);
       return false;
     }
 
-    if (attr !== undefined) {
-      value = Number.parseInt(attr);
+    if (explicitValue !== undefined) {
+      value = explicitValue;
     }
 
-    if (bonus !== undefined) {
-      value += Number.parseInt(bonus);
+    if (modifier !== undefined) {
+      value += modifier;
     }
 
     if (value < 0) {
@@ -901,8 +935,7 @@ const cmdSt = new CommandExecutor(
 
     if (args.length >= 2 && !/^[-+]?\d+$/.test(args[1].trim())) {
       const rawKey = args[0].trim();
-      const normalizedKey = rawKey.toLowerCase();
-      const key = COC_ABILITY_ALIASES[normalizedKey] || rawKey;
+      const key = resolveRoleAbilityAlias(rawKey, COC_ABILITY_ALIASES);
       const expression = args.slice(1).join("").trim();
       if (!rawKey || !expression) {
         cpi.sendToast("错误：属性名或掷骰表达式不能为空");
@@ -923,9 +956,7 @@ const cmdSt = new CommandExecutor(
       const operator = match[2];
       const value = Number.parseInt(match[3], 10);
 
-      // 统一转换为小写进行比较
-      const normalizedKey = rawKey.toLowerCase();
-      const key = COC_ABILITY_ALIASES[normalizedKey] || rawKey;
+      const key = resolveRoleAbilityAlias(rawKey, COC_ABILITY_ALIASES);
 
       const currentValue = Number.parseInt(UTILS.getRoleAbilityValue(curAbility, key) ?? "0"); // 原有值（默认0）
       let newValue: number;

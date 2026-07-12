@@ -11,6 +11,7 @@ import { containsCommandRequestAllToken, extractFirstCommandText, isCommand, str
 import { canManageMemberPermissions, canManageRoomRoles, SPACE_MEMBER_TYPE } from "@tuanchat/domain/member-permissions";
 import { buildMessageDraftsFromUploadedMedia } from "@tuanchat/domain/message-draft";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { buildDefaultPokeContent, buildPokeMessageRequest } from "@tuanchat/domain/poke-message";
 import { resolveSendIdentity } from "@tuanchat/domain/room-identity";
 import {
   appendSidebarNodeToCategory,
@@ -78,7 +79,7 @@ import {
 } from "@/features/members/memberUtils";
 import { useRoomMembersQuery } from "@/features/members/useRoomMembersQuery";
 import { useSpaceMembersQuery } from "@/features/members/useSpaceMembersQuery";
-import { sendMobileChatStatus, useMobileChatStatus, useMobileChatStatusEntries } from "@/features/messages/mobileChatStatus";
+import { DEFAULT_MOBILE_CHAT_STATUS_LABELS, sendMobileChatStatus, useMobileChatStatus, useMobileChatStatusEntries } from "@/features/messages/mobileChatStatus";
 import { executeMobileDicerCommand } from "@/features/messages/mobileDiceCommandExecutor";
 import {
   mergePickedMessageAttachments,
@@ -96,7 +97,7 @@ import {
 } from "@/features/messages/mobileMessageComposer";
 import { buildEditedRoomMessage } from "@/features/messages/roomMessageEditPayload";
 import { useMobileCommandRequests } from "@/features/messages/useMobileCommandRequests";
-import { useDeleteRoomMessageMutation, useEditRoomMessageMutation } from "@/features/messages/useRoomMessageMutations";
+import { useDeleteRoomMessageMutation, useEditRoomMessageMutation, useMoveRoomMessageMutation } from "@/features/messages/useRoomMessageMutations";
 import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
 import { useSendRoomMessageMutation } from "@/features/messages/useSendRoomMessageMutation";
 import { UserProfileSheet } from "@/features/profile/UserProfileSheet";
@@ -119,6 +120,7 @@ import { DRAWER_EDGE_SWIPE_ZONE_WIDTH, RIGHT_DRAWER_WIDTH } from "@/lib/layout-c
 
 import type { StShowCardModel } from "../../components/common/dicer/cmdExe/stShowCard";
 import type { ChatComposerShortcutAction } from "./ChatComposer";
+import type { MessageActionMenuAnchor } from "./messageActionMenuLayout";
 import type { MessageAction } from "./MessageActionMenu";
 import type { RightDrawerTabKey } from "./RightDrawerPanel";
 
@@ -134,6 +136,11 @@ import { buildExpressionDraftAsset } from "./expressionSticker";
 import { MapSheet } from "./MapSheet";
 import { MessageActionMenu } from "./MessageActionMenu";
 import { getErrorMessage } from "./mobileChatUtils";
+import {
+  type MobilePokeComposerTarget,
+  readMobilePokeTemplate,
+  writeMobilePokeTemplate,
+} from "./mobilePokeTemplateStorage";
 import {
   readMobileRoomRoleSelection,
   resolveMobileRoomRoleSelection,
@@ -192,6 +199,16 @@ type ProfileSheetState = {
   avatarFileId?: number | null;
   userId: number | null;
   username: string | null;
+};
+
+type MobilePokeNormalDraft = {
+  draftCustomRoleName: string;
+  draftMessage: string;
+  draftRoleIdInput: string;
+  editingMessage: Message | null;
+  messageAnchorId: number | null;
+  messageAttachments: MobileMessageAttachment[];
+  messageMode: MobileMessageMode;
 };
 
 /* PLACEHOLDER_STYLES */
@@ -306,11 +323,15 @@ export default function ChatShell() {
   const sendRoomMessageMutation = useSendRoomMessageMutation(selectedRoomId, session?.userId ?? 0, roomMessagesQuery.messages);
   const copyMessageToClueFolderMutation = useCopyMessageToClueFolderMutation(mobileApiClient);
   const { editMessage } = useEditRoomMessageMutation(selectedRoomId);
+  const { moveMessage } = useMoveRoomMessageMutation(selectedRoomId);
   const { deleteMessage, deleteMessages } = useDeleteRoomMessageMutation(selectedRoomId);
   const roomRolesQuery = useRoomRolesQuery(selectedRoomId);
   const myRolesQuery = useMyRolesQuery(currentUserId);
   const addRoomRoleMutation = useAddRoomRoleMutation();
-  const roomUnreadCounts = useRoomUnreadCounts(selectedRoomId, { isRoomFocused: isRoomFocusedForRead });
+  const roomUnreadCounts = useRoomUnreadCounts(selectedRoomId, {
+    currentRoomMessages: roomMessagesQuery.messages,
+    isRoomFocused: isRoomFocusedForRead,
+  });
 
   const [draftMessage, setDraftMessage] = useState("");
   const [draftRoleIdInput, setDraftRoleIdInput] = useState("");
@@ -327,6 +348,7 @@ export default function ChatShell() {
   const messageAnchorIdRef = useRef(messageAnchorId);
   const messageAttachmentsRef = useRef(messageAttachments);
   const [actionMenuMessage, setActionMenuMessage] = useState<Message | null>(null);
+  const [actionMenuAnchor, setActionMenuAnchor] = useState<MessageActionMenuAnchor | null>(null);
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
   const [clueScopeMessage, setClueScopeMessage] = useState<Message | null>(null);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
@@ -349,6 +371,11 @@ export default function ChatShell() {
   const [profileSheetState, setProfileSheetState] = useState<ProfileSheetState | null>(null);
   const [stShowCardModel, setStShowCardModel] = useState<StShowCardModel | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [pokeTarget, setPokeTarget] = useState<MobilePokeComposerTarget | null>(null);
+  const pokeTargetRef = useRef<MobilePokeComposerTarget | null>(null);
+  const pokeNormalDraftRef = useRef<MobilePokeNormalDraft | null>(null);
+  const pokeTemplateLoadVersionRef = useRef(0);
+  const pokeUserIdRef = useRef(currentUserId);
   const roomComposerDraftsRef = useRef(new Map<number, string>());
   const selectedRoomDraftRestoreRef = useRef<{ roomId: number | null; version: number }>({
     roomId: null,
@@ -406,7 +433,9 @@ export default function ChatShell() {
   const pendingTargetSpaceId = useMemo(() => parsePositiveIntegerSearchParam(searchParams.spaceId as string | string[] | undefined), [searchParams.spaceId]);
   const pendingTargetRoomId = useMemo(() => parsePositiveIntegerSearchParam(searchParams.roomId as string | string[] | undefined), [searchParams.roomId]);
   const hasExplicitTarget = pendingTargetContactId != null || pendingTargetSpaceId != null || pendingTargetRoomId != null;
-  const dmInboxQuery = useDmInboxQuery(currentUserId);
+  const isRoutePage = !selectedRoomId && !currentContactId;
+  const shouldLoadDmInbox = isRoutePage || currentContactId != null || drawerMode === "dm" || pendingTargetContactId != null;
+  const dmInboxQuery = useDmInboxQuery(currentUserId, { enabled: shouldLoadDmInbox });
   const activeSpaces = useMemo(() => spacesQuery.data?.data ?? [], [spacesQuery.data?.data]);
   const allAvailableRooms = useMemo(() => roomsQuery.data?.data?.rooms ?? [], [roomsQuery.data?.data?.rooms]);
   const availableRooms = useMemo(() => {
@@ -448,15 +477,16 @@ export default function ChatShell() {
   const otherChatStatuses = useMemo(() => {
     return roomChatStatusEntries
       .flatMap((entry) => {
-        if (entry.userId === currentUserId || entry.status === "idle") {
+        if (entry.userId === currentUserId || entry.status.type === "idle") {
           return [];
         }
 
         const member = roomMembers.find(candidate => candidate.userId === entry.userId)
           ?? spaceMembers.find(candidate => candidate.userId === entry.userId);
         return [{
+          description: entry.status.description,
           label: member?.username?.trim() || `用户 #${entry.userId}`,
-          status: entry.status,
+          status: entry.status.type,
           userId: entry.userId,
         }];
       });
@@ -468,12 +498,15 @@ export default function ChatShell() {
 
     sendMobileChatStatus({
       roomId: selectedRoomId,
-      status,
+      status: {
+        description: DEFAULT_MOBILE_CHAT_STATUS_LABELS[status],
+        type: status,
+      },
       userId: currentUserId,
     });
   }, [currentUserId, isSpectator, selectedRoomId]);
   const saveCurrentRoomComposerDraft = useCallback((nextMessage: string) => {
-    if (selectedRoomId == null) {
+    if (selectedRoomId == null || pokeTargetRef.current) {
       return;
     }
 
@@ -598,6 +631,120 @@ export default function ChatShell() {
 
   const effectiveCurrentRoleId = draftRoleId ?? (isSpaceOwner ? -1 : 0);
   const noRole = effectiveCurrentRoleId <= 0 && !isSpaceOwner;
+
+  const restoreNormalDraftAfterPoke = useCallback(() => {
+    const snapshot = pokeNormalDraftRef.current;
+    pokeTemplateLoadVersionRef.current += 1;
+    pokeTargetRef.current = null;
+    pokeNormalDraftRef.current = null;
+    setPokeTarget(null);
+    if (!snapshot) {
+      return;
+    }
+
+    draftMessageRef.current = snapshot.draftMessage;
+    draftRoleIdInputRef.current = snapshot.draftRoleIdInput;
+    messageAnchorIdRef.current = snapshot.messageAnchorId;
+    messageAttachmentsRef.current = snapshot.messageAttachments;
+    setDraftMessage(snapshot.draftMessage);
+    setDraftRoleIdInput(snapshot.draftRoleIdInput);
+    setDraftCustomRoleName(snapshot.draftCustomRoleName);
+    setEditingMessage(snapshot.editingMessage);
+    setMessageAnchorId(snapshot.messageAnchorId);
+    setMessageAttachments(snapshot.messageAttachments);
+    setMessageMode(snapshot.messageMode);
+    if (selectedRoomId != null) {
+      if (snapshot.draftMessage.length > 0) {
+        roomComposerDraftsRef.current.set(selectedRoomId, snapshot.draftMessage);
+      }
+      else {
+        roomComposerDraftsRef.current.delete(selectedRoomId);
+      }
+    }
+  }, [selectedRoomId]);
+
+  const beginPoke = useCallback((message: Message) => {
+    const targetRoleId = message.roleId ?? -1;
+    const targetRole = roomRoles.find(role => role.roleId === targetRoleId);
+    if (!(targetRoleId > 0) || !targetRole || !(currentUserId && currentUserId > 0)) {
+      return;
+    }
+
+    if (!pokeNormalDraftRef.current) {
+      pokeNormalDraftRef.current = {
+        draftCustomRoleName,
+        draftMessage: draftMessageRef.current,
+        draftRoleIdInput: draftRoleIdInputRef.current,
+        editingMessage,
+        messageAnchorId: messageAnchorIdRef.current,
+        messageAttachments: messageAttachmentsRef.current,
+        messageMode,
+      };
+    }
+
+    const nextTarget: MobilePokeComposerTarget = {
+      initiatorRoleId: effectiveCurrentRoleId,
+      initiatorRoleName: currentRole?.roleName?.trim() || "发起者",
+      targetRoleId,
+      targetRoleName: message.customRoleName?.trim() || targetRole.roleName?.trim() || `角色 ${targetRoleId}`,
+    };
+    const defaultContent = buildDefaultPokeContent(nextTarget.initiatorRoleName, nextTarget.targetRoleName);
+    const loadVersion = pokeTemplateLoadVersionRef.current + 1;
+    pokeTemplateLoadVersionRef.current = loadVersion;
+    pokeTargetRef.current = nextTarget;
+    setPokeTarget(nextTarget);
+    setEditingMessage(null);
+    setMessageAnchorId(null);
+    setMessageAttachments([]);
+    setMessageMode(MOBILE_MESSAGE_MODE.TEXT);
+    draftMessageRef.current = defaultContent;
+    messageAnchorIdRef.current = null;
+    messageAttachmentsRef.current = [];
+    setDraftMessage(defaultContent);
+    setMessageError(null);
+
+    void readMobilePokeTemplate(currentUserId, targetRoleId).then((template) => {
+      if (
+        pokeTemplateLoadVersionRef.current !== loadVersion
+        || pokeTargetRef.current?.targetRoleId !== targetRoleId
+        || template == null
+      ) {
+        return;
+      }
+      draftMessageRef.current = template;
+      setDraftMessage(template);
+    }).catch(() => {
+      // 模板读取失败时继续使用默认正文，不影响发送流程。
+    });
+  }, [
+    currentRole?.roleName,
+    currentUserId,
+    draftCustomRoleName,
+    editingMessage,
+    effectiveCurrentRoleId,
+    messageMode,
+    roomRoles,
+  ]);
+
+  useEffect(() => {
+    const previousUserId = pokeUserIdRef.current;
+    pokeUserIdRef.current = currentUserId;
+    if (previousUserId === currentUserId || !pokeTargetRef.current) {
+      return;
+    }
+    restoreNormalDraftAfterPoke();
+  }, [currentUserId, restoreNormalDraftAfterPoke]);
+
+  useEffect(() => {
+    const targetRoleId = pokeTargetRef.current?.targetRoleId;
+    if (!(targetRoleId && targetRoleId > 0) || !roomRolesQuery.isSuccess) {
+      return;
+    }
+    const targetIsAvailable = roomRoles.some(role => role.roleId === targetRoleId && role.state !== 1);
+    if (!targetIsAvailable) {
+      restoreNormalDraftAfterPoke();
+    }
+  }, [restoreNormalDraftAfterPoke, roomRoles, roomRolesQuery.isSuccess]);
 
   const handleExecuteCommandFromRequest = useCallback(async (command: string, replyMessageId: number) => {
     const effectiveRoleId = draftRoleId ?? (isSpaceOwner ? -1 : 0);
@@ -742,6 +889,9 @@ export default function ChatShell() {
 
   // 切换房间时恢复该房间的本地输入草稿，保留角色/头像选择的独立恢复逻辑。
   useEffect(() => {
+    pokeTemplateLoadVersionRef.current += 1;
+    pokeTargetRef.current = null;
+    pokeNormalDraftRef.current = null;
     const restoreVersion = selectedRoomDraftRestoreRef.current.version + 1;
     selectedRoomDraftRestoreRef.current = {
       roomId: selectedRoomId,
@@ -756,6 +906,7 @@ export default function ChatShell() {
       const restoredDraftMessage = selectedRoomId == null
         ? ""
         : roomComposerDraftsRef.current.get(selectedRoomId) ?? "";
+      setPokeTarget(null);
       setDraftMessage(restoredDraftMessage);
       setDraftRoleIdInput("");
       setMessageAnchorId(null);
@@ -889,7 +1040,6 @@ export default function ChatShell() {
     setActiveDmTab(getDmTabForBackTarget(dmBackTarget));
     setDrawerMode("dm");
   }, [cancelDeferredDmClose, dmBackTarget, selectedRoomId]);
-  const isRoutePage = !selectedRoomId && !currentContactId;
   const handleOpenRightDrawerTab = useCallback((tab: RightDrawerTabKey) => {
     Keyboard.dismiss();
     setRightDrawerTab(tab);
@@ -910,22 +1060,21 @@ export default function ChatShell() {
     open();
   }, [open]);
 
-  useEffect(() => {
-    if (!selectedRoomId || currentContactId) {
-      return undefined;
-    }
-
-    const task = InteractionManager.runAfterInteractions(() => {
-      setShouldRenderRightDrawer(true);
-    });
-    return () => task.cancel();
-  }, [currentContactId, selectedRoomId]);
-
-  const handleLongPressMessage = useCallback((msg: Message) => {
+  const handleLongPressMessage = useCallback(({ anchor, message }: { anchor: MessageActionMenuAnchor; message: Message }) => {
     closeImmediately();
-    setActionMenuMessage(msg);
+    setActionMenuMessage(message);
+    setActionMenuAnchor(anchor);
     setActionMenuVisible(true);
   }, [closeImmediately]);
+
+  const handleDropMessage = useCallback(({ message, placement, targetMessage }: { message: Message; placement: "after" | "before"; targetMessage: Message }) => {
+    setActionMenuVisible(false);
+    setActionMenuMessage(null);
+    setActionMenuAnchor(null);
+    void moveMessage({ movingMessage: message, placement, targetMessage }).catch((error) => {
+      setMessageError(getErrorMessage(error, "移动消息失败。"));
+    });
+  }, [moveMessage]);
 
   const handleRetryRoomMessages = useCallback(() => {
     void refetchRoomMessages();
@@ -1067,6 +1216,7 @@ export default function ChatShell() {
     const submittedMessageAnchorId = messageAnchorId;
     const submittedMessageAttachments = messageAttachments;
     const submittedMessageMode = messageMode;
+    const submittedPokeTarget = pokeTargetRef.current;
     let optimisticAttachmentMessages: ReturnType<typeof sendRoomMessageMutation.insertLocalOptimisticMessages> = [];
     messageSendInFlightRef.current = true;
     setMessageSendInFlight(true);
@@ -1076,12 +1226,57 @@ export default function ChatShell() {
     draftRoleIdInputRef.current = "";
     messageAnchorIdRef.current = null;
     messageAttachmentsRef.current = [];
-    clearCurrentRoomComposerDraft();
+    if (!submittedPokeTarget) {
+      clearCurrentRoomComposerDraft();
+    }
     setDraftMessage("");
     setDraftRoleIdInput("");
     setMessageAnchorId(null);
     setMessageAttachments([]);
     try {
+      if (submittedPokeTarget) {
+        if (submittedMessageAttachments.length > 0) {
+          throw new Error("戳一戳消息只支持文本内容。");
+        }
+        const pokeContent = submittedDraftMessage.trim();
+        if (!pokeContent) {
+          throw new Error("戳一戳正文不能为空。");
+        }
+        const effectiveRoleId = draftRoleId ?? (isSpaceOwner ? -1 : 0);
+        const effectiveRole = effectiveRoleId > 0
+          ? roomRoles.find(role => role.roleId === effectiveRoleId)
+          : null;
+        const sendIdentity = resolveSendIdentity({
+          currentAvatarId: selectedAvatarId ?? effectiveRole?.avatarId ?? currentRole?.avatarId ?? -1,
+          customRoleName: draftCustomRoleName,
+          inputContent: pokeContent,
+          isSpaceOwner,
+          isSpectator,
+          roleId: effectiveRoleId,
+        });
+        const request = buildPokeMessageRequest({
+          roomId: selectedRoomId ?? -1,
+          roleId: sendIdentity.roleId,
+          avatarId: sendIdentity.avatarId,
+          content: sendIdentity.content ?? pokeContent,
+          targetRoleId: submittedPokeTarget.targetRoleId,
+        });
+        if (sendIdentity.customRoleName) {
+          request.customRoleName = sendIdentity.customRoleName;
+        }
+        const result = await sendRoomMessageMutation.sendRequest(request);
+        if (!result?.success || !result.data) {
+          throw new Error(result?.errMsg?.trim() || "发送戳一戳失败。");
+        }
+        await writeMobilePokeTemplate(
+          currentUserId ?? 0,
+          submittedPokeTarget.targetRoleId,
+          request.content ?? pokeContent,
+        );
+        restoreNormalDraftAfterPoke();
+        return;
+      }
+
       if (editingMessage) {
         const trimmedContent = submittedDraftMessage.trim();
         if (!trimmedContent) {
@@ -1215,7 +1410,9 @@ export default function ChatShell() {
         draftRoleIdInputRef.current = submittedDraftRoleIdInput;
         messageAnchorIdRef.current = submittedMessageAnchorId;
         messageAttachmentsRef.current = submittedMessageAttachments;
-        saveCurrentRoomComposerDraft(submittedDraftMessage);
+        if (!submittedPokeTarget) {
+          saveCurrentRoomComposerDraft(submittedDraftMessage);
+        }
         setDraftMessage(submittedDraftMessage);
         setDraftRoleIdInput(submittedDraftRoleIdInput);
         setMessageAnchorId(submittedMessageAnchorId);
@@ -1229,6 +1426,7 @@ export default function ChatShell() {
   }, [
     clearCurrentRoomComposerDraft,
     currentRole,
+    currentUserId,
     draftCustomRoleName,
     draftMessage,
     draftRoleId,
@@ -1244,6 +1442,7 @@ export default function ChatShell() {
     queryClient,
     roomMessageModels,
     roomRoles,
+    restoreNormalDraftAfterPoke,
     selectedAvatarId,
     selectedRoomId,
     selectedRuleId,
@@ -1487,6 +1686,9 @@ export default function ChatShell() {
       if (text)
         await Clipboard.setStringAsync(text);
     }
+    else if (action === "poke") {
+      beginPoke(message);
+    }
     else if (action === "edit") {
       const text = message.content ?? "";
       setDraftMessage(text);
@@ -1520,6 +1722,7 @@ export default function ChatShell() {
       }
     }
   }, [
+    beginPoke,
     deleteMessage,
     handleSelectMessageAnchor,
   ]);
@@ -1622,6 +1825,7 @@ export default function ChatShell() {
 
   const handleCloseActionMenu = useCallback(() => {
     setActionMenuVisible(false);
+    setActionMenuAnchor(null);
   }, []);
 
   const handleActionMenuAction = useCallback((action: MessageAction, msg: Message) => {
@@ -1839,17 +2043,21 @@ export default function ChatShell() {
                                   <>
                                     <ChatMessageList
                                       key={selectedRoomId ?? "room-none"}
+                                      allowDeferredMetadataQueries={!roomMessagesQuery.isFetching && !messageSendInFlight}
                                       messages={roomMessages}
                                       multiSelectMode={multiSelectMode}
                                       multiSelectedIds={multiSelectedIds}
                                       selectedAnchorId={messageAnchorId}
+                                      onDropMessage={handleDropMessage}
                                       onLongPressMessage={handleLongPressMessage}
+                                      onPokeAvatar={beginPoke}
                                       onRetry={handleRetryRoomMessages}
                                       onToggleMultiSelect={handleToggleMultiSelect}
                                       isPending={roomMessagesQuery.isPending}
                                       isError={roomMessagesQuery.isError}
                                       error={roomMessagesQuery.error}
                                       roomRoles={roomRoles}
+                                      roomMembers={roomMembers}
                                       currentRoleId={effectiveCurrentRoleId}
                                       isSpaceOwner={isSpaceOwner}
                                       noRole={noRole}
@@ -1891,7 +2099,7 @@ export default function ChatShell() {
                                           <ChatComposer
                                             anchorMessage={selectedAnchorMessage}
                                             availableRoles={selectableRoomRoles}
-                                            canUseAttachments={canMobileMessageModeUseAttachments(messageMode)}
+                                            canUseAttachments={canMobileMessageModeUseAttachments(messageMode) && !pokeTarget}
                                             canUseExpressionPicker
                                             commandPanelMaxHeight={roomContentHeight}
                                             currentRole={currentRole}
@@ -1903,11 +2111,13 @@ export default function ChatShell() {
                                               isSubmitting={messageSendInFlight}
                                               messageAttachments={messageAttachments}
                                               messageMode={messageMode}
+                                              pokeTarget={pokeTarget}
                                                myChatStatus={myChatStatus}
                                                otherChatStatuses={otherChatStatuses}
                                                onChangeDraftMessage={handleChangeDraftMessage}
                                               onChangeChatStatus={isSpectator ? undefined : handleChangeChatStatus}
                                               onCancelEdit={handleCancelEditMessage}
+                                              onCancelPoke={restoreNormalDraftAfterPoke}
                                               onClearAnchor={handleClearAnchor}
                                               onClearAttachments={handleClearAttachments}
                                             onOpenExpressionPicker={handleOpenExpressionPicker}
@@ -1998,7 +2208,9 @@ export default function ChatShell() {
       {actionMenuVisible
         ? (
             <MessageActionMenu
+              anchor={actionMenuAnchor}
               canAddClue
+              canPoke
               currentUserId={currentUserId}
               hasHostPrivileges={isSpaceOwner}
               message={actionMenuMessage}

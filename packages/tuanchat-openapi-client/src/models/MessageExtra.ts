@@ -10,14 +10,12 @@ import type { DocCardExtra } from './DocCardExtra';
 import type { FileMessage } from './FileMessage';
 import type { ForwardMessage } from './ForwardMessage';
 import type { ImageMessage } from './ImageMessage';
+import type { PokeExtra } from './PokeExtra';
 import type { RoomJumpExtra } from './RoomJumpExtra';
 import type { SoundMessage } from './SoundMessage';
 import type { StateEventExtra } from './StateEventExtra';
 import type { VideoMessage } from './VideoMessage';
 import type { WebgalChoosePayload } from './WebgalChoosePayload';
-/**
- * 不同类型消息持有的额外信息
- */
 export type MessageExtra = {
     diceResult?: DiceResult;
     diceTurn?: DiceTurn;
@@ -32,4 +30,6 @@ export type MessageExtra = {
     docCard?: DocCardExtra;
     roomJump?: RoomJumpExtra;
     stateEvent?: StateEventExtra;
+    poke?: PokeExtra;
 };
+

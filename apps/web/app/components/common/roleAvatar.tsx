@@ -11,13 +11,12 @@ import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from 
 
 import {
   useGetRoleAvatarQuery,
-  useGetRoleAvatarsQuery,
 } from "../../../api/hooks/RoleAndAvatarHooks";
 
 /**
  * 用户头像组件
  * @param avatarId
- * @param roleId 角色ID，如果使用stopToastWindow为false需要添加，仓库角色的avatar
+ * @param roleId 角色ID，如果使用stopToastWindow为false需要添加
  * @param width 头像宽度尺寸
  * @param isRounded 是否显示为圆形头像（true的时候是rounded-full，false的时候是rounded）
  * @param withTitle 是否显示头像对应的标题（并非roleName）
@@ -61,7 +60,7 @@ export default function RoleAvatarComponent({
   withTitle?: boolean; // 是否在下方显示标题
   stopToastWindow?: boolean; // 点击后是否会产生roleDetail弹窗
   alt?: string;
-  /** 当 avatarId <= 0 且无法从 roleId 找到可用头像时，是否回退到默认头像 */
+  /** 当 avatarId <= 0 且未提供头像 URL 时，是否回退到默认头像 */
   useDefaultAvatarFallback?: boolean;
   allowKickOut?: boolean;
   kickOutByManagerOnly?: boolean;
@@ -79,15 +78,10 @@ export default function RoleAvatarComponent({
   const shouldFetchAvatarById = hasExplicitAvatarId && !hasProvidedAvatarUrl;
   const avatarQuery = useGetRoleAvatarQuery(safeAvatarId, { enabled: shouldFetchAvatarById });
   const roleAvatar = avatarQuery.data?.data;
-  const shouldUseFallback = !hasExplicitAvatarId && !hasProvidedAvatarUrl && typeof roleId === "number" && roleId > 0;
-  const fallbackAvatarsQuery = useGetRoleAvatarsQuery(roleId ?? -1, { enabled: shouldUseFallback });
-  const fallbackAvatar = shouldUseFallback ? fallbackAvatarsQuery.data?.data?.[0] : undefined;
   const defaultAvatarUrl = (hasExplicitAvatarId || useDefaultAvatarFallback) ? ROLE_DEFAULT_AVATAR_URL : "";
-  const fetchedAvatarUrl = hasExplicitAvatarId
-    ? (buildAvatarThumbUrl(roleAvatar?.avatarFileId) || buildAvatarUrl(roleAvatar?.avatarFileId))
-    : (buildAvatarThumbUrl(fallbackAvatar?.avatarFileId) || buildAvatarUrl(fallbackAvatar?.avatarFileId));
+  const fetchedAvatarUrl = buildAvatarThumbUrl(roleAvatar?.avatarFileId) || buildAvatarUrl(roleAvatar?.avatarFileId);
   const displayAvatarUrl = providedAvatarThumbUrl || providedAvatarUrl || fetchedAvatarUrl || defaultAvatarUrl;
-  const roleIdTrue = roleId ?? roleAvatar?.roleId ?? fallbackAvatar?.roleId;
+  const roleIdTrue = roleId ?? roleAvatar?.roleId;
   const hasAvatar = Boolean(displayAvatarUrl);
 
   // 控制角色详情的toastWindow

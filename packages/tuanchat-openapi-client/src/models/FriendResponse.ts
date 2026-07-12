@@ -31,3 +31,4 @@ export type FriendResponse = {
      */
     lastLoginTime?: string;
 };
+

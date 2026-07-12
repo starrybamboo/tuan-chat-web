@@ -1,7 +1,7 @@
 import type { PropsWithChildren } from "react";
 
-import { useQueries } from "@tanstack/react-query";
 import React from "react";
+import { useRoleAbilitiesByRule } from "@tuanchat/query/role-abilities";
 
 import { getNormalizedStateEventExtra } from "@/types/stateEvent";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -10,11 +10,7 @@ import type { ChatMessageResponse, RoleAbility } from "../../../../api";
 import type { StateDefinitionResolver } from "./stateDefinitionResolver";
 import type { CombatStateRuntime } from "./stateRuntime";
 
-import { roleAbilityByRuleQueryKey } from "../../../../api/hooks/abilityMutationInvalidation";
-import {
-  loadRoleAbilityByRule,
-  ROLE_ABILITY_BY_RULE_OBSERVER_OPTIONS,
-} from "../../../../api/hooks/abilityQueryHooks";
+import { tuanchat } from "../../../../api/instance";
 import { EMPTY_STATE_DEFINITION_RESOLVER } from "./stateDefinitionResolver";
 import { buildCombatStateRuntime } from "./stateRuntime";
 
@@ -81,22 +77,15 @@ export function StateRuntimeProvider({
     () => collectReferencedRoleIds(messages, currentRoleId, visibleRoleIds),
     [currentRoleId, messages, visibleRoleIds],
   );
-  const abilityQueries = useQueries({
-    queries: roleIds.map(roleId => ({
-      queryKey: roleAbilityByRuleQueryKey(roleId, ruleId),
-      enabled: roleId > 0 && ruleId > 0,
-      ...ROLE_ABILITY_BY_RULE_OBSERVER_OPTIONS,
-      queryFn: (): Promise<RoleAbility | null> => loadRoleAbilityByRule(roleId, ruleId),
-    })),
-  });
+  const roleAbilitiesQuery = useRoleAbilitiesByRule(tuanchat, roleIds, ruleId);
 
   const fallbackRoleAbilitiesByRoleId = React.useMemo(() => {
     const next: Record<number, RoleAbility | null | undefined> = {};
-    roleIds.forEach((roleId, index) => {
-      next[roleId] = abilityQueries[index]?.data;
+    roleIds.forEach((roleId) => {
+      next[roleId] = roleAbilitiesQuery.abilityByRoleId.get(roleId);
     });
     return next;
-  }, [abilityQueries, roleIds]);
+  }, [roleAbilitiesQuery.abilityByRoleId, roleIds]);
 
   const runtime = React.useMemo(() => buildCombatStateRuntime({
     messages: messages.map(item => item.message),
@@ -116,8 +105,8 @@ export function StateRuntimeProvider({
     currentRoleId,
     fallbackRoleAbilitiesByRoleId,
     resolver,
-    isAbilityLoading: abilityQueries.some(query => query.isLoading),
-  }), [abilityQueries, currentRoleId, fallbackRoleAbilitiesByRoleId, resolver, runtime]);
+    isAbilityLoading: roleAbilitiesQuery.isLoading,
+  }), [currentRoleId, fallbackRoleAbilitiesByRoleId, resolver, roleAbilitiesQuery.isLoading, runtime]);
 
   return (
     <StateRuntimeContext value={value}>

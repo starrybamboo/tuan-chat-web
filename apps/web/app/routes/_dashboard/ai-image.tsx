@@ -11,6 +11,7 @@ import { PreviewImageDialog } from "@/components/aiImage/PreviewImageDialog";
 import { StylePickerDialog } from "@/components/aiImage/StylePickerDialog";
 import { useAiImagePageController } from "@/components/aiImage/useAiImagePageController";
 import { useHorizontalResizeDrag } from "@/components/common/customHooks/useHorizontalResizeDrag";
+import { FileInput } from "@/components/common/FormField";
 import "@/components/aiImage/aiImageRouteStyles.css";
 
 const AI_IMAGE_SIDEBAR_MIN_RATIO = 0.18;
@@ -169,6 +170,13 @@ function AiImagePage() {
         ) {
           border-radius: 9999px !important;
         }
+
+        @media (max-width: 767px) {
+          .ai-image-shell .ai-image-sidebar-wrapper {
+            width: 100% !important;
+            height: 50% !important;
+          }
+        }
       `}
       </style>
       {isPageImageDragOver
@@ -190,9 +198,8 @@ function AiImagePage() {
           )
         : null}
 
-      <input
+      <FileInput
         ref={sourceFileInputRef}
-        type="file"
         accept="image/*"
         className="hidden"
         onChange={(event) => {
@@ -203,9 +210,8 @@ function AiImagePage() {
           event.target.value = "";
         }}
       />
-      <input
+      <FileInput
         ref={vibeReferenceInputRef}
-        type="file"
         accept="image/*"
         multiple
         className="hidden"
@@ -217,9 +223,8 @@ function AiImagePage() {
           event.target.value = "";
         }}
       />
-      <input
+      <FileInput
         ref={preciseReferenceInputRef}
-        type="file"
         accept="image/*"
         className="hidden"
         onChange={(event) => {
@@ -232,19 +237,20 @@ function AiImagePage() {
       />
 
       <div ref={layoutRef} className="
-        flex min-h-0 flex-1 overflow-hidden bg-base-200
+        flex min-h-0 flex-1 flex-col overflow-hidden bg-base-200 md:flex-row
       ">
         {isSidebarVisible
           ? (
               <>
                 <div
-                  className="relative z-20 flex min-h-0 min-w-0 shrink-0"
+                  className="ai-image-sidebar-wrapper relative z-20 flex min-h-0 min-w-0 shrink-0"
                   style={sidebarWidth == null ? undefined : { width: `${sidebarWidth}px` }}
                 >
                   <AiImageSidebar sidebarProps={sidebarProps} />
                   <button
                     type="button"
                     className="
+                      hidden md:block
                       group absolute inset-y-0 right-0 z-30 w-3 translate-x-1/2
                       cursor-col-resize touch-none bg-transparent px-0
                     "

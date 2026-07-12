@@ -2,20 +2,17 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ClueRefDragPayload } from "@/components/chat/utils/clueRef";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
-import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
 import type { RoomRefDragPayload } from "@/components/chat/utils/roomRef";
 
 import DocRefDragOverlay from "@/components/chat/shared/components/docRefDragOverlay";
 import { getClueRefDragData, isClueRefDrag } from "@/components/chat/utils/clueRef";
 import { getFileDragOverlayText, isFileDrag } from "@/components/chat/utils/dndUpload";
 import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
-import { getMaterialItemDragData, isMaterialItemDrag } from "@/components/chat/utils/materialItemDrag";
 import { getRoomRefDragData, isRoomRefDrag } from "@/components/chat/utils/roomRef";
 
 type RoomDocRefDropLayerProps = {
   onSendClueCard: (payload: ClueRefDragPayload) => Promise<void> | void;
   onSendDocCard: (payload: DocRefDragPayload) => Promise<void> | void;
-  onSendMaterialItem: (payload: MaterialItemDragPayload) => Promise<void> | void;
   onSendRoomJump: (payload: RoomRefDragPayload) => Promise<void> | void;
   children: React.ReactNode;
 }
@@ -23,7 +20,6 @@ type RoomDocRefDropLayerProps = {
 export default function RoomDocRefDropLayer({
   onSendClueCard,
   onSendDocCard,
-  onSendMaterialItem,
   onSendRoomJump,
   children,
 }: RoomDocRefDropLayerProps) {
@@ -46,7 +42,6 @@ export default function RoomDocRefDropLayer({
 
   const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     const isDocRef = isDocRefDrag(event.dataTransfer);
-    const isMaterialItem = isMaterialItemDrag(event.dataTransfer);
     const isRoomRef = isRoomRefDrag(event.dataTransfer);
     const isClueRef = isClueRefDrag(event.dataTransfer);
     const isFile = isFileDrag(event.dataTransfer);
@@ -68,19 +63,6 @@ export default function RoomDocRefDropLayer({
     }
     if (isClueRef) {
       updateDragOverlayLabel("松开发送线索");
-      event.preventDefault();
-      event.dataTransfer.dropEffect = "copy";
-      return;
-    }
-    if (isMaterialItem) {
-      const materialItem = getMaterialItemDragData(event.dataTransfer);
-      const messageCount = materialItem?.messageCount ?? 0;
-      if (materialItem?.itemKind === "asset") {
-        updateDragOverlayLabel("松开发送具体素材");
-      }
-      else {
-        updateDragOverlayLabel(messageCount > 1 ? `松开发送素材条目（共 ${messageCount} 条）` : "松开发送素材条目");
-      }
       event.preventDefault();
       event.dataTransfer.dropEffect = "copy";
       return;
@@ -113,7 +95,6 @@ export default function RoomDocRefDropLayer({
   const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     updateDragOverlayLabel(null);
     const isDocRef = isDocRefDrag(event.dataTransfer);
-    const isMaterialItem = isMaterialItemDrag(event.dataTransfer);
     const isRoomRef = isRoomRefDrag(event.dataTransfer);
     const isClueRef = isClueRefDrag(event.dataTransfer);
     const isFile = isFileDrag(event.dataTransfer);
@@ -146,13 +127,6 @@ export default function RoomDocRefDropLayer({
       void onSendRoomJump(roomRef);
       return;
     }
-    const materialItem = getMaterialItemDragData(event.dataTransfer);
-    if (materialItem && isMaterialItem) {
-      event.preventDefault();
-      event.stopPropagation();
-      void onSendMaterialItem(materialItem);
-      return;
-    }
     const docRef = getDocRefDragData(event.dataTransfer);
     if (!docRef) {
       return;
@@ -160,7 +134,7 @@ export default function RoomDocRefDropLayer({
     event.preventDefault();
     event.stopPropagation();
     void onSendDocCard(docRef);
-  }, [getDragOverTargetZone, isSubWindowDropZone, onSendClueCard, onSendDocCard, onSendMaterialItem, onSendRoomJump, updateDragOverlayLabel]);
+  }, [getDragOverTargetZone, isSubWindowDropZone, onSendClueCard, onSendDocCard, onSendRoomJump, updateDragOverlayLabel]);
 
   useEffect(() => {
     const handleGlobalDragEnd = () => {

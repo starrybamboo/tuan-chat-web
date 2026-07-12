@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 
 import { ChevronRightIcon } from "@/icons";
+import { CollapsibleMotion } from "@/components/common/motion/CollapsibleMotion";
+import { CountBadge, type StatusTone } from "@/components/common/StatusPrimitives";
 
 import type { RoleConfigTabKey } from "./configTabMeta";
 
@@ -120,13 +122,13 @@ export function ConfigurationSection({
   const { Icon } = getRoleConfigTabItem(configKey);
 
   const renderSectionHeader = ({
-    badgeClassName,
+    badgeTone,
     count,
     isOpen,
     labelPrefix,
     onToggle,
   }: {
-    badgeClassName: string;
+    badgeTone: StatusTone;
     count: number;
     isOpen: boolean;
     labelPrefix: string;
@@ -158,7 +160,7 @@ export function ConfigurationSection({
         {labelPrefix}
         {customLabel}
       </span>
-      <div className={badgeClassName}>{count}</div>
+      <CountBadge tone={badgeTone}>{count}</CountBadge>
     </button>
   );
 
@@ -175,14 +177,14 @@ export function ConfigurationSection({
       <div className="space-y-6">
         <div className="space-y-4">
           {renderSectionHeader({
-            badgeClassName: "badge badge-success badge-sm min-w-6",
+            badgeTone: "success",
             count: modifiedCount,
             isOpen: isModifiedOpen,
             labelPrefix: "已自定义的",
             onToggle: () => setIsModifiedOpen(isOpen => !isOpen),
           })}
 
-          {isModifiedOpen && (
+          <CollapsibleMotion open={isModifiedOpen}>
             <NumericalEditor
               data={modifiedData}
               onChange={handleModifiedChange}
@@ -194,20 +196,20 @@ export function ConfigurationSection({
               existingKeys={allFieldKeys}
               allowAddField
             />
-          )}
+          </CollapsibleMotion>
         </div>
 
         {templateCount > 0 && (
           <div className="space-y-4">
             {renderSectionHeader({
-              badgeClassName: "badge badge-info badge-sm",
+              badgeTone: "info",
               count: templateCount,
               isOpen: isTemplateOpen,
               labelPrefix: "规则模版",
               onToggle: () => setIsTemplateOpen(isOpen => !isOpen),
             })}
 
-            {isTemplateOpen && (
+            <CollapsibleMotion open={isTemplateOpen}>
               <NumericalEditor
                 data={templateData}
                 onChange={handleTemplateChange}
@@ -219,7 +221,7 @@ export function ConfigurationSection({
                 existingKeys={allFieldKeys}
                 allowAddField={false}
               />
-            )}
+            </CollapsibleMotion>
           </div>
         )}
 

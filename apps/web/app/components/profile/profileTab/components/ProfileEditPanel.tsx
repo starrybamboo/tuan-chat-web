@@ -1,5 +1,8 @@
 import React from "react";
 
+import { Button } from "@/components/common/Button";
+import { FormField, TextArea, TextInput } from "@/components/common/FormField";
+
 type ProfileEditingState = {
   isEditingProfile: boolean;
   editingUsername: string;
@@ -43,97 +46,71 @@ export const ProfileEditPanel: React.FC<ProfileEditPanelProps> = ({
       <h3 className="text-lg font-semibold">编辑个人资料</h3>
 
       {/* 用户名编辑 */}
-      <div>
-        <label htmlFor={usernameInputId} className="label">
-          <span className="label-text">用户名</span>
-        </label>
-        <input
-          id={usernameInputId}
-          type="text"
-          autoComplete="off"
-          value={editingUsername}
-          onChange={e => setEditingUsername(e.target.value)}
-          className={`
-            input input-bordered w-full
-            ${
-            editingUsername.length > 30 ? "input-error" : ""
-          }
-          `}
-          maxLength={30}
-          placeholder="请输入用户名"
-        />
-        <div className={`
-          text-xs mt-1
-          ${
-          editingUsername.length > 30 ? "text-error" : "text-neutral-500"
-        }
-        `}
-        >
-          {editingUsername.length}
-          /30
-        </div>
-      </div>
+      <FormField
+        id={usernameInputId}
+        label="用户名"
+        labelAdornment={`${editingUsername.length} / 30`}
+        error={editingUsername.length > 30 ? "用户名最多 30 个字符" : undefined}
+      >
+        {controlProps => (
+          <TextInput
+            {...controlProps}
+            type="text"
+            name="profile_username"
+            autoComplete="off"
+            value={editingUsername}
+            onChange={e => setEditingUsername(e.target.value)}
+            maxLength={30}
+            placeholder="请输入用户名"
+          />
+        )}
+      </FormField>
 
       {/* 描述编辑 */}
-      <div>
-        <label htmlFor={descriptionInputId} className="label">
-          <span className="label-text">个人描述</span>
-        </label>
-        <textarea
-          id={descriptionInputId}
-          autoComplete="off"
-          value={editingDescription}
-          onChange={e => setEditingDescription(e.target.value)}
-          className={`
-            textarea textarea-bordered w-full
-            ${
-            editingDescription.length > 253 ? "textarea-error" : ""
-          }
-          `}
-          rows={4}
-          maxLength={253}
-          placeholder="请输入个人描述..."
-        />
-        <div className={`
-          text-xs mt-1
-          ${
-          editingDescription.length > 253 ? "text-error" : "text-neutral-500"
-        }
-        `}
-        >
-          {editingDescription.length}
-          /253
-        </div>
-      </div>
+      <FormField
+        id={descriptionInputId}
+        label="个人描述"
+        labelAdornment={`${editingDescription.length} / 253`}
+        error={editingDescription.length > 253 ? "个人描述最多 253 个字符" : undefined}
+      >
+        {controlProps => (
+          <TextArea
+            {...controlProps}
+            name="profile_description"
+            autoComplete="off"
+            value={editingDescription}
+            onChange={e => setEditingDescription(e.target.value)}
+            rows={4}
+            maxLength={253}
+            placeholder="请输入个人描述..."
+          />
+        )}
+      </FormField>
 
       {/* 操作按钮 */}
       <div className="flex gap-2 pt-2">
-        <button
+        <Button
+          variant="primary"
+          className="flex-1"
           onClick={saveProfile}
-          className="btn btn-success flex-1"
           disabled={
             !editingUsername.trim()
             || editingUsername.length > 30
             || editingDescription.length > 253
             || isSaving
           }
-          type="button"
+          loading={isSaving}
+          aria-label={isSaving ? "正在保存个人资料" : "保存个人资料"}
         >
-          {isSaving
-            ? (
-                <span className="loading loading-spinner loading-sm"></span>
-              )
-            : (
-                "保存"
-              )}
-        </button>
-        <button
+          {isSaving ? "保存中..." : "保存"}
+        </Button>
+        <Button
+          variant="ghost"
+          className="flex-1"
           onClick={cancelEditingProfile}
-          className="btn btn-ghost flex-1"
-          type="button"
         >
           取消
-        </button>
+        </Button>
       </div>
     </div>
   );

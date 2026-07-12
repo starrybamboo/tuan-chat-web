@@ -2,7 +2,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Modal } from "@/components/common/Modal";
+import { DialogFrame } from "@/components/common/DialogFrame";
+import { textLinkClassName } from "@/components/common/DesignLanguage";
 import {
   requestForgotPasswordByEmail,
   sendEmailVerificationCode,
@@ -501,6 +502,7 @@ function LoginAuthContent({ isActive, mobileCallbackEnabled = false, onClose, on
                   turnstile={hasTurnstileSiteKey()
                     ? (
                         <TurnstileWidget
+                          action="login"
                           token={loginTurnstile.token}
                           onTokenChange={loginTurnstile.setToken}
                           resetKey={loginTurnstile.resetKey}
@@ -533,6 +535,7 @@ function LoginAuthContent({ isActive, mobileCallbackEnabled = false, onClose, on
                     turnstile={hasTurnstileSiteKey()
                       ? (
                           <TurnstileWidget
+                            action="register"
                             token={registerTurnstile.token}
                             onTokenChange={registerTurnstile.setToken}
                             resetKey={registerTurnstile.resetKey}
@@ -550,6 +553,7 @@ function LoginAuthContent({ isActive, mobileCallbackEnabled = false, onClose, on
                     turnstile={hasTurnstileSiteKey()
                       ? (
                           <TurnstileWidget
+                            action="forgot_password"
                             token={forgotTurnstile.token}
                             onTokenChange={forgotTurnstile.setToken}
                             resetKey={forgotTurnstile.resetKey}
@@ -568,7 +572,7 @@ function LoginAuthContent({ isActive, mobileCallbackEnabled = false, onClose, on
                   <button
                     type="button"
                     onClick={() => switchMode("register")}
-                    className="link link-primary ml-1 font-medium"
+                    className={textLinkClassName("ml-1 font-medium")}
                   >
                     立即注册
                   </button>
@@ -578,7 +582,7 @@ function LoginAuthContent({ isActive, mobileCallbackEnabled = false, onClose, on
                   <button
                     type="button"
                     onClick={() => switchMode("forgot")}
-                    className="link link-primary ml-1 font-medium"
+                    className={textLinkClassName("ml-1 font-medium")}
                   >
                     找回密码
                   </button>
@@ -592,7 +596,7 @@ function LoginAuthContent({ isActive, mobileCallbackEnabled = false, onClose, on
                 <button
                   type="button"
                   onClick={() => switchMode("login")}
-                  className="link link-primary ml-1 font-medium"
+                  className={textLinkClassName("ml-1 font-medium")}
                 >
                   立即登录
                 </button>
@@ -605,7 +609,7 @@ function LoginAuthContent({ isActive, mobileCallbackEnabled = false, onClose, on
                 <button
                   type="button"
                   onClick={() => switchMode("login")}
-                  className="link link-primary ml-1 font-medium"
+                  className={textLinkClassName("ml-1 font-medium")}
                 >
                   返回登录
                 </button>
@@ -644,16 +648,12 @@ export function LoginPageAuthPanel({ mobileCallbackEnabled = false, onClose, onA
 // 登录弹窗组件：保留给全局弹窗入口使用，独立登录页不走这个壳。
 export default function LoginModal({ isOpen, mobileCallbackEnabled = false, onClose, onAuthenticated }: LoginModalProps) {
   return (
-    <Modal
+    <DialogFrame
       open={isOpen}
-      onOpenChange={(next) => {
-        if (!next) {
-          onClose();
-        }
-      }}
-      size="xl"
+      mode="native"
+      onClose={onClose}
       ariaLabel="登录团剧共创账号"
-      className="relative max-h-[calc(100dvh-2rem)] w-full max-w-[34rem] overflow-y-auto border border-base-content/10 bg-base-100/95 p-0 shadow-2xl dark:bg-base-300/95"
+      panelClassName="max-h-[calc(100dvh-2rem)] w-full max-w-[34rem] overflow-y-auto border-base-content/10 bg-base-100/95 p-0 shadow-2xl dark:bg-base-300/95"
     >
       <LoginAuthContent
         isActive={isOpen}
@@ -661,6 +661,6 @@ export default function LoginModal({ isOpen, mobileCallbackEnabled = false, onCl
         onAuthenticated={onAuthenticated}
         onClose={onClose}
       />
-    </Modal>
+    </DialogFrame>
   );
 }

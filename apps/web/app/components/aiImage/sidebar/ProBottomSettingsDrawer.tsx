@@ -9,6 +9,8 @@ import {
   clampRange,
   formatSliderValue,
 } from "@/components/aiImage/helpers";
+import { Disclosure } from "@/components/common/Disclosure";
+import { FieldLabel, RangeInput, SelectInput, Switch, TextInput } from "@/components/common/FormField";
 
 export function renderProBottomSettingsDrawerContent({
   uiMode,
@@ -19,8 +21,6 @@ export function renderProBottomSettingsDrawerContent({
   seed,
   sampler,
   samplerOptions,
-  subtleInputClassName,
-  subtleSelectClassName,
   noiseScheduleOptions,
   noiseSchedule,
   isNAI4,
@@ -50,8 +50,6 @@ export function renderProBottomSettingsDrawerContent({
   seed: number;
   sampler: string;
   samplerOptions: readonly string[];
-  subtleInputClassName: string;
-  subtleSelectClassName: string;
   noiseScheduleOptions: readonly string[];
   noiseSchedule: string;
   isNAI4: boolean;
@@ -148,7 +146,7 @@ export function renderProBottomSettingsDrawerContent({
         className={`
           absolute inset-x-4 bottom-0 z-20 origin-bottom overflow-hidden
           rounded-t-2xl border border-base-300 bg-base-200 text-base-content
-          shadow-xl transition-all duration-300
+          shadow-xl transition-all duration-300 motion-reduce:transition-none
           ease-out
             dark:text-white
           ${
@@ -209,9 +207,8 @@ export function renderProBottomSettingsDrawerContent({
                 ">{`Steps: ${steps}`}</span>
               </div>
               <div className="pr-4">
-                <input
-                  className="range range-xs w-full"
-                  type="range"
+                <RangeInput
+                  density="compact"
                   min="1"
                   max="50"
                   step="1"
@@ -251,9 +248,8 @@ export function renderProBottomSettingsDrawerContent({
                 </button>
               </div>
               <div className="pr-4">
-                <input
-                  className="range range-xs w-full"
-                  type="range"
+                <RangeInput
+                  density="compact"
                   min="0"
                   max="10"
                   step="0.1"
@@ -269,10 +265,10 @@ export function renderProBottomSettingsDrawerContent({
                   text-sm font-semibold text-base-content
                   dark:text-white
                 ">Seed</div>
-                <input
+                <TextInput
+                  density="compact"
+                  surface="muted"
                   className={`
-                    ${subtleInputClassName}
-                    border-base-300 bg-base-200 text-base-content
                     placeholder:text-base-content/28
                     [-moz-appearance:textfield]
                     [&::-webkit-inner-spin-button]:appearance-none
@@ -294,25 +290,25 @@ export function renderProBottomSettingsDrawerContent({
                   text-sm font-semibold text-base-content
                   dark:text-white
                 ">Sampler</div>
-                <select className={`
-                  ${subtleSelectClassName}
-                  border-base-300 bg-base-200 text-base-content
-                    dark:text-white
-                `} value={sampler} onChange={e => setSampler(e.target.value)}>
+                <SelectInput
+                  density="compact"
+                  surface="muted"
+                  className="dark:text-white"
+                  value={sampler}
+                  onChange={e => setSampler(e.target.value)}
+                >
                   {samplerOptions.map(s => <option key={s} value={s}>{SAMPLER_LABELS[s] || s}</option>)}
-                </select>
+                </SelectInput>
               </div>
             </div>
 
-            <details className="collapse collapse-arrow border-0 bg-transparent" open>
-              <summary className="
-                collapse-title min-h-0 px-0 py-0 pr-12 text-sm font-semibold
-                text-base-content
-                dark:text-white
-              ">
-                Advanced Settings
-              </summary>
-              <div className="collapse-content space-y-4 px-0 pb-0 pr-4 pt-4">
+            <Disclosure
+              defaultOpen
+              title="Advanced Settings"
+              className="border-0 bg-transparent"
+              titleClassName="min-h-0 px-0 py-0 pr-12 text-sm font-semibold text-base-content dark:text-white"
+              contentClassName="space-y-4 px-0 pb-0 pr-4 pt-4"
+            >
                 {isNAI4
                   ? (
                       <div className="flex flex-col gap-2">
@@ -321,9 +317,8 @@ export function renderProBottomSettingsDrawerContent({
                           dark:text-white
                         ">{`Prompt Guidance Rescale: ${cfgRescale}`}</span>
                         <div className="pr-4">
-                          <input
-                            className="range range-xs w-full"
-                            type="range"
+                          <RangeInput
+                            density="compact"
                             min="0"
                             max="1"
                             step="0.01"
@@ -342,13 +337,15 @@ export function renderProBottomSettingsDrawerContent({
                           text-sm font-semibold text-base-content
                           dark:text-white
                         ">Noise Schedule</span>
-                        <select className={`
-                          ${subtleSelectClassName}
-                          border-base-300 bg-base-200 text-base-content
-                                                     dark:text-white
-                        `} value={noiseSchedule} onChange={e => setNoiseSchedule(e.target.value)}>
+                        <SelectInput
+                          density="compact"
+                          surface="muted"
+                          className="dark:text-white"
+                          value={noiseSchedule}
+                          onChange={e => setNoiseSchedule(e.target.value)}
+                        >
                           {noiseScheduleOptions.map(s => <option key={s} value={s}>{SCHEDULE_LABELS[s] || s}</option>)}
-                        </select>
+                        </SelectInput>
                       </div>
                     )
                   : null}
@@ -356,29 +353,18 @@ export function renderProBottomSettingsDrawerContent({
                 {isNAI3
                   ? (
                       <>
-                        <label className="
-                          label cursor-pointer justify-start gap-3 px-0
-                        ">
-                          <input type="checkbox" className="toggle toggle-sm" checked={smea} onChange={e => setSmea(e.target.checked)} />
-                          <span className="
-                            label-text text-base-content/78
-                            dark:text-white/78
-                          ">SMEA</span>
-                        </label>
-                        <label className="
-                          label cursor-pointer justify-start gap-3 px-0
-                        ">
-                          <input type="checkbox" className="toggle toggle-sm" checked={smeaDyn} onChange={e => setSmeaDyn(e.target.checked)} />
-                          <span className="
-                            label-text text-base-content/78
-                            dark:text-white/78
-                          ">SMEA Dyn</span>
-                        </label>
+                        <FieldLabel className="cursor-pointer justify-start gap-3 px-0">
+                          <Switch density="compact" checked={smea} onChange={e => setSmea(e.target.checked)} />
+                          <span className="text-base-content/78 dark:text-white/78">SMEA</span>
+                        </FieldLabel>
+                        <FieldLabel className="cursor-pointer justify-start gap-3 px-0">
+                          <Switch density="compact" checked={smeaDyn} onChange={e => setSmeaDyn(e.target.checked)} />
+                          <span className="text-base-content/78 dark:text-white/78">SMEA Dyn</span>
+                        </FieldLabel>
                       </>
                     )
                   : null}
-              </div>
-            </details>
+            </Disclosure>
           </div>
         </div>
       </div>

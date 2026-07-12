@@ -12,18 +12,23 @@ import {
   updateRoomMessagesQueryData,
 } from "./roomMessagesQueryData";
 import { getRoomMessagesQueryKey } from "./roomMessagesQueryKey";
+import { traceRoomMessageTiming } from "./roomMessageTimingTrace";
 
 export type { RoomMessagesSyncResult } from "./roomMessagesQueryData";
 
 type RoomMessageSyncClient = {
   chatController: {
-    getHistoryMessages: (request: { roomId: number; syncId: number }) => Promise<unknown>;
+    getHistoryMessages: (request: { roomId: number; syncId: number }) => Promise<unknown> & {
+      cancel?: () => void;
+    };
   };
 };
 
 export type FetchRoomMessagesWithLocalSyncDeps = {
+  apiBaseUrl?: string;
   client: RoomMessageSyncClient;
   getMaxCachedSyncId: (roomId: number) => Promise<number>;
+  signal?: AbortSignal;
 };
 
 type RoomMessageQueryCache = {
@@ -94,26 +99,93 @@ export async function fetchRoomMessagesWithLocalSync(
   roomId: number,
   deps: FetchRoomMessagesWithLocalSyncDeps,
 ): Promise<RoomMessagesSyncResult> {
+  throwIfAborted(deps.signal);
   const maxCachedSyncId = await deps.getMaxCachedSyncId(roomId);
+  throwIfAborted(deps.signal);
   if (maxCachedSyncId >= 0) {
-    const result = await deps.client.chatController.getHistoryMessages({
+    const syncId = maxCachedSyncId + 1;
+    const startedAt = Date.now();
+    traceRoomMessageTiming("history.request.start", {
+      apiBaseUrl: deps.apiBaseUrl,
+      mode: "delta",
+      path: "/chat/message/history",
       roomId,
-      syncId: maxCachedSyncId + 1,
+      syncId,
+    });
+    const result = await getCancellableHistoryMessages(deps.client, {
+      roomId,
+      syncId,
+    }, deps.signal);
+    const messages = extractChatMessageResponses(result);
+    traceRoomMessageTiming("history.request.end", {
+      count: messages.length,
+      durationMs: Date.now() - startedAt,
+      mode: "delta",
+      roomId,
+      syncId,
     });
     return {
-      messages: extractChatMessageResponses(result),
+      messages,
       mode: "delta",
     };
   }
 
-  const result = await deps.client.chatController.getHistoryMessages({
+  const startedAt = Date.now();
+  traceRoomMessageTiming("history.request.start", {
+    apiBaseUrl: deps.apiBaseUrl,
+    mode: "full",
+    path: "/chat/message/history",
+    roomId,
+    syncId: 0,
+  });
+  const result = await getCancellableHistoryMessages(deps.client, {
+    roomId,
+    syncId: 0,
+  }, deps.signal);
+  const messages = extractChatMessageResponses(result);
+  traceRoomMessageTiming("history.request.end", {
+    count: messages.length,
+    durationMs: Date.now() - startedAt,
+    mode: "full",
     roomId,
     syncId: 0,
   });
   return {
-    messages: extractChatMessageResponses(result),
+    messages,
     mode: "full",
   };
+}
+
+async function getCancellableHistoryMessages(
+  client: RoomMessageSyncClient,
+  request: { roomId: number; syncId: number },
+  signal: AbortSignal | undefined,
+): Promise<unknown> {
+  throwIfAborted(signal);
+  const historyRequest = client.chatController.getHistoryMessages(request);
+  const cancel = typeof historyRequest.cancel === "function"
+    ? () => historyRequest.cancel?.()
+    : undefined;
+
+  if (signal != null && cancel != null) {
+    signal.addEventListener("abort", cancel, { once: true });
+  }
+
+  try {
+    throwIfAborted(signal);
+    return await historyRequest;
+  }
+  finally {
+    if (signal != null && cancel != null) {
+      signal.removeEventListener("abort", cancel);
+    }
+  }
+}
+
+function throwIfAborted(signal: AbortSignal | undefined) {
+  if (signal?.aborted) {
+    throw new DOMException("Request aborted", "AbortError");
+  }
 }
 
 function persistRoomMessages(

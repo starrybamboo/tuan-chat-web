@@ -15,6 +15,7 @@ import {
   commitOptimisticRoomMessageInList,
   createOptimisticRoomMessage,
   getNextAppendPosition,
+  getRoomMessageLocalRenderKey,
   mergeRoomMessagesForLocalState,
   removeRoomMessageFromList,
   removeRoomMessagesFromList,
@@ -23,7 +24,7 @@ import { useRef } from "react";
 
 import type { RoomMessagesQueryData } from "./roomMessagesQueryData";
 
-import { mobileApiClient } from "../../lib/api";
+import { getMobileApiBaseUrl, mobileApiClient } from "../../lib/api";
 import { writeCachedRoomMessages } from "./mobileRoomMessageCache";
 import {
   withStableRoomMessagePosition,
@@ -31,6 +32,12 @@ import {
 } from "./roomMessagePosition";
 import { extractRoomMessagesFromQueryData, updateRoomMessagesQueryData } from "./roomMessagesQueryData";
 import { getRoomMessagesQueryKey } from "./roomMessagesQueryKey";
+import { traceRoomMessageTiming } from "./roomMessageTimingTrace";
+import {
+  createMobileRoomMessageRequestId,
+  MobileRoomMessageDeliveryUnknownError,
+  trySendMobileRoomMessageByWebSocket,
+} from "./mobileRoomMessageTransport";
 export { withStableRoomMessagePosition, withStableRoomMessagePositions } from "./roomMessagePosition";
 
 type SendMessageContext = {
@@ -70,6 +77,7 @@ export function useSendRoomMessageMutation(
   const queryClient = useQueryClient();
   const mutation = useSharedSendMessageMutation(mobileApiClient, roomId ?? -1);
   const optimisticIdRef = useRef(-1);
+  const sendAttemptIdRef = useRef(0);
 
   const getNextOptimisticId = () => {
     const id = optimisticIdRef.current;
@@ -138,6 +146,17 @@ export function useSendRoomMessageMutation(
     updateQueryCache(current => removeRoomMessagesFromList(current, optimisticIds));
   };
 
+  const findCommittedOptimistic = (optimistic: ChatMessageResponse) => {
+    const localRenderKey = getRoomMessageLocalRenderKey(optimistic.message);
+    if (!localRenderKey) {
+      return null;
+    }
+    return getCurrentMessages().find(item => (
+      item.message.messageId > 0
+      && getRoomMessageLocalRenderKey(item.message) === localRenderKey
+    )) ?? null;
+  };
+
   const insertLocalOptimisticMessages = (requests: ChatMessageRequest[]) => {
     requirePositiveRoomId(roomId);
     return requests.length > 0 ? insertOptimisticBatch(requests) : [];
@@ -159,12 +178,77 @@ export function useSendRoomMessageMutation(
     }
   };
 
+  const sendTransportRequest = async (
+    request: ChatMessageRequest,
+    traceContext?: { attemptId: number; roomId: number },
+  ): Promise<Awaited<ReturnType<typeof mutateRequest>>> => {
+    const requestId = createMobileRoomMessageRequestId();
+    const webSocketResult = trySendMobileRoomMessageByWebSocket(requestId, request);
+    if (webSocketResult) {
+      const startedAt = Date.now();
+      traceRoomMessageTiming("send.ws.start", {
+        attemptId: traceContext?.attemptId,
+        requestId,
+        roomId: traceContext?.roomId ?? request.roomId,
+      });
+      const result = await webSocketResult;
+      traceRoomMessageTiming("send.ws.end", {
+        attemptId: traceContext?.attemptId,
+        durationMs: Date.now() - startedAt,
+        messageId: result.message?.messageId,
+        requestId,
+        roomId: traceContext?.roomId ?? request.roomId,
+        success: result.success,
+        syncId: result.message?.syncId,
+      });
+      if (!result.success || !result.message) {
+        throw new Error(result.error?.trim() || "发送消息失败。");
+      }
+      return {
+        data: result.message,
+        success: true,
+      };
+    }
+
+    const startedAt = Date.now();
+    traceRoomMessageTiming("send.http.start", {
+      attemptId: traceContext?.attemptId,
+      apiBaseUrl: getMobileApiBaseUrl(),
+      path: "/chat/message",
+      roomId: traceContext?.roomId ?? request.roomId,
+    });
+    const result = await mutateRequest(request);
+    traceRoomMessageTiming("send.http.end", {
+      attemptId: traceContext?.attemptId,
+      durationMs: Date.now() - startedAt,
+      messageId: result?.data?.messageId,
+      roomId: traceContext?.roomId ?? request.roomId,
+      success: Boolean(result?.success && result.data),
+      syncId: result?.data?.syncId,
+    });
+    return result;
+  };
+
   const sendRequest = async (request: ChatMessageRequest) => {
-    requirePositiveRoomId(roomId);
+    const resolvedRoomId = requirePositiveRoomId(roomId);
+    const attemptId = sendAttemptIdRef.current + 1;
+    sendAttemptIdRef.current = attemptId;
+    const startedAt = Date.now();
+    traceRoomMessageTiming("send.start", {
+      attemptId,
+      roomId: resolvedRoomId,
+    });
     const requestWithStablePosition = withStableRoomMessagePosition(request, getCurrentMessages());
     const optimistic = insertOptimistic(requestWithStablePosition);
+    traceRoomMessageTiming("send.optimistic.inserted", {
+      attemptId,
+      durationMs: Date.now() - startedAt,
+      optimisticId: optimistic.message.messageId,
+      position: requestWithStablePosition.position,
+      roomId: resolvedRoomId,
+    });
     try {
-      const result = await mutateRequest(requestWithStablePosition);
+      const result = await sendTransportRequest(requestWithStablePosition, { attemptId, roomId: resolvedRoomId });
       if (result?.success && result.data) {
         commitOptimistic(optimistic.message.messageId, result.data);
       }
@@ -174,7 +258,21 @@ export function useSendRoomMessageMutation(
       return result;
     }
     catch (error) {
-      revertOptimistic(optimistic.message.messageId);
+      traceRoomMessageTiming("send.error", {
+        attemptId,
+        durationMs: Date.now() - startedAt,
+        error: error instanceof Error ? error.message : String(error),
+        roomId: resolvedRoomId,
+      });
+      if (error instanceof MobileRoomMessageDeliveryUnknownError) {
+        const committed = findCommittedOptimistic(optimistic);
+        if (committed) {
+          return { data: committed.message, success: true };
+        }
+      }
+      else {
+        revertOptimistic(optimistic.message.messageId);
+      }
       throw error;
     }
   };
@@ -193,7 +291,7 @@ export function useSendRoomMessageMutation(
     try {
       for (let i = 0; i < requestsWithStablePositions.length; i++) {
         try {
-          const result = await mutateRequest(requestsWithStablePositions[i]);
+          const result = await sendTransportRequest(requestsWithStablePositions[i]);
           if (result?.success && result.data) {
             commitOptimistic(optimistics[i].message.messageId, result.data);
           }
@@ -203,7 +301,16 @@ export function useSendRoomMessageMutation(
           results.push(result);
         }
         catch (error) {
-          failedIds.push(optimistics[i].message.messageId);
+          if (error instanceof MobileRoomMessageDeliveryUnknownError) {
+            const committed = findCommittedOptimistic(optimistics[i]);
+            if (committed) {
+              results.push({ data: committed.message, success: true });
+              continue;
+            }
+          }
+          else {
+            failedIds.push(optimistics[i].message.messageId);
+          }
           throw error;
         }
       }
@@ -254,7 +361,7 @@ export function useSendRoomMessageMutation(
       for (let i = 0; i < requestsWithStablePositions.length; i++) {
         const optimistic = alignedOptimisticMessages[i];
         try {
-          const result = await mutateRequest(requestsWithStablePositions[i]);
+          const result = await sendTransportRequest(requestsWithStablePositions[i]);
           if (result?.success && result.data) {
             commitOptimistic(optimistic.message.messageId, result.data);
           }
@@ -264,7 +371,16 @@ export function useSendRoomMessageMutation(
           results.push(result);
         }
         catch (error) {
-          failedIds.push(optimistic.message.messageId);
+          if (error instanceof MobileRoomMessageDeliveryUnknownError) {
+            const committed = findCommittedOptimistic(optimistic);
+            if (committed) {
+              results.push({ data: committed.message, success: true });
+              continue;
+            }
+          }
+          else {
+            failedIds.push(optimistic.message.messageId);
+          }
           throw error;
         }
       }

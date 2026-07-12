@@ -3,7 +3,9 @@ import { motion } from "motion/react";
 import { useEffect, useRef } from "react";
 
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
+import { selectionClassName } from "@/components/common/DesignLanguage";
 import { unreadBadgeBounceMotionProps } from "@/components/common/motion/chatMessageMotion";
+import { Skeleton } from "@/components/common/StatusPrimitives";
 import { resolveUserDisplayName, useResolvedUserInfo } from "@/components/common/userAccess.shared";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { XMarkICon } from "@/icons";
@@ -11,6 +13,8 @@ import { getScreenSize } from "@/utils/getScreenSize";
 
 import type { MessageDirectType } from "../types/messageDirect";
 import type { DirectContactUser } from "../utils/directContactUser";
+
+const currentNavigationItemClassName = selectionClassName({ level: "strong" });
 
 export default function ChatItem({
   id,
@@ -40,12 +44,13 @@ export default function ChatItem({
   const displayName = resolveUserDisplayName({ username: resolvedUser.username }, `用户${id}`);
   const router = useRouter();
   const { setActiveRoomId } = useChatPageLayoutContext();
+  const isActive = currentContactUserId === id;
 
   // 初始化未读消息数
   let showedUnreadMessageNumber = unreadMessageNumber;
 
   // 如果已经选中联系人，不再触发新消息提醒
-  if (currentContactUserId === id) {
+  if (isActive) {
     showedUnreadMessageNumber = 0;
   }
 
@@ -85,7 +90,7 @@ export default function ChatItem({
 
   function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
     e.stopPropagation();
-    if (currentContactUserId === id) {
+    if (isActive) {
       return;
     }
     setActiveRoomId(id);
@@ -122,8 +127,8 @@ export default function ChatItem({
       <button
         className={[
           "flex flex-row flex-nowrap items-center w-full h-14 px-2 gap-3 rounded-lg transition-colors duration-150 motion-reduce:transition-none cursor-pointer",
-          currentContactUserId === id
-            ? "bg-base-200 dark:bg-base-300/40"
+          isActive
+            ? currentNavigationItemClassName
             : "hover:bg-base-200/60 dark:hover:bg-base-300/20",
         ].join(" ")}
         type="button"
@@ -131,7 +136,8 @@ export default function ChatItem({
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
         onClick={handleClick}
-        aria-label={`打开与 ${displayName} 的私聊${lastMessage ? `，最后消息：${getMessagePreview(lastMessage)}` : ""}${showedUnreadMessageNumber > 0 ? `，${showedUnreadMessageNumber > 99 ? "99 条以上" : showedUnreadMessageNumber} 条未读` : ""}${currentContactUserId === id ? "，当前已选中" : ""}`}
+        aria-current={isActive ? "page" : undefined}
+        aria-label={`打开与 ${displayName} 的私聊${lastMessage ? `，最后消息：${getMessagePreview(lastMessage)}` : ""}${showedUnreadMessageNumber > 0 ? `，${showedUnreadMessageNumber > 99 ? "99 条以上" : showedUnreadMessageNumber} 条未读` : ""}${isActive ? "，当前已选中" : ""}`}
       >
         <div className="
           w-9 h-9 flex-shrink-0 text-xs font-semibold text-base-content/60
@@ -159,8 +165,8 @@ export default function ChatItem({
         <div className="flex flex-col flex-1 min-w-0 justify-center gap-0.5">
           <div className="flex items-center w-full min-w-0">
             <span className="font-medium truncate text-sm min-w-0 text-left">
-              {resolvedUser.isLoading
-                ? <div className="skeleton h-3.5 w-20"></div>
+              {resolvedUser.isNameLoading
+                ? <Skeleton className="h-3.5 w-20" />
                 : displayName}
             </span>
           </div>
@@ -187,7 +193,7 @@ export default function ChatItem({
         </div>
       </button>
 
-      {/* Delete button for PC - shows on hover or keyboard focus. */}
+      {/* Hide button for PC - shows on hover or keyboard focus. */}
       {!isSmallScreen && (
         <button
           type="button"
@@ -201,7 +207,8 @@ export default function ChatItem({
             z-10
           "
           onClick={handleDeletePC}
-          aria-label={`删除与${displayName}的会话`}
+          aria-label={`隐藏与${displayName}的会话`}
+          title="隐藏会话"
         >
           <XMarkICon className="w-3.5 h-3.5 text-base-content/50" />
         </button>

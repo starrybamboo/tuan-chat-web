@@ -21,9 +21,10 @@ export type MessageDraft = {
     /**
      * 消息 extra
      */
-    extra?: Record<string, Record<string, any>>;
+    extra?: Record<string, any>;
     /**
      * 消息 webgal 配置
      */
-    webgal?: Record<string, Record<string, any>>;
+    webgal?: Record<string, any>;
 };
+

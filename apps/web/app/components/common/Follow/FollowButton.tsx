@@ -1,3 +1,5 @@
+import { Button, type ButtonSize } from "@/components/common/Button";
+
 import { useUserFollowMutation, useUserIsFollowedQuery, useUserUnfollowMutation } from "../../../../api/hooks/userFollowQueryHooks";
 
 type FollowButtonProps = {
@@ -5,11 +7,11 @@ type FollowButtonProps = {
   status?: number;
   onStatusChange?: (newStatus: number) => void;
   className?: string;
-  size?: "btn-xs" | "btn-sm" | "btn-md" | "btn-lg";
+  size?: ButtonSize;
   width?: string;
 }
 
-export function FollowButton({ userId, status, onStatusChange, className = "", size = "btn-sm", width = "w-20" }: FollowButtonProps) {
+export function FollowButton({ userId, status, onStatusChange, className = "", size = "sm", width = "w-20" }: FollowButtonProps) {
   const { mutate: followUser } = useUserFollowMutation();
   const { mutate: unfollowUser } = useUserUnfollowMutation();
   const { data: isFollowedData } = useUserIsFollowedQuery(userId);
@@ -29,13 +31,12 @@ export function FollowButton({ userId, status, onStatusChange, className = "", s
   };
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="outline"
+      size={size}
       className={`
-        btn
-        ${size}
         ${width}
-        ${currentStatus === 0 ? "btn-info" : `btn-info btn-soft`}
+        border-info/45 text-info hover:border-info/70 hover:bg-info/10
         ${className}
       `}
       onClick={handleClick}
@@ -43,6 +44,6 @@ export function FollowButton({ userId, status, onStatusChange, className = "", s
       aria-label={currentStatus === 0 ? "关注用户" : currentStatus === 1 ? "取消关注用户" : "取消互相关注用户"}
     >
       {currentStatus === 0 ? "关注" : currentStatus === 1 ? "已关注" : "互相关注"}
-    </button>
+    </Button>
   );
 }

@@ -24,3 +24,4 @@ export type ApiResultListMessage = {
      */
     data?: Array<Message>;
 };
+

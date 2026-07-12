@@ -7,6 +7,8 @@ import type {
 import type { InpaintViewportTransform } from "@/components/aiImage/inpaint/inpaintViewportUtils";
 import type { InpaintDialogSource } from "@/components/aiImage/types";
 
+import { MediaImage } from "@/components/common/mediaImage";
+
 type BrushCursorPoint = {
   x: number;
   y: number;
@@ -104,7 +106,7 @@ export function InpaintCanvasStage({
               transform: `translate(${viewportTransform.panX}px, ${viewportTransform.panY}px) scale(${viewportScale})`,
             }}
           >
-            <img
+            <MediaImage
               src={source.dataUrl}
               alt="待修补图片"
               className="

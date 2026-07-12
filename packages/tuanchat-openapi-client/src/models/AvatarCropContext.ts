@@ -19,5 +19,9 @@ export type AvatarCropContext = {
      * 裁剪来源画布高度
      */
     sourceHeight?: number;
+    /**
+     * 头像裁剪矩形
+     */
     crop?: CropRect;
 };
+

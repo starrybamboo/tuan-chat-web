@@ -1,9 +1,13 @@
 import { type ReactNode, use, useMemo, useState } from "react";
 import { appToast } from "@/components/common/appToast/appToast";
+import { AnimatePresence, motion } from "motion/react";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { canManageRoomRoles, hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
+import { Button } from "@/components/common/Button";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import { CollapsibleMotion } from "@/components/common/motion/CollapsibleMotion";
+import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
 import { RoleTypeBadge } from "@/components/common/roleTypeBadge";
@@ -121,8 +125,10 @@ export function RoleSelectionPanel({
             </span>
           </button>
         )}
-        {(!showMobileCurrentRoleToggle || isExpanded) && (
-          <div className={listClassName}>
+        <CollapsibleMotion
+          open={!showMobileCurrentRoleToggle || isExpanded}
+          className={listClassName}
+        >
             {showNarratorOption && hasHostAccess && (
               <button
                 type="button"
@@ -152,54 +158,63 @@ export function RoleSelectionPanel({
             {displayRoles.length === 0 && (!showNarratorOption || !hasHostAccess) && (
               <div className="text-center text-sm text-base-content/60 py-4">无可用角色</div>
             )}
-            {displayRoles.map(role => (
-              <div
-                key={role.roleId}
-                className={`
-                  flex w-full items-center rounded-lg hover:bg-base-200 transition-colors
-                  ${selectedRoleId === role.roleId ? "bg-base-200 ring-2 ring-inset ring-info/30" : ""}
-                `}
-              >
-                <button
-                  type="button"
-                  onClick={() => onRoleSelect(role)}
+            <AnimatePresence initial={false} mode="popLayout">
+              {displayRoles.map((role, index) => (
+                <motion.div
+                  key={role.roleId}
+                  className={`
+                    flex w-full items-center rounded-lg hover:bg-base-200 transition-colors
+                    ${selectedRoleId === role.roleId ? "bg-base-200 ring-2 ring-inset ring-info/30" : ""}
+                  `}
+                  {...structuralListItemMotionProps({
+                    index,
+                    staggerDelay: 0.015,
+                    maxDelay: 0.1,
+                  })}
+                >
+                  <button
+                    type="button"
+                    onClick={() => onRoleSelect(role)}
                   className={`
                     flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left
                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30
                     ${isMobileLayout ? "p-2" : "p-3"}
                   `}
                   aria-pressed={selectedRoleId === role.roleId}
-                >
-                  <RoleAvatarByRole
-                    role={role}
-                    width={10}
-                    isRounded={true}
-                    withTitle={false}
-                    stopToastWindow={true}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="text-sm font-medium truncate">{role.roleName}</div>
-                      <RoleTypeBadge role={role} />
-                    </div>
-                  </div>
-                </button>
-                {renderRoleActions?.(role) ?? (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-xs mr-2 shrink-0"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setManageRoleId(role.roleId);
-                    }}
-                    aria-label={`查看角色详情：${role.roleName}`}
-                    title="查看角色详情"
                   >
-                    <IdentificationCardIcon className="size-4" />
+                    <RoleAvatarByRole
+                      role={role}
+                      width={10}
+                      isRounded={true}
+                      withTitle={false}
+                      stopToastWindow={true}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-medium truncate">{role.roleName}</div>
+                        <RoleTypeBadge role={role} />
+                      </div>
+                    </div>
                   </button>
-                )}
-              </div>
-            ))}
+                  {renderRoleActions?.(role) ?? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xs"
+                      className="mr-2 shrink-0"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setManageRoleId(role.roleId);
+                      }}
+                      aria-label={`查看角色详情：${role.roleName}`}
+                      title="查看角色详情"
+                    >
+                      <IdentificationCardIcon className="size-4" />
+                    </Button>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
             {canAddRole && (
               <button
                 type="button"
@@ -217,8 +232,7 @@ export function RoleSelectionPanel({
                 </div>
               </button>
             )}
-          </div>
-        )}
+        </CollapsibleMotion>
       </div>
       <ToastWindow
         isOpen={manageRoleId !== null}

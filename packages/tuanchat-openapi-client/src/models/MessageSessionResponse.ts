@@ -27,3 +27,4 @@ export type MessageSessionResponse = {
      */
     lastMessageTime?: string;
 };
+

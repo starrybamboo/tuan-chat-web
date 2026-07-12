@@ -70,7 +70,7 @@ export function MessageEditorSpeakerMenu({
                       role="option"
                       aria-selected={active}
                       className={[
-                        "flex w-full items-center gap-2 px-3 py-2 text-left transition",
+                        "flex w-full items-center gap-2 px-3 py-2 text-left transition motion-reduce:transition-none",
                         active
                           ? "bg-base-300 text-base-content"
                         : "bg-base-100 text-base-content/75 hover:bg-base-200 hover:text-base-content",
@@ -117,7 +117,7 @@ export function MessageEditorSpeakerMenu({
                     role="option"
                     aria-selected={active}
                     className={[
-                      "flex w-full items-center gap-2 px-3 py-2 text-left transition",
+                      "flex w-full items-center gap-2 px-3 py-2 text-left transition motion-reduce:transition-none",
                       active
                         ? "bg-base-300 text-base-content"
                       : "bg-base-100 text-base-content/75 hover:bg-base-200 hover:text-base-content",

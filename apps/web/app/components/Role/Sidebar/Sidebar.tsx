@@ -8,6 +8,11 @@ import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHook
 import { useEffect, useMemo, useState } from "react";
 
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
+import { formControlShellClassName, TextInput } from "@/components/common/FormField";
+import { Skeleton } from "@/components/common/StatusPrimitives";
+import { IconButton } from "@/components/common/IconButton";
+import { CollapsibleMotion } from "@/components/common/motion/CollapsibleMotion";
 import { getRoleRule } from "@/utils/roleRuleStorage";
 
 import type { Role } from "../types";
@@ -34,7 +39,7 @@ function SidebarGroupCount({
   return (
     <span className="text-xs text-base-content/60">
       {isLoading
-        ? <span className="skeleton inline-block h-3 w-5 rounded-full align-middle" />
+        ? <Skeleton className="inline-block h-3 w-5 align-middle" rounded="full" />
         : (
             <>
               (
@@ -254,17 +259,17 @@ export function Sidebar({
   return (
     <>
 
-      <div className="
-        menu p-4 w-72
+      <div className={surfaceClassName({ level: "canvas", className: `
+        p-4 w-72
         lg:w-80
         h-full bg-base-200
         md:bg-base-300/40
         flex flex-col border-t border-base-300
         dark:border-base-300
-      ">
+      ` })}>
         {/* 搜索和创建区域 - 固定在顶部 */}
         <div className="flex gap-2 sticky top-0 bg-transparent z-50 py-2">
-          <div className="input">
+          <div className={formControlShellClassName({ className: "gap-2 px-3" })}>
             <svg className="h-[1em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
               <g
                 strokeLinejoin="round"
@@ -277,7 +282,8 @@ export function Sidebar({
                 <path d="m21 21-4.3-4.3"></path>
               </g>
             </svg>
-            <input
+            <TextInput
+              appearance="bare"
               type="search"
               autoComplete="off"
               aria-label="搜索"
@@ -289,78 +295,79 @@ export function Sidebar({
           {isSelectionMode
             ? (
                 <>
-                  <button
-                    type="button"
-                    className={`
-                      btn btn-error btn-square
-                      ${selectedRoles.size === 0 ? `btn-disabled` : ""}
-                    `}
+                  <IconButton
+                    variant="error"
+                    shape="square"
+                    disabled={selectedRoles.size === 0}
                     onClick={handleBatchDelete}
                     title="删除所选角色"
-                    aria-label={`删除所选 ${selectedRoles.size} 个角色`}
-                    aria-disabled={selectedRoles.size === 0}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="size-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M3 6h18" />
-                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-square"
+                    label={`删除所选 ${selectedRoles.size} 个角色`}
+                    icon={(
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="size-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M3 6h18" />
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                      </svg>
+                    )}
+                  />
+                  <IconButton
+                    variant="ghost"
+                    shape="square"
                     onClick={toggleSelectionMode}
                     title="退出选择模式"
-                    aria-label="退出选择模式"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="size-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M18 6L6 18" />
-                      <path d="M6 6l12 12" />
-                    </svg>
-                  </button>
+                    label="退出选择模式"
+                    icon={(
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="size-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M18 6L6 18" />
+                        <path d="M6 6l12 12" />
+                      </svg>
+                    )}
+                  />
                 </>
               )
             : (
                 <>
-                  <button
-                    type="button"
-                    className="btn btn-square btn-soft bg-base-200"
+                  <IconButton
+                    variant="ghost"
+                    shape="square"
+                    className="bg-base-200"
                     onClick={toggleSelectionMode}
                     title="进入选择模式"
-                    aria-label="进入选择模式"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="size-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                      <polyline points="22 4 12 14.01 9 11.01" />
-                    </svg>
-                  </button>
+                    label="进入选择模式"
+                    icon={(
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="size-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                      </svg>
+                    )}
+                  />
                 </>
               )}
         </div>
@@ -411,8 +418,11 @@ export function Sidebar({
                     isLoading={ruleListQuery.isLoading}
                   />
                 </button>
-                {!isRuleCollapsed && (
-                  <div id="role-sidebar-rule-group" className="ml-2">
+                <CollapsibleMotion
+                  open={!isRuleCollapsed}
+                  id="role-sidebar-rule-group"
+                  className="ml-2"
+                >
                     <button
                       type="button"
                       className="
@@ -428,7 +438,7 @@ export function Sidebar({
                       aria-label="新建规则，创建自定义规则模板"
                       title="新建规则模板"
                     >
-                      <div className="avatar shrink-0 px-1">
+                      <div className="shrink-0 px-1">
                         <div className="
                           size-12
                           md:size-14
@@ -510,7 +520,7 @@ export function Sidebar({
                               aria-label={`编辑规则 ${rule.ruleName || "未命名规则"}，${(rule.ruleDescription || "暂无描述").trim() || "暂无描述"}`}
                               title={`${rule.ruleName || "未命名规则"} · ${(rule.ruleDescription || "暂无描述").trim() || "暂无描述"}`}
                             >
-                              <div className="avatar shrink-0">
+                              <div className="shrink-0">
                                 <div className="
                                   size-12
                                   md:size-14
@@ -549,14 +559,12 @@ export function Sidebar({
                                 </p>
                               </div>
                             </button>
-                            <button
-                              type="button"
+                            <IconButton
+                              variant="ghost"
+                              size="xs"
                               className="
-                                btn btn-ghost btn-xs text-error
-                                hover:bg-error/10
-                                md:opacity-0
-                                md:group-hover:opacity-100
-                                opacity-70 rounded-full p-1
+                                text-error hover:bg-error/10 md:opacity-0
+                                md:group-hover:opacity-100 opacity-70 rounded-full p-1
                               "
                               disabled={deletingRuleId === currentRuleId}
                               onClick={(e) => {
@@ -565,21 +573,21 @@ export function Sidebar({
                                 void handleDeleteRule(currentRuleId);
                               }}
                               title="删除规则"
-                              aria-label={`删除规则 ${rule.ruleName || "未命名规则"}`}
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
-                                <path
-                                  fill="currentColor"
-                                  d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-                                />
-                              </svg>
-                            </button>
+                              label={`删除规则 ${rule.ruleName || "未命名规则"}`}
+                              icon={(
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+                                  <path
+                                    fill="currentColor"
+                                    d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                                  />
+                                </svg>
+                              )}
+                            />
                           </div>
                         </div>
                       );
                     })}
-                  </div>
-                )}
+                </CollapsibleMotion>
               </div>
 
               {/* 骰娘角色分组 */}
@@ -616,8 +624,11 @@ export function Sidebar({
                     isLoading={isRoleListLoading}
                   />
                 </button>
-                {!isDiceCollapsed && (
-                  <div id="role-sidebar-dice-group" className="ml-2">
+                <CollapsibleMotion
+                  open={!isDiceCollapsed}
+                  id="role-sidebar-dice-group"
+                  className="ml-2"
+                >
                     {/* 创建骰娘入口 */}
                     <button
                       type="button"
@@ -633,7 +644,7 @@ export function Sidebar({
                       }}
                       title="创建骰娘角色"
                     >
-                      <div className="avatar shrink-0 px-1">
+                      <div className="shrink-0 px-1">
                         <div className="
                           size-12
                           md:size-14
@@ -705,8 +716,7 @@ export function Sidebar({
                             </div>
                           );
                         })}
-                  </div>
-                )}
+                </CollapsibleMotion>
               </div>
 
               {/* 回收站分组 */}
@@ -744,8 +754,11 @@ export function Sidebar({
                     isLoading={trashCount.isLoading}
                   />
                 </button>
-                {isTrashExpanded && (
-                  <div id="role-sidebar-trash-group" className="ml-2">
+                <CollapsibleMotion
+                  open={isTrashExpanded}
+                  id="role-sidebar-trash-group"
+                  className="ml-2"
+                >
                     <button
                       type="button"
                       className={`
@@ -801,8 +814,7 @@ export function Sidebar({
                         </p>
                       </div>
                     </button>
-                  </div>
-                )}
+                </CollapsibleMotion>
               </div>
 
               {/* 角色分组 */}
@@ -837,8 +849,7 @@ export function Sidebar({
                     isLoading={isRoleListLoading}
                   />
                 </button>
-                {!isNormalCollapsed && (
-                  <div className="ml-2">
+                <CollapsibleMotion open={!isNormalCollapsed} className="ml-2">
                     <button
                       type="button"
                       className="
@@ -853,7 +864,7 @@ export function Sidebar({
                       }}
                       title="创建普通角色"
                     >
-                      <div className="avatar shrink-0 px-1">
+                      <div className="shrink-0 px-1">
                         <div className="
                           size-12
                           md:size-14
@@ -922,8 +933,7 @@ export function Sidebar({
                             </div>
                           );
                         })}
-                  </div>
-                )}
+                </CollapsibleMotion>
               </div>
             </>
 

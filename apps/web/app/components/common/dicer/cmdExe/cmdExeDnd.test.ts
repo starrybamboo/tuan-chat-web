@@ -337,51 +337,23 @@ describe("d&D 5e 指令集测试", () => {
   });
 
   describe("find (查询法术)", () => {
-    it("应该按需加载法术表并返回完全匹配的法术", async () => {
-      const fetchMock = vi.fn(async () => ({
-        ok: true,
-        json: async () => [
-          {
-            name: "Magic Missile",
-            source: "PHB",
-            page: "257",
-            level: "1st-level",
-            castingTime: "1 action",
-            duration: "Instantaneous",
-            school: "evocation",
-            range: "120 feet",
-            components: "V, S",
-            classes: "wizard",
-            optionalClasses: "",
-            subclasses: "",
-            text: "You create three glowing darts of magical force.",
-            atHigherLevels: "",
-          },
-        ],
-      }));
+    it("应该从共享法术表返回完全匹配的法术", async () => {
+      const executor = executorDnd.cmdMap.get("find");
+      await executor?.solve(["魔法", "飞弹"], [mockRole], cpi);
+
+      expect(cpi.replyMessage).toHaveBeenCalledWith(expect.stringContaining("魔法飞弹"));
+      expect(cpi.replyMessage).toHaveBeenCalledWith(expect.stringContaining("施法时间: 1 动作"));
+    });
+
+    it("法术查询应该直接使用共享数据且不发起网络请求", async () => {
+      const fetchMock = vi.fn();
       vi.stubGlobal("fetch", fetchMock);
 
       const executor = executorDnd.cmdMap.get("find");
-      await executor?.solve(["magic", "missile"], [mockRole], cpi);
+      await executor?.solve(["魔法", "飞弹"], [mockRole], cpi);
 
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("dndSpellsData"), { cache: "force-cache" });
-      expect(cpi.replyMessage).toHaveBeenCalledWith(expect.stringContaining("Magic Missile"));
-      expect(cpi.replyMessage).toHaveBeenCalledWith(expect.stringContaining("施法时间: 1 action"));
-    });
-
-    it("法术表加载失败时应该提示重试", async () => {
-      vi.stubGlobal("fetch", vi.fn(async () => ({
-        ok: false,
-        status: 500,
-        json: async () => [],
-      })));
-
-      const executor = executorDnd.cmdMap.get("find");
-      await executor?.solve(["magic"], [mockRole], cpi);
-
-      expect(cpi.sendToast).toHaveBeenCalledWith("法术数据加载失败，请稍后重试");
-      expect(cpi.replyMessage).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(cpi.replyMessage).toHaveBeenCalledWith(expect.stringContaining("魔法飞弹"));
     });
   });
 });

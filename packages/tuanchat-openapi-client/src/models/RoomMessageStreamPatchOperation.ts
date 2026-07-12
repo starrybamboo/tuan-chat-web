@@ -23,6 +23,10 @@ export type RoomMessageStreamPatchOperation = {
      * 目标位置；move 必填，insert/update 可随 message.position 提交
      */
     position?: number;
+    /**
+     * 消息内容；insert/update 必填
+     */
     message?: RoomMessageStreamItem;
     insert?: boolean;
 };
+

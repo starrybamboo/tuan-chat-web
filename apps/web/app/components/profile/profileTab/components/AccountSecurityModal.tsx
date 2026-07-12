@@ -1,10 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { appToast } from "@/components/common/appToast/appToast";
 
+import { appToast } from "@/components/common/appToast/appToast";
 import { Button } from "@/components/common/Button";
-import { IconButton } from "@/components/common/IconButton";
-import { Modal } from "@/components/common/Modal";
+import { DialogFrame } from "@/components/common/DialogFrame";
+import { FieldGroup, FieldLabel, TextInput } from "@/components/common/FormField";
+import { StateView } from "@/components/common/StateView";
+import { InlineAlert } from "@/components/common/StatusPrimitives";
+import { Tabs } from "@/components/common/Tabs";
 import {
   bindEmailByVerification,
   changeEmailByVerification,
@@ -287,65 +290,29 @@ export function AccountSecurityModal({
   const newEmailCodeInputId = "account-security-new-email-code";
 
   return (
-    <Modal
+    <DialogFrame
       open={isOpen}
-      onOpenChange={(next) => {
-        if (!next) {
-          onClose();
-        }
-      }}
-      size="xl"
+      mode="native"
+      onClose={onClose}
       ariaLabel="账号安全"
-      className="relative bg-base-100 dark:bg-base-300"
+      panelClassName="max-w-2xl bg-base-100 dark:bg-base-300"
     >
-        <IconButton
-          label="关闭账号安全弹窗"
-          icon={<span aria-hidden="true">✕</span>}
-          size="sm"
-          shape="circle"
-          className="
-            absolute right-2 top-2 bg-base-200
-            hover:bg-base-300
-            dark:bg-base-200
-            dark:hover:bg-base-100
-          "
-          onClick={onClose}
-        />
-
         <h3 className="text-xl font-semibold mb-4">账号安全</h3>
 
-        <div className="tabs tabs-boxed mb-4" role="tablist" aria-label="账号安全操作">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "password"}
-            className={`
-              tab
-              ${activeTab === "password" ? "tab-active" : ""}
-            `}
-            onClick={() => setActiveTab("password")}
-          >
-            修改密码
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "email"}
-            className={`
-              tab
-              ${activeTab === "email" ? "tab-active" : ""}
-            `}
-            onClick={() => setActiveTab("email")}
-          >
-            绑定/换绑邮箱
-          </button>
-        </div>
+        <Tabs
+          value={activeTab}
+          ariaLabel="账号安全操作"
+          className="mb-4"
+          options={[
+            { value: "password", label: "修改密码" },
+            { value: "email", label: "绑定/换绑邮箱" },
+          ]}
+          onValueChange={setActiveTab}
+        />
 
         {myInfoQuery.isLoading
           ? (
-              <div className="flex items-center justify-center py-12">
-                <span className="loading loading-spinner"></span>
-              </div>
+              <StateView loading title="正在加载账号信息" className="py-12" />
             )
           : (
               <div className="space-y-4">
@@ -353,36 +320,32 @@ export function AccountSecurityModal({
                   <>
                     {!hasBoundEmail
                       ? (
-                          <div className="alert alert-warning">
+                          <InlineAlert tone="warning">
                             <span>当前账号尚未绑定邮箱，请先完成邮箱绑定。</span>
-                          </div>
+                          </InlineAlert>
                         )
                       : (
                           <>
-                            <div className="form-control">
-                              <label className="label" htmlFor={passwordCurrentEmailInputId}>
-                                <span className="label-text">已绑定邮箱</span>
-                              </label>
-                              <input
+                            <FieldGroup>
+                              <FieldLabel htmlFor={passwordCurrentEmailInputId}>已绑定邮箱</FieldLabel>
+                              <TextInput
                                 id={passwordCurrentEmailInputId}
                                 type="text"
-                                className="input input-bordered bg-base-200"
+                                surface="muted"
                                 value={currentEmail}
                                 disabled
                               />
-                            </div>
+                            </FieldGroup>
 
-                            <div className="form-control">
-                              <label className="label" htmlFor={passwordCodeInputId}>
-                                <span className="label-text">邮箱验证码</span>
-                              </label>
+                            <FieldGroup>
+                              <FieldLabel htmlFor={passwordCodeInputId}>邮箱验证码</FieldLabel>
                               <div className="flex gap-2">
-                                <input
+                                <TextInput
                                   id={passwordCodeInputId}
                                   type="text"
                                   inputMode="numeric"
                                   autoComplete="one-time-code"
-                                  className="input input-bordered flex-1"
+                                  className="flex-1"
                                   placeholder="请输入验证码"
                                   value={passwordCode}
                                   onChange={e => setPasswordCode(e.target.value)}
@@ -406,37 +369,31 @@ export function AccountSecurityModal({
                                 </Button>
                                 {renderSendCodeStatus(sendPasswordCodeMutation.isPending, passwordCooldown.isCoolingDown, currentEmail)}
                               </div>
-                            </div>
+                            </FieldGroup>
 
-                            <div className="form-control">
-                              <label className="label" htmlFor={newPasswordInputId}>
-                                <span className="label-text">新密码</span>
-                              </label>
-                              <input
+                            <FieldGroup>
+                              <FieldLabel htmlFor={newPasswordInputId}>新密码</FieldLabel>
+                              <TextInput
                                 id={newPasswordInputId}
                                 type="password"
                                 autoComplete="new-password"
-                                className="input input-bordered"
                                 placeholder="请输入新密码"
                                 value={newPassword}
                                 onChange={e => setNewPassword(e.target.value)}
                               />
-                            </div>
+                            </FieldGroup>
 
-                            <div className="form-control">
-                              <label className="label" htmlFor={confirmNewPasswordInputId}>
-                                <span className="label-text">确认新密码</span>
-                              </label>
-                              <input
+                            <FieldGroup>
+                              <FieldLabel htmlFor={confirmNewPasswordInputId}>确认新密码</FieldLabel>
+                              <TextInput
                                 id={confirmNewPasswordInputId}
                                 type="password"
                                 autoComplete="new-password"
-                                className="input input-bordered"
                                 placeholder="请再次输入新密码"
                                 value={confirmNewPassword}
                                 onChange={e => setConfirmNewPassword(e.target.value)}
                               />
-                            </div>
+                            </FieldGroup>
 
                             <Button
                               variant="primary"
@@ -456,33 +413,28 @@ export function AccountSecurityModal({
                     {!hasBoundEmail
                       ? (
                           <>
-                            <div className="form-control">
-                              <label className="label" htmlFor={bindEmailInputId}>
-                                <span className="label-text">邮箱</span>
-                              </label>
-                              <input
+                            <FieldGroup>
+                              <FieldLabel htmlFor={bindEmailInputId}>邮箱</FieldLabel>
+                              <TextInput
                                 id={bindEmailInputId}
                                 type="email"
                                 inputMode="email"
                                 autoComplete="email"
-                                className="input input-bordered"
                                 placeholder="请输入要绑定的邮箱"
                                 value={bindEmail}
                                 onChange={e => setBindEmail(e.target.value)}
                               />
-                            </div>
+                            </FieldGroup>
 
-                            <div className="form-control">
-                              <label className="label" htmlFor={bindCodeInputId}>
-                                <span className="label-text">邮箱验证码</span>
-                              </label>
+                            <FieldGroup>
+                              <FieldLabel htmlFor={bindCodeInputId}>邮箱验证码</FieldLabel>
                               <div className="flex gap-2">
-                                <input
+                                <TextInput
                                   id={bindCodeInputId}
                                   type="text"
                                   inputMode="numeric"
                                   autoComplete="one-time-code"
-                                  className="input input-bordered flex-1"
+                                  className="flex-1"
                                   placeholder="请输入验证码"
                                   value={bindCode}
                                   onChange={e => setBindCode(e.target.value)}
@@ -510,7 +462,7 @@ export function AccountSecurityModal({
                                 </Button>
                                 {renderSendCodeStatus(sendBindCodeMutation.isPending, bindCooldown.isCoolingDown, bindEmail)}
                               </div>
-                            </div>
+                            </FieldGroup>
 
                             <Button
                               variant="primary"
@@ -524,30 +476,26 @@ export function AccountSecurityModal({
                         )
                       : (
                           <>
-                            <div className="form-control">
-                              <label className="label" htmlFor={oldEmailInputId}>
-                                <span className="label-text">旧邮箱</span>
-                              </label>
-                              <input
+                            <FieldGroup>
+                              <FieldLabel htmlFor={oldEmailInputId}>旧邮箱</FieldLabel>
+                              <TextInput
                                 id={oldEmailInputId}
                                 type="text"
-                                className="input input-bordered bg-base-200"
+                                surface="muted"
                                 value={currentEmail}
                                 disabled
                               />
-                            </div>
+                            </FieldGroup>
 
-                            <div className="form-control">
-                              <label className="label" htmlFor={oldEmailCodeInputId}>
-                                <span className="label-text">旧邮箱验证码</span>
-                              </label>
+                            <FieldGroup>
+                              <FieldLabel htmlFor={oldEmailCodeInputId}>旧邮箱验证码</FieldLabel>
                               <div className="flex gap-2">
-                                <input
+                                <TextInput
                                   id={oldEmailCodeInputId}
                                   type="text"
                                   inputMode="numeric"
                                   autoComplete="one-time-code"
-                                  className="input input-bordered flex-1"
+                                  className="flex-1"
                                   placeholder="请输入旧邮箱验证码"
                                   value={oldEmailCode}
                                   onChange={e => setOldEmailCode(e.target.value)}
@@ -569,35 +517,30 @@ export function AccountSecurityModal({
                                 </Button>
                                 {renderSendCodeStatus(sendOldEmailCodeMutation.isPending, oldEmailCooldown.isCoolingDown, currentEmail)}
                               </div>
-                            </div>
+                            </FieldGroup>
 
-                            <div className="form-control">
-                              <label className="label" htmlFor={newEmailInputId}>
-                                <span className="label-text">新邮箱</span>
-                              </label>
-                              <input
+                            <FieldGroup>
+                              <FieldLabel htmlFor={newEmailInputId}>新邮箱</FieldLabel>
+                              <TextInput
                                 id={newEmailInputId}
                                 type="email"
                                 inputMode="email"
                                 autoComplete="email"
-                                className="input input-bordered"
                                 placeholder="请输入新邮箱地址"
                                 value={newEmail}
                                 onChange={e => setNewEmail(e.target.value)}
                               />
-                            </div>
+                            </FieldGroup>
 
-                            <div className="form-control">
-                              <label className="label" htmlFor={newEmailCodeInputId}>
-                                <span className="label-text">新邮箱验证码</span>
-                              </label>
+                            <FieldGroup>
+                              <FieldLabel htmlFor={newEmailCodeInputId}>新邮箱验证码</FieldLabel>
                               <div className="flex gap-2">
-                                <input
+                                <TextInput
                                   id={newEmailCodeInputId}
                                   type="text"
                                   inputMode="numeric"
                                   autoComplete="one-time-code"
-                                  className="input input-bordered flex-1"
+                                  className="flex-1"
                                   placeholder="请输入新邮箱验证码"
                                   value={newEmailCode}
                                   onChange={e => setNewEmailCode(e.target.value)}
@@ -625,7 +568,7 @@ export function AccountSecurityModal({
                                 </Button>
                                 {renderSendCodeStatus(sendNewEmailCodeMutation.isPending, newEmailCooldown.isCoolingDown, newEmail)}
                               </div>
-                            </div>
+                            </FieldGroup>
 
                             <Button
                               variant="primary"
@@ -641,6 +584,6 @@ export function AccountSecurityModal({
                 )}
               </div>
             )}
-    </Modal>
+    </DialogFrame>
   );
 }

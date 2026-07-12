@@ -2,9 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * 返回对象
- */
 export type WebgalPublishJobStatusResponse = {
     jobId?: string;
     status?: string;
@@ -12,3 +9,4 @@ export type WebgalPublishJobStatusResponse = {
     branchUrl?: string;
     errorMessage?: string;
 };
+

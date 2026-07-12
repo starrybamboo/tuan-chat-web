@@ -5,6 +5,11 @@ import { appToast } from "@/components/common/appToast/appToast";
 import { ChatBubble } from "@/components/chat/message/chatBubble";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { Button } from "@/components/common/Button";
+import { Checkbox } from "@/components/common/FormField";
+import { IconButton } from "@/components/common/IconButton";
+import { MediaImage } from "@/components/common/mediaImage";
+import { StateView } from "@/components/common/StateView";
 
 import type { ChatMessageResponse } from "../../../../api";
 
@@ -285,14 +290,12 @@ export default function ExportImageWindow({
     <div className="flex flex-col gap-4 p-4 w-[90vw] max-w-[900px] max-h-[80vh]">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">导出聊天图片</h2>
-        <button
-          type="button"
-          className="btn btn-sm btn-ghost btn-circle"
+        <IconButton
+          size="sm"
+          label="关闭导出聊天图片弹窗"
           onClick={onClose}
-          aria-label="关闭导出聊天图片弹窗"
-        >
-          ✕
-        </button>
+          icon={<span aria-hidden="true">✕</span>}
+        />
       </div>
 
       {/* 选项区域 */}
@@ -300,20 +303,18 @@ export default function ExportImageWindow({
         flex gap-4 items-center flex-wrap bg-base-200 p-3 rounded-lg
       ">
         <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
+          <Checkbox
+            density="compact"
             checked={showQRCode}
             onChange={e => setShowQRCode(e.target.checked)}
-            className="checkbox checkbox-sm checkbox-info"
           />
           <span className="text-sm">显示二维码</span>
         </label>
         <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
+          <Checkbox
+            density="compact"
             checked={useBubbleStyle}
             onChange={e => setUseBubbleStyle(e.target.checked)}
-            className="checkbox checkbox-sm checkbox-info"
           />
           <span className="text-sm">气泡样式</span>
         </label>
@@ -357,19 +358,14 @@ export default function ExportImageWindow({
           ">
             {qrCodeDataUrl
               ? (
-                  <img
+                  <MediaImage
                     src={qrCodeDataUrl}
                     alt="二维码"
                     className="size-[120px]"
                   />
                 )
               : (
-                  <div className="
-                    size-[120px] bg-base-200 flex items-center justify-center
-                    rounded
-                  ">
-                    <span className="loading loading-spinner loading-sm"></span>
-                  </div>
+                  <StateView loading className="size-[120px] rounded bg-base-200 p-0" />
                 )}
             <span className="text-sm text-base-content/60 mt-2">扫码查看更多</span>
           </div>
@@ -378,28 +374,21 @@ export default function ExportImageWindow({
 
       {/* 操作按钮 */}
       <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          className="btn btn-ghost"
+        <Button
+          variant="ghost"
           onClick={onClose}
         >
           取消
-        </button>
-        <button
-          type="button"
-          className="btn btn-primary"
+        </Button>
+        <Button
+          variant="primary"
+          loading={isExporting}
           onClick={handleExport}
           disabled={isExporting || sortedMessages.length === 0}
-          aria-busy={isExporting}
           title={sortedMessages.length === 0 ? "请选择至少一条消息" : undefined}
         >
           {isExporting
-            ? (
-                <>
-                  <span className="loading loading-spinner loading-sm"></span>
-                  导出中...
-                </>
-              )
+            ? "导出中..."
             : (
                 <>
                   <svg xmlns="http://www.w3.org/2000/svg" className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -408,7 +397,7 @@ export default function ExportImageWindow({
                   导出图片
                 </>
               )}
-        </button>
+        </Button>
       </div>
     </div>
   );

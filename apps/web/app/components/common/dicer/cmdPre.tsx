@@ -3,6 +3,7 @@ import { appToast } from "@/components/common/appToast/appToast";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
+import { fetchRoleAbilitiesByRuleWithCache } from "@tuanchat/query/role-abilities";
 import { useEffect, useRef } from "react";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
@@ -13,6 +14,7 @@ import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
 import { persistRoleAbilitySnapshot } from "@/components/chat/state/roleVarWriteThrough";
 import { initAliasMapOnce, RULES } from "@/components/common/dicer/aliasRegistry";
 import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
+import { openStShowCardWindow } from "@/components/common/dicer/cmdExe/stShowCard";
 import { buildDicerReplyContent, selectWeightedCopywritingSuffix } from "@/components/common/dicer/dicerReplyPreparation";
 import { buildDiceTurnMessageExtra } from "@/components/common/dicer/diceTurnMessageExtra";
 import {
@@ -37,6 +39,7 @@ import {
 } from "../../../../api/hooks/abilityQueryHooks";
 import { useGetSpaceInfoQuery, useSendMessageMutation, useSetSpaceExtraMutation } from "../../../../api/hooks/chatQueryHooks";
 import { fetchRoleAvatarsWithCache, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
+import { tuanchat } from "../../../../api/instance";
 
 initAliasMapOnce();
 
@@ -433,23 +436,32 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       if ((operator.roleId ?? -1) > 0) {
         mentioned.push(operator);
       }
-      // 获取角色的能力列表
-      const getRoleAbility = async (roleId: number): Promise<RoleAbility> => {
-        try {
-          return await getOrFetchRoleAbility(queryClient, ruleId, roleId);
-        }
-        catch (e) {
-          console.error(`获取角色能力失败：${e instanceof Error ? e.message : String(e)},roleId:${roleId},ruleId:${ruleId}`);
-          return {};
-        }
-      };
-      // 获取所有可能用到的角色能力（并行请求，减少指令等待）
-      const baseRoleAbilities = new Map<number, RoleAbility>();
-      const mentionedRoleEntries = await Promise.all(
+      const mentionedRoleIds = Array.from(new Set(
         mentioned
-          .filter(mentionedRole => mentionedRole.roleId > 0)
-          .map(async mentionedRole => [mentionedRole.roleId, await getRoleAbility(mentionedRole.roleId)] as const),
-      );
+          .map(mentionedRole => mentionedRole.roleId)
+          .filter(mentionedRoleId => mentionedRoleId > 0),
+      ));
+      let fetchedRoleAbilities = new Map<number, RoleAbility | null>();
+      try {
+        fetchedRoleAbilities = await fetchRoleAbilitiesByRuleWithCache(
+          tuanchat,
+          queryClient,
+          mentionedRoleIds,
+          ruleId,
+        );
+      }
+      catch (error) {
+        console.error(`批量获取角色能力失败：${error instanceof Error ? error.message : String(error)},ruleId:${ruleId}`);
+      }
+      const baseRoleAbilities = new Map<number, RoleAbility>();
+      const mentionedRoleEntries = mentionedRoleIds.map((mentionedRoleId) => {
+        const ability = fetchedRoleAbilities.get(mentionedRoleId) ?? {};
+        return [mentionedRoleId, cloneRoleAbility({
+          ...ability,
+          roleId: ability.roleId ?? mentionedRoleId,
+          ruleId: ability.ruleId ?? ruleId,
+        })] as const;
+      });
       for (const [mentionedRoleId, ability] of mentionedRoleEntries) {
         baseRoleAbilities.set(mentionedRoleId, ability);
       }
@@ -552,6 +564,11 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         spaceDicerDataModified = true;
       };
 
+      const showRoleAbilityCard: CPI["showRoleAbilityCard"] = props => openStShowCardWindow({
+        ...props,
+        queryClient,
+      });
+
       const CmdPreInterface = {
         replyMessage,
         sendToast,
@@ -561,6 +578,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         getSpaceInfo,
         getSpaceData,
         setSpaceData,
+        showRoleAbilityCard,
         queryClient,
       };
 

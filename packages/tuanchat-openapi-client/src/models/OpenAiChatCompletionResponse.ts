@@ -15,3 +15,4 @@ export type OpenAiChatCompletionResponse = {
     choices?: Array<Choice>;
     usage?: Usage;
 };
+

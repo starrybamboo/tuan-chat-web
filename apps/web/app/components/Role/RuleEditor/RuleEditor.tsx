@@ -5,6 +5,10 @@ import { useLocation, useRouter } from "@tanstack/react-router";
 import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { Button } from "@/components/common/Button";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
+import { Badge, Divider, Skeleton, type StatusTone } from "@/components/common/StatusPrimitives";
+import PortalTooltip from "@/components/common/portalTooltip";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { EditIcon, SaveIcon } from "@/icons";
 import { useAllRuleListQuery, useCreateRuleMutation, useGetRuleDetailQuery, useUpdateRuleMutation } from "api/hooks/ruleQueryHooks";
@@ -45,10 +49,7 @@ function RuleEditorSkeleton() {
         </div>
       </div>
 
-      <div className="
-        max-md:hidden
-        divider
-      "></div>
+      <Divider className="max-md:hidden" />
 
       <div className="
         grid grid-cols-1
@@ -60,13 +61,8 @@ function RuleEditorSkeleton() {
           self-start
           lg:sticky lg:top-4
         ">
-          <div className="
-            card-sm
-            md:card-xl
-            bg-base-100 shadow-xs rounded-xl
-            md:border-2 md:border-base-content/10
-          ">
-            <div className="card-body p-4">
+          <div className={surfaceClassName({ level: "content", className: "shadow-xs md:border-2 md:border-base-content/10" })}>
+            <div className="p-4">
               <div className="space-y-6">
                 <div className="space-y-2">
                   <div className="h-5 w-20 rounded bg-base-200" />
@@ -85,10 +81,10 @@ function RuleEditorSkeleton() {
           space-y-6
         ">
           <div className="flex gap-2 rounded-lg">
-            <div className="skeleton h-10 w-20 rounded-lg" />
-            <div className="skeleton h-10 w-20 rounded-lg" />
-            <div className="skeleton h-10 w-20 rounded-lg" />
-            <div className="skeleton h-10 w-20 rounded-lg" />
+            <Skeleton className="h-10 w-20 rounded-lg" />
+            <Skeleton className="h-10 w-20 rounded-lg" />
+            <Skeleton className="h-10 w-20 rounded-lg" />
+            <Skeleton className="h-10 w-20 rounded-lg" />
           </div>
 
           <Section
@@ -217,9 +213,9 @@ export default function RuleEditor({
     }
   }, [mode, ruleId]);
 
-  const editorStatusBadge = mode === "create"
-    ? { text: "新建规则", className: "badge-success" }
-    : { text: `#${ruleEdit.ruleId}`, className: "badge-info" };
+  const editorStatusBadge: { text: string; tone: StatusTone } = mode === "create"
+    ? { text: "新建规则", tone: "success" }
+    : { text: `#${ruleEdit.ruleId}`, tone: "info" };
   function applyClonedRule(rule: Rule) {
     // 仅导入数据作为本地编辑初始值：不保留源规则 id
     // 但在 edit 模式下，保留当前正在编辑的规则 id 以及 authorId
@@ -513,14 +509,15 @@ export default function RuleEditor({
         items-center justify-between gap-3
       ">
         <div className="flex items-center gap-4">
-          <button
-            type="button"
-            className="btn btn-lg btn-outline rounded-md btn-ghost mr-4"
+          <Button
+            variant="outline"
+            size="lg"
+            className="mr-4 rounded-md"
             onClick={handleBack}
             disabled={isSavingRule}
           >
             ← 返回
-          </button>
+          </Button>
           <div>
             <h1 className="
               font-semibold text-2xl
@@ -529,26 +526,17 @@ export default function RuleEditor({
             ">
               {ruleEdit.ruleName || "未命名规则"}
             </h1>
-            <div className={`
-              badge badge-outline badge-sm
-              md:badge-md
-              ${editorStatusBadge.className}
-            `}>
+            <Badge tone={editorStatusBadge.tone} appearance="outline" density="default">
               {editorStatusBadge.text}
-            </div>
+            </Badge>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="tooltip tooltip-bottom" data-tip="从已有规则导入并覆盖当前编辑">
-            <button
-              type="button"
-              className="
-                btn bg-info text-info-content border-info
-                hover:bg-info/90
-                btn-sm
-                md:btn-lg
-                rounded-lg
-              "
+          <PortalTooltip label="从已有规则导入并覆盖当前编辑" placement="bottom">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-lg border-info/45 text-info hover:border-info/70 hover:bg-info/10 md:h-12 md:min-h-12 md:px-6 md:text-lg"
               onClick={() => setIsCloneModalOpen(true)}
               disabled={isSavingRule}
             >
@@ -567,27 +555,25 @@ export default function RuleEditor({
                 </svg>
                 导入
               </span>
-            </button>
-          </div>
+            </Button>
+          </PortalTooltip>
           <div className="relative">
-            <div className="tooltip tooltip-bottom" data-tip={mode === "create" ? "创建规则" : isEditing ? "保存当前修改" : "进入编辑"}>
-              <button
-                type="button"
+            <PortalTooltip label={mode === "create" ? "创建规则" : isEditing ? "保存当前修改" : "进入编辑"} placement="bottom">
+              <Button
+                variant={mode === "edit" && !isEditing ? "outline" : "primary"}
+                size="sm"
                 className={`
-                  btn
-                  ${mode === "edit" && !isEditing ? "btn-info" : `btn-primary`}
-                  btn-sm
-                  md:btn-lg
-                  rounded-lg
+                  rounded-lg md:h-12 md:min-h-12 md:px-6 md:text-lg
+                  ${mode === "edit" && !isEditing ? "border-info/45 text-info hover:border-info/70 hover:bg-info/10" : ""}
                   ${isSavingRule ? `scale-95` : ""}
                 `}
                 onClick={handleHeaderPrimaryAction}
                 disabled={primaryActionDisabled}
+                loading={isSavingRule}
+                aria-label={isSavingRule ? "正在保存规则" : mode === "create" ? "创建规则" : isEditing ? "保存规则" : "编辑规则"}
               >
                 {isSavingRule
-                  ? (
-                      <span className="loading loading-spinner loading-xs"></span>
-                    )
+                  ? "保存中..."
                   : (
                       <span className="flex items-center gap-1">
                         {mode === "create"
@@ -612,8 +598,8 @@ export default function RuleEditor({
                               )}
                       </span>
                     )}
-              </button>
-            </div>
+              </Button>
+            </PortalTooltip>
             {primaryActionDisabledReason && primaryActionDisabled && (
               <div className="
                 absolute right-0 top-full mt-1 max-w-[calc(100vw-3rem)]
@@ -626,10 +612,7 @@ export default function RuleEditor({
         </div>
       </div>
 
-      <div className="
-        max-md:hidden
-        divider
-      "></div>
+      <Divider className="max-md:hidden" />
 
       <div className="
         grid grid-cols-1
@@ -642,12 +625,9 @@ export default function RuleEditor({
           lg:sticky lg:top-4
         ">
           {/* 左侧规则信息卡 */}
-          <div className="
-            card bg-base-100 shadow-xs rounded-2xl border-2
-            border-base-content/10
-          ">
+          <div className={surfaceClassName({ level: "content", className: "border-2 border-base-content/10 shadow-xs" })}>
             <div className="
-              card-body p-4
+              p-4
               md:p-5
               space-y-3
             ">
@@ -666,56 +646,42 @@ export default function RuleEditor({
                     >
                       {ruleEdit.ruleName || "未命名规则"}
                     </h1>
-                    <div className={`
-                      badge badge-outline badge-sm
-                      ${editorStatusBadge.className}
-                    `}>
+                    <Badge tone={editorStatusBadge.tone} appearance="outline">
                       {editorStatusBadge.text}
-                    </div>
+                    </Badge>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
-                    <div className="tooltip tooltip-bottom" data-tip="从已有规则导入并覆盖当前编辑">
-                      <button
-                        type="button"
-                        className="
-                          btn bg-info text-info-content border-info
-                          hover:bg-info/90
-                          btn-md rounded-lg px-4
-                        "
+                    <PortalTooltip label="从已有规则导入并覆盖当前编辑" placement="bottom">
+                      <Button
+                        variant="info"
+                        size="md"
+                        className="rounded-lg px-4"
                         onClick={() => setIsCloneModalOpen(true)}
                         disabled={isSavingRule}
                       >
                         导入
-                      </button>
-                    </div>
+                      </Button>
+                    </PortalTooltip>
                     <div className="relative">
-                      <div className="tooltip tooltip-bottom" data-tip={mode === "create" ? "创建规则" : isEditing ? "保存当前修改" : "进入编辑"}>
-                        <button
-                          type="button"
-                          className={`
-                            btn
-                            ${mode === "edit" && !isEditing ? `btn-info` : `
-                              btn-primary
-                            `}
-                            btn-md rounded-lg px-4
-                            ${isSavingRule ? `scale-95` : ""}
-                          `}
+                      <PortalTooltip label={mode === "create" ? "创建规则" : isEditing ? "保存当前修改" : "进入编辑"} placement="bottom">
+                        <Button
+                          variant={mode === "edit" && !isEditing ? "outline" : "primary"}
+                          size="md"
+                          className={`rounded-lg px-4 ${mode === "edit" && !isEditing ? "border-info/45 text-info hover:border-info/70 hover:bg-info/10" : ""} ${isSavingRule ? `scale-95` : ""}`}
                           onClick={handleHeaderPrimaryAction}
                           disabled={primaryActionDisabled}
+                          loading={isSavingRule}
+                          aria-label={isSavingRule ? "正在保存规则" : mode === "create" ? "创建规则" : isEditing ? "保存规则" : "编辑规则"}
                         >
                           {isSavingRule
-                            ? (
-                                <span className="
-                                  loading loading-spinner loading-xs
-                                "></span>
-                              )
+                            ? "保存中..."
                             : (
                                 <span className="flex items-center gap-1">
                                   {mode === "create" ? "创建" : isEditing ? "保存" : "编辑"}
                                 </span>
                               )}
-                        </button>
-                      </div>
+                        </Button>
+                      </PortalTooltip>
                       {primaryActionDisabledReason && primaryActionDisabled && (
                         <div className="
                           absolute right-0 top-full mt-1
@@ -728,7 +694,7 @@ export default function RuleEditor({
                     </div>
                   </div>
                 </div>
-                <div className="divider my-0" />
+                <Divider className="my-0" />
               </div>
 
               <RuleTextInfoEditor

@@ -1,6 +1,6 @@
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { WarningCircleIcon } from "@phosphor-icons/react";
 import { createRootRoute, HeadContent, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import {
   AnimatePresence,
   motion,
@@ -28,6 +28,9 @@ import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPrefere
 import { appToast, AppToaster } from "@/components/common/appToast/appToast";
 import { Button } from "@/components/common/Button";
 import { ConfirmDialogProvider } from "@/components/common/ConfirmDialog";
+import { Surface, Text } from "@/components/common/DesignLanguage";
+import { Disclosure } from "@/components/common/Disclosure";
+import { StateView } from "@/components/common/StateView";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
 import { writeFeedbackAttachmentDraft } from "@/components/feedback/feedbackAttachmentDraft";
 import { buildDiagnosticLogFile, buildRouteErrorFeedbackDraft } from "@/components/feedback/feedbackDiagnosticDraft";
@@ -114,8 +117,8 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
 
 const isTestBuild = import.meta.env.MODE === "test";
 const isDevBuild = import.meta.env.DEV;
-const shouldEnableReactScan = typeof window !== "undefined" && (isTestBuild || import.meta.env.DEV);
-
+const shouldEnableReactScan
+  = typeof window !== "undefined" && import.meta.env.VITE_ENABLE_REACT_SCAN === "true";
 if (shouldEnableReactScan) {
   void import("react-scan")
     .then(({ scan }) => {
@@ -191,10 +194,7 @@ function CanonicalLink() {
 function HydrateFallback() {
   return (
     <div className="min-h-screen bg-base-200 flex items-center justify-center">
-      <div className="flex items-center gap-2 text-base-content/70">
-        <span className="loading loading-spinner loading-md" aria-label="正在加载" />
-        <span>正在加载…</span>
-      </div>
+      <StateView loading title="正在加载…" className="py-0" />
     </div>
   );
 }
@@ -298,20 +298,6 @@ function App() {
         isAnalyticsBlockedByAdBlocker={isAnalyticsBlockedByAdBlocker}
         shouldShowBugFeedbackGuide={shouldShowBugFeedbackGuide}
       />
-      {import.meta.env.DEV
-        ? (
-            <TanStackRouterDevtools
-              position="top-right"
-              toggleButtonProps={{
-                style: {
-                  top: "8px",
-                  // 贴近顶部操作区，避免开发工具按钮盖在页面正中间。
-                  right: "clamp(3.5rem, 14rem, calc(100vw - 11rem))",
-                },
-              }}
-            />
-          )
-        : null}
       </GlobalContextProvider>
     </MotionConfig>
   );
@@ -422,48 +408,24 @@ function ErrorBoundary({ error }: { error: Error }) {
     <main className="
       min-h-screen bg-base-200 flex items-center justify-center p-4
     ">
-      <div className="card w-full max-w-lg bg-base-100 shadow-xl">
-        <div className="card-body items-center text-center">
-          {/* Alert Icon */}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="stroke-error h-24 w-24"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-            />
-          </svg>
+      <Surface level="content" className="w-full max-w-lg p-6 text-center shadow-xl">
+          <WarningCircleIcon className="mx-auto size-24 text-error" weight="regular" aria-hidden="true" />
 
-          <h1 className="card-title text-4xl font-bold mt-4">{message}</h1>
-          <p className="py-4 text-lg">{details}</p>
+          <Text as="h1" variant="pageTitle" className="mt-4">{message}</Text>
+          <Text as="p" variant="body" className="py-4">{details}</Text>
 
-          {/* Collapsible Stack Trace for Dev Mode */}
           {stack && (
-            <div className="text-left w-full mt-4">
-              <div className="
-                collapse collapse-arrow border border-base-300 bg-base-200
-              ">
-                <div className="collapse-title font-medium">
-                  Stack Trace (Development Only)
-                </div>
-                <div className="collapse-content">
-                  <pre className="
-                    w-full p-2 overflow-x-auto bg-neutral text-neutral-content
-                    rounded-box text-sm
-                  ">
-                    <code>{stack}</code>
-                  </pre>
-                </div>
-              </div>
-            </div>
+            <Disclosure
+              title="Stack Trace (Development Only)"
+              className="mt-4 w-full bg-base-200 text-left"
+            >
+              <pre className="w-full overflow-x-auto overscroll-x-none rounded-md bg-neutral p-2 text-sm text-neutral-content">
+                <code>{stack}</code>
+              </pre>
+            </Disclosure>
           )}
 
-          <div className="card-actions justify-center mt-6 gap-3">
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Button
               variant="outline"
               className="w-full sm:w-64"
@@ -487,8 +449,7 @@ function ErrorBoundary({ error }: { error: Error }) {
               返回主页
             </Button>
           </div>
-        </div>
-      </div>
+      </Surface>
     </main>
   );
 }

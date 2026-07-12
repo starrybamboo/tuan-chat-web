@@ -901,6 +901,7 @@ export default function AudioMessage({
           className="
             flex size-9 shrink-0 items-center justify-center rounded-md
             bg-base-100/85 text-base-content transition
+            motion-reduce:transition-none
             hover:bg-base-100 hover:text-base-content/90
           "
           onClick={handleTogglePlay}
@@ -927,7 +928,7 @@ export default function AudioMessage({
             type="button"
             className="
               flex size-9 shrink-0 items-center justify-center rounded-md
-              text-base-content/55 transition
+              text-base-content/55 transition motion-reduce:transition-none
               hover:bg-error/10 hover:text-error
             "
             onMouseDown={event => event.preventDefault()}
@@ -956,7 +957,7 @@ export default function AudioMessage({
           type="button"
           className="
             flex size-8 shrink-0 items-center justify-center rounded-md
-            text-base-content transition
+            text-base-content transition motion-reduce:transition-none
             hover:bg-base-300/70
           "
           onClick={handleTogglePlay}

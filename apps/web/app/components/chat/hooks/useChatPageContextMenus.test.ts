@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveRoomIdFromContextMenuEvent } from "./useChatPageContextMenus";
+import { resolveRoomIdFromContextMenuEvent, toggleRoomContextMenu } from "./useChatPageContextMenus";
 
 function createElementLike(attrs: Record<string, string> = {}, closestResult?: { value: ElementLike | null }) {
   return {
@@ -61,5 +61,16 @@ describe("resolveRoomIdFromContextMenuEvent", () => {
     });
 
     expect(roomId).toBeNull();
+  });
+});
+
+describe("toggleRoomContextMenu", () => {
+  it("同一房间再次点击时关闭菜单", () => {
+    expect(toggleRoomContextMenu({ roomId: 7, x: 10, y: 20 }, 7, { x: 30, y: 40 })).toBeNull();
+  });
+
+  it("切换房间时更新目标和位置", () => {
+    expect(toggleRoomContextMenu({ roomId: 7, x: 10, y: 20 }, 8, { x: 30, y: 40 }))
+      .toEqual({ roomId: 8, x: 30, y: 40 });
   });
 });

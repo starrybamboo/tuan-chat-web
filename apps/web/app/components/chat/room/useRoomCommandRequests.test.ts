@@ -20,8 +20,8 @@ vi.mock("react", async () => {
   };
 });
 
-vi.mock("react-hot-toast", () => ({
-  toast: {
+vi.mock("@/components/common/appToast/appToast", () => ({
+  appToast: {
     error: mocks.toastErrorMock,
   },
 }));

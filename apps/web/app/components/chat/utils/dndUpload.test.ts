@@ -11,8 +11,8 @@ const mocks = vi.hoisted(() => ({
   applyRoomMediaAnnotationPreferenceToComposerMock: vi.fn<(...args: unknown[]) => void>(),
 }));
 
-vi.mock("react-hot-toast", () => ({
-  default: {
+vi.mock("@/components/common/appToast/appToast", () => ({
+  appToast: {
     success: mocks.toastSuccessMock,
     error: mocks.toastErrorMock,
   },

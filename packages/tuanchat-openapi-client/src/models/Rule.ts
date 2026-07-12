@@ -2,9 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * 返回对象
- */
 export type Rule = {
     ruleId?: number;
     authorId?: number;
@@ -16,3 +13,4 @@ export type Rule = {
     basicDefault?: Record<string, string>;
     dicerConfig?: Record<string, string>;
 };
+

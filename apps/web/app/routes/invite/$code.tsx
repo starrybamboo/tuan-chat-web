@@ -2,6 +2,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
+import { Button } from "@/components/common/Button";
+import { StateView } from "@/components/common/StateView";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { fetchUserRoomsWithCache, useSpaceInvitedMutation } from "api/hooks/chatQueryHooks";
 
@@ -111,16 +113,12 @@ function InvitePage() {
         max-w-lg w-full bg-base-100 rounded-lg shadow p-6 text-center
       ">
         {isProcessing && !error && (
-          <>
-            <div className="mb-4">
-              <svg className="animate-spin h-8 w-8 mx-auto text-base-content/60 motion-reduce:animate-none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-              </svg>
-            </div>
-            <h2 className="text-lg font-medium">正在处理邀请……</h2>
-            <p className="text-sm text-base-content/60 mt-2">请稍等，系统正在尝试将您加入空间。失败后可重试或返回首页。</p>
-          </>
+          <StateView
+            loading
+            title="正在处理邀请……"
+            description="请稍等，系统正在尝试将您加入空间。失败后可重试或返回首页。"
+            className="py-0"
+          />
         )}
 
         {!isProcessing && error && (
@@ -128,8 +126,8 @@ function InvitePage() {
             <h2 className="text-lg font-semibold text-error">加入失败</h2>
             <p className="mt-3 text-sm text-base-content/70">{error}</p>
             <div className="mt-6 flex justify-center gap-3">
-              <button
-                className="btn btn-outline"
+              <Button
+                variant="outline"
                 type="button"
                 onClick={() => {
                   setIsProcessing(true);
@@ -138,14 +136,14 @@ function InvitePage() {
                 }}
               >
                 重试
-              </button>
-              <button
-                className="btn"
+              </Button>
+              <Button
+                variant="ghost"
                 type="button"
                 onClick={() => navigate({ to: "/" })}
               >
                 返回首页
-              </button>
+              </Button>
             </div>
           </>
         )}

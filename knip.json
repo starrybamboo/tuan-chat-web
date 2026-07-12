@@ -6,8 +6,6 @@
     "apps/web/app/routeTree.gen.ts",
     "apps/web/app/routes/**/*.{ts,tsx}",
     "apps/web/app/**/*.test.{ts,tsx}",
-    "apps/web/app/**/*.e2e.test.{ts,tsx}",
-    "apps/web/app/**/*.e2e.harness.{ts,tsx}",
     "apps/web/api/**/*.test.{ts,tsx}",
     "packages/**/*.test.{ts,tsx}",
     "apps/mobile/src/app/**/*.{ts,tsx}",

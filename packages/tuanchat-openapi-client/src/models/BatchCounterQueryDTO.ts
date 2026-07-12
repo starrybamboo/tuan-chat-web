@@ -19,3 +19,4 @@ export type BatchCounterQueryDTO = {
      */
     counterType: string;
 };
+

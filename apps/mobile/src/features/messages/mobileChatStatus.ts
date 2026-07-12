@@ -2,14 +2,26 @@ import { useSyncExternalStore } from "react";
 
 export type MobileChatStatusType = "idle" | "input" | "wait" | "leave";
 
+export const DEFAULT_MOBILE_CHAT_STATUS_LABELS: Record<MobileChatStatusType, string> = {
+  idle: "空闲",
+  input: "正在输入",
+  leave: "暂离",
+  wait: "等待扮演",
+};
+
+export type MobileChatStatusPayload = {
+  description: string;
+  type: MobileChatStatusType;
+};
+
 export type MobileChatStatusEvent = {
   roomId: number;
-  status: MobileChatStatusType;
+  status: MobileChatStatusPayload;
   userId: number;
 };
 
 export type MobileChatStatusEntry = {
-  status: MobileChatStatusType;
+  status: MobileChatStatusPayload;
   userId: number;
 };
 
@@ -26,6 +38,12 @@ const listeners = new Set<() => void>();
 
 function isPositiveInteger(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
+function normalizeMobileChatStatusDescription(value: unknown, type: MobileChatStatusType): string {
+  return typeof value === "string" && value.trim()
+    ? value.trim().slice(0, 15)
+    : DEFAULT_MOBILE_CHAT_STATUS_LABELS[type];
 }
 
 export function isMobileChatStatusType(value: unknown): value is MobileChatStatusType {
@@ -51,7 +69,7 @@ function getMobileChatStatusSnapshot() {
 
 function upsertMobileChatStatusSnapshot(event: MobileChatStatusEvent): MobileChatStatusSnapshot {
   const currentEntries = chatStatusSnapshot[event.roomId] ?? [];
-  const nextEntries = event.status === "idle"
+  const nextEntries = event.status.type === "idle"
     ? currentEntries.filter(entry => entry.userId !== event.userId)
     : (() => {
         const existingIndex = currentEntries.findIndex(entry => entry.userId === event.userId);
@@ -64,7 +82,9 @@ function upsertMobileChatStatusSnapshot(event: MobileChatStatusEvent): MobileCha
       })();
 
   if (nextEntries.length === currentEntries.length && nextEntries.every((entry, index) => (
-    entry.userId === currentEntries[index]?.userId && entry.status === currentEntries[index]?.status
+    entry.userId === currentEntries[index]?.userId
+    && entry.status.type === currentEntries[index]?.status.type
+    && entry.status.description === currentEntries[index]?.status.description
   ))) {
     return chatStatusSnapshot;
   }
@@ -80,7 +100,7 @@ function upsertMobileChatStatusSnapshot(event: MobileChatStatusEvent): MobileCha
 }
 
 export function applyMobileChatStatusEvent(event: MobileChatStatusEvent) {
-  if (!isPositiveInteger(event.roomId) || !isPositiveInteger(event.userId) || !isMobileChatStatusType(event.status)) {
+  if (!isPositiveInteger(event.roomId) || !isPositiveInteger(event.userId) || !isMobileChatStatusType(event.status.type)) {
     return;
   }
 
@@ -98,14 +118,24 @@ export function parseMobileChatStatusEvent(input: unknown): MobileChatStatusEven
     return null;
   }
 
-  const raw = input as Partial<MobileChatStatusEvent>;
-  if (!isPositiveInteger(raw.roomId) || !isPositiveInteger(raw.userId) || !isMobileChatStatusType(raw.status)) {
+  const raw = input as Partial<MobileChatStatusEvent> & { status?: unknown };
+  const rawStatus = raw.status as Partial<MobileChatStatusPayload> | undefined;
+  if (
+    !isPositiveInteger(raw.roomId)
+    || !isPositiveInteger(raw.userId)
+    || !rawStatus
+    || typeof rawStatus !== "object"
+    || !isMobileChatStatusType(rawStatus.type)
+  ) {
     return null;
   }
 
   return {
     roomId: raw.roomId,
-    status: raw.status,
+    status: {
+      description: normalizeMobileChatStatusDescription(rawStatus.description, rawStatus.type),
+      type: rawStatus.type,
+    },
     userId: raw.userId,
   };
 }
@@ -135,7 +165,7 @@ export function useMobileChatStatus(roomId: number | null | undefined, userId: n
     return "idle";
   }
 
-  return snapshot[roomId]?.find(entry => entry.userId === userId)?.status ?? "idle";
+  return snapshot[roomId]?.find(entry => entry.userId === userId)?.status.type ?? "idle";
 }
 
 export function useMobileChatStatusEntries(roomId: number | null | undefined) {

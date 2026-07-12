@@ -16,3 +16,4 @@ export type SpaceExtraSetRequest = {
      */
     value: string;
 };
+

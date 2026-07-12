@@ -19,5 +19,9 @@ export type ApiResultAiGatewayModelCatalogResponse = {
      * 错误消息
      */
     errMsg?: string;
+    /**
+     * 返回对象
+     */
     data?: AiGatewayModelCatalogResponse;
 };
+

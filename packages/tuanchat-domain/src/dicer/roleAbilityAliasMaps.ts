@@ -47,6 +47,7 @@ export const COC_ABILITY_ALIASES: Record<string, string> = {
   重型机械: "操作重型机械",
   重型: "操作重型机械",
   侦察: "侦查",
+  巧手: "妙手",
 };
 
 // noinspection NonAsciiCharacters
@@ -78,4 +79,12 @@ export function createRoleAbilityAliasMapSet(): { [key: string]: Map<string, str
     3: new Map<string, string>(Object.entries(FU_PROPERTY_ALIASES)),
     7: new Map<string, string>(),
   };
+}
+
+export function resolveRoleAbilityAlias(rawKey: string, aliases?: Record<string, string>): string {
+  const trimmedKey = rawKey.trim();
+  if (!trimmedKey) {
+    return "";
+  }
+  return aliases?.[trimmedKey.toLowerCase()] || trimmedKey;
 }

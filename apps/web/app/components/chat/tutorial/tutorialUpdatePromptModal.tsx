@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
+import { Button } from "@/components/common/Button";
+import { Checkbox } from "@/components/common/FormField";
+import { DialogFrame } from "@/components/common/DialogFrame";
 
 type TutorialUpdatePromptModalProps = {
   open: boolean;
@@ -23,7 +25,6 @@ export default function TutorialUpdatePromptModal({
   onConfirmPull,
 }: TutorialUpdatePromptModalProps) {
   const [suppress, setSuppress] = useState(false);
-  const dialogRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -34,12 +35,6 @@ export default function TutorialUpdatePromptModal({
   const handleClose = () => {
     onClose(suppress);
   };
-
-  useEscapeToClose({
-    enabled: open,
-    onClose: handleClose,
-    containerRef: dialogRef,
-  });
 
   if (!open) {
     return null;
@@ -56,19 +51,18 @@ export default function TutorialUpdatePromptModal({
   const confirmText = isMissingMode ? "立即克隆" : "立即拉取";
 
   return createPortal(
-    <div className="
-      fixed inset-0 z-10000 flex items-center justify-center bg-black/35 p-4
-    ">
-      <div className="
+    <DialogFrame
+      open={open}
+      mode="inline"
+      onClose={handleClose}
+      ariaLabel={title}
+      rootClassName="z-10000 bg-black/35 p-4"
+      panelClassName="
         w-full max-w-lg rounded-xl border border-base-300 bg-base-100 p-5
-      shadow-xl
+        shadow-xl
       "
-        ref={dialogRef}
-        data-modal-layer="true"
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-      >
+      closeButtonLabel="关闭新手教程更新提示"
+    >
         <div className="text-lg font-semibold">{title}</div>
         <div className="mt-2 text-sm/relaxed text-base-content/70">
           {description}
@@ -89,11 +83,10 @@ export default function TutorialUpdatePromptModal({
             hover:text-base-content/90
             transition-colors
           ">
-            <input
-              type="checkbox"
+            <Checkbox
+              density="compact"
               className="
-                checkbox checkbox-xs rounded-sm border-base-content/30
-                checked:border-info
+                border-base-content/30 checked:border-info
                 [--chkbg:var(--color-info)]
                 [--chkfg:var(--color-info-content)]
               "
@@ -103,27 +96,27 @@ export default function TutorialUpdatePromptModal({
             直到下次更新前不再提示
           </label>
           <div className="flex justify-end gap-2 text-sm">
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm font-normal"
+            <Button
+              variant="ghost"
+              size="sm"
+              className="font-normal"
               onClick={handleClose}
               disabled={isPulling}
             >
               稍后再说
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm gap-2 font-normal"
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              className="gap-2 font-normal"
               onClick={onConfirmPull}
-              disabled={isPulling}
+              loading={isPulling}
             >
-              {isPulling && <span className="loading loading-spinner loading-xs"></span>}
               {confirmText}
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
-    </div>,
+    </DialogFrame>,
     document.body,
   );
 }

@@ -1,6 +1,9 @@
 import type { Room } from "../../../../api";
 import type { MinimalDocMeta, SidebarLeafNode } from "./sidebarTree";
 
+import { Button } from "@/components/common/Button";
+import { SelectInput } from "@/components/common/FormField";
+
 type RoomSidebarAddPanelProps = {
   categoryId: string;
   isSpaceOwner: boolean;
@@ -33,8 +36,9 @@ export default function RoomSidebarAddPanel({
   return (
     <div className="mt-1 p-2 border-t border-base-300">
       <div className="flex items-center gap-2">
-        <select
-          className="select select-bordered select-xs flex-1"
+        <SelectInput
+          density="compact"
+          className="flex-1"
           aria-label="添加房间"
           value={pendingAddRoomId ?? ""}
           onChange={(e) => {
@@ -51,10 +55,10 @@ export default function RoomSidebarAddPanel({
                 {r.name ?? String(r.roomId)}
               </option>
             ))}
-        </select>
-        <button
-          type="button"
-          className="btn btn-ghost btn-xs"
+        </SelectInput>
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() => {
             if (!pendingAddRoomId)
               return;
@@ -64,13 +68,14 @@ export default function RoomSidebarAddPanel({
           disabled={!pendingAddRoomId}
         >
           添加
-        </button>
+        </Button>
       </div>
 
       {isSpaceOwner && (
         <div className="flex items-center gap-2 mt-2">
-          <select
-            className="select select-bordered select-xs flex-1"
+          <SelectInput
+            density="compact"
+            className="flex-1"
             aria-label="添加文档"
             value={pendingAddDocId}
             onChange={(e) => {
@@ -86,10 +91,10 @@ export default function RoomSidebarAddPanel({
                   {m.title ?? m.id}
                 </option>
               ))}
-          </select>
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs"
+          </SelectInput>
+          <Button
+            variant="ghost"
+            size="xs"
             onClick={() => {
               if (!pendingAddDocId)
                 return;
@@ -99,14 +104,14 @@ export default function RoomSidebarAddPanel({
             disabled={!pendingAddDocId}
           >
             添加
-          </button>
+          </Button>
         </div>
       )}
 
       <div className="flex justify-end mt-2">
-        <button
-          type="button"
-          className="btn btn-ghost btn-xs"
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() => {
             setAddPanelCategoryId(null);
             setPendingAddRoomId(null);
@@ -114,7 +119,7 @@ export default function RoomSidebarAddPanel({
           }}
         >
           关闭
-        </button>
+        </Button>
       </div>
     </div>
   );

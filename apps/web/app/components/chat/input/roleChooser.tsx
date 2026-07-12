@@ -3,6 +3,7 @@ import { appToast } from "@/components/common/appToast/appToast";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
+import { Button } from "@/components/common/Button";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
@@ -82,27 +83,29 @@ export default function RoleChooser({
         onRoleSelect={handleRoleChange}
         renderRoleActions={role => (
           <div className="flex items-center gap-1">
-            <button
+            <Button
               type="button"
-              className="btn btn-ghost btn-xs"
+              variant="ghost"
+              size="xs"
               onClick={(event) => {
                 event.stopPropagation();
                 setManageRoleId(role.roleId);
               }}
             >
               管理
-            </button>
+            </Button>
             {canKickRole(role) && (
-              <button
+              <Button
                 type="button"
-                className="btn btn-error btn-xs"
+                variant="error"
+                size="xs"
                 onClick={(event) => {
                   event.stopPropagation();
                   setKickRoleId(role.roleId);
                 }}
               >
                 踢出
-              </button>
+              </Button>
             )}
           </div>
         )}

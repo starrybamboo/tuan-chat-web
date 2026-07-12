@@ -30,6 +30,9 @@ export type RoleAvatar = {
      * 角色立绘组 ID；为空表示不参与合成
      */
     variantId?: number;
+    /**
+     * 角色立绘组快照
+     */
     variantGroup?: RoleAvatarVariant;
     /**
      * 头像媒体文件 ID
@@ -43,6 +46,9 @@ export type RoleAvatar = {
      * 用户上传源图媒体文件 ID
      */
     originFileId?: number;
+    /**
+     * 立绘裁剪上下文（原图生成立绘）
+     */
     spriteCropContext?: SpriteCropContext;
     /**
      * 头像媒体类型
@@ -62,7 +68,13 @@ export type RoleAvatar = {
      * 0代表正常，1代表删除
      */
     state?: number;
+    /**
+     * 立绘变换参数（WebGAL）
+     */
     spriteTransform?: SpriteTransform;
+    /**
+     * 头像裁剪上下文（WebGAL 合成立绘）
+     */
     avatarCropContext?: AvatarCropContext;
     /**
      * 继承来源的归档头像ID
@@ -73,3 +85,4 @@ export type RoleAvatar = {
      */
     versionState?: number;
 };
+

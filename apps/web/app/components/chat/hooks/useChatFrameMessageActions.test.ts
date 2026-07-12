@@ -24,16 +24,13 @@ vi.mock("react", async () => {
   };
 });
 
-vi.mock("react-hot-toast", () => {
-  const toast = Object.assign(mocks.toastMock, {
+vi.mock("@/components/common/appToast/appToast", () => ({
+  appToast: {
     error: mocks.toastErrorMock,
+    info: mocks.toastMock,
     success: mocks.toastSuccessMock,
-  });
-  return {
-    default: toast,
-    toast,
-  };
-});
+  },
+}));
 
 function createMessage(messageId: number, overrides?: Partial<Message>): ChatMessageResponse {
   return {

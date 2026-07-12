@@ -9,8 +9,7 @@ import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSele
 import type { UserRole } from "../../../../api";
 
 import {
-  useGetRoomNpcRoleQuery,
-  useGetRoomRoleQuery,
+  useGetRoomAllRoleQuery,
 } from "../../../../api/hooks/chatQueryHooks";
 import { fetchRoleAvatarsWithCache } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { useGetUserRolesQuery } from "../../../../api/queryHooks";
@@ -79,21 +78,10 @@ export default function useRoomRoleState({
   const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
   const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
 
-  const roomRolesQuery = useGetRoomRoleQuery(roomId);
-  const roomBaseRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
-  const roomNpcRolesQuery = useGetRoomNpcRoleQuery(roomId);
-  const roomNpcRoles = useMemo(() => roomNpcRolesQuery.data?.data ?? [], [roomNpcRolesQuery.data?.data]);
-
-  const roomAllRoles = useMemo(() => {
-    const map = new Map<number, UserRole>();
-    for (const role of roomBaseRoles) {
-      map.set(role.roleId, role);
-    }
-    for (const role of roomNpcRoles) {
-      map.set(role.roleId, role);
-    }
-    return [...map.values()];
-  }, [roomBaseRoles, roomNpcRoles]);
+  const roomRolesQuery = useGetRoomAllRoleQuery(roomId);
+  const roomAllRoles = useMemo(() => roomRolesQuery.data?.data?.allRoles ?? [], [roomRolesQuery.data?.data?.allRoles]);
+  const roomBaseRoles = useMemo(() => roomRolesQuery.data?.data?.baseRoles ?? [], [roomRolesQuery.data?.data?.baseRoles]);
+  const roomNpcRoles = useMemo(() => roomRolesQuery.data?.data?.npcRoles ?? [], [roomRolesQuery.data?.data?.npcRoles]);
 
   const roomRolesThatUserOwn = useMemo(() => {
     if (isSpectator) {
@@ -236,7 +224,7 @@ export default function useRoomRoleState({
   const fallbackRoleId = roomRolesThatUserOwn[0]?.roleId ?? (isSpaceOwner ? -1 : 0);
   // 角色列表尚未完成加载时，先保留上次选择，避免把持久化值误回退覆盖掉。
   const canValidateStoredRoleId = isSpectator
-    || (roomRolesQuery.isSuccess && (isSpaceOwner ? roomNpcRolesQuery.isSuccess : userRolesQuery.isSuccess));
+    || (roomRolesQuery.isSuccess && (isSpaceOwner || userRolesQuery.isSuccess));
   const curRoleId = resolveCurrentRoomRoleId({
     storedRoleId,
     fallbackRoleId,
@@ -272,7 +260,6 @@ export default function useRoomRoleState({
   }, [curRoleId, setCurAvatarIdForRole]);
   const shouldWaitForUserRoles = !isSpectator && !isSpaceOwner && typeof userId === "number" && userId > 0;
   const isRoleDataReady = isInitialQueryReady(roomRolesQuery)
-    && isInitialQueryReady(roomNpcRolesQuery)
     && (!shouldWaitForUserRoles || isInitialQueryReady(userRolesQuery));
 
   return {

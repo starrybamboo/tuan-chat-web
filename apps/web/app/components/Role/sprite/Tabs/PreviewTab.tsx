@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { RoleAvatar } from "api";
 
+import { Button } from "@/components/common/Button";
 import { MediaImage } from "@/components/common/mediaImage";
 import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
@@ -239,9 +240,10 @@ export function PreviewTab({
         <h3 className="text-lg font-semibold">
           {getPreviewModeLabel()}
         </h3>
-        <button
-          type="button"
-          className="btn btn-sm btn-ghost gap-2 rounded-md"
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-2 rounded-md"
           onClick={cyclePreviewMode}
           aria-label={`切换预览模式，当前 ${getPreviewModeLabel()}，将切换至 ${getNextModeLabel()}`}
         >
@@ -250,7 +252,7 @@ export function PreviewTab({
           </svg>
           切换至
           {getNextModeLabel()}
-        </button>
+        </Button>
       </div>
 
       {/* 预览内容区域 */}
@@ -335,7 +337,11 @@ export function PreviewTab({
                       backdrop-blur-[1px] flex items-center justify-center
                       text-base-content/70
                     ">
-                      <span className="loading loading-spinner loading-sm" aria-label="正在加载预览" />
+                      <span
+                        className="size-5 animate-spin rounded-full border-2 border-base-content/20 border-t-base-content/70"
+                        role="status"
+                        aria-label="正在加载预览"
+                      />
                     </div>
                   )}
                 </div>
@@ -359,24 +365,24 @@ export function PreviewTab({
 
       {/* 操作按钮 */}
       <div className="mt-4 flex shrink-0 items-center justify-end gap-2">
-        <button
-          type="button"
-          className="btn btn-outline rounded-md"
+        <Button
+          variant="outline"
+          className="rounded-md"
           onClick={handlePreview}
           disabled={!currentAvatar}
           title={currentAvatar ? "展示预览" : "请先选择头像"}
         >
           展示预览
-        </button>
-        <button
-          type="button"
-          className="btn btn-primary rounded-md"
+        </Button>
+        <Button
+          variant="primary"
+          className="rounded-md"
           onClick={handleApplyAvatar}
           disabled={!currentAvatar}
           title={currentAvatar ? "应用头像" : "请先选择头像"}
         >
           应用头像
-        </button>
+        </Button>
       </div>
     </div>
   );

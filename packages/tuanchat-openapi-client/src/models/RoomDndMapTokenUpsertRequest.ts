@@ -20,3 +20,4 @@ export type RoomDndMapTokenUpsertRequest = {
      */
     colIndex: number;
 };
+

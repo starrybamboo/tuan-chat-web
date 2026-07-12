@@ -1,9 +1,12 @@
 import { useRouter } from "@tanstack/react-router";
 
+import { Button } from "@/components/common/Button";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { FriendRequestButton } from "@/components/common/FriendRequestButton";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { UserAvatarByUser } from "@/components/common/userAccess";
+import { InlineAlert, Skeleton } from "@/components/common/StatusPrimitives";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 
@@ -46,20 +49,20 @@ export function UserDetail({ userId }: UserDetailProps) {
   };
 
   return (
-    <div className="
-      card relative w-[360px] overflow-hidden rounded-xl border
-      border-base-300/70 bg-base-100/95 shadow-xl backdrop-blur
-    ">
-      <div className="card-body gap-3 p-4">
+    <div className={surfaceClassName({
+      level: "floating",
+      className: "relative w-[360px] overflow-hidden border-base-300/70 bg-base-100/95 shadow-xl backdrop-blur",
+    })}>
+      <div className="flex flex-col gap-3 p-4">
         {/* 顶部：头像 + 名称/描述 */}
         <div className="flex items-start gap-4">
-          <div className="avatar">
+          <div className="relative inline-flex align-middle">
             <div className="
               rounded-full ring-2 ring-base-100 bg-base-100 w-16 h-16
             ">
               {userQuery.isLoading
                 ? (
-                    <div className="skeleton w-16 h-16" />
+                    <Skeleton className="w-16 h-16" />
                   )
                 : (
                     <a
@@ -83,7 +86,7 @@ export function UserDetail({ userId }: UserDetailProps) {
             <div className="flex items-center flex-wrap gap-2">
               {userQuery.isLoading
                 ? (
-                    <div className="skeleton h-6 w-32" />
+                    <Skeleton className="h-6 w-32" />
                   )
                 : (
                     <a
@@ -110,7 +113,7 @@ export function UserDetail({ userId }: UserDetailProps) {
             <div className="mt-1 text-sm leading-snug">
               {userQuery.isLoading
                 ? (
-                    <div className="skeleton h-4 w-40" />
+                    <Skeleton className="h-4 w-40" />
                   )
                 : (
                     <div>
@@ -181,17 +184,18 @@ export function UserDetail({ userId }: UserDetailProps) {
                 targetUserId={user.userId}
                 targetUsername={user?.username}
                 className="
-                  btn btn-sm flex h-8 min-h-8 flex-1 items-center justify-center
+                  h-8 min-h-8 flex-1 items-center justify-center
                   gap-1.5 rounded-md border border-base-300/80 bg-base-100/70
                   px-2 text-sm
                   hover:border-info/40 hover:bg-base-200 hover:text-info
                 "
               />
 
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="sm"
                 className="
-                  btn btn-sm flex h-8 min-h-8 flex-1 items-center gap-1.5
+                  flex h-8 min-h-8 flex-1 items-center gap-1.5
                   rounded-md border border-base-300/80 bg-base-100/70 px-3
                   text-sm
                   hover:border-info/40 hover:bg-base-200 hover:text-info
@@ -208,7 +212,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                   </g>
                 </svg>
                 <span className="text-sm">私信</span>
-              </button>
+              </Button>
             </div>
 
           )}
@@ -216,10 +220,12 @@ export function UserDetail({ userId }: UserDetailProps) {
 
         {/* 加载错误处理 */}
         {userQuery.isError && (
-          <div className="alert alert-error mt-2">
-            <svg
+          <InlineAlert
+            tone="error"
+            className="mt-2"
+            icon={<svg
               xmlns="http://www.w3.org/2000/svg"
-              className="stroke-current shrink-0 h-5 w-5"
+              className="size-5 stroke-current"
               fill="none"
               viewBox="0 0 24 24"
             >
@@ -229,9 +235,10 @@ export function UserDetail({ userId }: UserDetailProps) {
                 strokeWidth="2"
                 d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
               />
-            </svg>
+            </svg>}
+          >
             <span>无法加载用户数据</span>
-          </div>
+          </InlineAlert>
         )}
       </div>
       <ToastWindow

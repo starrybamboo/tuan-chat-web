@@ -150,15 +150,6 @@ describe("chat OpenAPI contract", () => {
       }
     });
 
-    it(`${label} keeps moment feed image URLs out of create request schema`, () => {
-      const schemas = readSpec(relativePath).components?.schemas ?? {};
-      const momentFeedProperties = schemas.MomentFeedRequest?.properties ?? {};
-
-      expect(momentFeedProperties.imageFileIds).toBeDefined();
-      expect(momentFeedProperties.imageUrls).toBeUndefined();
-      expect(momentFeedProperties.originalImageUrls).toBeUndefined();
-    });
-
     it(`${label} keeps derived map image URLs out of state event schema`, () => {
       const schemas = readSpec(relativePath).components?.schemas ?? {};
       const stateEventAtomProperties = schemas.StateEventAtom?.properties ?? {};

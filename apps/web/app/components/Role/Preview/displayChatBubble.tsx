@@ -273,6 +273,7 @@ export function DisplayChatBubble({
                 className="
                   block min-w-10 max-w-full truncate pb-0.5 text-sm
                   font-medium text-base-content/85 transition-all duration-200
+                  motion-reduce:transition-none
                   sm:pb-1 sm:text-sm
                 "
                 title={displayRoleName}
@@ -314,7 +315,7 @@ export function DisplayChatBubble({
           <div className="relative flex min-w-0 max-w-full items-center gap-2">
             <div className="
               min-w-10 max-w-full text-sm/5 font-semibold
-              transition-all duration-200
+              transition-all duration-200 motion-reduce:transition-none
               sm:text-base/6
             ">
               <div className="block min-w-0 truncate" title={displayRoleName}>
@@ -325,6 +326,7 @@ export function DisplayChatBubble({
         </div>
         <div className="
           relative transition-all duration-200 rounded-lg px-1.5 py-0.5
+          motion-reduce:transition-none
           sm:px-2 sm:py-0.5
           wrap-break-word text-base/normal
           sm:text-sm

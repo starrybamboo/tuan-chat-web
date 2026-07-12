@@ -2,9 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * 事件作用域；nextTurn 不需要
- */
 export type StateEventScope = {
     /**
      * 作用域：room 或 role
@@ -15,3 +12,4 @@ export type StateEventScope = {
      */
     roleId?: number;
 };
+

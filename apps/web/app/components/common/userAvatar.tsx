@@ -3,6 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { createPortal } from "react-dom";
 
 import { Avatar, AVATAR_HOVER_IMAGE_CLASS, AVATAR_HOVER_SHELL_CLASS, type AvatarSize } from "@/components/common/Avatar";
+import { useDismissibleLayer } from "@/components/common/customHooks/useDismissibleLayer";
 import { buildUserProfileNavigation } from "@/components/common/userAvatarNavigation";
 import { UserDetail } from "@/components/common/userDetail";
 import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/media/mediaUrl";
@@ -116,13 +117,28 @@ export default function UserAvatarComponent({
     closeTimerRef.current = window.setTimeout(doClose, CLOSE_DELAY);
   };
 
+  const activateProfile = useCallback(() => {
+    if (!clickEnterProfilePage)
+      return;
+    void navigate(buildUserProfileNavigation(userId));
+  }, [clickEnterProfilePage, navigate, userId]);
+
   // 点击跳转逻辑：只受 clickEnterProfilePage 控制
   const handleClick = useCallback((e: React.MouseEvent) => {
     if (!clickEnterProfilePage)
       return; // 不响应点击跳转
     e.stopPropagation();
-    void navigate(buildUserProfileNavigation(userId));
-  }, [clickEnterProfilePage, navigate, userId]);
+    activateProfile();
+  }, [activateProfile, clickEnterProfilePage]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!clickEnterProfilePage || (e.key !== "Enter" && e.key !== " ")) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    activateProfile();
+  }, [activateProfile, clickEnterProfilePage]);
 
   // 根据 clickEnterProfilePage 决定是否添加点击样式
   const containerClass = `relative inline-flex ${width === "full" ? "h-full w-full" : ""} ${withName ? "flex-row items-center gap-2" : "flex-col items-center"} group ${AVATAR_HOVER_SHELL_CLASS} ${clickEnterProfilePage ? "cursor-pointer" : ""}`;
@@ -176,34 +192,11 @@ export default function UserAvatarComponent({
     };
   }, [isOpen, recompute]);
 
-  // 外部点击与 ESC 关闭
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-    const onDocClick = (e: MouseEvent) => {
-      const anchor = anchorRef.current;
-      const portalNode = portalRef.current;
-      if (
-        (anchor && (anchor === e.target || anchor.contains(e.target as Node)))
-        || (portalNode && portalNode.contains(e.target as Node))
-      ) {
-        return;
-      }
-      setIsOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onDocClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDocClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [isOpen]);
+  useDismissibleLayer({
+    enabled: isOpen,
+    containerRef: portalRef,
+    onDismiss: doClose,
+  });
 
   // 卸载前清理 timer
   useEffect(() => () => clearTimers(), []);
@@ -226,8 +219,12 @@ export default function UserAvatarComponent({
       ref={anchorRef}
       className={containerClass}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      role={clickEnterProfilePage ? "button" : undefined}
+      tabIndex={clickEnterProfilePage ? 0 : undefined}
+      aria-label={clickEnterProfilePage ? `查看${resolvedUsername || `用户 ${userId}`}的主页` : undefined}
     >
       <Avatar
         src={resolvedAvatar}
@@ -251,6 +248,7 @@ export default function UserAvatarComponent({
       {/* Portal 卡片：只受 stopToastWindow 控制 */}
       {portalElement && hasMountedDetail && isOpen && !stopToastWindow && pos && createPortal(
         <div
+          data-dismissible-layer="true"
           style={{
             position: "fixed",
             left: pos.left,
@@ -259,6 +257,7 @@ export default function UserAvatarComponent({
           }}
           className={`
             group/avatar-card transition transform
+            motion-reduce:animate-none motion-reduce:transition-none
             origin-${pos.placement === "right" ? `left` : `right`}
             animate-in fade-in zoom-in duration-150
           `}

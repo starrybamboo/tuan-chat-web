@@ -1,3 +1,4 @@
+import { useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 // 定义一个类型，用于表示一个2D点或向量
@@ -45,6 +46,8 @@ export function ResizableImg({
   const didDragRef = useRef(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isImageReady, setIsImageReady] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
+  const transformTransition = shouldReduceMotion ? "none" : "transform 0.2s ease-out";
 
   // 使用 ref 来存储变换状态，避免不必要的重渲染
   const positionRef = useRef<Point>({ x: 0, y: 0 });
@@ -177,8 +180,8 @@ export function ResizableImg({
     setIsInteracting(false);
     const img = imgRef.current;
     if (img)
-      img.style.transition = "transform 0.2s ease-out";
-  }, [isInteracting]);
+      img.style.transition = transformTransition;
+  }, [isInteracting, transformTransition]);
 
   const handleWheel = useCallback((e: WheelEvent) => {
     if (!isLoaded)
@@ -224,9 +227,9 @@ export function ResizableImg({
       return;
     const img = imgRef.current;
     if (img)
-      img.style.transition = "transform 0.2s ease-out";
+      img.style.transition = transformTransition;
     resetImageState();
-  }, [isLoaded, resetImageState]);
+  }, [isLoaded, resetImageState, transformTransition]);
 
   const handleContainerClick = useCallback((e: MouseEvent) => {
     if (e.target === containerRef.current && !didDragRef.current) {
@@ -321,7 +324,7 @@ export function ResizableImg({
         width={size?.width}
         height={size?.height}
         style={{
-          transition: isLoaded ? "transform 0.2s ease-out" : "none",
+          transition: isLoaded ? transformTransition : "none",
           touchAction: "none",
           transformOrigin: "0 0",
           visibility: isLoaded ? "visible" : "hidden",

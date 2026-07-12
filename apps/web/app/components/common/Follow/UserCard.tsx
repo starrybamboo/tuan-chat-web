@@ -2,7 +2,9 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { UserAvatarByUser } from "@/components/common/userAccess";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
 import { resolveUserDisplayName, useResolvedUserInfo } from "@/components/common/userAccess.shared";
+import { Skeleton } from "@/components/common/StatusPrimitives";
 
 import type { FollowResponse } from "../../../../api";
 
@@ -19,13 +21,13 @@ export function UserCard({ user }: UserCardProps) {
   const displayName = resolveUserDisplayName({ username: resolvedUser.username }, userId > 0 ? `用户${userId}` : "未知用户");
 
   return (
-    <div className="card card-compact w-48 bg-base-100 shadow-xl">
+    <div className={surfaceClassName({ level: "content", className: "w-48 shadow-xl" })}>
       <div className="flex items-center p-4">
-        <div className="avatar flex-shrink-0">
-          <div className="w-12 rounded-full">
-            {resolvedUser.isLoading
+        <div className="relative inline-flex shrink-0 align-middle">
+          <div className="size-12 overflow-hidden rounded-full">
+            {resolvedUser.isAvatarLoading
               ? (
-                  <div className="skeleton w-12 h-12"></div>
+                  <Skeleton className="w-12 h-12" />
                 )
               : (
 
@@ -48,10 +50,10 @@ export function UserCard({ user }: UserCardProps) {
           </div>
         </div>
         <div className="ml-4 flex flex-col min-w-0">
-          <h3 className="text-lg font-semibold truncate" title={resolvedUser.isLoading ? undefined : displayName}>
-            {resolvedUser.isLoading
+          <h3 className="text-lg font-semibold truncate" title={resolvedUser.isNameLoading ? undefined : displayName}>
+            {resolvedUser.isNameLoading
               ? (
-                  <div className="skeleton h-4 w-20"></div>
+                  <Skeleton className="h-4 w-20" />
                 )
               : (
                   displayName

@@ -2,10 +2,9 @@ import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSo
 import { MediaImage } from "@/components/common/mediaImage";
 import { getImageMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 
 import type { Message } from "../../../../../api";
-
-import { getMessagePreviewText } from "./getMessagePreviewText";
 
 type MessagePreviewContentProps = {
   canViewHiddenDiceReply?: boolean;

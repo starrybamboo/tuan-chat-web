@@ -6,11 +6,11 @@ import { canCurrentUserViewHiddenDiceReply, canCurrentUserViewMessage } from "@/
 import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 
 import type { Message } from "../../../../../api";
 
 import { useGetRoleQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
-import { getMessagePreviewText } from "./getMessagePreviewText";
 import { MessagePreviewContent } from "./messagePreviewContent";
 
 type PreviewRenderState = {
@@ -96,8 +96,9 @@ export function PreviewMessage({ message, className, withMediaPreview }: {
   });
   const previewMessage = renderState.previewMessage;
 
-  const useRoleRequest = useGetRoleQuery(previewMessage?.roleId ?? -1);
-  const role = useRoleRequest.data?.data;
+  const roleFromRoom = roomContext.roomAllRoles?.find(role => role.roleId === previewMessage?.roleId);
+  const useRoleRequest = useGetRoleQuery(previewMessage?.roleId ?? -1, { enabled: !roleFromRoom });
+  const role = roleFromRoom ?? useRoleRequest.data?.data;
   const isDeleted = previewMessage?.status === 1;
   const isIntroText = previewMessage?.messageType === MESSAGE_TYPE.INTRO_TEXT;
   const isOutOfCharacterText = previewMessage?.messageType === MESSAGE_TYPE.TEXT

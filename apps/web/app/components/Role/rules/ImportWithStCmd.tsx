@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { appToast } from "@/components/common/appToast/appToast";
 
+import { Button } from "@/components/common/Button";
+import { TextArea } from "@/components/common/FormField";
 import { CopyIcon, EditIcon } from "@/icons";
 
 import type { StAbilityDraft } from "./stImportParser";
@@ -102,7 +104,7 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
     <div className="space-y-4">
       <fieldset className="border border-base-300 rounded-lg p-4">
         <div className="relative w-full">
-          <textarea
+          <TextArea
             className="
               bg-base-200 rounded-lg p-4 w-full h-40 overflow-auto resize-none
             "
@@ -112,28 +114,28 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
             value={commandInput}
             onChange={e => setCommandInput(e.target.value)}
           />
-          <button
-            type="button"
-            className="btn btn-info absolute bottom-4 right-2"
+          <Button
+            variant="outline"
+            className="absolute bottom-4 right-2 border-info/45 text-info hover:border-info/70 hover:bg-info/10"
             onClick={handleImport}
             disabled={!commandInput.trim()}
           >
             <EditIcon className="size-4" />
             导入属性
-          </button>
+          </Button>
         </div>
       </fieldset>
 
       {isCOC7 && (
         <div className="flex justify-end">
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleExport}
           >
             <CopyIcon className="size-4" />
             导出ST指令
-          </button>
+          </Button>
         </div>
       )}
     </div>

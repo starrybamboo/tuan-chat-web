@@ -1,8 +1,12 @@
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 
+import { Button } from "@/components/common/Button";
+import { formControlShellClassName, TextInput } from "@/components/common/FormField";
+import { IconButton } from "@/components/common/IconButton";
 import { ImeAwareSearchInput } from "@/components/common/imeAwareSearchInput";
 import { privateChatListItemMotionProps, privateChatPanelMotionProps } from "@/components/common/motion/privateChatMotion";
+import { Badge, InlineAlert } from "@/components/common/StatusPrimitives";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { Search, XMarkICon } from "@/icons";
 import {
@@ -102,14 +106,12 @@ export default function NewFriendsPanel() {
 
         <div className="mt-3">
           <label htmlFor="new-friend-search" className="sr-only">输入用户ID或用户名</label>
-          <div className="
-            flex items-center gap-2 rounded-lg border border-base-300
-            dark:border-base-300
-            bg-base-200 px-3 py-2
-            focus-within:border-info/60 focus-within:ring-2
-            focus-within:ring-info/20
-          ">
+          <div className={formControlShellClassName({
+            surface: "muted",
+            className: "gap-2 px-3 py-2",
+          })}>
             <ImeAwareSearchInput
+              appearance="bare"
               id="new-friend-search"
               type="text"
               name="newFriendSearch"
@@ -128,31 +130,32 @@ export default function NewFriendsPanel() {
               onSubmit={searchInputKeyword}
             />
             {inputKeyword && (
-              <button type="button" className="btn btn-ghost btn-xs btn-square" onClick={clearSearch} aria-label="清空">
-                <XMarkICon className="size-4" />
-              </button>
+              <IconButton
+                icon={<XMarkICon className="size-4" />}
+                label="清空"
+                variant="ghost"
+                size="xs"
+                shape="square"
+                onClick={clearSearch}
+              />
             )}
-            <button
-              type="button"
-              className="btn btn-info btn-xs"
+            <IconButton
+              icon={<Search className="size-4" />}
+              label="搜索用户"
+              variant="ghost"
+              size="xs"
+              className="text-base-content/55 hover:bg-info/10 hover:text-info"
               onClick={searchInputKeyword}
               disabled={!inputKeyword.trim()}
-              aria-label="搜索用户"
-            >
-              <Search className="size-4" />
-            </button>
+            />
           </div>
         </div>
 
         {notice && (
           <div className="mt-2">
-            <div className={`
-              alert
-              ${noticeType === "success" ? "alert-success" : `alert-warning`}
-              py-2
-            `}>
+            <InlineAlert tone={noticeType} className="py-2">
               <span className="text-sm">{notice}</span>
-            </div>
+            </InlineAlert>
           </div>
         )}
 
@@ -179,9 +182,7 @@ export default function NewFriendsPanel() {
                         <div className="font-medium truncate text-sm">{searchUserInfo?.username}</div>
                         <div className="text-xs opacity-70">{searchUserInfo?.userId}</div>
                       </div>
-                      {friendCheck?.statusDesc && <span className="
-                        badge badge-ghost badge-sm
-                      ">{friendCheck.statusDesc}</span>}
+                      {friendCheck?.statusDesc && <Badge appearance="ghost">{friendCheck.statusDesc}</Badge>}
                     </div>
 
                     {!friendCheck?.isFriend && friendCheck?.status !== 3 && (
@@ -189,20 +190,21 @@ export default function NewFriendsPanel() {
                         <label htmlFor={`friend-verify-${searchUserInfo.userId}`} className="
                           sr-only
                         ">验证信息</label>
-                        <input
+                        <TextInput
+                          density="compact"
                           id={`friend-verify-${searchUserInfo.userId}`}
                           type="text"
                           name={`friendVerify-${searchUserInfo.userId}`}
                           autoComplete="off"
-                          className="input input-xs input-bordered w-32"
+                          className="w-32"
                           placeholder="验证信息"
                           value={verifyMsg}
                           onClick={e => e.stopPropagation()}
                           onChange={e => setVerifyMsg(e.target.value)}
                         />
-                        <button
-                          type="button"
-                          className="btn btn-xs btn-info"
+                        <Button
+                          variant="info"
+                          size="xs"
                           disabled={
                             sendFriendRequestMutation.isPending
                             || !searchUserInfo?.userId
@@ -228,7 +230,7 @@ export default function NewFriendsPanel() {
                           }}
                         >
                           {friendCheck?.status === 1 ? "已申请" : "发送申请"}
-                        </button>
+                        </Button>
                       </div>
                     )}
                     {friendCheck?.status === 3 && <span className="
@@ -304,22 +306,22 @@ export default function NewFriendsPanel() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          className="btn btn-xs btn-info"
+                        <Button
+                          variant="info"
+                          size="xs"
                           disabled={acceptFriendRequestMutation.isPending || !req.id}
                           onClick={() => req.id && acceptFriendRequestMutation.mutate({ friendReqId: req.id })}
                         >
                           同意
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-xs"
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="xs"
                           disabled={rejectFriendRequestMutation.isPending || !req.id}
                           onClick={() => req.id && rejectFriendRequestMutation.mutate({ friendReqId: req.id })}
                         >
                           拒绝
-                        </button>
+                        </Button>
                       </div>
                     </motion.div>
                   );

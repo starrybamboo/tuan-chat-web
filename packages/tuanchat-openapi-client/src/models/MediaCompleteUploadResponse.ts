@@ -35,3 +35,4 @@ export type MediaCompleteUploadResponse = {
      */
     degraded?: boolean;
 };
+

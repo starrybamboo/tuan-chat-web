@@ -1,5 +1,7 @@
 import { PencilSimpleLineIcon } from "@phosphor-icons/react";
 
+import { Checkbox, RangeInput } from "@/components/common/FormField";
+
 export function InpaintToolPanel({
   sharedPanelClassName,
   brushSize,
@@ -45,8 +47,8 @@ export function InpaintToolPanel({
             <span>Pen Size</span>
             <span>{brushSize}</span>
           </div>
-          <input
-            type="range"
+          <RangeInput
+            density="compact"
             min={4}
             max={50}
             step={1}
@@ -75,8 +77,8 @@ export function InpaintToolPanel({
             mt-2 flex select-none items-center gap-2 text-[11px] font-medium
             text-base-content/82
           ">
-            <input
-              type="checkbox"
+            <Checkbox
+              density="compact"
               checked={isSquareBrush}
               className="
                 size-3.5 rounded border border-base-300 bg-base-100

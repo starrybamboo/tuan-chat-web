@@ -2,10 +2,17 @@ import { DownloadSimpleIcon, MaskHappyIcon, SparkleIcon } from "@phosphor-icons/
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
+import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { Button } from "@/components/common/Button";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
+import { DropdownMenu, MenuItem } from "@/components/common/MenuPopover";
+import { DialogFrame } from "@/components/common/DialogFrame";
+import { Skeleton } from "@/components/common/StatusPrimitives";
+import { panelSwapMotionProps } from "@/components/common/motion/listItemMotion";
 import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
-import { CloseIcon, WrenchIcon } from "@/icons";
+import { WrenchIcon } from "@/icons";
 
 import type { RoleConfigTabKey } from "./configTabMeta";
 
@@ -57,7 +64,7 @@ export default function ExpansionModule({
   // 当前选中的Tab，依据角色类型设置默认
   const [activeTab, setActiveTab] = useState<RoleConfigTabKey>("basic");
   const isSmall = size === "small";
-  // 移动端快捷工具 dropdown 的展开状态：daisyUI 下拉靠 CSS focus-within 控制显隐，
+  // 移动端快捷工具菜单使用受控状态，便于统一外部点击与 Esc 关闭行为。
   // 这里仅观测焦点以同步 aria-expanded，不改变原有焦点行为。
   const [isQuickToolsOpen, setIsQuickToolsOpen] = useState(false);
 
@@ -434,11 +441,19 @@ export default function ExpansionModule({
         );
   };
 
+  const renderAnimatedActiveTabContent = () => (
+    <AnimatePresence initial={false} mode="wait">
+      <motion.div key={activeTab} {...panelSwapMotionProps}>
+        {renderActiveTabContent()}
+      </motion.div>
+    </AnimatePresence>
+  );
+
   const hasQuickTools = Boolean(onOpenStImportModal || onOpenAIGenerateModal);
   const hasDesktopQuickTools = hasQuickTools && !isSmall;
   const desktopConfigButtonClass = "md:h-10 md:min-h-10 md:px-4 md:text-sm md:font-medium";
   const desktopQuickToolButtonClass = `
-    btn btn-sm h-10 min-h-10 rounded-lg border border-base-content/10
+    h-10 min-h-10 rounded-lg border border-base-content/10
     bg-base-100/70 px-4 text-sm font-medium text-base-content/80 shadow-none
     transition-colors
     hover:border-info/40 hover:bg-info/10 hover:text-info
@@ -462,18 +477,18 @@ export default function ExpansionModule({
             role="tablist"
           >
             {ROLE_CONFIG_TAB_ITEMS.map(({ key, label, shortLabel, Icon }) => (
-              <button
+              <Button
                 key={key}
                 type="button"
+                variant={activeTab === key ? "outline" : "ghost"}
+                size={isSmall ? "sm" : "md"}
                 aria-selected={activeTab === key}
                 role="tab"
                 className={`
-                  btn
-                  ${isSmall ? "btn-sm" : "btn-md"}
                   h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap
                   rounded-lg
+                  ${activeTab === key ? "border-info/45 text-info hover:border-info/70 hover:bg-info/10" : ""}
                   ${isSmall ? "" : desktopConfigButtonClass}
-                  ${activeTab === key ? `btn-info` : `btn-ghost`}
                 `}
                 onClick={() => setActiveTab(key)}
               >
@@ -483,7 +498,7 @@ export default function ExpansionModule({
                   hidden
                   md:inline
                 ">{label}</span>
-              </button>
+              </Button>
             ))}
           </div>
           {hasDesktopQuickTools && (
@@ -520,56 +535,39 @@ export default function ExpansionModule({
             </div>
           )}
           {hasQuickTools && (
-            <div
-              className={`
-                dropdown
-                md:hidden
-                ${isSmall ? "" : "dropdown-end"}
-              `}
-              onFocus={() => setIsQuickToolsOpen(true)}
-              onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-                  setIsQuickToolsOpen(false);
-                }
-              }}
+            <DropdownMenu
+              ariaLabel="导入和生成功能"
+              placement={isSmall ? "bottom-start" : "bottom-end"}
+              open={isQuickToolsOpen}
+              onOpenChange={setIsQuickToolsOpen}
+              className="md:hidden"
+              menuClassName="z-20 w-32 border-base-content/10 p-2 shadow-lg"
+              trigger={(
+                <Button
+                  size={isSmall ? "sm" : "md"}
+                  shape="circle"
+                  className="size-10 min-h-10 rounded-full md:size-12 md:min-h-12"
+                  aria-label="打开导入和生成功能"
+                >
+                  <WrenchIcon className="size-5" aria-hidden="true" />
+                </Button>
+              )}
             >
-              <button
-                type="button"
-                tabIndex={0}
-                className={`
-                  btn
-                  ${isSmall ? "btn-sm" : "btn-md"}
-                  btn-square size-10 min-h-10
-                  md:size-12 md:min-h-12
-                  rounded-full
-                `}
-                aria-label="打开导入和生成功能"
-                aria-haspopup="menu"
-                aria-expanded={isQuickToolsOpen ? "true" : "false"}
-                aria-controls="role-config-quick-tools-menu"
-              >
-                <WrenchIcon className="size-5" aria-hidden="true" />
-              </button>
-              <ul id="role-config-quick-tools-menu" tabIndex={0} className="
-                dropdown-content z-20 menu p-2 shadow-lg bg-base-100 rounded-box
-                w-32 border border-base-content/10
-              ">
                 {onOpenStImportModal && (
-                  <li>
-                    <button type="button" onClick={onOpenStImportModal}>
+                  <li role="none">
+                    <MenuItem onClick={onOpenStImportModal}>
                       ST导入
-                    </button>
+                    </MenuItem>
                   </li>
                 )}
                 {onOpenAIGenerateModal && (
-                  <li>
-                    <button type="button" onClick={onOpenAIGenerateModal}>
+                  <li role="none">
+                    <MenuItem onClick={onOpenAIGenerateModal}>
                       AI生成
-                    </button>
+                    </MenuItem>
                   </li>
                 )}
-              </ul>
-            </div>
+            </DropdownMenu>
           )}
         </div>
       )
@@ -583,23 +581,19 @@ export default function ExpansionModule({
         {/* 规则未创建状态 */}
         {isRuleNotCreated
           ? (
-              <div className="
-                card bg-base-100 shadow-xs rounded-2xl border-2
-                border-base-content/10
-              ">
-                <div className="card-body items-center text-center py-16">
+              <div className={surfaceClassName({ level: "content", className: "border-2 border-base-content/10 shadow-xs" })}>
+                <div className="flex flex-col items-center py-16 text-center">
                   <div className="text-6xl mb-4">📋</div>
                   <h3 className="text-xl font-semibold mb-2">规则尚未创建</h3>
                   <p className="text-base-content/70 mb-6">
                     该角色还未配置此规则系统,点击下方按钮开始创建
                   </p>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
+                  <Button
+                    variant="primary"
                     onClick={handleCreateRule}
                   >
                     创建规则配置
-                  </button>
+                  </Button>
                 </div>
               </div>
             )
@@ -608,32 +602,26 @@ export default function ExpansionModule({
                 <div className="space-y-6">
                   {/* 骨架屏 - 模拟扩展模块 */}
                   <div className="flex gap-2">
-                    <div className="skeleton h-10 w-20 rounded-lg"></div>
-                    <div className="skeleton h-10 w-20 rounded-lg"></div>
-                    <div className="skeleton h-10 w-20 rounded-lg"></div>
-                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <Skeleton className="h-10 w-20 rounded-lg" />
+                    <Skeleton className="h-10 w-20 rounded-lg" />
+                    <Skeleton className="h-10 w-20 rounded-lg" />
+                    <Skeleton className="h-10 w-20 rounded-lg" />
                   </div>
-                  <div className="
-                    card-sm
-                    md:card-xl
-                    bg-base-100 shadow-xs
-                    md:rounded-xl md:border-2
-                    border-base-content/10
-                  ">
-                    <div className="card-body">
+                  <div className={surfaceClassName({ level: "content", className: "border-base-content/10 p-6 shadow-xs md:border-2" })}>
+                    <div>
                       <div className="flex items-center gap-3 mb-4">
-                        <div className="skeleton h-6 w-32"></div>
+                        <Skeleton className="h-6 w-32" />
                       </div>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
-                          <div className="skeleton h-10 w-full"></div>
-                          <div className="skeleton h-10 w-full"></div>
+                          <Skeleton className="h-10 w-full" />
+                          <Skeleton className="h-10 w-full" />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                          <div className="skeleton h-10 w-full"></div>
-                          <div className="skeleton h-10 w-full"></div>
+                          <Skeleton className="h-10 w-full" />
+                          <Skeleton className="h-10 w-full" />
                         </div>
-                        <div className="skeleton h-20 w-full"></div>
+                        <Skeleton className="h-20 w-full" />
                       </div>
                     </div>
                   </div>
@@ -664,10 +652,7 @@ export default function ExpansionModule({
                                         <div className="
                                           flex justify-between items-center mb-4
                                         ">
-                                          <h3 className="
-                                            card-title ml-1 flex items-center
-                                            gap-2 text-lg
-                                          ">
+                                          <h3 className="ml-1 flex items-center gap-2 text-lg font-medium">
                                             <MaskHappyIcon className="
                                               size-5 shrink-0
                                               text-base-content/80
@@ -691,7 +676,7 @@ export default function ExpansionModule({
                                       </Section>
                                     )
                                   : (
-                                      renderActiveTabContent()
+                                      renderAnimatedActiveTabContent()
                                     )}
                               </div>
                             </div>
@@ -715,10 +700,7 @@ export default function ExpansionModule({
                                       <div className="
                                         flex justify-between items-center mb-4
                                       ">
-                                        <h3 className="
-                                          card-title ml-1 flex items-center
-                                          gap-2 text-lg
-                                        ">
+                                        <h3 className="ml-1 flex items-center gap-2 text-lg font-medium">
                                           <MaskHappyIcon className="
                                             size-5 shrink-0 text-base-content/80
                                           " weight="regular" aria-hidden="true" />
@@ -739,7 +721,7 @@ export default function ExpansionModule({
                                     </Section>
                                   )
                                 : (
-                                    renderActiveTabContent()
+                                    renderAnimatedActiveTabContent()
                                   )}
                             </div>
                           </>
@@ -750,47 +732,27 @@ export default function ExpansionModule({
       </div>
 
       {/* ST指令弹窗 */}
-      {isStImportModalOpen && (
-        <div className="
-          fixed inset-0 z-50 flex items-center justify-center bg-black/50
-        " onClick={onStImportModalClose}>
-          <div className="
-            bg-base-100 rounded-2xl shadow-2xl max-w-2xl w-full mx-4
-            max-h-[80vh] overflow-hidden
-          "
-            role="dialog"
-            aria-modal="true"
-            aria-label="ST 指令"
-            onClick={e => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                onStImportModalClose?.();
-              }
-            }}
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold">ST指令</h3>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-circle btn-ghost"
-                  aria-label="关闭 ST 指令弹窗"
-                  onClick={onStImportModalClose}
-                >
-                  <CloseIcon className="size-4" aria-hidden="true" />
-                </button>
-              </div>
-              <div className="max-h-96 overflow-y-auto">
-                <ImportWithStCmd
-                  roleId={roleId}
-                  ruleId={selectedRuleId}
-                  onImportSuccess={onStImportModalClose}
-                />
-              </div>
-            </div>
+      <DialogFrame
+        open={isStImportModalOpen}
+        mode="inline"
+        onClose={() => onStImportModalClose?.()}
+        ariaLabel="ST 指令"
+        rootClassName="z-50 bg-black/50"
+        panelClassName="bg-base-100 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden"
+      >
+        <div className="p-6">
+          <div className="mb-6">
+            <h3 className="text-xl font-semibold">ST指令</h3>
+          </div>
+          <div className="max-h-96 overflow-y-auto">
+            <ImportWithStCmd
+              roleId={roleId}
+              ruleId={selectedRuleId}
+              onImportSuccess={onStImportModalClose}
+            />
           </div>
         </div>
-      )}
+      </DialogFrame>
     </>
   );
 }

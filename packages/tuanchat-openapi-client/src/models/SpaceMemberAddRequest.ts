@@ -12,3 +12,4 @@ export type SpaceMemberAddRequest = {
      */
     userIdList: Array<number>;
 };
+

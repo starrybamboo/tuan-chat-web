@@ -24,3 +24,4 @@ export type ApiResultListRoleAbility = {
      */
     data?: Array<RoleAbility>;
 };
+

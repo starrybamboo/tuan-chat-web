@@ -23,5 +23,9 @@ export type SpaceMaterialPackageCreateRequest = {
      * 素材包封面媒体文件 ID
      */
     coverFileId?: number;
+    /**
+     * 素材包树形内容
+     */
     content: MaterialPackageContent;
 };
+

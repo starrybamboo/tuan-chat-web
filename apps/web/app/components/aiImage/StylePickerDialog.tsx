@@ -1,8 +1,8 @@
 import type { AiImageStylePreset } from "@/utils/aiImageStylePresets";
 
-import { useRef } from "react";
-
-import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
+import { Button } from "@/components/common/Button";
+import { DialogActions, DialogFrame } from "@/components/common/DialogFrame";
+import { MediaImage } from "@/components/common/mediaImage";
 
 type StylePickerDialogProps = {
   isOpen: boolean;
@@ -31,61 +31,42 @@ export function StylePickerDialog({
   onClearStyles,
   onClose,
 }: StylePickerDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement | null>(null);
   const selectedStyleIdSet = new Set(selectedStyleIds);
   const currentCountLabel = selectedStyleIds.length ? `已选 ${selectedStyleIds.length} 个` : "";
 
-  useEscapeToClose({
-    enabled: isOpen,
-    onClose,
-    containerRef: dialogRef,
-  });
-
   return (
-    <dialog
-      ref={dialogRef}
+    <DialogFrame
       open={isOpen}
-      data-modal-layer={isOpen ? "true" : undefined}
-      role="dialog"
-      aria-modal="true"
-      aria-label="选择画风"
-      className={`
-        modal
-        ${isOpen ? "modal-open" : ""}
-      `}
-      onCancel={(event) => {
-        event.preventDefault();
-        onClose();
-      }}
-    >
-      <div className="
-        modal-box relative flex max-h-[min(94vh,1080px)]
+      mode="native"
+      onClose={onClose}
+      ariaLabel="选择画风"
+      panelClassName="
+        flex max-h-[min(94vh,1080px)]
         max-w-[min(96vw,1680px)] flex-col overflow-hidden border border-base-300
         bg-base-100 p-0 text-base-content shadow-xl
-      ">
-        <div className="
+      "
+    >
+      <div className="
           flex items-center gap-4 border-b border-base-300 px-6 py-4
         ">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-bold">选择画风</h3>
-            <button
-              type="button"
-              className={`
-                btn btn-sm
-                ${viewMode === "compare" ? "btn-info" : `btn-ghost`}
-              `}
+            <Button
+              size="sm"
+              variant={viewMode === "compare" ? "outline" : "ghost"}
+              className={viewMode === "compare" ? "border-info/45 text-info hover:border-info/70 hover:bg-info/10" : undefined}
               aria-pressed={viewMode === "compare"}
               onClick={() => onViewModeChange(viewMode === "compare" ? "select" : "compare")}
             >
               风格对比
-            </button>
+            </Button>
           </div>
           {viewMode === "select"
             ? (
                 <div className="ml-auto flex items-center gap-2">
                   <div className="text-xs opacity-70">{currentCountLabel}</div>
                   {selectedStyleIds.length
-                    ? <button type="button" className="btn btn-sm btn-ghost" onClick={onClearStyles}>清空</button>
+                    ? <Button size="sm" variant="ghost" onClick={onClearStyles}>清空</Button>
                     : null}
                 </div>
               )
@@ -126,7 +107,7 @@ export function StylePickerDialog({
                           bg-base-200
                         ">
                           {preset.imageUrl
-                            ? <img src={preset.imageUrl} alt={preset.title} className="
+                            ? <MediaImage src={preset.imageUrl} alt={preset.title} className="
                               h-full w-full object-cover transition duration-200
                               group-hover:scale-[1.02]
                             " />
@@ -187,7 +168,7 @@ export function StylePickerDialog({
                           overflow-hidden bg-base-200
                         ">
                           {preset.imageUrl
-                            ? <img src={preset.imageUrl} alt={preset.title} className="
+                            ? <MediaImage src={preset.imageUrl} alt={preset.title} className="
                               h-full w-full object-cover
                             " />
                             : <div className="text-xs opacity-60">{preset.title}</div>}
@@ -207,15 +188,11 @@ export function StylePickerDialog({
               )}
         </div>
 
-        <div className="modal-action mt-0 border-t border-base-300 px-6 py-4">
-          <button type="button" className="btn" onClick={onClose}>
+        <DialogActions bordered className="mt-0 px-6 py-4">
+          <Button onClick={onClose}>
             关闭
-          </button>
-        </div>
-      </div>
-      <form method="dialog" className="modal-backdrop">
-        <button type="button" onClick={onClose}>close</button>
-      </form>
-    </dialog>
+          </Button>
+        </DialogActions>
+    </DialogFrame>
   );
 }

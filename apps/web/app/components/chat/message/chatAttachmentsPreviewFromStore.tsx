@@ -110,7 +110,7 @@ export default function ChatAttachmentsPreviewFromStore({ roomId }: ChatAttachme
 
   return (
     <div className="flex flex-col gap-1 p-2 pb-1 border-b border-base-200/50">
-      <div className="flex flex-row items-center gap-x-3 overflow-x-auto">
+      <div className="flex flex-row items-center gap-x-3 overflow-x-auto overscroll-x-none">
         <AnimatePresence mode="popLayout">
           {imgFiles.map((file, index) => (
             <motion.div key={file.name} layout {...attachmentItemMotionProps}>

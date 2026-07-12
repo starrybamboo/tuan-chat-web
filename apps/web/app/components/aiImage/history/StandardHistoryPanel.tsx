@@ -1,6 +1,7 @@
 import type { MouseEvent } from "react";
 
 import { CaretRightIcon } from "@phosphor-icons/react";
+import { AnimatePresence, motion } from "motion/react";
 
 import type {
   HistoryDragPayload,
@@ -17,6 +18,8 @@ import { historyRowKey } from "@/components/aiImage/helpers";
 import { HistoryActionsFooter } from "@/components/aiImage/history/HistoryActionsFooter";
 import { HistoryHint } from "@/components/aiImage/history/HistoryHint";
 import { HistoryImageTile } from "@/components/aiImage/history/HistoryImageTile";
+import { IconButton } from "@/components/common/IconButton";
+import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
 
 type StandardHistoryPanelProps = {
   historyLength: number;
@@ -63,71 +66,75 @@ export function StandardHistoryPanel({
             <div className="text-sm font-medium">历史记录</div>
             <HistoryHint />
           </div>
-          <button
-            type="button"
+          <IconButton
+            size="xs"
+            shape="square"
             className="
-              btn btn-ghost btn-square btn-xs ml-auto shrink-0
+              ml-auto shrink-0
               text-base-content/60
               hover:text-base-content
             "
-            aria-label="收起历史记录侧边栏"
+            label="收起历史记录侧边栏"
             title="收起历史记录侧边栏"
             onClick={onCollapse}
-          >
-            <CaretRightIcon className="size-3.5" weight="regular" />
-          </button>
+            icon={<CaretRightIcon className="size-3.5" weight="regular" />}
+          />
         </div>
         <div className="ai-image-fade-scrollbar flex-1 overflow-auto pr-1">
           <div className="
             grid grid-cols-1 justify-items-center gap-2 border-t
             border-base-300 py-3
                       ">
-            {currentResultCards.map(({ item, index, row }) => (
-              <HistoryImageTile
-                key={`${item.batchId}-${item.batchIndex}`}
-                active={!selectedHistoryPreviewKey && selectedResultIndex === index}
-                alt="current-result"
-                dataUrl={item.dataUrl}
-                draggable
-                showInpaintBadge={row?.mode === "infill"}
-                title={`${row?.mode || mode} · seed ${item.seed} · ${item.width}×${item.height}`}
-                onClick={event => onCurrentResultCardClick(index, row, event)}
-                onDelete={row?.id != null
-                  ? (event) => {
-                      event.stopPropagation();
-                      onRequestDeleteHistoryRow(row);
-                    }
-                  : undefined}
-                onDragStart={event => onHistoryImageDragStart(event, {
-                  dataUrl: item.dataUrl,
-                  seed: item.seed,
-                  batchIndex: item.batchIndex,
-                })}
-              />
-            ))}
-            {archivedHistoryRows.map(row => (
-              <HistoryImageTile
-                key={historyRowKey(row)}
-                active={selectedHistoryPreviewKey === historyRowKey(row)}
-                alt="history"
-                dataUrl={row.dataUrl}
-                draggable
-                showInpaintBadge={row.mode === "infill"}
-                title={`${row.mode} · seed ${row.seed} · ${row.width}×${row.height}`}
-                onClick={event => onHistoryRowClick(row, event)}
-                onDelete={row.id != null
-                  ? (event) => {
-                      event.stopPropagation();
-                      onRequestDeleteHistoryRow(row);
-                    }
-                  : undefined}
-                onDragStart={event => onHistoryImageDragStart(event, {
-                  dataUrl: row.dataUrl,
-                  seed: row.seed,
-                  batchIndex: row.batchIndex ?? undefined,
-                })}
-              />
-            ))}
+            <AnimatePresence initial={false} mode="popLayout">
+              {currentResultCards.map(({ item, index, row }) => (
+                <motion.div key={`${item.batchId}-${item.batchIndex}`} {...structuralListItemMotionProps()}>
+                  <HistoryImageTile
+                    active={!selectedHistoryPreviewKey && selectedResultIndex === index}
+                    alt="current-result"
+                    dataUrl={item.dataUrl}
+                    draggable
+                    showInpaintBadge={row?.mode === "infill"}
+                    title={`${row?.mode || mode} · seed ${item.seed} · ${item.width}×${item.height}`}
+                    onClick={event => onCurrentResultCardClick(index, row, event)}
+                    onDelete={row?.id != null
+                      ? (event) => {
+                          event.stopPropagation();
+                          onRequestDeleteHistoryRow(row);
+                        }
+                      : undefined}
+                    onDragStart={event => onHistoryImageDragStart(event, {
+                      dataUrl: item.dataUrl,
+                      seed: item.seed,
+                      batchIndex: item.batchIndex,
+                    })}
+                  />
+                </motion.div>
+              ))}
+              {archivedHistoryRows.map(row => (
+                <motion.div key={historyRowKey(row)} {...structuralListItemMotionProps()}>
+                  <HistoryImageTile
+                    active={selectedHistoryPreviewKey === historyRowKey(row)}
+                    alt="history"
+                    dataUrl={row.dataUrl}
+                    draggable
+                    showInpaintBadge={row.mode === "infill"}
+                    title={`${row.mode} · seed ${row.seed} · ${row.width}×${row.height}`}
+                    onClick={event => onHistoryRowClick(row, event)}
+                    onDelete={row.id != null
+                      ? (event) => {
+                          event.stopPropagation();
+                          onRequestDeleteHistoryRow(row);
+                        }
+                      : undefined}
+                    onDragStart={event => onHistoryImageDragStart(event, {
+                      dataUrl: row.dataUrl,
+                      seed: row.seed,
+                      batchIndex: row.batchIndex ?? undefined,
+                    })}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
             {!currentResultCards.length && !archivedHistoryRows.length
               ? <div className="
                 col-span-1 w-full rounded-xl border border-dashed

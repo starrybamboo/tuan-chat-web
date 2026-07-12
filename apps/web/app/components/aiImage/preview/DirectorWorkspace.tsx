@@ -11,6 +11,8 @@ import type { AiImagePreviewPaneProps } from "@/components/aiImage/preview/types
 
 import { DIRECTOR_EMOTION_OPTIONS, DIRECTOR_TOOL_OPTIONS, isDirectorToolDisabled } from "@/components/aiImage/constants";
 import { EmptyPreviewPlaceholder } from "@/components/aiImage/preview/EmptyPreviewPlaceholder";
+import { FileInput, SelectInput, TextInput } from "@/components/common/FormField";
+import { MediaImage } from "@/components/common/mediaImage";
 import { ChevronDown, SharpDownload } from "@/icons";
 
 export function DirectorWorkspace({
@@ -57,8 +59,6 @@ export function DirectorWorkspace({
   const directorControlButtonClassName = "inline-flex h-9 items-center justify-center rounded-md bg-transparent px-3 text-[12px] font-medium text-base-content transition hover:bg-black/5 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-info/30 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-white/8";
   const directorThumbButtonClassName = "group relative block overflow-hidden bg-base-100 transition focus:outline-none focus:ring-2 focus:ring-info/30";
   const directorToolButtonClassName = "inline-flex h-10 items-center justify-center rounded-md px-3 text-[12px] font-medium transition focus:outline-none focus:ring-2 focus:ring-info/30";
-  const directorFieldClassName = "h-10 w-full rounded-md border border-base-300 bg-base-100 px-3 text-sm text-base-content placeholder:text-base-content/45 transition focus:outline-none focus:ring-2 focus:ring-info/20 focus:border-info";
-  const directorSelectClassName = "h-10 w-full rounded-md border border-base-300 bg-base-100 px-3 text-sm text-base-content transition focus:outline-none focus:ring-2 focus:ring-info/20 focus:border-info";
   const directorCornerActionsClassName = "absolute bottom-3 flex items-center gap-2";
   const directorCornerButtonClassName = "inline-flex size-9 items-center justify-center rounded-md border border-base-300 bg-base-100/96 text-base-content/72 shadow-sm transition hover:-translate-y-0.5 hover:border-info/45 hover:text-base-content active:translate-y-0 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-info/30 disabled:cursor-not-allowed disabled:opacity-35";
   const directorCornerPillClassName = "inline-flex items-center rounded-md border border-base-300 bg-base-100/96 px-3 py-2 text-[11px] font-medium text-base-content/72 shadow-sm";
@@ -85,9 +85,8 @@ export function DirectorWorkspace({
       onDragOver={onDirectorImageDragOver}
       onDrop={onDirectorImageDrop}
     >
-      <input
+      <FileInput
         ref={directorUploadInputRef}
-        type="file"
         accept="image/*"
         multiple
         className="hidden"
@@ -105,9 +104,11 @@ export function DirectorWorkspace({
             type="button"
             className={directorControlButtonClassName}
             aria-expanded={isDirectorToolsOpen}
+            aria-label={isDirectorToolsOpen ? "收起导演工具" : "展开导演工具"}
+            title={isDirectorToolsOpen ? "收起导演工具" : "展开导演工具"}
             onClick={onToggleDirectorTools}
           >
-            <ChevronDown className="size-4 rotate-90" />
+            <ChevronDown className="size-4 rotate-90" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -134,8 +135,10 @@ export function DirectorWorkspace({
             "
             disabled={isBusy}
             onClick={() => directorUploadInputRef.current?.click()}
+            aria-label="上传导演参考图"
+            title="上传导演参考图"
           >
-            <UploadSimpleIcon className="size-4" weight="regular" />
+            <UploadSimpleIcon className="size-4" weight="regular" aria-hidden="true" />
           </button>
 
           <div
@@ -200,7 +203,7 @@ export function DirectorWorkspace({
                           flex h-[100px] w-[100px] items-center justify-center
                           bg-base-100
                         ">
-                          <img src={item.dataUrl} alt={`director-result-${index + 1}`} className="
+                          <MediaImage src={item.dataUrl} alt={`director-result-${index + 1}`} className="
                             block h-full w-full object-contain transition
                             duration-200
                             group-hover:scale-[1.02]
@@ -224,7 +227,7 @@ export function DirectorWorkspace({
           `}>
             <div className={directorCanvasClassName}>
               {directorInputPreview
-                ? <img src={directorInputPreview.dataUrl} className="
+                ? <MediaImage src={directorInputPreview.dataUrl} className="
                   max-h-full max-w-full object-contain
                 " alt="director-input" />
                 : <EmptyPreviewPlaceholder />}
@@ -273,7 +276,7 @@ export function DirectorWorkspace({
           `}>
             <div className={directorCanvasClassName}>
               {directorDisplayedOutput
-                ? <img src={directorDisplayedOutput.dataUrl} className="
+                ? <MediaImage src={directorDisplayedOutput.dataUrl} className="
                   max-h-full max-w-full object-contain
                 " alt="director-output" />
                 : <EmptyPreviewPlaceholder />}
@@ -409,9 +412,9 @@ export function DirectorWorkspace({
                     mb-2 text-[11px] font-medium uppercase tracking-[0.18em]
                     text-base-content/55
                   ">Prompt (Optional)</div>
-                  <input
+                  <TextInput
                     type="text"
-                    className={directorFieldClassName}
+                    className="h-10"
                     value={directorColorizePrompt}
                     disabled={isBusy}
                     onChange={event => onDirectorColorizePromptChange(event.target.value)}
@@ -433,8 +436,8 @@ export function DirectorWorkspace({
                     mb-2 text-[11px] font-medium uppercase tracking-[0.18em]
                     text-base-content/55
                   ">Emotion</div>
-                  <select
-                    className={directorSelectClassName}
+                  <SelectInput
+                    className="h-10"
                     value={directorEmotion}
                     disabled={isBusy}
                     onChange={event => onDirectorEmotionChange(event.target.value as typeof directorEmotion)}
@@ -442,16 +445,16 @@ export function DirectorWorkspace({
                     {DIRECTOR_EMOTION_OPTIONS.map(item => (
                       <option key={item} value={item}>{formatDirectorEmotionLabel(item)}</option>
                     ))}
-                  </select>
+                  </SelectInput>
                 </label>
                 <label className="min-w-0">
                   <div className="
                     mb-2 text-[11px] font-medium uppercase tracking-[0.18em]
                     text-base-content/55
                   ">Prompt</div>
-                  <input
+                  <TextInput
                     type="text"
-                    className={directorFieldClassName}
+                    className="h-10"
                     value={directorEmotionExtraPrompt}
                     disabled={isBusy}
                     onChange={event => onDirectorEmotionExtraPromptChange(event.target.value)}

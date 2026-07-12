@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { useGetInboxMessageWithUserQuery, useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks";
 
+import type { MessageDirectResponse } from "../../../api";
+
 import ContextMenu from "./components/ContextMenu";
 import MessageInput from "./components/MessageInput";
 import MessageWindow from "./components/MessageWindow";
@@ -13,9 +15,7 @@ import { usePrivateMessageReceiver } from "./hooks/usePrivateMessageRecever";
 import { usePrivateUnreadStateStore } from "./privateUnreadStateStore";
 import { getLatestIncomingSync } from "./privateUnreadUtils";
 
-import type { MessageDirectResponse } from "../../../api";
-
-export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDrawer: (isOpen: boolean) => void }) {
+export default function RightChatView() {
   const userId = useGlobalUserId() || -1;
   const { roomId: urlRoomId } = useParams({ strict: false });
   const currentContactUserId = urlRoomId ? Number.parseInt(urlRoomId) : null;
@@ -75,7 +75,6 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
     >
       {/* 顶部信息栏 */}
       <TopInfo
-        setIsOpenLeftDrawer={setIsOpenLeftDrawer}
         currentContactUserInfo={currentContactUserInfo}
       />
 

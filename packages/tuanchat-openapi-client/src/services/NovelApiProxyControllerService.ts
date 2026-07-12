@@ -39,7 +39,7 @@ export class NovelApiProxyControllerService {
      * @returns string OK
      * @throws ApiError
      */
-    public generateImageMultipart1(
+    public generateImageMultipart(
         formData: {
             request: string;
             use_new_shared_trial?: string;

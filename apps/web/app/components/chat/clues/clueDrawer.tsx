@@ -6,6 +6,7 @@ import { SpaceContext } from "@/components/chat/core/spaceContext";
 import SidebarSection from "@/components/chat/room/sidebarSection";
 import { useClueReferenceNavigationStore } from "@/components/chat/stores/clueReferenceNavigationStore";
 import { canManageMemberPermissions } from "@/components/chat/utils/memberPermissions";
+import { StateView } from "@/components/common/StateView";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 
 import { useGetUserRoomsQuery } from "../../../../api/hooks/chatQueryHooks";
@@ -52,12 +53,7 @@ export default function ClueDrawer() {
     <div className="flex h-full min-h-0 flex-col bg-base-200">
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {roomsQuery.isLoading && (
-          <div className="
-            flex items-center gap-2 px-3 py-2 text-sm text-base-content/55
-          ">
-            <span className="loading loading-spinner loading-sm"></span>
-            <span>正在加载线索...</span>
-          </div>
+          <StateView loading title="正在加载线索..." className="px-3 py-2" />
         )}
 
         <div className="space-y-1">

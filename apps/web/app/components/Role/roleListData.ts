@@ -1,6 +1,4 @@
-import type { RoleAvatar, UserRole } from "api";
-
-import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
+import type { UserRole } from "api";
 
 import type { Role } from "./types";
 
@@ -10,28 +8,6 @@ export type RoleListAvatarFields = UserRole;
 
 type RoleAvatarSource = {
   avatarFileId?: number;
-};
-
-type CachedRoleAvatarRecord = {
-  data?: RoleAvatar;
-};
-
-type QueryClientLike = {
-  getQueryData: <T>(queryKey: unknown[]) => T | undefined;
-  fetchQuery: <T>(options: {
-    queryKey: unknown[];
-    queryFn: () => Promise<T>;
-    staleTime?: number;
-  }) => Promise<T>;
-};
-
-type HydrateRoleListOptions = {
-  previousRoles: Role[];
-  diceRoles: RoleListAvatarFields[];
-  normalRoles: RoleListAvatarFields[];
-  queryClient: QueryClientLike;
-  seedRoleAvatarQueryCaches: (queryClient: QueryClientLike, avatar: RoleAvatar, roleId?: number) => void;
-  fetchRoleAvatar: (avatarId: number) => Promise<{ success: boolean; data?: RoleAvatar }>;
 };
 
 export function resolveRoleAvatarUrls(source?: RoleAvatarSource | null) {
@@ -81,81 +57,4 @@ export function mergeRoleList(previousRoles: Role[], nextRoles: Role[]): Role[] 
         avatarThumb: role.avatarThumb || previousRole.avatarThumb || role.avatar,
       };
     });
-}
-
-export async function hydrateRoleList({
-  previousRoles,
-  diceRoles,
-  normalRoles,
-  queryClient,
-  seedRoleAvatarQueryCaches,
-  fetchRoleAvatar,
-}: HydrateRoleListOptions): Promise<Role[]> {
-  const mergedUserRoles = [...diceRoles, ...normalRoles];
-  const mappedRoles = mergedUserRoles
-    .map(mapUserRoleToRole)
-    .filter(role => role.type !== 2);
-
-  for (const role of mappedRoles) {
-    if (!role.avatarId || (!role.avatar && !role.avatarThumb)) {
-      continue;
-    }
-    seedRoleAvatarQueryCaches(queryClient, {
-      avatarId: role.avatarId,
-      roleId: role.id,
-    }, role.id);
-  }
-
-  let hydratedRoles = mergeRoleList(previousRoles, mappedRoles);
-
-  const avatarResults = await Promise.all(
-    mappedRoles.map(async (role) => {
-      if (!role.avatarId || role.avatar || role.avatarThumb) {
-        return null;
-      }
-
-      const cachedAvatar = queryClient.getQueryData<CachedRoleAvatarRecord>(["getRoleAvatar", role.avatarId])?.data;
-      const cachedAvatarUrls = resolveRoleAvatarUrls(cachedAvatar);
-      if (cachedAvatarUrls.avatarUrl || cachedAvatarUrls.avatarThumbUrl) {
-        const avatarUrl = cachedAvatarUrls.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
-        const avatarThumbUrl = cachedAvatarUrls.avatarThumbUrl || avatarUrl;
-        return { id: role.id, avatar: avatarUrl, avatarThumb: avatarThumbUrl };
-      }
-
-      try {
-        const response = await queryClient.fetchQuery({
-          queryKey: ["getRoleAvatar", role.avatarId],
-          queryFn: () => fetchRoleAvatar(role.avatarId),
-          staleTime: 86400000,
-        });
-
-        if (response.success && response.data) {
-          const responseAvatarUrls = resolveRoleAvatarUrls(response.data);
-          const avatarUrl = responseAvatarUrls.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
-          const avatarThumbUrl = responseAvatarUrls.avatarThumbUrl || avatarUrl;
-          seedRoleAvatarQueryCaches(queryClient, response.data, role.id);
-          return { id: role.id, avatar: avatarUrl, avatarThumb: avatarThumbUrl };
-        }
-      }
-      catch (error) {
-        console.error(`加载角色 ${role.id} 的头像时出错`, error);
-      }
-
-      return null;
-    }),
-  );
-
-  const validAvatars = avatarResults.filter(result => result !== null);
-  if (validAvatars.length === 0) {
-    return hydratedRoles;
-  }
-
-  hydratedRoles = hydratedRoles.map((role) => {
-    const avatarData = validAvatars.find(avatar => avatar.id === role.id);
-    return avatarData
-      ? { ...role, avatar: avatarData.avatar, avatarThumb: avatarData.avatarThumb }
-      : role;
-  });
-
-  return hydratedRoles;
 }

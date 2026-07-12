@@ -10,10 +10,9 @@ type ChatPageLayoutProps = {
   toggleLeftDrawer: () => void;
   chatLeftPanelWidth: number;
   setChatLeftPanelWidth: (width: number) => void;
-  isLeftDrawerCollapsePreview?: boolean;
   setIsLeftDrawerCollapsePreview?: (isPreviewingCollapse: boolean) => void;
   spaceSidebar: React.ReactNode;
-  sidePanelContent: React.ReactNode;
+  sidePanelContent?: React.ReactNode;
   mainContent: React.ReactNode;
   subWindowContent?: React.ReactNode;
 }
@@ -30,6 +29,8 @@ export default function ChatPageLayout({
   mainContent,
   subWindowContent,
 }: ChatPageLayoutProps) {
+  const hasSidePanel = sidePanelContent != null;
+
   return (
     <div
       className={`
@@ -46,35 +47,39 @@ export default function ChatPageLayout({
                 {spaceSidebar}
               </div>
               <div className="flex-1 relative min-h-0 min-w-0">
-                <OpenAbleDrawer
-                  isOpen={isOpenLeftDrawer}
-                  overWrite
-                  className="size-full z-10 bg-base-200"
-                  initialWidth={chatLeftPanelWidth}
-                  minWidth={200}
-                  maxWidth={700}
-                  onWidthChange={setChatLeftPanelWidth}
-                  onCollapseBelowMin={toggleLeftDrawer}
-                  onDragCollapsePreviewChange={setIsLeftDrawerCollapsePreview}
-                  handlePosition="right"
-                >
-                  <div className="size-full flex flex-col min-w-0 relative">
-                    <div className="flex flex-row w-full min-w-0 flex-1 min-h-0">
-                      {sidePanelContent}
-                    </div>
-                    <div
-                      id="chat-sidebar-user-card"
-                      className="
-                        absolute inset-x-2 bottom-2 z-20 pointer-events-auto
-                      "
-                      style={{ bottom: "max(0.5rem, var(--tc-safe-area-bottom))" }}
-                    />
-                  </div>
-                </OpenAbleDrawer>
+                {hasSidePanel
+                  ? (
+                      <OpenAbleDrawer
+                        isOpen={isOpenLeftDrawer}
+                        overWrite
+                        className="size-full z-10 bg-base-200"
+                        initialWidth={chatLeftPanelWidth}
+                        minWidth={200}
+                        maxWidth={700}
+                        onWidthChange={setChatLeftPanelWidth}
+                        onCollapseBelowMin={toggleLeftDrawer}
+                        onDragCollapsePreviewChange={setIsLeftDrawerCollapsePreview}
+                        handlePosition="right"
+                      >
+                        <div className="size-full flex flex-col min-w-0 relative">
+                          <div className="flex flex-row w-full min-w-0 flex-1 min-h-0">
+                            {sidePanelContent}
+                          </div>
+                          <div
+                            id="chat-sidebar-user-card"
+                            className="
+                              absolute inset-x-2 bottom-2 z-20 pointer-events-auto
+                            "
+                            style={{ bottom: "max(0.5rem, var(--tc-safe-area-bottom))" }}
+                          />
+                        </div>
+                      </OpenAbleDrawer>
+                    )
+                  : null}
                 <div
                   className={`
                     h-full min-h-0 min-w-0 transition-opacity
-                    ${isOpenLeftDrawer ? `opacity-0 pointer-events-none` : `
+                    ${hasSidePanel && isOpenLeftDrawer ? `opacity-0 pointer-events-none` : `
                       opacity-100
                     `}
                   `}
@@ -96,24 +101,28 @@ export default function ChatPageLayout({
                     <div className="bg-base-200 h-full">
                       {spaceSidebar}
                     </div>
-                    <OpenAbleDrawer
-                      isOpen={isOpenLeftDrawer}
-                      className="size-full z-10 bg-base-200"
-                      initialWidth={chatLeftPanelWidth}
-                      minWidth={200}
-                      maxWidth={700}
-                      minRemainingWidth={520}
-                      onWidthChange={setChatLeftPanelWidth}
-                      onCollapseBelowMin={toggleLeftDrawer}
-                      onDragCollapsePreviewChange={setIsLeftDrawerCollapsePreview}
-                      handlePosition="right"
-                    >
-                      <div className="
-                        size-full flex flex-row min-w-0 rounded-tl-xl
-                      ">
-                        {sidePanelContent}
-                      </div>
-                    </OpenAbleDrawer>
+                    {hasSidePanel
+                      ? (
+                          <OpenAbleDrawer
+                            isOpen={isOpenLeftDrawer}
+                            className="size-full z-10 bg-base-200"
+                            initialWidth={chatLeftPanelWidth}
+                            minWidth={200}
+                            maxWidth={700}
+                            minRemainingWidth={520}
+                            onWidthChange={setChatLeftPanelWidth}
+                            onCollapseBelowMin={toggleLeftDrawer}
+                            onDragCollapsePreviewChange={setIsLeftDrawerCollapsePreview}
+                            handlePosition="right"
+                          >
+                            <div className="
+                              size-full flex flex-row min-w-0 rounded-tl-xl
+                            ">
+                              {sidePanelContent}
+                            </div>
+                          </OpenAbleDrawer>
+                        )
+                      : null}
                   </div>
                   <div
                     id="chat-sidebar-user-card"

@@ -4,7 +4,7 @@ import type { Role } from "@/components/Role/types";
 
 import CreateDiceMaiden from "@/components/Role/RoleCreation/CreateDicerRole";
 import CreateEntry from "@/components/Role/RoleCreation/CreateEntry";
-import CreateRoleBySelf from "@/components/Role/RoleCreation/CreateRoleBySelf";
+import RoleCreationFlow from "@/components/Role/RoleCreation/RoleCreationFlow";
 import RoleTrashPage from "@/components/Role/RoleTrashPage";
 import RuleEditorRoute from "@/components/Role/RuleEditor/RuleEditorRoute";
 import { setRoleRule } from "@/utils/roleRuleStorage";
@@ -47,7 +47,7 @@ function RoleCreationPage() {
   // 根据 mode 返回不同的创建组件
   if (mode === "normal") {
     return (
-      <CreateRoleBySelf
+      <RoleCreationFlow
         onBack={handleBackToEntry}
         onComplete={handleCreationComplete}
       />

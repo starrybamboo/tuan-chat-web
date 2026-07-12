@@ -2,6 +2,7 @@ import type { CPI, RoleAbility, UserRole } from "../types";
 
 import { CommandExecutor, RuleNameSpace } from "../cmd";
 import { roll } from "../dice";
+import { resolveRoleAbilityAlias } from "../roleAbilityAliasMaps";
 import UTILS from "../utils/utils";
 import { cmdWw } from "./cmdExeWw";
 
@@ -13,6 +14,14 @@ const executorPublic = new RuleNameSpace(
 );
 
 export default executorPublic;
+
+const MAX_PUBLIC_REPEAT_ROLLS = 100;
+
+type PublicRepeatArgs = {
+  repeat: number;
+  args: string[];
+  error?: string;
+};
 
 export async function executeStShowCommand(
   args: string[],
@@ -74,27 +83,74 @@ async function executeRollCommand(
   },
 ): Promise<boolean> {
   const isForceToast = UTILS.doesHaveArg(args, "h");
+  const repeatArgs = parsePublicRepeatPrefix(args);
+  if (repeatArgs.error) {
+    cpi.replyMessage(repeatArgs.error, isForceToast ? { visibility: "kp_and_sender" } : undefined);
+    return false;
+  }
+  args = repeatArgs.args;
   const rawInput = args.join("");
   const expressionAlias = resolveRollExpressionAlias(rawInput, options?.role, cpi);
   const input = expressionAlias?.expression ?? (rawInput
     ? `${options?.prependInput ?? ""}${rawInput}`
     : options?.fallbackInput ?? `1d${cpi.getSpaceData("defaultDice") || "100"}`);
   try {
-    const diceResult = roll(input);
     const inputText = expressionAlias ? `${expressionAlias.alias} = ${input}` : input;
+    const resultMessage = repeatArgs.repeat > 1
+      ? buildRepeatedRollMessage(input, inputText, repeatArgs.repeat)
+      : buildSingleRollMessage(input, inputText);
     if (isForceToast) {
-      cpi.replyMessage(`掷骰结果：${inputText} = ${diceResult.expanded} = ${diceResult.result}`, {
+      cpi.replyMessage(resultMessage, {
         visibility: "kp_and_sender",
       });
       return true;
     }
-    cpi.replyMessage(`掷骰结果：${inputText} = ${diceResult.expanded} = ${diceResult.result}`);
+    cpi.replyMessage(resultMessage);
     return true;
   }
   catch (error) {
     cpi.replyMessage(`掷骰错误：${error ?? "未知错误"}`);
     return false;
   }
+}
+
+function parsePublicRepeatPrefix(args: string[]): PublicRepeatArgs {
+  const firstArg = args[0]?.trim();
+  if (!firstArg) {
+    return { repeat: 1, args };
+  }
+
+  const match = firstArg.match(/^(\d+)[#＃](.*)$/u);
+  if (!match) {
+    return { repeat: 1, args };
+  }
+
+  const repeat = Number.parseInt(match[1], 10);
+  if (!Number.isSafeInteger(repeat) || repeat < 1) {
+    return { repeat: 1, args, error: "错误：掷骰次数必须至少为1" };
+  }
+  if (repeat > MAX_PUBLIC_REPEAT_ROLLS) {
+    return { repeat: 1, args, error: `错误：一次最多支持${MAX_PUBLIC_REPEAT_ROLLS}次掷骰` };
+  }
+
+  const suffix = match[2].trim();
+  return {
+    repeat,
+    args: suffix ? [suffix, ...args.slice(1)] : args.slice(1),
+  };
+}
+
+function buildSingleRollMessage(input: string, inputText: string): string {
+  const diceResult = roll(input);
+  return `掷骰结果：${inputText} = ${diceResult.expanded} = ${diceResult.result}`;
+}
+
+function buildRepeatedRollMessage(input: string, inputText: string, repeat: number): string {
+  const lines = Array.from({ length: repeat }, () => {
+    const diceResult = roll(input);
+    return `${inputText} = ${diceResult.expanded} = ${diceResult.result}`;
+  });
+  return `掷骰${repeat}次:\n${lines.join("\n")}`;
 }
 
 function resolveRollExpressionAlias(
@@ -222,7 +278,7 @@ const cmdSt = new CommandExecutor(
     }
 
     if (args.length >= 2 && !/^[-+]?\d+$/.test(args[1].trim())) {
-      const key = args[0].trim();
+      const key = resolveRoleAbilityAlias(args[0]);
       const expression = args.slice(1).join("").trim();
       if (!key || !expression) {
         cpi.sendToast("错误：属性名或掷骰表达式不能为空");
@@ -238,9 +294,7 @@ const cmdSt = new CommandExecutor(
     }
 
     const applyChange = (rawKey: string, operator: string, value: number) => {
-      // 统一转换为小写进行比较
-      const key = rawKey.toLowerCase();
-
+      const key = resolveRoleAbilityAlias(rawKey);
       const currentValue = Number.parseInt(UTILS.getRoleAbilityValue(curAbility, key) ?? "0"); // 原有值（默认0）
       let newValue: number;
 

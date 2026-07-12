@@ -14,6 +14,18 @@ type SpaceContextMenuState = {
   spaceId: number;
 };
 
+/** 同一目标再次触发时关闭菜单，不同目标则切换菜单位置。 */
+export function toggleRoomContextMenu(
+  current: ChatContextMenuState | null,
+  roomId: number,
+  position: { x: number; y: number },
+): ChatContextMenuState | null {
+  if (current?.roomId === roomId) {
+    return null;
+  }
+  return { roomId, x: position.x, y: position.y };
+}
+
 type UseChatPageContextMenusResult = {
   contextMenu: ChatContextMenuState | null;
   spaceContextMenu: SpaceContextMenuState | null;
@@ -75,11 +87,7 @@ export default function useChatPageContextMenus(): UseChatPageContextMenusResult
   }, []);
 
   const openContextMenu = useCallback((roomId: number, position: { x: number; y: number }) => {
-    setContextMenu({
-      roomId,
-      x: position.x,
-      y: position.y,
-    });
+    setContextMenu(current => toggleRoomContextMenu(current, roomId, position));
   }, []);
 
   const handleSpaceContextMenu = useCallback((event: MouseEvent<Element>) => {
@@ -107,6 +115,21 @@ export default function useChatPageContextMenus(): UseChatPageContextMenusResult
       window.removeEventListener("click", closeSpaceContextMenu);
     };
   }, [closeSpaceContextMenu, spaceContextMenu]);
+
+  useEffect(() => {
+    if (!contextMenu && !spaceContextMenu) {
+      return;
+    }
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+      closeContextMenu();
+      closeSpaceContextMenu();
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [closeContextMenu, closeSpaceContextMenu, contextMenu, spaceContextMenu]);
 
   return {
     contextMenu,

@@ -4,8 +4,10 @@
 /* eslint-disable */
 import type { ApiResultChatMessageResponse } from '../models/ApiResultChatMessageResponse';
 import type { ApiResultListMessage } from '../models/ApiResultListMessage';
+import type { ApiResultMapStringListChatMessageResponse } from '../models/ApiResultMapStringListChatMessageResponse';
 import type { ApiResultMessage } from '../models/ApiResultMessage';
 import type { ChatMessageRequest } from '../models/ChatMessageRequest';
+import type { HistoryMessageBatchRequest } from '../models/HistoryMessageBatchRequest';
 import type { HistoryMessageRequest } from '../models/HistoryMessageRequest';
 import type { Message } from '../models/Message';
 import type { RoomMessageStreamPatchRequest } from '../models/RoomMessageStreamPatchRequest';
@@ -55,7 +57,7 @@ export class ChatControllerService {
      * @returns ApiResultMessage OK
      * @throws ApiError
      */
-    public sendMessage1(
+    public sendMessage(
         requestBody: ChatMessageRequest,
     ): CancelablePromise<ApiResultMessage> {
         return this.httpRequest.request({
@@ -101,7 +103,7 @@ export class ChatControllerService {
     }
     /**
      * 统一读取房间消息历史
-     * 主读取入口：syncId=0 返回完整 baseline，syncId>0 用于补洞；返回 gzip 压缩数据
+     * 主读取入口：syncId=0 返回完整 baseline，syncId>0 用于补洞；响应编码由 HTTP 协商决定
      * @param requestBody
      * @returns any OK
      * @throws ApiError
@@ -112,6 +114,22 @@ export class ChatControllerService {
         return this.httpRequest.request({
             method: 'POST',
             url: '/chat/message/history',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * 批量读取多个房间的消息历史
+     * @param requestBody
+     * @returns ApiResultMapStringListChatMessageResponse OK
+     * @throws ApiError
+     */
+    public getHistoryMessagesBatch(
+        requestBody: HistoryMessageBatchRequest,
+    ): CancelablePromise<ApiResultMapStringListChatMessageResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/chat/message/history/batch',
             body: requestBody,
             mediaType: 'application/json',
         });

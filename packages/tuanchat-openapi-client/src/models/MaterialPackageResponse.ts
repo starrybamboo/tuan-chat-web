@@ -63,6 +63,9 @@ export type MaterialPackageResponse = {
      * 消息总数
      */
     messageCount?: number;
+    /**
+     * 素材包内容
+     */
     content?: MaterialPackageContent;
     /**
      * 创建时间
@@ -73,3 +76,4 @@ export type MaterialPackageResponse = {
      */
     updateTime?: string;
 };
+

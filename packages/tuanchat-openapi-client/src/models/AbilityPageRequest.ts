@@ -2,6 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+/**
+ * 基础分页请求
+ */
 export type AbilityPageRequest = {
     /**
      * 页码
@@ -13,3 +16,4 @@ export type AbilityPageRequest = {
     pageSize?: number;
     roleId: number;
 };
+

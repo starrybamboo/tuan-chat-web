@@ -1,16 +1,17 @@
 import React, { useCallback, useEffect, useRef } from "react";
 
+import { readChatStatusLabelsFromLocalStorage } from "@/components/chat/chatStatusLabels";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { CURRENT_WINDOW_ID, handleWindowBlur, shouldSendStatusUpdate } from "@/utils/windowInstance";
 
-import type { ChatStatusEvent, ChatStatusType } from "../../../../api/wsModels";
+import type { ChatStatusEvent, ChatStatusPayload, ChatStatusType } from "../../../../api/wsModels";
 
 type UseChatInputStatusParams = {
   roomId: number;
   userId: number | null | undefined;
   webSocketUtils: {
-    // 实际数据：Record<roomId, Array<{ userId:number; status: ChatStatusType }>>
-    chatStatus: Record<number, Array<{ userId: number; status: ChatStatusType }>>;
+    // 实际数据：Record<roomId, Array<{ userId:number; status: ChatStatusPayload }>>
+    chatStatus: Record<number, Array<{ userId: number; status: ChatStatusPayload }>>;
     updateChatStatus: (evt: ChatStatusEvent) => void;
     send: (payload: any) => void; // payload: { type: 4, data: ChatStatusEvent }
   };
@@ -81,7 +82,7 @@ function useChatInputStatus(params: UseChatInputStatusParams): UseChatInputStatu
 
   // 获取当前用户状态的回调函数
   const getCurrentStatus = useCallback((): ChatStatusType => {
-    return chatStatusRef.current[roomId]?.find(s => s.userId === userId)?.status ?? "idle";
+    return chatStatusRef.current[roomId]?.find(s => s.userId === userId)?.status.type ?? "idle";
   }, [roomId, userId]);
 
   // 更新引用
@@ -108,7 +109,16 @@ function useChatInputStatus(params: UseChatInputStatusParams): UseChatInputStatu
       return;
     }
 
-    const evt: ChatStatusEvent = { roomId, userId, status, windowId: CURRENT_WINDOW_ID };
+    const statusLabels = readChatStatusLabelsFromLocalStorage();
+    const evt: ChatStatusEvent = {
+      roomId,
+      userId,
+      status: {
+        type: status,
+        description: statusLabels[status],
+      },
+      windowId: CURRENT_WINDOW_ID,
+    };
     updateChatStatusRef.current(evt);
     sendRef.current({ type: 4, data: evt });
     lastStatusSentRef.current = { status, ts: Date.now() };
@@ -212,7 +222,7 @@ function useChatInputStatus(params: UseChatInputStatusParams): UseChatInputStatu
         return;
       }
 
-      // 超过暂离阈值时间，自动切换到 leave
+      // 超过暂时离开阈值时间，自动切换到 leave
       if (inactiveFor >= leaveThresholdMs) {
         sendStatusUpdate("leave");
         return;
@@ -269,7 +279,7 @@ function useChatInputStatus(params: UseChatInputStatusParams): UseChatInputStatu
 
   // 使用 useMemo 确保 myStatus 响应式更新
   const myStatus: ChatStatusType = React.useMemo(() => {
-    const status = webSocketUtils.chatStatus[roomId]?.find(s => s.userId === userId)?.status ?? "idle";
+    const status = webSocketUtils.chatStatus[roomId]?.find(s => s.userId === userId)?.status.type ?? "idle";
     return status;
   }, [webSocketUtils.chatStatus, roomId, userId]);
 

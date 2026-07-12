@@ -24,9 +24,4 @@ export const Route = createFileRoute("/_dashboard/")({
   head: () => ({
     meta: meta({ params: {} }),
   }),
-  component: Home,
 });
-
-function Home() {
-  return null;
-}

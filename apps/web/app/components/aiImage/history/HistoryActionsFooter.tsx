@@ -1,3 +1,4 @@
+import { Button } from "@/components/common/Button";
 import { SharpDownload } from "@/icons";
 
 export function HistoryActionsFooter({
@@ -13,27 +14,27 @@ export function HistoryActionsFooter({
     <div className="
       mt-3 flex shrink-0 flex-col gap-2 border-t border-base-300 pt-3
           ">
-      <button
-        type="button"
-        className="btn btn-sm btn-outline w-full gap-2"
+      <Button
+        size="sm"
+        variant="outline"
+        className="w-full gap-2"
         disabled={!historyLength}
         onClick={onRequestDownloadAll}
+        icon={<SharpDownload className="size-4" />}
       >
-        <SharpDownload className="size-4" />
         <span>下载全部</span>
-      </button>
-      <button
-        type="button"
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
         className="
-          btn btn-sm btn-ghost w-full
-          disabled:border-base-300 disabled:bg-base-200
-          disabled:text-base-content/50
+          w-full disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content/50
         "
         disabled={!historyLength}
         onClick={onRequestClearHistory}
       >
         清空历史
-      </button>
+      </Button>
     </div>
   );
 }

@@ -1,7 +1,9 @@
-import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
-import { ChevronRight } from "@/icons";
+import { ArrowLeftIcon } from "@phosphor-icons/react";
 
-export default function TopInfo({ currentContactUserInfo }: { setIsOpenLeftDrawer?: (isOpen: boolean) => void; currentContactUserInfo: any }) {
+import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
+import { IconButton } from "@/components/common/IconButton";
+
+export default function TopInfo({ currentContactUserInfo }: { currentContactUserInfo: any }) {
   const { handleOpenPrivate } = useChatPageLayoutContext();
 
   return (
@@ -19,16 +21,15 @@ export default function TopInfo({ currentContactUserInfo }: { setIsOpenLeftDrawe
         "
       >
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <div className="sm:hidden">
-            <button
-              type="button"
-              aria-label="打开好友列表"
-              className="btn btn-ghost btn-square btn-sm"
-              onClick={() => handleOpenPrivate()}
-            >
-              <ChevronRight className="size-6" />
-            </button>
-          </div>
+          <IconButton
+            icon={<ArrowLeftIcon className="size-5" weight="regular" />}
+            label="返回私聊列表"
+            title="返回私聊列表"
+            variant="ghost"
+            size="sm"
+            shape="square"
+            onClick={handleOpenPrivate}
+          />
           <span className="
             text-base font-bold truncate leading-none min-w-0 text-left ml-1
           " title={currentContactUserInfo?.username ?? "好友列表"}>

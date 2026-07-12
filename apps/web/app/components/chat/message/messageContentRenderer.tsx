@@ -8,6 +8,7 @@ import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSo
 import WebgalChooseMessage from "@/components/chat/message/webgalChooseMessage";
 import StateMessageCard from "@/components/chat/state/stateMessageCard";
 import BetterImg from "@/components/common/betterImg";
+import { Badge } from "@/components/common/StatusPrimitives";
 import {
   ANNOTATION_IDS,
   getSceneEffectFromAnnotations,
@@ -231,10 +232,7 @@ export default function MessageContentRenderer({
                     pointer-events-none absolute inset-x-0 bottom-0 h-16
                     bg-linear-to-t from-black/55 via-black/20 to-transparent
                   " />
-                  <span className="
-                    pointer-events-none badge badge-neutral badge-xs absolute
-                    left-2 top-2 opacity-90
-                  ">视频</span>
+                  <Badge tone="neutral" className="pointer-events-none absolute left-2 top-2 opacity-90">视频</Badge>
                 </div>
               )
             : (
@@ -310,7 +308,7 @@ export default function MessageContentRenderer({
         || "特效";
       return (
         <div className="flex items-center gap-2 text-sm">
-          <span className="badge badge-info badge-xs">特效</span>
+          <Badge tone="info">特效</Badge>
           <span className="opacity-70">{effectName}</span>
         </div>
       );

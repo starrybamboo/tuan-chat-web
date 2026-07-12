@@ -3,6 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { create } from "zustand";
 
 import type { RealtimeRenderCloudSettings } from "@/components/chat/infra/cloud/realtimeRenderSettingsCloud";
+import type { VoiceboxQwenCustomVoiceId } from "@/tts/engines/voicebox/api";
 import type { InitProgress, RealtimeRenderStatus } from "@/webGAL/useRealtimeRender";
 
 import {
@@ -10,6 +11,11 @@ import {
   setRealtimeRenderSettingsToCloud,
 } from "@/components/chat/infra/cloud/realtimeRenderSettingsCloud";
 import { mergeRealtimeRenderRuntimeState } from "@/components/chat/stores/realtimeRenderRuntimeState";
+import {
+  DEFAULT_VOICEBOX_API_URL,
+  DEFAULT_VOICEBOX_VOICE_ID,
+  VOICEBOX_QWEN_CUSTOM_VOICES,
+} from "@/tts/engines/voicebox/api";
 import { getDefaultTerrePort, setTerrePortOverride as setTerrePortOverrideInConfig } from "@/webGAL/terreConfig";
 
 export type RealtimeWebgalDefaultLanguage = "" | "zh_CN" | "zh_TW" | "en" | "ja" | "fr" | "de";
@@ -20,7 +26,7 @@ const DEFAULT_FIGURE_ENTER_TRANSITION_DURATION = 0;
 const DEFAULT_FIGURE_EXIT_TRANSITION_DURATION = 300;
 const DEFAULT_FIGURE_ENTER_TRANSITION_ANIMATION = "tuanchat/default-enter";
 const DEFAULT_FIGURE_EXIT_TRANSITION_ANIMATION = "tuanchat/default-exit";
-const REALTIME_RENDER_SETTINGS_VERSION = 3;
+const REALTIME_RENDER_SETTINGS_VERSION = 4;
 export const DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD = 78;
 export const MIN_ROOM_CONTENT_ALERT_THRESHOLD = 20;
 export const MAX_ROOM_CONTENT_ALERT_THRESHOLD = 1024;
@@ -137,6 +143,12 @@ type RealtimeRenderState = {
   /** TTS API URL（云端：space.extra） */
   ttsApiUrl: string;
 
+  /** VoiceBox Qwen CustomVoice 预设音色 */
+  ttsVoiceId: VoiceboxQwenCustomVoiceId;
+
+  /** VoiceBox 自然语言风格指令 */
+  ttsInstruct: string;
+
   /** Terre 端口覆盖值（null 表示使用默认端口：环境变量 VITE_TERRE_URL） */
   terrePortOverride: number | null;
 
@@ -174,6 +186,8 @@ type RealtimeRenderState = {
   setAutoAdvanceEnabled: (value: boolean) => void;
   setRoomContentAlertThreshold: (value: number) => void;
   setTtsApiUrl: (value: string) => void;
+  setTtsVoiceId: (value: VoiceboxQwenCustomVoiceId) => void;
+  setTtsInstruct: (value: string) => void;
   setTerrePortOverride: (port: number | null) => void;
   setGameConfig: (next: Partial<RealtimeWebgalGameConfig>) => void;
   setQueryClient: (queryClient: QueryClient | null) => void;
@@ -194,6 +208,8 @@ export type RealtimeRenderCloudSettingsSnapshotInput = {
   roomContentAlertThreshold: number;
   terrePortOverride: number | null;
   ttsApiUrl: string;
+  ttsVoiceId?: VoiceboxQwenCustomVoiceId;
+  ttsInstruct?: string;
 };
 
 function normalizePort(port: number | null): number | null {
@@ -216,6 +232,12 @@ function normalizePositiveFileId(value: unknown): number | undefined {
     return undefined;
   }
   return Math.floor(raw);
+}
+
+function normalizeTtsVoiceId(value: unknown): VoiceboxQwenCustomVoiceId {
+  return VOICEBOX_QWEN_CUSTOM_VOICES.some(voice => voice.id === value)
+    ? value as VoiceboxQwenCustomVoiceId
+    : DEFAULT_VOICEBOX_VOICE_ID;
 }
 
 function normalizeSpaceId(spaceId?: number | null): number | null {
@@ -287,6 +309,8 @@ export function buildRealtimeRenderCloudSettingsSnapshot(state: RealtimeRenderCl
   return {
     settingsVersion: REALTIME_RENDER_SETTINGS_VERSION,
     ttsApiUrl: state.ttsApiUrl,
+    ttsVoiceId: state.ttsVoiceId ?? DEFAULT_VOICEBOX_VOICE_ID,
+    ttsInstruct: state.ttsInstruct?.trim() || undefined,
     terrePort: state.terrePortOverride,
     autoFigureEnabled: state.autoFigureEnabled,
     roomContentAlertThreshold: state.roomContentAlertThreshold,
@@ -342,7 +366,9 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
   autoFigureEnabled: false,
   autoAdvanceEnabled: false,
   roomContentAlertThreshold: DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD,
-  ttsApiUrl: "",
+  ttsApiUrl: DEFAULT_VOICEBOX_API_URL,
+  ttsVoiceId: DEFAULT_VOICEBOX_VOICE_ID,
+  ttsInstruct: "",
   terrePortOverride: null,
   terrePort: getDefaultTerrePort(),
   gameConfig: DEFAULT_REALTIME_WEBGAL_GAME_CONFIG,
@@ -383,10 +409,34 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
     }
   },
   setTtsApiUrl: (value) => {
-    const nextValue = String(value ?? "");
+    const nextValue = String(value ?? "").trim() || DEFAULT_VOICEBOX_API_URL;
     if (get().ttsApiUrl === nextValue)
       return;
     set({ ttsApiUrl: nextValue });
+
+    const state = get();
+    const spaceId = state.activeSpaceId;
+    if (spaceId != null) {
+      enqueuePersist(spaceId, buildRealtimeRenderCloudSettingsSnapshot(state), state.queryClient);
+    }
+  },
+  setTtsVoiceId: (value) => {
+    const nextValue = normalizeTtsVoiceId(value);
+    if (get().ttsVoiceId === nextValue)
+      return;
+    set({ ttsVoiceId: nextValue });
+
+    const state = get();
+    const spaceId = state.activeSpaceId;
+    if (spaceId != null) {
+      enqueuePersist(spaceId, buildRealtimeRenderCloudSettingsSnapshot(state), state.queryClient);
+    }
+  },
+  setTtsInstruct: (value) => {
+    const nextValue = String(value ?? "").trim();
+    if (get().ttsInstruct === nextValue)
+      return;
+    set({ ttsInstruct: nextValue });
 
     const state = get();
     const spaceId = state.activeSpaceId;
@@ -493,7 +543,9 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
         console.warn("[realtimeRenderStore] 加载 WebGAL 实时渲染配置失败，回退默认配置:", error);
       }
 
-      const persistedTtsApiUrl = (persisted?.ttsApiUrl ?? "").trim();
+      const persistedTtsApiUrl = (persisted?.ttsApiUrl ?? DEFAULT_VOICEBOX_API_URL).trim();
+      const persistedTtsVoiceId = normalizeTtsVoiceId(persisted?.ttsVoiceId);
+      const persistedTtsInstruct = String(persisted?.ttsInstruct ?? "").trim();
       const persistedTerrePortOverride = normalizePort(persisted?.terrePort ?? null);
       const persistedAutoFigureEnabled = persisted?.autoFigureEnabled;
       const persistedRoomContentAlertThreshold = persisted?.roomContentAlertThreshold;
@@ -523,7 +575,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       const persistedTypingSoundSeFileId = normalizePositiveFileId(persisted?.typingSoundSeFileId);
       const persistedTypingSoundSeMediaType = persisted?.typingSoundSeMediaType;
 
-      const nextTtsApiUrl = persistedTtsApiUrl;
+      const nextTtsApiUrl = persistedTtsApiUrl || DEFAULT_VOICEBOX_API_URL;
       const nextTerrePortOverride = persistedTerrePortOverride;
       const nextAutoFigureEnabled = typeof persistedAutoFigureEnabled === "boolean"
         ? persistedAutoFigureEnabled
@@ -603,6 +655,8 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       set({
         activeSpaceId: normalizedSpaceId,
         ttsApiUrl: nextTtsApiUrl,
+        ttsVoiceId: persistedTtsVoiceId,
+        ttsInstruct: persistedTtsInstruct,
         terrePortOverride: nextTerrePortOverride,
         terrePort: nextTerrePortOverride ?? getDefaultTerrePort(),
         autoFigureEnabled: nextAutoFigureEnabled,

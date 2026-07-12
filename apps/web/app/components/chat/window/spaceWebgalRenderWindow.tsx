@@ -1,6 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { fetchRoleAvatarListsBatchWithCache } from "@tuanchat/query/metadata";
+import {
+  useGetSpaceInfoQuery,
+  useGetUserRoomsQuery,
+} from "api/hooks/chatQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { appToast } from "@/components/common/appToast/appToast";
 
 import type { WebgalPublishJobStatus } from "@/webGAL/publishClient";
 
@@ -11,6 +15,8 @@ import {
   MIN_ROOM_CONTENT_ALERT_THRESHOLD,
   useRealtimeRenderStore,
 } from "@/components/chat/stores/realtimeRenderStore";
+import { appToast } from "@/components/common/appToast/appToast";
+import { DEFAULT_VOICEBOX_API_URL } from "@/tts/engines/voicebox/api";
 import launchWebGal, { appendWebgalLaunchHints } from "@/utils/launchWebGal";
 import { UploadUtils } from "@/utils/media/UploadUtils";
 import { pollPort } from "@/utils/pollPort";
@@ -19,13 +25,6 @@ import { renderWebgalPublishPackage } from "@/webGAL/publishRenderer";
 import { buildSpaceWebgalInputSnapshot } from "@/webGAL/spaceWebgalSnapshot";
 import { getTerreBaseUrl, getTerreHealthcheckUrl } from "@/webGAL/terreConfig";
 import useRealtimeRender from "@/webGAL/useRealtimeRender";
-import {
-  fetchRoomNpcRoleWithCache,
-  fetchRoomRoleWithCache,
-  useGetSpaceInfoQuery,
-  useGetUserRoomsQuery,
-} from "api/hooks/chatQueryHooks";
-import { fetchRoleAvatarsWithCache } from "api/hooks/RoleAndAvatarHooks";
 
 import type { ChatMessageResponse, RoleAvatar, UserRole } from "../../../../api";
 import type { BatchProgress, CollapsibleSectionKey, RenderableRoom, RoomRenderState, SpaceWebgalSettingsTab } from "./spaceWebgalRenderWindowParts";
@@ -36,7 +35,6 @@ import { SpaceWebgalBatchStatusPanel } from "./spaceWebgalRenderWindowPanels";
 import {
   COLLAPSIBLE_SECTION_KEYS,
   DEFAULT_SECTION_EXPANDED,
-  extractArrayPayload,
   getErrorMessage,
   isRenderableRoom,
   sortMessagesForRender,
@@ -45,6 +43,37 @@ import { SpaceWebgalRenderWindowSettings } from "./spaceWebgalRenderWindowSettin
 
 type SpaceWebgalRenderWindowProps = {
   spaceId: number;
+}
+
+const ROOM_BATCH_LIMIT = 100;
+
+async function fetchRoomRoleGroupsBatch(roomIds: number[]) {
+  const groups = {} as NonNullable<Awaited<ReturnType<typeof tuanchat.roomRoleController.roomAllRoleBatch>>["data"]>;
+  for (let offset = 0; offset < roomIds.length; offset += ROOM_BATCH_LIMIT) {
+    const response = await tuanchat.roomRoleController.roomAllRoleBatch({
+      roomIds: roomIds.slice(offset, offset + ROOM_BATCH_LIMIT),
+    });
+    if (!response.success) {
+      throw new Error(response.errMsg || "批量获取房间角色失败");
+    }
+    Object.assign(groups, response.data);
+  }
+  return groups;
+}
+
+async function fetchRoomHistoriesBatch(roomIds: number[]) {
+  const histories = {} as NonNullable<Awaited<ReturnType<typeof tuanchat.chatController.getHistoryMessagesBatch>>["data"]>;
+  for (let offset = 0; offset < roomIds.length; offset += ROOM_BATCH_LIMIT) {
+    const response = await tuanchat.chatController.getHistoryMessagesBatch({
+      roomIds: roomIds.slice(offset, offset + ROOM_BATCH_LIMIT),
+      syncId: 0,
+    });
+    if (!response.success) {
+      throw new Error(response.errMsg || "批量获取房间消息失败");
+    }
+    Object.assign(histories, response.data);
+  }
+  return histories;
 }
 
 export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWindowProps) {
@@ -67,6 +96,10 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   const setTtsEnabled = useRealtimeRenderStore(state => state.setTtsEnabled);
   const ttsApiUrl = useRealtimeRenderStore(state => state.ttsApiUrl);
   const setTtsApiUrl = useRealtimeRenderStore(state => state.setTtsApiUrl);
+  const ttsVoiceId = useRealtimeRenderStore(state => state.ttsVoiceId);
+  const setTtsVoiceId = useRealtimeRenderStore(state => state.setTtsVoiceId);
+  const ttsInstruct = useRealtimeRenderStore(state => state.ttsInstruct);
+  const setTtsInstruct = useRealtimeRenderStore(state => state.setTtsInstruct);
   const miniAvatarEnabled = useRealtimeRenderStore(state => state.miniAvatarEnabled);
   const setMiniAvatarEnabled = useRealtimeRenderStore(state => state.setMiniAvatarEnabled);
   const autoFigureEnabled = useRealtimeRenderStore(state => state.autoFigureEnabled);
@@ -93,6 +126,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(null);
   const [roomRenderStateMap, setRoomRenderStateMap] = useState<Record<number, RoomRenderState>>({});
   const [ttsApiInput, setTtsApiInput] = useState("");
+  const [ttsInstructInput, setTtsInstructInput] = useState("");
   const [descriptionInput, setDescriptionInput] = useState("");
   const [packageNameInput, setPackageNameInput] = useState("");
   const [figureDefaultEnterDurationInput, setFigureDefaultEnterDurationInput] = useState("");
@@ -120,6 +154,10 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   useEffect(() => {
     setTtsApiInput(ttsApiUrl);
   }, [ttsApiUrl]);
+
+  useEffect(() => {
+    setTtsInstructInput(ttsInstruct);
+  }, [ttsInstruct]);
 
   useEffect(() => {
     setDescriptionInput(gameConfig.description);
@@ -170,14 +208,13 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
 
   const realtimeTTSConfig = useMemo(() => ({
     enabled: ttsEnabled,
-    engine: "index" as const,
-    apiUrl: ttsApiUrl.trim() || undefined,
-    emotionMode: 2,
-    emotionWeight: 0.8,
-    temperature: 0.8,
-    topP: 0.8,
-    maxTokensPerSegment: 120,
-  }), [ttsApiUrl, ttsEnabled]);
+    engine: "voicebox" as const,
+    apiUrl: ttsApiUrl.trim() || DEFAULT_VOICEBOX_API_URL,
+    voiceId: ttsVoiceId,
+    language: "zh" as const,
+    instruct: ttsInstruct.trim() || undefined,
+    modelSize: "0.6B" as const,
+  }), [ttsApiUrl, ttsEnabled, ttsInstruct, ttsVoiceId]);
 
   const realtimeRender = useRealtimeRender({
     spaceId,
@@ -256,30 +293,18 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
 
   const loadAllRoomRoles = useCallback(async (targetRooms: RenderableRoom[]): Promise<UserRole[]> => {
     const roleMap = new Map<number, UserRole>();
-    for (const room of targetRooms) {
-      const roomId = room.roomId;
-      const [playerRolesResult, npcRolesResult] = await Promise.allSettled([
-        fetchRoomRoleWithCache(queryClient, roomId),
-        fetchRoomNpcRoleWithCache(queryClient, roomId),
-      ]);
-
-      if (playerRolesResult.status === "fulfilled") {
-        const roles = extractArrayPayload<UserRole>(playerRolesResult.value);
-        roles.forEach((role) => {
-          if (typeof role.roleId === "number" && Number.isFinite(role.roleId) && role.roleId > 0) {
-            roleMap.set(role.roleId, role);
-          }
-        });
-      }
-      if (npcRolesResult.status === "fulfilled") {
-        const roles = extractArrayPayload<UserRole>(npcRolesResult.value);
-        roles.forEach((role) => {
-          if (typeof role.roleId === "number" && Number.isFinite(role.roleId) && role.roleId > 0) {
-            roleMap.set(role.roleId, role);
-          }
-        });
-      }
-    }
+    const groups = await fetchRoomRoleGroupsBatch(targetRooms.map(room => room.roomId));
+    Object.entries(groups).forEach(([roomIdKey, group]) => {
+      const roomId = Number(roomIdKey);
+      queryClient.setQueryData(["roomRoles", roomId], { success: true, data: group });
+      queryClient.setQueryData(["roomRole", roomId], { success: true, data: group.baseRoles ?? [] });
+      queryClient.setQueryData(["roomNpcRole", roomId], { success: true, data: group.npcRoles ?? [] });
+      (group.allRoles ?? []).forEach((role) => {
+        if (role.roleId && role.roleId > 0) {
+          roleMap.set(role.roleId, role);
+        }
+      });
+    });
     return Array.from(roleMap.values());
   }, [queryClient]);
 
@@ -298,30 +323,24 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
 
       const mergedRoles = await loadAllRoomRoles(renderableRooms);
       const roleAvatarMap = new Map<number, RoleAvatar>();
-      for (const role of mergedRoles) {
-        const roleId = Number(role.roleId ?? 0);
-        if (!Number.isFinite(roleId) || roleId <= 0) {
-          continue;
-        }
-        const roleAvatarsResponse = await fetchRoleAvatarsWithCache(queryClient, roleId).catch(() => null);
-        extractArrayPayload<RoleAvatar>(roleAvatarsResponse).forEach((avatar) => {
+      const roleIds = mergedRoles.map(role => role.roleId).filter((roleId): roleId is number => Boolean(roleId && roleId > 0));
+      const avatarsByRoleId = await fetchRoleAvatarListsBatchWithCache(queryClient, tuanchat, roleIds);
+      Object.values(avatarsByRoleId).forEach((avatars) => {
+        avatars.forEach((avatar) => {
           const avatarId = Number(avatar.avatarId ?? 0);
           if (Number.isFinite(avatarId) && avatarId > 0) {
             roleAvatarMap.set(avatarId, avatar);
           }
         });
-      }
+      });
 
       const messagesByRoomId: Record<number, ChatMessageResponse[]> = {};
-      for (const room of renderableRooms) {
-        const roomMessagesResponse = await tuanchat.chatController.getHistoryMessages({
-          roomId: room.roomId,
-          syncId: 0,
-        });
+      const histories = await fetchRoomHistoriesBatch(renderableRooms.map(room => room.roomId));
+      renderableRooms.forEach((room) => {
         messagesByRoomId[room.roomId] = sortMessagesForRender(
-          extractArrayPayload<ChatMessageResponse>(roomMessagesResponse),
+          histories[String(room.roomId)] ?? [],
         ).filter(message => message.message.status !== 1);
-      }
+      });
 
       const primaryCoverAvatarFileId = Number(
         spaceInfoQuery.data?.data?.avatarFileId
@@ -468,6 +487,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
         updateRealtimeRoleCache(mergedRoles);
       }
       updateRealtimeRooms(renderableRooms);
+      const histories = await fetchRoomHistoriesBatch(renderableRooms.map(room => room.roomId));
 
       for (let index = 0; index < renderableRooms.length; index += 1) {
         const room = renderableRooms[index];
@@ -487,12 +507,8 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
         }));
 
         try {
-          const roomMessagesResponse = await tuanchat.chatController.getHistoryMessages({
-            roomId,
-            syncId: 0,
-          });
           const messages = sortMessagesForRender(
-            extractArrayPayload<ChatMessageResponse>(roomMessagesResponse),
+            histories[String(roomId)] ?? [],
           ).filter(message => message.message.status !== 1);
 
           await resetRoomScene(roomId);
@@ -540,8 +556,9 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
 
   const handleSaveTtsApi = useCallback(() => {
     setTtsApiUrl(ttsApiInput.trim());
-    appToast.success("TTS 地址已保存");
-  }, [setTtsApiUrl, ttsApiInput]);
+    setTtsInstruct(ttsInstructInput.trim());
+    appToast.success("VoiceBox 配音设置已保存");
+  }, [setTtsApiUrl, setTtsInstruct, ttsApiInput, ttsInstructInput]);
 
   const handleSaveDescription = useCallback(() => {
     setGameConfig({ description: descriptionInput.trim() });
@@ -870,6 +887,8 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
           miniAvatarEnabled={miniAvatarEnabled}
           ttsEnabled={ttsEnabled}
           ttsApiInput={ttsApiInput}
+          ttsVoiceId={ttsVoiceId}
+          ttsInstructInput={ttsInstructInput}
           gameConfig={gameConfig}
           descriptionInput={descriptionInput}
           packageNameInput={packageNameInput}
@@ -894,6 +913,8 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
           setMiniAvatarEnabled={setMiniAvatarEnabled}
           setTtsEnabled={setTtsEnabled}
           setTtsApiInput={setTtsApiInput}
+          setTtsVoiceId={setTtsVoiceId}
+          setTtsInstructInput={setTtsInstructInput}
           setGameConfig={setGameConfig}
           setDescriptionInput={setDescriptionInput}
           setPackageNameInput={setPackageNameInput}

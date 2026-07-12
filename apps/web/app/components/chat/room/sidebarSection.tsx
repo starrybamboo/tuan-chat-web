@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 
 import { FolderPlusIcon } from "@phosphor-icons/react";
-import { AnimatePresence, motion } from "motion/react";
 
+import { CollapsibleMotion } from "@/components/common/motion/CollapsibleMotion";
+import { springCollapseMotionProps } from "@/components/common/motion/listItemMotion";
 import { ChevronDown } from "@/icons";
 
 type SidebarSectionProps = {
@@ -97,31 +98,20 @@ export default function SidebarSection({
         )}
       </div>
 
-      <AnimatePresence initial={false}>
-        {isExpanded && (
-          <motion.div
-            key="sidebar-section-content"
-            initial={{ opacity: 0, height: 0, y: contentOffsetY }}
-            animate={{ opacity: 1, height: "auto", y: 0 }}
-            exit={{ opacity: 0, height: 0, y: contentOffsetY }}
-            transition={{
-              height: { type: "spring", stiffness: 520, damping: 42, mass: 0.7 },
-              opacity: { duration: 0.12 },
-              y: { type: "spring", stiffness: 520, damping: 36, mass: 0.6 },
-            }}
-            // 可滚动分区需要让动画容器本身参与高度分配，否则内部 overflow 不会生效。
-            className={fillContent ? `
-              flex min-h-0 flex-1 flex-col overflow-hidden
-            ` : `overflow-hidden`}
-          >
-            <div className={`
-              mt-0.5 space-y-1
-              ${fillContent ? "min-h-0 flex-1" : ""}
-              ${contentClassName ?? ""}
-            `}>{children}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <CollapsibleMotion
+        open={isExpanded}
+        {...springCollapseMotionProps(contentOffsetY)}
+        // 可滚动分区需要让动画容器本身参与高度分配，否则内部 overflow 不会生效。
+        className={fillContent ? `
+          flex min-h-0 flex-1 flex-col overflow-hidden
+        ` : `overflow-hidden`}
+      >
+        <div className={`
+          mt-0.5 space-y-1
+          ${fillContent ? "min-h-0 flex-1" : ""}
+          ${contentClassName ?? ""}
+        `}>{children}</div>
+      </CollapsibleMotion>
     </section>
   );
 }

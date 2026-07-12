@@ -9,6 +9,7 @@ import type { SpaceContextType } from "@/components/chat/core/spaceContext";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import RoleChooser from "@/components/chat/input/roleChooser";
 import { useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 
 import type { ApiResultMessage, Message } from "../../../../api";
@@ -82,9 +83,10 @@ export default function useChatFrameNarratorToggle({
                 });
                 onClose();
               }}
-              className="
-                menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto
-              "
+              className={surfaceClassName({
+                level: "floating",
+                className: "z-1 overflow-y-auto p-2 shadow-sm",
+              })}
             />
           </div>
         </RoomContext>

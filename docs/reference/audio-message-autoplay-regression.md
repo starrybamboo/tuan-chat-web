@@ -23,18 +23,12 @@
 - `audioMessageBgmCoordinator.test.ts`
   - fallback BGM 可在可见播放器真正开始播放后接管。
   - 可见播放器未真正开始播放时保留 fallback BGM。
-- `audioMessageAutoPlay.e2e.test.ts`
-  - 非当前房间的 WS BGM 更新不会 seed fallback。
-  - 首发本地发送 BGM 会先启动 fallback，再在可见控制器挂载后接管。
-  - 当前房间的 WS BGM 首次出现时会触发浏览器侧自动播放链路。
-  - 可见播放器首次接管失败时不会提前消费 pending，后续用户手势仍可自动重试接管。
 - `useChatMessageSubmit.test.ts`
   - 首发带 BGM annotation 的音频消息会触发本地自动播放 helper。
 
 ## 建议命令
 ```bash
 pnpm test -- app/components/chat/infra/audioMessage/audioMessageAutoPlayPolicy.test.ts app/components/chat/infra/audioMessage/audioMessageAutoPlayRuntime.test.ts app/components/chat/infra/audioMessage/audioMessagePurpose.test.ts app/components/chat/infra/audioMessage/audioMessageBgmCoordinator.test.ts app/components/chat/room/useChatMessageSubmit.test.ts app/components/chat/message/preview/getMessagePreviewText.test.ts
-pnpm test:e2e -- app/components/chat/infra/audioMessage/audioMessageAutoPlay.e2e.test.ts
 pnpm test
 ```
 

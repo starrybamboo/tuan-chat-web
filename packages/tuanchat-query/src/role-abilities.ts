@@ -4,6 +4,8 @@ import type { AbilitySetRequest } from "@tuanchat/openapi-client/models/AbilityS
 import type { RoleAbility } from "@tuanchat/openapi-client/models/RoleAbility";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
+import type { QueryClient } from "@tanstack/react-query";
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef } from "react";
 
@@ -11,6 +13,7 @@ type AbilityClient = Pick<TuanChat, "abilityController">;
 
 export const ROLE_ABILITY_BY_RULE_QUERY_KEY = "roleAbilityByRule";
 export const ROLE_ABILITY_LIST_QUERY_KEY = "listRoleAbility";
+const ROLE_ABILITY_BATCH_SIZE = 100;
 
 function getApiResultErrorMessage(result: { errMsg?: string } | null | undefined, fallback: string): string {
   const message = result?.errMsg?.trim();
@@ -69,6 +72,66 @@ export function getRoleAbilityByRuleQueryKey(roleId: number, ruleId: number) {
   return ["roleAbilityByRule", roleId, ruleId] as const;
 }
 
+export async function fetchRoleAbilitiesByRule(
+  client: AbilityClient,
+  roleIds: number[],
+  ruleId: number,
+): Promise<Record<string, RoleAbility>> {
+  const normalizedRoleIds = Array.from(new Set(roleIds.filter(roleId => roleId > 0)));
+  if (normalizedRoleIds.length === 0 || ruleId <= 0) {
+    return {};
+  }
+
+  const batches = Array.from(
+    { length: Math.ceil(normalizedRoleIds.length / ROLE_ABILITY_BATCH_SIZE) },
+    (_, index) => normalizedRoleIds.slice(index * ROLE_ABILITY_BATCH_SIZE, (index + 1) * ROLE_ABILITY_BATCH_SIZE),
+  );
+  const responses = await Promise.all(batches.map(async (batchRoleIds) => {
+    const response = await client.abilityController.batchGetByRuleAndRoles({ roleIds: batchRoleIds, ruleId });
+    return readSuccessfulAbilityApiResultData(response, "获取角色能力失败") ?? {};
+  }));
+  return Object.assign({}, ...responses);
+}
+
+export async function fetchRoleAbilitiesByRuleWithCache(
+  client: AbilityClient,
+  queryClient: QueryClient,
+  roleIds: number[],
+  ruleId: number,
+  options: { staleTime?: number } = {},
+): Promise<Map<number, RoleAbility | null>> {
+  const staleTime = options.staleTime ?? 60_000;
+  const normalizedRoleIds = Array.from(new Set(roleIds.filter(roleId => roleId > 0))).sort((a, b) => a - b);
+  const abilityByRoleId = new Map<number, RoleAbility | null>();
+  const missingRoleIds: number[] = [];
+  const now = Date.now();
+
+  for (const roleId of normalizedRoleIds) {
+    const state = queryClient.getQueryState<RoleAbility | null>(roleAbilityByRuleQueryKey(roleId, ruleId));
+    if (
+      state?.data !== undefined
+      && !state.isInvalidated
+      && now - state.dataUpdatedAt <= staleTime
+    ) {
+      abilityByRoleId.set(roleId, state.data);
+    }
+    else {
+      missingRoleIds.push(roleId);
+    }
+  }
+
+  if (missingRoleIds.length > 0 && ruleId > 0) {
+    const fetched = await fetchRoleAbilitiesByRule(client, missingRoleIds, ruleId);
+    for (const roleId of missingRoleIds) {
+      const ability = fetched[String(roleId)] ?? null;
+      queryClient.setQueryData(roleAbilityByRuleQueryKey(roleId, ruleId), ability);
+      abilityByRoleId.set(roleId, ability);
+    }
+  }
+
+  return abilityByRoleId;
+}
+
 export function useRoleAbilitiesByRule(
   client: AbilityClient,
   roleIds: number[],
@@ -85,11 +148,7 @@ export function useRoleAbilitiesByRule(
       if (!ruleId || ruleId <= 0) {
         return {};
       }
-      const entries = await Promise.all(sortedRoleIds.map(async (roleId) => {
-        const response = await client.abilityController.getRoleAbilityByRule(ruleId, roleId);
-        return [String(roleId), readSuccessfulAbilityApiResultData(response, "获取角色能力失败")] as const;
-      }));
-      return Object.fromEntries(entries.filter((entry): entry is readonly [string, RoleAbility] => Boolean(entry[1])));
+      return fetchRoleAbilitiesByRule(client, sortedRoleIds, ruleId);
     },
     staleTime: options.staleTime ?? 300_000,
     enabled,

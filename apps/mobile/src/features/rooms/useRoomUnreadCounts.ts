@@ -1,3 +1,5 @@
+import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
+
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getMaxRoomMessageSyncId,
@@ -9,7 +11,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AppState } from "react-native";
 
 import { useAuthSession } from "@/features/auth/auth-session";
-import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
 import { mobileApiClient } from "@/lib/api";
 
 import {
@@ -20,16 +21,21 @@ import {
   type RoomReadPositionSyncState,
 } from "./roomReadPositionSync";
 
+const EMPTY_ROOM_MESSAGES: ChatMessageResponse[] = [];
+
 export function useRoomUnreadCounts(
   currentRoomId?: number | null,
-  options: { isRoomFocused?: boolean } = {},
+  options: {
+    currentRoomMessages?: ChatMessageResponse[];
+    isRoomFocused?: boolean;
+  } = {},
 ): Record<number, number> {
   const { isAuthenticated } = useAuthSession();
   const queryClient = useQueryClient();
   const [appState, setAppState] = useState(AppState.currentState);
   const sessionsQuery = useUserMessageSessionsQuery(mobileApiClient, { enabled: isAuthenticated });
   const { mutate: updateReadPosition } = useUpdateRoomReadPositionMutation(mobileApiClient);
-  const currentRoomMessagesQuery = useRoomMessagesQuery(currentRoomId ?? null);
+  const currentRoomMessages = options.currentRoomMessages ?? EMPTY_ROOM_MESSAGES;
   const syncStateRef = useRef<RoomReadPositionSyncState>({
     pendingSyncIdsByRoom: {},
     timersByRoom: {},
@@ -50,7 +56,7 @@ export function useRoomUnreadCounts(
   }, []);
 
   useEffect(() => {
-    const latestMessageSyncId = getMaxRoomMessageSyncId(currentRoomMessagesQuery.messages);
+    const latestMessageSyncId = getMaxRoomMessageSyncId(currentRoomMessages);
     const session = sessionsQuery.data?.data?.find(item => item.roomId === currentRoomId);
     const targetSyncId = Math.max(latestMessageSyncId, session?.latestSyncId ?? 0);
     if (!shouldAutoMarkFocusedRoomRead({
@@ -72,7 +78,7 @@ export function useRoomUnreadCounts(
     );
   }, [
     currentRoomId,
-    currentRoomMessagesQuery.messages,
+    currentRoomMessages,
     appState,
     options.isRoomFocused,
     sessionsQuery.data?.data,

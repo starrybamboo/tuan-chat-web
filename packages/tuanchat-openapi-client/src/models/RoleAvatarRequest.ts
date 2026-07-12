@@ -38,7 +38,17 @@ export type RoleAvatarRequest = {
      * 用户上传源图媒体文件 ID
      */
     originFileId?: number;
+    /**
+     * 立绘裁剪上下文（原图生成立绘）
+     */
     spriteCropContext?: SpriteCropContext;
+    /**
+     * 立绘变换参数（WebGAL）
+     */
     spriteTransform?: SpriteTransform;
+    /**
+     * 头像裁剪上下文（WebGAL 合成立绘）
+     */
     avatarCropContext?: AvatarCropContext;
 };
+

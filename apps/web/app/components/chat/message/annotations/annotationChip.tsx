@@ -1,6 +1,7 @@
 import type { AnnotationDefinition, AnnotationTone } from "@/components/chat/message/annotations/annotationCatalog";
 
 import AnnotationTooltip from "@/components/chat/message/annotations/annotationTooltip";
+import { MediaImage } from "@/components/common/mediaImage";
 
 type AnnotationChipProps = {
   annotation: AnnotationDefinition;
@@ -87,7 +88,7 @@ export default function AnnotationChip({
           )
         : hasImage
           ? (
-              <img src={annotation.iconUrl} alt="" className={isEffect ? `
+              <MediaImage src={annotation.iconUrl} alt="" className={isEffect ? `
                 size-5 object-contain
               ` : `size-4 object-contain`} />
             )

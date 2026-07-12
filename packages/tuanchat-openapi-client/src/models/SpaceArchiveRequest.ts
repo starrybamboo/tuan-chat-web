@@ -13,3 +13,4 @@ export type SpaceArchiveRequest = {
     archived: boolean;
     archiveRequested?: boolean;
 };
+

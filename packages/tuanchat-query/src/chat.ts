@@ -29,7 +29,7 @@ function resolvePatchMutationMeta(mutationMeta?: RoomMessageMutationMeta): RoomM
 
 export function useSendMessageMutation(client: ChatClient, roomId: number) {
   return useMutation({
-    mutationFn: (req: ChatMessageRequest) => client.chatController.sendMessage1(req),
+    mutationFn: (req: ChatMessageRequest) => client.chatController.sendMessage(req),
     mutationKey: ["sendMessage", roomId],
   });
 }

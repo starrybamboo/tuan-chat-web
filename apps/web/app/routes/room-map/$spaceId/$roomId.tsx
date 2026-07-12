@@ -19,7 +19,7 @@ function RoomMapFrameRoute() {
   const roomId = useMemo(() => Number(params.roomId), [params.roomId]);
   const chatHistory = useChatHistory(Number.isFinite(roomId) && roomId > 0 ? roomId : null);
   const sendMessageWithInsert = useCallback(async (request: ChatMessageRequest): Promise<Message | null> => {
-    const response = await tuanchat.chatController.sendMessage1(request);
+    const response = await tuanchat.chatController.sendMessage(request);
     const message = response?.data ?? null;
     if (message) {
       await chatHistory.addOrUpdateMessage({ message } as Parameters<typeof chatHistory.addOrUpdateMessage>[0]);

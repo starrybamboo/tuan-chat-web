@@ -15,3 +15,4 @@ export type SpaceDocCreateRequest = {
      */
     title?: string;
 };
+

@@ -16,6 +16,7 @@ type SendRoomMessageMutationMock = {
 
 const mobileApiClientMock = vi.hoisted(() => ({
   abilityController: {
+    batchGetByRuleAndRoles: vi.fn(),
     setRoleAbility: vi.fn(),
     getRoleAbilityByRule: vi.fn(),
     updateRoleAbilityByRule: vi.fn(),
@@ -98,8 +99,16 @@ function createParams(overrides: Partial<ExecuteMobileDicerCommandParams> = {}):
   } as TestExecuteMobileDicerCommandParams;
 }
 
+function mockBatchRoleAbility(ability: RoleAbility): void {
+  mobileApiClientMock.abilityController.batchGetByRuleAndRoles.mockResolvedValue({
+    success: true,
+    data: { [String(ability.roleId)]: ability },
+  });
+}
+
 describe("mobileDiceCommandExecutor", () => {
   beforeEach(() => {
+    mobileApiClientMock.abilityController.batchGetByRuleAndRoles.mockResolvedValue({ success: true, data: {} });
     mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({ success: true, data: null });
     mobileApiClientMock.abilityController.setRoleAbility.mockResolvedValue({ data: 99 });
     mobileApiClientMock.abilityController.updateRoleAbilityByRule.mockResolvedValue({ data: {} });
@@ -129,6 +138,40 @@ describe("mobileDiceCommandExecutor", () => {
           replies: [
             expect.objectContaining({
               content: "掷骰结果：1d6 = 1d6[1] = 1",
+              roleId: 2,
+            }),
+          ],
+        }),
+      }),
+    }));
+    expect(params.sendRoomMessageMutation.sendRequests).not.toHaveBeenCalled();
+  });
+
+  it("执行 .r # 指令时发送重复掷骰结果", async () => {
+    vi.spyOn(Math, "random")
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0.5)
+      .mockReturnValueOnce(0.99);
+    const params = createParams({ command: ".r 3# 1d6" });
+
+    await executeMobileDicerCommand(params);
+
+    const sentDiceRequest = params.sendRoomMessageMutation.sendRequest.mock.calls[0]?.[0];
+    expect(sentDiceRequest).toEqual(expect.objectContaining({
+      content: ".r 3# 1d6",
+      messageType: MESSAGE_TYPE.DICE,
+      roleId: actorRole.roleId,
+      extra: expect.objectContaining({
+        diceTurn: expect.objectContaining({
+          command: ".r 3# 1d6",
+          replies: [
+            expect.objectContaining({
+              content: [
+                "掷骰3次:",
+                "1d6 = 1d6[1] = 1",
+                "1d6 = 1d6[4] = 4",
+                "1d6 = 1d6[6] = 6",
+              ].join("\n"),
               roleId: 2,
             }),
           ],
@@ -263,14 +306,11 @@ describe("mobileDiceCommandExecutor", () => {
     vi.spyOn(Math, "random")
       .mockReturnValueOnce(0)
       .mockReturnValueOnce(0.1);
-    mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({
-      success: true,
-      data: {
-        abilityId: 7,
-        roleId: actorRole.roleId,
-        ruleId: 1,
-        skill: { 侦查: "50" },
-      } satisfies RoleAbility,
+    mockBatchRoleAbility({
+      abilityId: 7,
+      roleId: actorRole.roleId,
+      ruleId: 1,
+      skill: { 侦查: "50" },
     });
     const params = createParams({ command: ".rc 侦查" });
 
@@ -295,14 +335,11 @@ describe("mobileDiceCommandExecutor", () => {
   });
 
   it("执行 .st 会保存角色能力并生成状态事件", async () => {
-    mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({
-      success: true,
-      data: {
-        abilityId: 7,
-        roleId: actorRole.roleId,
-        ruleId: 1,
-        skill: { 力量: "50" },
-      } satisfies RoleAbility,
+    mockBatchRoleAbility({
+      abilityId: 7,
+      roleId: actorRole.roleId,
+      ruleId: 1,
+      skill: { 力量: "50" },
     });
     const params = createParams({ command: ".st 力量+10" });
 
@@ -336,14 +373,11 @@ describe("mobileDiceCommandExecutor", () => {
   });
 
   it("执行 .st 写角色卡失败时不发送 STATE_EVENT", async () => {
-    mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({
-      success: true,
-      data: {
-        abilityId: 7,
-        roleId: actorRole.roleId,
-        ruleId: 1,
-        skill: { 力量: "50" },
-      } satisfies RoleAbility,
+    mockBatchRoleAbility({
+      abilityId: 7,
+      roleId: actorRole.roleId,
+      ruleId: 1,
+      skill: { 力量: "50" },
     });
     mobileApiClientMock.abilityController.updateRoleAbilityByRule.mockRejectedValue(new Error("写入失败"));
     const params = createParams({ command: ".st 力量+10" });
@@ -355,7 +389,7 @@ describe("mobileDiceCommandExecutor", () => {
   });
 
   it("执行 .st 读取角色能力业务失败时不降级成空角色卡", async () => {
-    mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({
+    mobileApiClientMock.abilityController.batchGetByRuleAndRoles.mockResolvedValue({
       success: false,
       errMsg: "能力读取失败",
       data: null,
@@ -370,15 +404,12 @@ describe("mobileDiceCommandExecutor", () => {
   });
 
   it("执行 .st show 有 UI 回调时不发送消息并打开属性卡模型", async () => {
-    mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({
-      success: true,
-      data: {
-        abilityId: 7,
-        roleId: actorRole.roleId,
-        ruleId: 1,
-        basic: { 力量: "50" },
-        skill: { 侦查: "60" },
-      } satisfies RoleAbility,
+    mockBatchRoleAbility({
+      abilityId: 7,
+      roleId: actorRole.roleId,
+      ruleId: 1,
+      basic: { 力量: "50" },
+      skill: { 侦查: "60" },
     });
     const onShowRoleAbilityCard = vi.fn();
     const params = createParams({
@@ -406,14 +437,11 @@ describe("mobileDiceCommandExecutor", () => {
   });
 
   it("执行 .st show 没有 UI 回调时保留文本降级回复", async () => {
-    mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({
-      success: true,
-      data: {
-        abilityId: 7,
-        roleId: actorRole.roleId,
-        ruleId: 1,
-        skill: { 侦查: "60" },
-      } satisfies RoleAbility,
+    mockBatchRoleAbility({
+      abilityId: 7,
+      roleId: actorRole.roleId,
+      ruleId: 1,
+      skill: { 侦查: "60" },
     });
     const params = createParams({ command: ".st show 侦查" });
 

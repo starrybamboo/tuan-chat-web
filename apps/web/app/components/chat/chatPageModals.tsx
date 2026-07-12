@@ -9,6 +9,8 @@ import { canInviteSpectators, canManageMemberPermissions } from "@/components/ch
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import CreateRoomWindow from "@/components/chat/window/createRoomWindow";
 import CreateSpaceWindow from "@/components/chat/window/createSpaceWindow";
+import { Button } from "@/components/common/Button";
+import { Radio, TextInput } from "@/components/common/FormField";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { RoomChatIcon } from "@/icons";
 
@@ -166,11 +168,9 @@ export default function ChatPageModals({
                       " htmlFor="create-doc-title-input">
                         文档标题
                       </label>
-                      <input
+                      <TextInput
                         id="create-doc-title-input"
-                        className="
-                          input input-bordered w-full bg-base-100 text-base
-                        "
+                        className="text-base"
                         defaultValue={createDocTitle}
                         ref={docTitleInputRef}
                         onChange={(e) => {
@@ -183,16 +183,16 @@ export default function ChatPageModals({
                     <footer className="
                       flex justify-end gap-2 border-t border-base-300/60 pt-4
                     ">
-                      <button
-                        type="button"
-                        className="btn btn-ghost min-w-24"
+                      <Button
+                        variant="ghost"
+                        className="min-w-24"
                         onClick={closeCreateInCategory}
                       >
                         取消
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-primary min-w-36"
+                      </Button>
+                      <Button
+                        variant="primary"
+                        className="min-w-36"
                         disabled={!isKPInSpace || !pendingCreateInCategoryId}
                         onClick={() => {
                           const nextTitle = docTitleInputRef.current?.value ?? draftDocTitleRef.current;
@@ -202,7 +202,7 @@ export default function ChatPageModals({
                       >
                         <PlusIcon className="size-4" weight="regular" />
                         创建文档
-                      </button>
+                      </Button>
                     </footer>
                   </div>
                 )
@@ -311,8 +311,8 @@ function CreateModeOption({
         </span>
         <span className="mt-1 block text-xs/5 text-base-content/60">{description}</span>
       </span>
-      <input
-        type="radio"
+      <Radio
+        density="compact"
         name={inputName}
         className="sr-only"
         checked={active}

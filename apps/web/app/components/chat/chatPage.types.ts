@@ -2,14 +2,7 @@ import type { DocumentHeader } from "@/components/chat/infra/doc/document/docHea
 
 export type RoomSettingTab = "member" | "role" | "setting";
 export type SpaceDetailTab = "members" | "roles" | "workflow" | "trpg" | "webgal" | "setting" | "material";
-export type MaterialEditorActionScope = "detail" | "subwindow";
 export type OpenSpaceDetailPanelOptions = {
-  spacePackageId?: number | null;
-  materialPathKey?: string | null;
-};
-
-export type ActiveMaterialSelection = {
-  scope?: MaterialEditorActionScope | null;
   spacePackageId?: number | null;
   materialPathKey?: string | null;
 };

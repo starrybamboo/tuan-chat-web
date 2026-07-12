@@ -19,3 +19,4 @@ export type RuleCloneRequest = {
      */
     newRuleDescription?: string;
 };
+

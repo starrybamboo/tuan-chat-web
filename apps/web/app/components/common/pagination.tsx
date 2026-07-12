@@ -1,5 +1,7 @@
 import React, { useMemo } from "react";
 
+import { Button } from "@/components/common/Button";
+import { ControlGroup } from "@/components/common/ControlGroup";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { BaselineArrowBackIosNew, ChevronRight } from "@/icons";
 
@@ -88,10 +90,11 @@ const Pagination: React.FC<PaginationProps> = ({
   }
 
   return (
-    <div
+    <ControlGroup
+      connected={false}
       className={
         `
-          join flex flex-wrap justify-center
+          flex flex-wrap justify-center
           ${className}
           gap-1
           md:gap-2
@@ -101,30 +104,28 @@ const Pagination: React.FC<PaginationProps> = ({
       aria-label="分页导航"
     >
       {showNavigation && (
-        <button
-          className="join-item btn btn-square"
+        <Button
+          shape="square"
           onClick={() => handleChange(Math.max(1, currentPage - 1))}
           type="button"
           disabled={currentPage === 1}
           aria-label="上一页"
         >
           <BaselineArrowBackIosNew />
-        </button>
+        </Button>
       )}
 
       {displayPages.map((page, idx) => {
         const isEllipsis = page === "...";
         return (
-          <button
+          <Button
             key={page}
             type="button"
-            className={`
-              join-item btn btn-square
-              ${
-              page === currentPage ? "btn-active bg-info text-info-content" : ""
-            }
-              ${isEllipsis ? "cursor-pointer" : ""}
-            `}
+            className={[
+              page === currentPage ? "bg-info text-info-content" : "",
+              isEllipsis ? "cursor-pointer" : "",
+            ].filter(Boolean).join(" ")}
+            shape="square"
             onClick={() => {
               if (typeof page === "number") {
                 handleChange(page);
@@ -143,22 +144,22 @@ const Pagination: React.FC<PaginationProps> = ({
             aria-label={isEllipsis ? "更多页码" : `第 ${page} 页`}
           >
             {page}
-          </button>
+          </Button>
         );
       })}
 
       {showNavigation && (
-        <button
+        <Button
           type="button"
-          className="join-item btn btn-square"
+          shape="square"
           onClick={() => handleChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage === totalPages}
           aria-label="下一页"
         >
           <ChevronRight className="w-5 h-5" />
-        </button>
+        </Button>
       )}
-    </div>
+    </ControlGroup>
   );
 };
 

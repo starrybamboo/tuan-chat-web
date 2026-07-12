@@ -15,3 +15,4 @@ export type Canvas = {
      */
     height?: number;
 };
+

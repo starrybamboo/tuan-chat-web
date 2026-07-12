@@ -32,16 +32,18 @@ import {
 } from "@/components/chat/window/workflowGraphUtils";
 import { computeInitialRoomNodePositions, computePositionForNewWorkflowNode } from "@/components/chat/window/workflowLayoutUtils";
 import WorkflowSceneDescriptionEditor from "@/components/chat/window/workflowSceneDescriptionEditor";
+import WorkflowSceneNode from "@/components/chat/window/workflowSceneNode";
 import WorkflowStartNode from "@/components/chat/window/workflowStartNode";
 import { appToast } from "@/components/common/appToast/appToast";
-import SceneNode from "@/components/repository/detail/ContentTab/scene/react flow/NewSceneNode";
+import { DialogFrame } from "@/components/common/DialogFrame";
+import { StateView } from "@/components/common/StateView";
 import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/media/mediaUrl";
 
 import { SpaceContext } from "../core/spaceContext";
 import "@xyflow/react/dist/style.css";
 
 const nodeTypes = {
-  mapEditNode: SceneNode,
+  mapEditNode: WorkflowSceneNode,
   startNode: WorkflowStartNode,
   endNode: WorkflowEndNode,
 };
@@ -87,7 +89,7 @@ export default function WorkflowWindow() {
   const persistedPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const [positionsLoaded, setPositionsLoaded] = useState(false);
   const [isAddingEndNode, setIsAddingEndNode] = useState(false);
-  const { isFullscreen, toggleFullscreen } = useWorkflowFullscreen(reactFlowInstanceRef);
+  const { isFullscreen, closeFullscreen, toggleFullscreen } = useWorkflowFullscreen(reactFlowInstanceRef);
 
   useEffect(() => {
     queueMicrotask(() => setPositionsLoaded(false));
@@ -485,11 +487,7 @@ export default function WorkflowWindow() {
   }
 
   if (spaceQuery.isLoading) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <span className="loading loading-spinner loading-lg text-info"></span>
-      </div>
-    );
+    return <StateView loading title="正在加载空间信息..." className="h-[50vh] py-0" />;
   }
 
   if (spaceQuery.isError) {
@@ -500,15 +498,12 @@ export default function WorkflowWindow() {
     );
   }
 
-  return (
+  const workflowContent = (
     <div
       ref={workflowContainerRef}
       className={isFullscreen
-        ? "fixed inset-0 z-120 h-screen w-screen bg-base-100 p-3"
+        ? "h-screen w-screen bg-base-100 p-3"
         : "relative h-[75vh] w-full min-w-[50vw]"}
-      {...(isFullscreen
-        ? { role: "dialog" as const, "aria-modal": true as const, "aria-label": "工作流编辑器" }
-        : {})}
     >
       <button
         type="button"
@@ -580,4 +575,22 @@ export default function WorkflowWindow() {
       </ReactFlow>
     </div>
   );
+
+  if (isFullscreen) {
+    return (
+      <DialogFrame
+        open
+        mode="inline"
+        onClose={closeFullscreen}
+        ariaLabel="工作流编辑器"
+        rootClassName="z-120"
+        panelClassName="h-screen w-screen max-w-none bg-base-100 p-0"
+        closeOnOverlayClick={false}
+      >
+        {workflowContent}
+      </DialogFrame>
+    );
+  }
+
+  return workflowContent;
 }

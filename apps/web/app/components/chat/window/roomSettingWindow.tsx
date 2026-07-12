@@ -6,6 +6,9 @@ import type { RoomContextType } from "@/components/chat/core/roomContext";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import MemberLists from "@/components/chat/shared/components/memberLists";
 import RoleList from "@/components/chat/shared/components/roleLists";
+import { Button } from "@/components/common/Button";
+import { FieldGroup, FieldLabel, TextArea, TextInput } from "@/components/common/FormField";
+import { IconButton } from "@/components/common/IconButton";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalUserId } from "@/components/globalContextProvider";
@@ -132,14 +135,14 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
         <div className="
           flex items-center gap-2 px-2 py-1 border-b border-base-300 bg-base-100
         ">
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm btn-square"
-            aria-label="返回聊天"
+          <IconButton
+            variant="ghost"
+            size="sm"
+            shape="square"
+            label="返回聊天"
             onClick={onClose}
-          >
-            <BaselineArrowBackIosNew className="size-5" />
-          </button>
+            icon={<BaselineArrowBackIosNew className="size-5" />}
+          />
           <PageIcon className="size-4 opacity-70" />
           <div className="text-sm font-medium opacity-80 truncate" title={pageTitle}>
             {pageTitle}
@@ -282,10 +285,8 @@ function RoomSettingForm({
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-      <div className="form-control">
-        <div className="label">
-          <span className="label-text">房间头像</span>
-        </div>
+      <FieldGroup>
+        <FieldLabel>房间头像</FieldLabel>
         <ImgUploaderWithCopper
           mutate={(payload) => {
             if (typeof payload?.avatarFileId !== "number") {
@@ -326,53 +327,51 @@ function RoomSettingForm({
             </div>
           </div>
         </ImgUploaderWithCopper>
-      </div>
+      </FieldGroup>
 
-      <label className="form-control">
-        <div className="label">
-          <span className="label-text">房间名称</span>
-        </div>
-        <input
-          className="input input-bordered w-full"
+      <FieldGroup>
+        <FieldLabel htmlFor="room-settings-name">房间名称</FieldLabel>
+        <TextInput
+          id="room-settings-name"
+          className="w-full"
           autoComplete="off"
           value={roomDraft.name}
           onChange={(event) => {
             setRoomDraft(prev => ({ ...prev, name: event.target.value }));
           }}
         />
-      </label>
+      </FieldGroup>
 
-      <label className="form-control">
-        <div className="label">
-          <span className="label-text">房间描述</span>
-        </div>
-        <textarea
-          className="textarea textarea-bordered min-h-40 w-full resize-y"
+      <FieldGroup>
+        <FieldLabel htmlFor="room-settings-description">房间描述</FieldLabel>
+        <TextArea
+          id="room-settings-description"
+          className="min-h-40"
           autoComplete="off"
           value={roomDraft.description}
           onChange={(event) => {
             setRoomDraft(prev => ({ ...prev, description: event.target.value }));
           }}
         />
-      </label>
+      </FieldGroup>
 
       <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm"
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={onClose}
         >
           取消
-        </button>
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
+        </Button>
+        <Button
+          variant="primary"
+          size="sm"
+          loading={isPending}
           disabled={isPending}
           onClick={() => flushRoomRedundant()}
-          aria-busy={isPending}
         >
-          保存
-        </button>
+          {isPending ? "保存中..." : "保存"}
+        </Button>
       </div>
     </div>
   );

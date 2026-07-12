@@ -1,5 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import type { FormControlAppearance, FormControlSurface } from "@/components/common/FormField";
+import type { InterfaceDensity } from "@/components/common/DesignLanguage";
+
+import { TextInput } from "@/components/common/FormField";
+
 type CommitReason = "enter" | "blur" | "programmatic";
 type CancelReason = "escape" | "invalid" | "programmatic";
 type InvalidReason = "parse" | "validate";
@@ -20,6 +25,9 @@ export type DoubleClickEditableTextProps<T = string> = {
   className?: string;
   displayClassName?: string;
   inputClassName?: string;
+  inputDensity?: InterfaceDensity;
+  inputSurface?: FormControlSurface;
+  inputAppearance?: FormControlAppearance;
   displayProps?: React.HTMLAttributes<HTMLSpanElement>;
   inputProps?: Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "onKeyDown" | "onBlur">;
   trigger?: "doubleClick" | "click";
@@ -55,6 +63,9 @@ export function DoubleClickEditableText<T = string>({
   className,
   displayClassName,
   inputClassName,
+  inputDensity = "default",
+  inputSurface = "default",
+  inputAppearance = "field",
   displayProps,
   inputProps,
   trigger = "doubleClick",
@@ -186,8 +197,7 @@ export function DoubleClickEditableText<T = string>({
     ? ""
     : "transition-colors duration-150 hover:text-info focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30";
   const mergedDisplayClassName = [baseDisplayClassName, displayPropsClassName, displayClassName].filter(Boolean).join(" ");
-  const baseInputClassName = "transition focus:outline-none focus:ring-2 focus:ring-info/20 focus:border-info";
-  const mergedInputClassName = [inputPropsClassName, inputClassName, baseInputClassName].filter(Boolean).join(" ");
+  const mergedInputClassName = [inputPropsClassName, inputClassName].filter(Boolean).join(" ");
 
   if (isEditing) {
     if (renderInput) {
@@ -206,8 +216,11 @@ export function DoubleClickEditableText<T = string>({
     }
     return (
       <span className={className}>
-        <input
+        <TextInput
           ref={inputRef}
+          density={inputDensity}
+          surface={inputSurface}
+          appearance={inputAppearance}
           value={draft}
           onChange={event => setDraft(event.target.value)}
           onKeyDown={(event) => {

@@ -33,13 +33,16 @@ export function useResolvedUserInfo(user?: Partial<UserAvatarSource> | null, fal
     enabled: userId > 0 && (!hasProvidedName || !hasProvidedAvatar),
   });
   const queryUser = userQuery.data?.data;
+  const username = user?.username?.trim() || queryUser?.username || "";
   const resolvedAvatarFileId = providedAvatarFileId ?? normalizeAvatarFileId(queryUser?.avatarFileId);
 
   return {
     userId,
-    username: user?.username?.trim() || queryUser?.username || "",
+    username,
     avatar: avatarUrl(resolvedAvatarFileId),
     avatarThumbUrl: imageLowUrl(resolvedAvatarFileId),
-    isLoading: userQuery.isLoading,
+    // 姓名与头像可以分别由摘要数据命中，避免补拉其中一项时遮住另一项。
+    isNameLoading: userQuery.isLoading && !username,
+    isAvatarLoading: userQuery.isLoading && resolvedAvatarFileId == null,
   };
 }

@@ -2,7 +2,7 @@ import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMe
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { mergeRoomMessagesForLocalState } from "@tuanchat/query/room-message-lifecycle";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 
 import { useAuthSession } from "@/features/auth/auth-session";
 import {
@@ -17,7 +17,8 @@ import { extractRoomMessagesFromQueryData } from "@/features/messages/roomMessag
 import { getRoomMessagesQueryKey } from "@/features/messages/roomMessagesQueryKey";
 import { loadRoomMessagesQueryData } from "@/features/messages/roomMessagesQueryLoader";
 import { fetchRoomMessagesWithLocalSync } from "@/features/messages/roomMessageSync";
-import { mobileApiClient } from "@/lib/api";
+import { traceRoomMessageTiming } from "@/features/messages/roomMessageTimingTrace";
+import { getMobileApiBaseUrl, mobileApiClient } from "@/lib/api";
 
 export function useRoomMessagesQuery(
   roomId: number | null,
@@ -31,54 +32,52 @@ export function useRoomMessagesQuery(
   // Query 保存当前房间渲染热态；SQLite 只作为 message-stream 的恢复/补洞 read model。
   const query = useQuery({
     enabled: isAuthenticated && hasValidRoomId,
-    queryFn: async () => loadRoomMessagesQueryData(roomId!, {
+    queryFn: async ({ signal }) => loadRoomMessagesQueryData(roomId!, {
       clearCachedRoomMessages,
       fetchRoomMessages: async (resolvedRoomId, maxKnownSyncId) => {
         return fetchRoomMessagesWithLocalSync(resolvedRoomId, {
+          apiBaseUrl: getMobileApiBaseUrl(),
           client: mobileApiClient,
           getMaxCachedSyncId: async () => maxKnownSyncId,
+          signal,
         });
       },
       getCurrentMessages: () => extractRoomMessagesFromQueryData(
         queryClient.getQueryData(queryKey),
       ),
+      publishCachedMessages: (nextCachedMessages) => {
+        traceRoomMessageTiming("hydrate.start", {
+          count: nextCachedMessages.length,
+          roomId,
+        });
+        const queryState = queryClient.getQueryState(queryKey);
+        if (!shouldHydrateRoomMessagesFromDisk(queryState?.status, nextCachedMessages)) {
+          traceRoomMessageTiming("hydrate.skip", {
+            roomId,
+            status: queryState?.status ?? "missing",
+          });
+          return;
+        }
+        queryClient.setQueryData<ChatMessageResponse[]>(queryKey, (currentData) => {
+          const currentMessages = extractRoomMessagesFromQueryData(currentData);
+          return mergeRoomMessagesForLocalState(nextCachedMessages, currentMessages);
+        });
+        traceRoomMessageTiming("hydrate.end", {
+          count: nextCachedMessages.length,
+          roomId,
+        });
+      },
       readCachedRoomMessages,
+      signal,
       writeCachedRoomMessages,
     }),
     queryKey,
-    staleTime: options.staleTime,
+    staleTime: options.staleTime ?? 0,
   });
 
   const messages = useMemo(() => {
     return extractRoomMessagesFromQueryData(query.data);
   }, [query.data]);
-
-  useEffect(() => {
-    let disposed = false;
-
-    if (!isAuthenticated || typeof roomId !== "number" || roomId <= 0) {
-      return;
-    }
-
-    void readCachedRoomMessages(roomId).then((nextCachedMessages) => {
-      if (disposed || nextCachedMessages.length === 0) {
-        return;
-      }
-      const queryState = queryClient.getQueryState(queryKey);
-      // Query 已经成功时，磁盘只能作为恢复来源，不能再把旧快照灌回前台。
-      if (!shouldHydrateRoomMessagesFromDisk(queryState?.status, nextCachedMessages)) {
-        return;
-      }
-      queryClient.setQueryData<ChatMessageResponse[]>(queryKey, (currentData) => {
-        const currentMessages = extractRoomMessagesFromQueryData(currentData);
-        return mergeRoomMessagesForLocalState(nextCachedMessages, currentMessages);
-      });
-    });
-
-    return () => {
-      disposed = true;
-    };
-  }, [isAuthenticated, queryClient, queryKey, roomId]);
 
   return {
     ...query,

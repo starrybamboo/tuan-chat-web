@@ -11,6 +11,7 @@ import { deriveCombatVisualActiveAtMessageIndex, getCombatVisualSignal } from "@
 import { resolveRenderedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
+import { generateVoiceboxCustomVoice } from "@/tts/engines/voicebox/api";
 import {
   ANNOTATION_IDS,
   buildBackgroundChangeBgArgsFromAnnotations,
@@ -196,6 +197,7 @@ function extractRoleAvatarListFromQueryValue(value: unknown): RoleAvatar[] {
 type RenderMessageOptions = {
   autoJump?: boolean;
   bypassDiceMerge?: boolean;
+  regenerateTTS?: boolean;
   skipBookkeeping?: boolean;
 };
 
@@ -1729,7 +1731,11 @@ export class RealtimeRenderer {
    * 设置 TTS 配置
    */
   public setTTSConfig(config: RealtimeTTSConfig): void {
-    this.ttsConfig = { ...config, enabled: false };
+    this.ttsConfig = {
+      ...config,
+      engine: "voicebox",
+      modelSize: "0.6B",
+    };
   }
 
   /**
@@ -1816,6 +1822,68 @@ export class RealtimeRenderer {
    */
   private async uploadVocal(url: string): Promise<string | null> {
     return uploadVocalAsset(this.getAssetUploadContext(), url);
+  }
+
+  /**
+   * 通过 VoiceBox Qwen CustomVoice 0.6B 生成对话配音并上传到 WebGAL。
+   */
+  private async generateVoiceboxVocal(text: string, forceRegenerate = false): Promise<string | null> {
+    if (!this.ttsConfig.enabled || !text.trim()) {
+      return null;
+    }
+
+    const generationKey = [
+      this.ttsConfig.apiUrl ?? "",
+      this.ttsConfig.voiceId ?? "",
+      this.ttsConfig.language ?? "zh",
+      this.ttsConfig.instruct ?? "",
+      text.trim(),
+    ].join("|");
+    const hash = hashString(generationKey);
+    const fileName = `voicebox_${hash}.wav`;
+    const cacheKey = `voicebox:${hash}`;
+    const vocalDirectory = `games/${this.gameName}/game/vocal/`;
+
+    if (!forceRegenerate) {
+      const cached = this.uploadedVocalsMap.get(cacheKey);
+      if (cached) {
+        return cached;
+      }
+      if (await checkFileExist(vocalDirectory, fileName)) {
+        this.uploadedVocalsMap.set(cacheKey, fileName);
+        return fileName;
+      }
+    }
+
+    const activeGeneration = this.ttsGeneratingMap.get(cacheKey);
+    if (activeGeneration) {
+      return activeGeneration;
+    }
+
+    const generationPromise = (async () => {
+      try {
+        const audio = await generateVoiceboxCustomVoice({
+          baseUrl: this.ttsConfig.apiUrl,
+          text,
+          voiceId: this.ttsConfig.voiceId,
+          language: this.ttsConfig.language ?? "zh",
+          instruct: this.ttsConfig.instruct,
+        });
+        await uploadBlobToDirectory(audio, vocalDirectory, fileName);
+        this.uploadedVocalsMap.set(cacheKey, fileName);
+        return fileName;
+      }
+      catch (error) {
+        console.warn("[RealtimeRenderer] VoiceBox 配音生成失败:", error);
+        return null;
+      }
+      finally {
+        this.ttsGeneratingMap.delete(cacheKey);
+      }
+    })();
+
+    this.ttsGeneratingMap.set(cacheKey, generationPromise);
+    return generationPromise;
   }
 
   private async resolveDiceSound(
@@ -2631,6 +2699,19 @@ export class RealtimeRenderer {
       const renderContent = isDiceMessage ? diceContent : msg.content;
       const processedContent = TextEnhanceSyntax.processContent(renderContent);
 
+      if (
+        !voiceVocalFileName
+        && !isVoiceMessage
+        && !isNarrator
+        && !isIntroText
+        && (msg.messageType as number) === MESSAGE_TYPE.TEXT
+      ) {
+        voiceVocalFileName = await this.generateVoiceboxVocal(
+          renderContent,
+          options?.regenerateTTS,
+        );
+      }
+
       // 获取对话参数：-notend 和 -concat（来自 annotations）
       const dialogNotend = hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_NOTEND);
       const dialogConcat = hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_CONCAT);
@@ -2944,7 +3025,7 @@ export class RealtimeRenderer {
    * 更新消息的渲染设置并重新渲染，然后跳转到该消息
    * @param message 要更新的消息（应该已经包含最新渲染相关字段）
    * @param roomId 房间 ID（可选，默认使用当前房间）
-   * @param regenerateTTS 保留旧调用签名；当前实时预览不生成 TTS。
+   * @param regenerateTTS 是否强制重新生成 VoiceBox 配音。
    * @returns 是否操作成功
    */
   public async updateAndRerenderMessage(
@@ -2959,15 +3040,16 @@ export class RealtimeRenderer {
       console.warn("[RealtimeRenderer] 无法确定目标房间ID");
       return false;
     }
-    void regenerateTTS;
-
     // 获取该消息对应的行号范围
     const key = `${targetRoomId}_${msg.messageId}`;
     const lineRange = this.messageLineMap.get(key);
 
     if (!lineRange) {
       console.warn(`[RealtimeRenderer] 消息 ${msg.messageId} 未找到对应的行号，将使用 append 方式`);
-      await this.renderMessage(message, targetRoomId, true, { bypassDiceMerge: true });
+      await this.renderMessage(message, targetRoomId, true, {
+        bypassDiceMerge: true,
+        regenerateTTS,
+      });
       const appendedRange = this.messageLineMap.get(key);
       return appendedRange ? this.jumpToMessage(msg.messageId, targetRoomId) : true;
     }
@@ -2994,7 +3076,11 @@ export class RealtimeRenderer {
     }
 
     // 重新渲染该消息（不同步到文件）
-    await this.renderMessage(message, targetRoomId, false, { bypassDiceMerge: true, skipBookkeeping: true });
+    await this.renderMessage(message, targetRoomId, false, {
+      bypassDiceMerge: true,
+      regenerateTTS,
+      skipBookkeeping: true,
+    });
 
     // 获取新渲染的内容
     const newContent = context.text;

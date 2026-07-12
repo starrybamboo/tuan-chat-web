@@ -17,6 +17,7 @@ import {
 } from "@tuanchat/domain/state-event";
 import { persistRoleAbilitySnapshot } from "@tuanchat/domain/state-runtime";
 import {
+  fetchRoleAbilitiesByRuleWithCache,
   readSuccessfulAbilityApiResultData,
   roleAbilityByRuleQueryKey,
   roleAbilityListQueryKey,
@@ -455,12 +456,20 @@ export async function executeMobileDicerCommand(params: ExecuteMobileDicerComman
     mentioned.push(operator);
   }
 
-  const baseRoleAbilities = new Map<number, RoleAbility>();
-  const mentionedRoleEntries = await Promise.all(
-    mentioned
-      .filter(role => role.roleId > 0)
-      .map(async role => [role.roleId, await getOrFetchRoleAbility(params.queryClient, role.roleId, ruleId)] as const),
+  const mentionedRoleIds = Array.from(new Set(
+    mentioned.map(role => role.roleId).filter(roleId => roleId > 0),
+  ));
+  const fetchedRoleAbilities = await fetchRoleAbilitiesByRuleWithCache(
+    mobileApiClient,
+    params.queryClient,
+    mentionedRoleIds,
+    ruleId,
   );
+  const baseRoleAbilities = new Map<number, RoleAbility>();
+  const mentionedRoleEntries = mentionedRoleIds.map((roleId) => [
+    roleId,
+    normalizeRoleAbility(fetchedRoleAbilities.get(roleId), roleId, ruleId),
+  ] as const);
   for (const [roleId, ability] of mentionedRoleEntries) {
     baseRoleAbilities.set(roleId, ability);
   }

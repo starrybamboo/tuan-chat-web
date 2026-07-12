@@ -35,3 +35,4 @@ export type SpaceDocResponse = {
      */
     updateTime?: string;
 };
+

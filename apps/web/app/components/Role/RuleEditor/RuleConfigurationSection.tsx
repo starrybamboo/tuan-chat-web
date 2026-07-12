@@ -1,6 +1,7 @@
 import type { RoleConfigTabKey } from "../rules/configTabMeta";
 
 import Section from "../Editors/Section";
+import { CountBadge } from "@/components/common/StatusPrimitives";
 import { getRoleConfigTabItem } from "../rules/configTabMeta";
 import RuleNumericalEditor from "./RuleNumericalEditor";
 
@@ -41,7 +42,7 @@ export function RuleConfigurationSection({
             {customLabel}
             模版
           </h4>
-          <div className="badge badge-info badge-sm">{fieldCount}</div>
+          <CountBadge tone="info">{fieldCount}</CountBadge>
         </div>
         <RuleNumericalEditor
           title={customLabel}

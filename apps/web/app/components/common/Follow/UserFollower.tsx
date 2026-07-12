@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 
+import { Button } from "@/components/common/Button";
+import { ControlGroup } from "@/components/common/ControlGroup";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../../api/hooks/userFollowQueryHooks";
 import { UserCard } from "./UserCard";
 
@@ -52,23 +54,18 @@ export function UserFollower({ activeTab, userId }: { activeTab: "following" | "
           user.userId && <UserCard key={user.userId} user={user} />
         ))}
       </div>
-      <div className="join mt-4 justify-center">
-        <button
+      <ControlGroup className="mt-4 justify-center" aria-label="关注列表分页">
+        <Button
           type="button"
-          className={`
-            join-item btn
-            ${pageState.current <= 1 ? "btn-disabled" : ""}
-          `}
           onClick={handlePrevPage}
           disabled={pageState.current <= 1}
           aria-label="上一页"
           title={pageState.current <= 1 ? "已经是第一页" : "上一页"}
         >
           «
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="join-item btn"
           aria-current="page"
         >
           第
@@ -76,21 +73,17 @@ export function UserFollower({ activeTab, userId }: { activeTab: "following" | "
           {pageState.current}
           {" "}
           页
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className={`
-            join-item btn
-            ${currentQuery.data?.data?.isLast ? `btn-disabled` : ""}
-          `}
           onClick={handleNextPage}
           disabled={Boolean(currentQuery.data?.data?.isLast)}
           aria-label="下一页"
           title={currentQuery.data?.data?.isLast ? "已经是最后一页" : "下一页"}
         >
           »
-        </button>
-      </div>
+        </Button>
+      </ControlGroup>
     </div>
   );
 }

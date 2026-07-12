@@ -24,7 +24,9 @@ export default function RepliedMessage({ replyMessage, className }: {
 }) {
   const roomContext = use(RoomContext);
   const setReplyMessage = useRoomUiStore(state => state.setReplyMessage);
-  const role = useGetRoleQuery(replyMessage.roleId ?? -1).data?.data;
+  const roleFromRoom = roomContext.roomAllRoles?.find(role => role.roleId === replyMessage.roleId);
+  const roleQuery = useGetRoleQuery(replyMessage.roleId ?? -1, { enabled: !roleFromRoom });
+  const role = roleFromRoom ?? roleQuery.data?.data;
   const isIntroText = replyMessage.messageType === MESSAGE_TYPE.INTRO_TEXT;
   const isOutOfCharacterText = replyMessage.messageType === MESSAGE_TYPE.TEXT
     && isOutOfCharacterSpeech(replyMessage.content);

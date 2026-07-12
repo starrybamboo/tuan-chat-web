@@ -9,6 +9,8 @@ import { tuanchat } from "../../../../../api/instance";
 export type RealtimeRenderCloudSettings = {
   settingsVersion?: number;
   ttsApiUrl?: string;
+  ttsVoiceId?: string;
+  ttsInstruct?: string;
   terrePort?: number | null;
   autoFigureEnabled?: boolean;
   roomContentAlertThreshold?: number;

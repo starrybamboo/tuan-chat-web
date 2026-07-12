@@ -2,7 +2,7 @@ import type { CPI, UserRole } from "../types";
 
 import { CommandExecutor, RuleNameSpace } from "../cmd";
 import { roll } from "../dice";
-import { FU_PROPERTY_ALIASES } from "../roleAbilityAliasMaps";
+import { FU_PROPERTY_ALIASES, resolveRoleAbilityAlias } from "../roleAbilityAliasMaps";
 import UTILS from "../utils/utils";
 import { executeStShowCommand } from "./cmdExePublic";
 
@@ -63,8 +63,7 @@ const cmdSt = new CommandExecutor(
 
     if (args.length >= 2 && !/^[-+]?\d+$/.test(args[1].trim())) {
       const rawKey = args[0].trim();
-      const normalizedKey = rawKey.toLowerCase();
-      const key = FU_PROPERTY_ALIASES[normalizedKey] || rawKey;
+      const key = resolveRoleAbilityAlias(rawKey, FU_PROPERTY_ALIASES);
       const expression = args.slice(1).join("").trim();
       if (!rawKey || !expression) {
         cpi.sendToast("错误：属性名或掷骰表达式不能为空");
@@ -85,9 +84,7 @@ const cmdSt = new CommandExecutor(
       const operator = match[2];
       const value = Number.parseInt(match[3], 10);
 
-      // 统一转换为小写进行比较
-      const normalizedKey = rawKey.toLowerCase();
-      const key = FU_PROPERTY_ALIASES[normalizedKey] || rawKey;
+      const key = resolveRoleAbilityAlias(rawKey, FU_PROPERTY_ALIASES);
 
       const currentValue = Number.parseInt(UTILS.getRoleAbilityValue(curAbility, key) ?? "0"); // 原有值（默认0）
       let newValue: number;

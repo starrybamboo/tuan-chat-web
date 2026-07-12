@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { appToast } from "@/components/common/appToast/appToast";
-import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
+import { Button } from "@/components/common/Button";
+import { DialogActions, DialogFrame } from "@/components/common/DialogFrame";
+import { FieldError, TextArea } from "@/components/common/FormField";
 
 type DicerConfigJsonModalProps = {
   isOpen: boolean;
@@ -27,8 +29,6 @@ export default function DicerConfigJsonModal({
   const [jsonError, setJsonError] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [showResetConfirm, setShowResetConfirm] = useState<boolean>(false);
-  const dialogRef = useRef<HTMLDialogElement | null>(null);
-  const resetConfirmDialogRef = useRef<HTMLDialogElement | null>(null);
 
   // 大小限制配置（可根据需要调整数值）
   const MAX_KEY_LENGTH = 50; // 分组键最大长度
@@ -179,186 +179,120 @@ export default function DicerConfigJsonModal({
     setShowResetConfirm(false);
   };
 
-  useEscapeToClose({
-    enabled: isOpen,
-    onClose,
-    containerRef: dialogRef,
-  });
-
-  useEscapeToClose({
-    enabled: showResetConfirm,
-    onClose: () => setShowResetConfirm(false),
-    containerRef: resetConfirmDialogRef,
-  });
-
   if (!isOpen)
     return null;
 
   return (
-    <dialog
-      ref={dialogRef}
-      data-modal-layer="true"
-      role="dialog"
-      aria-modal="true"
-      aria-label="骰娘文案配置 JSON"
-      className="modal modal-open"
+    <DialogFrame
+      open={isOpen}
+      mode="native"
+      onClose={onClose}
+      ariaLabel="骰娘文案配置 JSON"
+      panelClassName="max-w-3xl"
     >
-      <div className="modal-box max-w-3xl">
-        {/* 关闭按钮 */}
-        <form method="dialog">
-          <button
-            type="button"
-            className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-            aria-label="关闭骰子 JSON 配置"
-            onClick={onClose}
-          >
-            ✕
-          </button>
-        </form>
+      {/* 标题 */}
+      <h3 className="font-bold text-lg mb-4">骰娘文案配置 JSON</h3>
 
-        {/* 标题 */}
-        <h3 className="font-bold text-lg mb-4">骰娘文案配置 JSON</h3>
+      {/* JSON 编辑区域 */}
+      <div className="mb-4">
+        <label className="mb-1 block text-sm font-medium" htmlFor="dicer-config-json-textarea">
+          JSON 配置
+        </label>
+        <p id={JSON_CONFIG_HELP_ID} className="mb-2 text-xs text-base-content/60">
+          请输入合法 JSON；保存失败时会在下方提示具体原因。
+        </p>
+        <TextArea
+          id="dicer-config-json-textarea"
+          value={jsonText}
+          autoComplete="off"
+          aria-describedby={jsonError ? `${JSON_CONFIG_HELP_ID} ${JSON_CONFIG_ERROR_ID}` : JSON_CONFIG_HELP_ID}
+          onChange={e => handleJsonChange(e.target.value)}
+          aria-invalid={Boolean(jsonError)}
+          className="h-96 resize-none font-mono text-sm"
+          placeholder="输入 JSON 配置"
+          spellCheck={false}
+        />
+        {jsonError && <FieldError id={JSON_CONFIG_ERROR_ID}>{jsonError}</FieldError>}
+      </div>
 
-        {/* JSON 编辑区域 */}
-        <div className="mb-4">
-          <label className="mb-1 block text-sm font-medium" htmlFor="dicer-config-json-textarea">
-            JSON 配置
-          </label>
-          <p id={JSON_CONFIG_HELP_ID} className="mb-2 text-xs text-base-content/60">
-            请输入合法 JSON；保存失败时会在下方提示具体原因。
-          </p>
-          <textarea
-            id="dicer-config-json-textarea"
-            value={jsonText}
-            autoComplete="off"
-            aria-describedby={jsonError ? `${JSON_CONFIG_HELP_ID} ${JSON_CONFIG_ERROR_ID}` : JSON_CONFIG_HELP_ID}
-            onChange={e => handleJsonChange(e.target.value)}
-            className={`
-              textarea textarea-bordered w-full h-96 font-mono text-sm
-              resize-none
-              ${
-              jsonError ? "textarea-error" : ""
-            }
-            `}
-            placeholder="输入 JSON 配置"
-            spellCheck={false}
-          />
-          {jsonError && (
-            <div className="label">
-              <span id={JSON_CONFIG_ERROR_ID} role="alert" className="label-text-alt text-error">{jsonError}</span>
-            </div>
-          )}
-        </div>
-
-        {/* 底部按钮 */}
-        <div className="modal-action">
-          <button
-            type="button"
-            onClick={handleReset}
-            className="btn btn-warning btn-sm"
-            disabled={isSaving}
-            title="还原默认配置，会覆盖当前编辑"
-          >
+      {/* 底部按钮 */}
+      <DialogActions>
+        <Button
+          size="sm"
+          variant="warning"
+          onClick={handleReset}
+          disabled={isSaving}
+          title="还原默认配置，会覆盖当前编辑"
+          icon={(
             <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            重置
-          </button>
-          <button
-            type="button"
-            onClick={handleCopyToClipboard}
-            className="btn btn-ghost btn-sm"
-            disabled={isSaving}
-          >
+          )}
+        >
+          重置
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={handleCopyToClipboard}
+          disabled={isSaving}
+          icon={(
             <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
-            复制
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn btn-ghost btn-sm"
+          )}
+        >
+          复制
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onClose}
+          disabled={isSaving}
+        >
+          取消
+        </Button>
+        {isEdited && (
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={handleSave}
             disabled={isSaving}
+            loading={isSaving}
+            icon={(
+              <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          >
+            {isSaving ? "保存中..." : "保存"}
+          </Button>
+        )}
+      </DialogActions>
+
+      <DialogFrame
+        open={showResetConfirm}
+        mode="inline"
+        onClose={() => setShowResetConfirm(false)}
+        ariaLabel="确认重置骰娘配置"
+      >
+        <h3 className="font-bold text-lg mb-4">确认重置</h3>
+        <p className="py-4">确认要还原默认配置吗？此操作不可撤销。</p>
+        <DialogActions>
+          <Button
+            variant="ghost"
+            onClick={() => setShowResetConfirm(false)}
           >
             取消
-          </button>
-          {isEdited && (
-            <button
-              type="button"
-              onClick={handleSave}
-              className="btn btn-primary btn-sm"
-              aria-busy={isSaving}
-              disabled={isSaving}
-            >
-              {isSaving
-                ? (
-                    <>
-                      <span className="loading loading-spinner loading-xs"></span>
-                      保存中...
-                    </>
-                  )
-                : (
-                    <>
-                      <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      保存
-                    </>
-                  )}
-            </button>
-          )}
-        </div>
-      </div>
-      <form method="dialog" className="modal-backdrop">
-        <button
-          type="button"
-          onClick={onClose}
-        >
-          close
-        </button>
-      </form>
-
-      {/* 重置确认弹窗 */}
-      {showResetConfirm && (
-        <dialog
-          ref={resetConfirmDialogRef}
-          data-modal-layer="true"
-          role="dialog"
-          aria-modal="true"
-          aria-label="确认重置骰娘配置"
-          className="modal modal-open"
-        >
-          <div className="modal-box">
-            <h3 className="font-bold text-lg mb-4">确认重置</h3>
-            <p className="py-4">确认要还原默认配置吗？此操作不可撤销。</p>
-            <div className="modal-action">
-              <button
-                type="button"
-                onClick={() => setShowResetConfirm(false)}
-                className="btn btn-ghost"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                onClick={confirmReset}
-                className="btn btn-warning"
-              >
-                确认重置
-              </button>
-            </div>
-          </div>
-          <form method="dialog" className="modal-backdrop">
-            <button
-              type="button"
-              onClick={() => setShowResetConfirm(false)}
-            >
-              close
-            </button>
-          </form>
-        </dialog>
-      )}
-    </dialog>
+          </Button>
+          <Button
+            variant="warning"
+            onClick={confirmReset}
+          >
+            确认重置
+          </Button>
+        </DialogActions>
+      </DialogFrame>
+    </DialogFrame>
   );
 }

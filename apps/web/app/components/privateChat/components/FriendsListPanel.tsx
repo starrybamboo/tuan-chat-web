@@ -4,8 +4,10 @@ import { motion } from "motion/react";
 import { useMemo, useRef } from "react";
 
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
+import { formControlShellClassName } from "@/components/common/FormField";
 import { ImeAwareSearchInput, useImeSearchValue } from "@/components/common/imeAwareSearchInput";
 import { privateChatListItemMotionProps } from "@/components/common/motion/privateChatMotion";
+import { StateView } from "@/components/common/StateView";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { SearchFilled, XMarkICon } from "@/icons";
 import { useGetFriendListQuery } from "api/hooks/friendQueryHooks";
@@ -41,17 +43,13 @@ export default function FriendsListPanel() {
     <div className="flex flex-col h-full w-full">
       <div className="px-3 pt-3 pb-2">
         <label htmlFor="private-friend-search" className="sr-only">搜索好友</label>
-        <div className="
-          border border-base-300
-          dark:border-base-300/80
-          flex h-8 items-center bg-base-200/60
-          dark:bg-base-200/40
-          rounded-md overflow-hidden
-          focus-within:border-info/60 focus-within:ring-2
-          focus-within:ring-info/20
-        ">
+        <div className={formControlShellClassName({
+          surface: "muted",
+          className: "h-8 overflow-hidden bg-base-200/60 dark:bg-base-200/40",
+        })}>
           <div className="flex h-full items-center flex-1 px-2.5">
             <ImeAwareSearchInput
+              appearance="bare"
               id="private-friend-search"
               ref={searchInputRef}
               type="text"
@@ -109,10 +107,7 @@ export default function FriendsListPanel() {
       <div className="flex-1 min-h-0 overflow-auto px-1">
         {friendListQuery.isLoading
           ? (
-              <div className="flex items-center justify-center h-32">
-                <span className="loading loading-spinner loading-sm" />
-                <span className="ml-2 text-xs text-base-content/60">加载好友列表...</span>
-              </div>
+              <StateView loading title="加载好友列表..." className="h-32 py-0" />
             )
           : filteredFriends.length === 0
             ? (

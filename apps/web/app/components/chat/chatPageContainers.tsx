@@ -31,7 +31,6 @@ export function ChatPagePanels({
   return (
     <ChatPageLayout
       {...layoutProps}
-      isLeftDrawerCollapsePreview={isLeftDrawerCollapsePreview}
       setIsLeftDrawerCollapsePreview={setIsLeftDrawerCollapsePreview}
       spaceSidebar={(
         <ChatSpaceSidebar

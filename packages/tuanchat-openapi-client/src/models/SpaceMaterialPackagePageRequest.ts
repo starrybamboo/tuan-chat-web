@@ -23,3 +23,4 @@ export type SpaceMaterialPackagePageRequest = {
      */
     keyword?: string;
 };
+

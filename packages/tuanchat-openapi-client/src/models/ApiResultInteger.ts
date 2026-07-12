@@ -23,3 +23,4 @@ export type ApiResultInteger = {
      */
     data?: number;
 };
+

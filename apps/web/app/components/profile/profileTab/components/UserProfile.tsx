@@ -2,6 +2,10 @@ import type { UserProfileInfoResponse } from "@tuanchat/openapi-client/models/Us
 
 import React, { useState } from "react";
 
+import { Button } from "@/components/common/Button";
+import { TextArea, TextInput } from "@/components/common/FormField";
+import { Divider, Skeleton } from "@/components/common/StatusPrimitives";
+
 type ProfileEditingState = {
   isEditingProfile: boolean;
   editingUsername: string;
@@ -50,8 +54,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   if (isLoading) {
     return (
       <div className="space-y-2">
-        <div className="skeleton h-6 w-32"></div>
-        <div className="skeleton h-6 w-full"></div>
+        <Skeleton className="h-6 w-32" />
+        <Skeleton className="h-6 w-full" />
       </div>
     );
   }
@@ -69,7 +73,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 {isOwner && isEditingProfile
                   ? (
                       <div className="flex items-center gap-2">
-                        <input
+                        <TextInput
+                          density="compact"
                           type="text"
                           autoComplete="off"
                           aria-label="用户名"
@@ -83,13 +88,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                             if (e.key === "Escape")
                               cancelEditingProfile();
                           }}
-                          className={`
-                            input input-sm input-bordered flex-1 text-lg
-                            font-bold
-                            ${
-                            editingUsername.length > 30 ? "input-error" : ""
-                          }
-                          `}
+                          aria-invalid={editingUsername.length > 30 || undefined}
+                          className="flex-1 text-lg font-bold"
                           maxLength={30}
                           placeholder="请输入用户名"
                         />
@@ -122,7 +122,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               {isOwner && isEditingProfile && !isMobile
                 ? (
                     <div className="flex items-center gap-2">
-                      <input
+                      <TextInput
+                        density="compact"
                         type="text"
                         autoComplete="off"
                         aria-label="用户名"
@@ -136,16 +137,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                           if (e.key === "Escape")
                             cancelEditingProfile();
                         }}
-                        className={`
-                          input input-sm input-bordered flex-1
-                          ${
-                          isMobile ? "text-lg" : "text-lg"
-                        }
-                          font-bold
-                          ${
-                          editingUsername.length > 30 ? "input-error" : ""
-                        }
-                        `}
+                        aria-invalid={editingUsername.length > 30 || undefined}
+                        className="flex-1 text-lg font-bold"
                         maxLength={30}
 
                         placeholder="请输入用户名"
@@ -183,12 +176,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             </div>
           )}
       {/* 描述 */}
-      <div className="divider" />
+      <Divider />
       <div className={isMobile ? "mt-2" : "w-full min-h-24"}>
         {isOwner && isEditingProfile && !isMobile
           ? (
               <div className="space-y-2">
-                <textarea
+                <TextArea
                   autoComplete="off"
                   aria-label="个人描述"
                   value={editingDescription}
@@ -201,12 +194,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     if (e.key === "Enter" && e.ctrlKey)
                       saveProfile();
                   }}
-                  className={`
-                    textarea textarea-bordered w-full text-sm resize-none
-                    ${
-                    editingDescription.length > 253 ? "textarea-error" : ""
-                  }
-                  `}
+                  aria-invalid={editingDescription.length > 253 || undefined}
+                  className="resize-none text-sm"
                   rows={4}
                   placeholder="请输入个人描述..."
                 />
@@ -225,11 +214,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                       /253
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        type="button"
+                      <Button
+                        size="sm"
+                        variant="primary"
                         onClick={saveProfile}
-                        className="btn btn-sm btn-success"
-                        aria-busy={isSaving}
+                        loading={isSaving}
                         title={
                           isSaving
                             ? "正在保存个人资料"
@@ -248,15 +237,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                           || isSaving
                         }
                       >
-                        保存
-                      </button>
-                      <button
-                        type="button"
+                        {isSaving ? "保存中..." : "保存"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
                         onClick={cancelEditingProfile}
-                        className="btn btn-sm btn-ghost"
                       >
                         取消
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -336,7 +325,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               </div>
             )}
       </div>
-      <div className="divider" />
+      <Divider />
     </div>
   );
 };

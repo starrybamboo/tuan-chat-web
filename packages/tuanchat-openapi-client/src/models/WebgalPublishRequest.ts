@@ -12,5 +12,9 @@ export type WebgalPublishRequest = {
      * 归档 commitId，可选
      */
     commitId?: number;
+    /**
+     * 前端预生成的发布包，可选
+     */
     packageData?: WebgalPublishClientPackage;
 };
+

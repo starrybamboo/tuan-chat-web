@@ -2,9 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * 父评论作者信息
- */
 export type UserInfoResponse = {
     /**
      * 用户的uid，全局唯一
@@ -24,3 +21,4 @@ export type UserInfoResponse = {
      */
     activeStatus?: string;
 };
+

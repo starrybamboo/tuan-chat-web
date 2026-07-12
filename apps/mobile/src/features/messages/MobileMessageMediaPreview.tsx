@@ -16,7 +16,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { mediaFileUrl, normalizeMediaType } from "@/lib/media-url";
-import { resolveCachedMediaFileUri } from "@/lib/mobile-media-file-cache";
+import { getCachedMediaFileUriSync, resolveCachedMediaFileUri } from "@/lib/mobile-media-file-cache";
 
 import { resolveMessageMediaUrl } from "./messageMediaSource";
 import {
@@ -74,6 +74,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
   },
+  mediaLoadState: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.md,
+  },
   modalImage: {
     height: "100%",
     width: "100%",
@@ -126,13 +131,62 @@ function normalizeFileMediaType(value: string | null | undefined) {
 async function openMediaUrl(url: string, options: { fileName?: string | null } = {}) {
   try {
     const resolvedUri = await resolveCachedMediaFileUri(url, {
+      fallbackToRemote: false,
       fileName: options.fileName,
     });
-    await Linking.openURL(resolvedUri ?? url);
+    if (!resolvedUri) {
+      throw new Error("媒体文件缓存失败");
+    }
+    await Linking.openURL(resolvedUri);
   }
   catch {
     Alert.alert("无法打开媒体", "当前设备暂时无法打开这个文件。");
   }
+}
+
+type CachedMediaFileState = {
+  failed: boolean;
+  key: string;
+  uri: string | null;
+};
+
+function useCachedMediaFile(url: string, fileName?: string | null) {
+  const key = `${url}\u0000${fileName?.trim() ?? ""}`;
+  const syncUri = getCachedMediaFileUriSync(url, { fileName });
+  const [state, setState] = useState<CachedMediaFileState | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const currentState = state?.key === key ? state : null;
+
+  useEffect(() => {
+    if (getCachedMediaFileUriSync(url, { fileName })) {
+      return;
+    }
+
+    let cancelled = false;
+    void resolveCachedMediaFileUri(url, {
+      fallbackToRemote: false,
+      fileName,
+      forceRetry: retryCount > 0,
+    }).then((uri) => {
+      if (!cancelled) {
+        setState({ failed: uri == null, key, uri });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fileName, key, retryCount, url]);
+
+  return {
+    failed: !syncUri && currentState?.failed === true,
+    loading: !syncUri && currentState?.failed !== true,
+    retry: () => {
+      setState(null);
+      setRetryCount(value => value + 1);
+    },
+    uri: syncUri ?? currentState?.uri ?? null,
+  };
 }
 
 function formatSoundPurpose(purpose?: string | null) {
@@ -157,9 +211,47 @@ type EmbeddedVideoCardProps = {
 };
 
 function EmbeddedVideoCard({ compact, content, fileName, meta, url }: EmbeddedVideoCardProps) {
+  const cachedFile = useCachedMediaFile(url, fileName);
+  const title = fileName?.trim() || content?.trim() || "视频消息";
+
+  if (!cachedFile.uri) {
+    return (
+      <MediaFileLoadState
+        compact={compact}
+        failed={cachedFile.failed}
+        loading={cachedFile.loading}
+        onRetry={cachedFile.retry}
+        title={title}
+        typeLabel="视频"
+      />
+    );
+  }
+
+  return (
+    <EmbeddedVideoPlayer
+      compact={compact}
+      fileName={fileName}
+      meta={meta}
+      remoteUrl={url}
+      title={title}
+      url={cachedFile.uri}
+    />
+  );
+}
+
+type EmbeddedVideoPlayerProps = {
+  compact: boolean;
+  fileName?: string | null;
+  meta: string;
+  remoteUrl: string;
+  title: string;
+  url: string;
+};
+
+function EmbeddedVideoPlayer({ compact, fileName, meta, remoteUrl, title, url }: EmbeddedVideoPlayerProps) {
   const theme = useTheme();
   const player = useVideoPlayer(
-    { uri: url, useCaching: true },
+    { uri: url },
     (instance) => {
       instance.audioMixingMode = "auto";
     },
@@ -177,14 +269,14 @@ function EmbeddedVideoCard({ compact, content, fileName, meta, url }: EmbeddedVi
         style={styles.videoPlayer}
       />
       <View style={{ gap: 2, paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md }}>
-        <ThemedText type="smallBold" numberOfLines={1} accessibilityLabel={fileName?.trim() || content?.trim() || "视频消息"}>{fileName?.trim() || content?.trim() || "视频消息"}</ThemedText>
+        <ThemedText type="smallBold" numberOfLines={1} accessibilityLabel={title}>{title}</ThemedText>
         <ThemedText type="caption" themeColor="textSecondary">
           {hasFirstFrame ? meta || "可内嵌播放" : meta || "视频加载中"}
         </ThemedText>
         <Pressable
-          accessibilityLabel={`打开媒体文件 ${fileName?.trim() || content?.trim() || "视频消息"}`}
+          accessibilityLabel={`打开媒体文件 ${title}`}
           accessibilityRole="button"
-          onPress={() => void openMediaUrl(url, { fileName })}
+          onPress={() => void openMediaUrl(remoteUrl, { fileName })}
           style={({ pressed }) => [
             styles.mediaFallbackButton,
             { backgroundColor: pressed ? theme.backgroundSelected : "transparent" },
@@ -207,12 +299,52 @@ type EmbeddedAudioCardProps = {
 };
 
 function EmbeddedAudioCard({ compact, content, fileName, meta, purpose, url }: EmbeddedAudioCardProps) {
+  const cachedFile = useCachedMediaFile(url, fileName);
+  const purposeLabel = formatSoundPurpose(purpose);
+  const title = fileName?.trim() || content?.trim() || purposeLabel;
+
+  if (!cachedFile.uri) {
+    return (
+      <MediaFileLoadState
+        compact={compact}
+        failed={cachedFile.failed}
+        loading={cachedFile.loading}
+        onRetry={cachedFile.retry}
+        title={title}
+        typeLabel={purposeLabel}
+      />
+    );
+  }
+
+  return (
+    <EmbeddedAudioPlayer
+      compact={compact}
+      fileName={fileName}
+      meta={meta}
+      purposeLabel={purposeLabel}
+      remoteUrl={url}
+      title={title}
+      url={cachedFile.uri}
+    />
+  );
+}
+
+type EmbeddedAudioPlayerProps = {
+  compact: boolean;
+  fileName?: string | null;
+  meta: string;
+  purposeLabel: string;
+  remoteUrl: string;
+  title: string;
+  url: string;
+};
+
+function EmbeddedAudioPlayer({ compact, fileName, meta, purposeLabel, remoteUrl, title, url }: EmbeddedAudioPlayerProps) {
   const theme = useTheme();
-  const source = useMemo(() => ({ name: fileName?.trim() || content?.trim() || "音频消息", uri: url }), [content, fileName, url]);
+  const source = useMemo(() => ({ name: title, uri: url }), [title, url]);
   const player = useAudioPlayer(source, { updateInterval: 500 });
   const status = useAudioPlayerStatus(player);
-  const playbackId = useMemo(() => `audio:${url}`, [url]);
-  const purposeLabel = formatSoundPurpose(purpose);
+  const playbackId = useMemo(() => `audio:${remoteUrl}`, [remoteUrl]);
   const progressText = [
     formatDuration(status.currentTime),
     formatDuration(status.duration),
@@ -253,12 +385,12 @@ function EmbeddedAudioCard({ compact, content, fileName, meta, purpose, url }: E
           : <PlayCircle size={compact ? 24 : 30} color={theme.accent} weight="fill" />}
       </Pressable>
       <View style={styles.textBlock}>
-        <ThemedText type="smallBold" numberOfLines={1} accessibilityLabel={fileName?.trim() || content?.trim() || purposeLabel}>{fileName?.trim() || content?.trim() || purposeLabel}</ThemedText>
+        <ThemedText type="smallBold" numberOfLines={1} accessibilityLabel={title}>{title}</ThemedText>
         <ThemedText type="caption" themeColor="textSecondary">
           {[purposeLabel, progressText || meta || "可内嵌播放"].filter(Boolean).join(" · ")}
         </ThemedText>
         <Pressable
-          onPress={() => void openMediaUrl(url, { fileName })}
+          onPress={() => void openMediaUrl(remoteUrl, { fileName })}
           style={({ pressed }) => [
             styles.mediaFallbackButton,
             { backgroundColor: pressed ? theme.backgroundSelected : "transparent" },
@@ -267,6 +399,44 @@ function EmbeddedAudioCard({ compact, content, fileName, meta, purpose, url }: E
           <ThemedText type="caption" themeColor="accent">系统打开</ThemedText>
         </Pressable>
       </View>
+    </View>
+  );
+}
+
+type MediaFileLoadStateProps = {
+  compact: boolean;
+  failed: boolean;
+  loading: boolean;
+  onRetry: () => void;
+  title: string;
+  typeLabel: string;
+};
+
+function MediaFileLoadState({ compact, failed, loading, onRetry, title, typeLabel }: MediaFileLoadStateProps) {
+  const theme = useTheme();
+  return (
+    <View style={[styles.mediaCard, styles.mediaLoadState, { backgroundColor: theme.backgroundElement }]}>
+      {loading
+        ? <ActivityIndicator color={theme.accent} size={compact ? "small" : "large"} />
+        : <PlayCircle color={theme.textSecondary} size={compact ? 24 : 30} weight="fill" />}
+      <View style={styles.textBlock}>
+        <ThemedText type="smallBold" numberOfLines={1}>{title}</ThemedText>
+        <ThemedText type="caption" themeColor="textSecondary">
+          {failed ? `${typeLabel}下载失败` : `${typeLabel}下载中`}
+        </ThemedText>
+      </View>
+      {failed
+        ? (
+            <Pressable
+              accessibilityLabel={`重新下载${typeLabel}`}
+              accessibilityRole="button"
+              onPress={onRetry}
+              style={styles.mediaFallbackButton}
+            >
+              <ThemedText type="caption" themeColor="accent">重试</ThemedText>
+            </Pressable>
+          )
+        : null}
     </View>
   );
 }

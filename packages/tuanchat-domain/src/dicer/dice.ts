@@ -1,5 +1,4 @@
 // 骰子表达式解析器
-// TODO: 修复连续d解析问题（因该功能使用较少，暂不修复）
 type TokenType = "number" | "operator" | "paren" | "dice";
 
 type Token = {
@@ -19,7 +18,6 @@ class ExpressionParser {
   private tokens: Token[] = [];
   private currentIndex = 0;
   private diceSize = 100;
-  private consecutiveDiceDetected = false;
 
   // 运算符优先级表
   private precedence: Record<string, number> = {
@@ -191,7 +189,6 @@ class ExpressionParser {
    * @returns 解析结果
    */
   parse(expr: string): { result: number; expanded: string } {
-    this.consecutiveDiceDetected = false;
     const processed = this.preprocess(expr);
     this.tokenize(processed);
 
@@ -203,7 +200,7 @@ class ExpressionParser {
 
     return {
       result: exprObj.value,
-      expanded: this.consecutiveDiceDetected ? "[略]" : exprObj.detailed,
+      expanded: exprObj.detailed,
     };
   }
 
@@ -308,11 +305,6 @@ class ExpressionParser {
       // 创建表达式对象
       const exprStr = `${a.expr}d${b.expr}`;
       const detailedStr = `${a.detailed}d${b.detailed}${diceDetails}`;
-
-      // 检查连续骰子操作
-      if (a.isDice) {
-        this.consecutiveDiceDetected = true;
-      }
 
       values.push({
         value: total,
@@ -538,7 +530,7 @@ class ExpressionParser {
  * @example
  * roll("2d6+3") // { result: 8, expanded: "2d6[1+5]+3" }
  * roll("1d10+2d6") // { result: 12, expanded: "1d10[7]+2d6[2+3]" }
- * roll("1d10d100") // { result: 42, expanded: "[略]" }
+ * roll("1d10d100") // { result: 42, expanded: "1d10[3]d100[...骰点]" }
  */
 export function roll(dice: string, diceSize: number = 100): { result: number; expanded: string } {
   const parser = new ExpressionParser(diceSize);

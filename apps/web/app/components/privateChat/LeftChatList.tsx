@@ -1,5 +1,7 @@
 import { useParams } from "@tanstack/react-router";
 
+import { appToast } from "@/components/common/appToast/appToast";
+import { StateView } from "@/components/common/StateView";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { getScreenSize } from "@/utils/getScreenSize";
 
@@ -30,6 +32,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
     realTimeContacts,
     sortedRealTimeMessages,
     deletedThisContactId,
+    restoreDeletedContactId,
   } = usePrivateMessageList({ userId });
 
   // 未读消息数
@@ -46,11 +49,28 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
 
   const { contextMenu, openContextMenu, closeContextMenu } = useContextMenuCommon();
 
+  const hideContactId = (contactId: number) => {
+    if (contactId <= 0) {
+      return;
+    }
+    deletedThisContactId(contactId);
+    appToast.info({
+      title: "已隐藏会话",
+      description: "收到新消息或重新发起私聊后会自动恢复。",
+      actions: [
+        {
+          label: "撤销",
+          onClick: () => restoreDeletedContactId(contactId),
+        },
+      ],
+    });
+  };
+
   const menuItems = [
     {
-      label: "删除消息",
+      label: "隐藏会话",
       onClick: () => {
-        deletedThisContactId(contextMenu?.id || -1);
+        hideContactId(contextMenu?.id || -1);
       },
     },
   ];
@@ -75,10 +95,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
         {isLoading
           // 1.加载中
           ? (
-              <div className="flex items-center justify-center h-32">
-                <span className="loading loading-spinner loading-md"></span>
-                <span className="ml-2">加载私聊列表...</span>
-              </div>
+              <StateView loading title="加载私聊列表..." className="h-32 py-0" />
             )
           // 2.显示私聊列表
           : (
@@ -91,7 +108,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
                 setIsOpenLeftDrawer={setIsOpenLeftDrawer}
                 unreadMessageNumbers={unreadMessageNumbers}
                 currentContactUserId={currentContactUserId}
-                deletedThisContactId={deletedThisContactId}
+                deletedThisContactId={hideContactId}
                 openContextMenu={openContextMenu}
               />
             )}

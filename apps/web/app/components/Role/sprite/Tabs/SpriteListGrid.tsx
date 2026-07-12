@@ -1,13 +1,19 @@
 import type { ReactNode } from "react";
 
 import { CaretDownIcon, CaretRightIcon, CheckCircleIcon, ImageSquareIcon } from "@phosphor-icons/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useRef, useState } from "react";
 
 import type { RoleAvatar, RoleAvatarVariant } from "api";
 
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
+import { FileInput } from "@/components/common/FormField";
 import { MediaImage } from "@/components/common/mediaImage";
+import PortalTooltip from "@/components/common/portalTooltip";
+import { Badge, CountBadge } from "@/components/common/StatusPrimitives";
+import { CollapsibleMotion } from "@/components/common/motion/CollapsibleMotion";
+import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
 import { BaselineDeleteOutline } from "@/icons";
 import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
 
@@ -306,7 +312,11 @@ export function SpriteListGrid({
     const isAvatarDraggable = Boolean(onAvatarDragStart);
 
     return (
-      <div key={avatar.avatarId} className="min-w-0 flex flex-col">
+      <motion.div
+        key={avatar.avatarId}
+        className={`min-w-0 flex flex-col ${isSelected ? "relative z-10" : ""}`}
+        {...structuralListItemMotionProps()}
+      >
         <div className="group/avatar-tile relative w-full overflow-visible">
           <button
             type="button"
@@ -337,7 +347,7 @@ export function SpriteListGrid({
               cursor-pointer
               ${
               isSelected
-                ? "border-info shadow-lg ring-2 ring-info/30"
+                ? "border-info shadow-lg ring-2 ring-inset ring-info/30"
                 : `
                   border-base-300
                   hover:border-info/50 hover:shadow-md
@@ -412,9 +422,11 @@ export function SpriteListGrid({
           </button>
 
           {onSetDefaultAvatar && (
-            <div
-              className={`
-                tooltip tooltip-top absolute bottom-1.5 left-1.5 z-20
+            <PortalTooltip
+              label={isCurrentAvatar ? "当前默认头像" : "设为默认头像"}
+              placement="top"
+              anchorClassName={`
+                absolute bottom-1.5 left-1.5 z-20
                 transition-all duration-200
                 ${
                   isCurrentAvatar
@@ -422,7 +434,6 @@ export function SpriteListGrid({
                     : "opacity-0 translate-y-1 group-hover/avatar-tile:opacity-100 group-hover/avatar-tile:translate-y-0 group-focus-within/avatar-tile:opacity-100 group-focus-within/avatar-tile:translate-y-0"
                 }
               `}
-              data-tip={isCurrentAvatar ? "当前默认头像" : "设为默认头像"}
             >
               {isCurrentAvatar
                 ? (
@@ -461,12 +472,12 @@ export function SpriteListGrid({
                       aria-label="设为默认头像"
                     >
                       {isSettingDefaultAvatar
-                        ? <span className="loading loading-spinner loading-xs" aria-hidden="true" />
+                        ? <span className="size-3.5 animate-spin rounded-full border-2 border-neutral-content/30 border-t-neutral-content" aria-hidden="true" />
                         : <CheckCircleIcon className="size-3.5" aria-hidden="true" />}
                       设默认
                     </button>
                   )}
-            </div>
+            </PortalTooltip>
           )}
 
           {showTileTools && (
@@ -505,7 +516,7 @@ export function SpriteListGrid({
                     aria-label={canReplaceAvatarSource ? "替换源图" : "当前头像无法替换源图"}
                   >
                     {isReplacingAvatarSource
-                      ? <span className="loading loading-spinner loading-xs" aria-hidden="true" />
+                      ? <span className="size-4 animate-spin rounded-full border-2 border-neutral-content/30 border-t-neutral-content" aria-hidden="true" />
                       : <ImageSquareIcon className="size-4" aria-hidden="true" />}
                   </button>
                   <span
@@ -560,7 +571,8 @@ export function SpriteListGrid({
           disabled={!canEditName || updateNameMutation.isPending}
           className="text-xs text-center text-base-content/70 w-full"
           displayClassName={`block truncate ${canEditName ? "cursor-text" : ""}`}
-          inputClassName="input input-xs w-full text-center"
+          inputDensity="compact"
+          inputClassName="w-full text-center"
           placeholder={`头像${index + 1}`}
           invalidBehavior="revert"
           validate={nextValue => (nextValue.trim().length ? null : "头像名称不能为空")}
@@ -569,7 +581,7 @@ export function SpriteListGrid({
             title: canEditName ? "双击修改头像标题" : avatarName,
           }}
         />
-      </div>
+      </motion.div>
     );
   };
 
@@ -709,9 +721,8 @@ export function SpriteListGrid({
 
   return (
     <>
-      <input
+      <FileInput
         ref={replaceAvatarInputRef}
-        type="file"
         accept="image/*"
         className="hidden"
         onChange={(event) => {
@@ -841,33 +852,34 @@ export function SpriteListGrid({
                         </span>
                         <span className="flex shrink-0 items-center gap-1">
                           {isMultiSelectMode && selectedInGroupCount > 0 && (
-                            <span className="badge badge-info badge-xs">
+                            <Badge tone="info">
                               已选
                               {" "}
                               {selectedInGroupCount}
-                            </span>
+                            </Badge>
                           )}
-                          <span className="badge badge-ghost badge-xs">
+                          <CountBadge tone="neutral">
                             {group.items.length}
-                          </span>
+                          </CountBadge>
                         </span>
                       </button>
-                      {!isCollapsed && (
-                        <div
-                          className={`
-                            grid w-full min-w-0 ${gridCols} gap-2 content-start
-                          `}
-                          style={groupedGridTemplateColumns
-                            ? { gridTemplateColumns: groupedGridTemplateColumns }
-                            : undefined}
-                        >
+                      <CollapsibleMotion
+                        open={!isCollapsed}
+                        className={`
+                          grid w-full min-w-0 ${gridCols} gap-2 content-start
+                        `}
+                        style={groupedGridTemplateColumns
+                          ? { gridTemplateColumns: groupedGridTemplateColumns }
+                          : undefined}
+                      >
+                        <AnimatePresence initial={false} mode="popLayout">
                           {group.items.map(item => renderAvatarTile(item.avatar, item.index))}
-                          {renderUploadTile({
-                            category: group.category,
-                            variantId: uploadVariantId,
-                          }, uploadTargetId)}
-                        </div>
-                      )}
+                        </AnimatePresence>
+                        {renderUploadTile({
+                          category: group.category,
+                          variantId: uploadVariantId,
+                        }, uploadTargetId)}
+                      </CollapsibleMotion>
                     </section>
                   );
                 })}
@@ -888,7 +900,9 @@ export function SpriteListGrid({
                     {beforeContentSlot}
                   </div>
                 )}
-                {avatars.map((avatar, index) => renderAvatarTile(avatar, index))}
+                <AnimatePresence initial={false} mode="popLayout">
+                  {avatars.map((avatar, index) => renderAvatarTile(avatar, index))}
+                </AnimatePresence>
                 {uploadTile}
               </div>
             )}

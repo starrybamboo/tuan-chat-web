@@ -103,7 +103,7 @@ export function ChatSearchPage({ messages, onClose, onScrollToMessage, roomRoles
           />
           {query.length > 0
             ? (
-                <Pressable onPress={() => setQuery("")} hitSlop={8}>
+                <Pressable accessibilityLabel="清空搜索" accessibilityRole="button" onPress={() => setQuery("")} hitSlop={8}>
                   <X size={14} color={theme.textSecondary} />
                 </Pressable>
               )

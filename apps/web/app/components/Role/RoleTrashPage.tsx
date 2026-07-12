@@ -9,10 +9,17 @@ import {
   useClearSpaceNpcRoleTrashMutation,
   useHardDeleteRolesMutation,
 } from "api/hooks/RoleAndAvatarHooks";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 
+import { Button } from "@/components/common/Button";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { Surface, surfaceClassName, Text } from "@/components/common/DesignLanguage";
+import { SelectInput } from "@/components/common/FormField";
+import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { StateView } from "@/components/common/StateView";
+import { Badge, CountBadge, Skeleton } from "@/components/common/StatusPrimitives";
 
 import type { Role } from "./types";
 
@@ -43,10 +50,7 @@ function RoleTrashItem({
   const roleSummary = `${displayName}，${typeLabel}，ID ${role.id}`;
 
   return (
-    <div className="
-      flex items-center gap-3 rounded-lg border border-base-content/10 bg-base-100
-      p-3 shadow-xs
-    ">
+    <Surface level="content" className="flex items-center gap-3 p-3 shadow-sm">
       <RoleAvatarComponent
         avatarId={role.avatarId}
         avatarUrl={role.avatar}
@@ -62,7 +66,7 @@ function RoleTrashItem({
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-2">
           <h3 className="truncate font-medium" title={roleSummary}>{displayName}</h3>
-          <span className="badge badge-ghost shrink-0 text-xs">{typeLabel}</span>
+          <Badge className="shrink-0">{typeLabel}</Badge>
         </div>
         <p className="mt-1 truncate text-xs text-base-content/60" title={`#${role.id} · ${role.description || "暂无描述"}`}>
           #
@@ -71,9 +75,11 @@ function RoleTrashItem({
           {role.description || "暂无描述"}
         </p>
       </div>
-      <button
+      <Button
         type="button"
-        className="btn btn-error btn-sm shrink-0"
+        variant="error"
+        size="sm"
+        className="shrink-0"
         disabled={isDeleting}
         onClick={() => onHardDelete(role)}
         aria-label={`永久删除 ${roleSummary}`}
@@ -81,8 +87,8 @@ function RoleTrashItem({
       >
         <TrashSimpleIcon size={16} weight="regular" />
         硬删除
-      </button>
-    </div>
+      </Button>
+    </Surface>
   );
 }
 
@@ -194,17 +200,17 @@ export default function RoleTrashPage() {
         <div>
           <div className="flex items-center gap-2">
             <TrashSimpleIcon size={24} weight="regular" className="text-error" />
-            <h1 className="text-2xl font-bold">回收站</h1>
-            <span className="badge badge-neutral">{trashModel.total}</span>
-            <span className="badge badge-ghost">{scopeTitle}</span>
+            <Text as="h1" variant="pageTitle">回收站</Text>
+            <CountBadge tone="neutral">{trashModel.total}</CountBadge>
+            <Badge>{scopeTitle}</Badge>
           </div>
-          <p className="mt-1 text-sm text-base-content/60">
+          <Text as="p" variant="supporting" wrap="pretty" className="mt-1">
             {description}
-          </p>
+          </Text>
           {isSpaceNpcTrash && (
             <div className="mt-3 max-w-xs">
-              <select
-                className="select select-bordered select-sm w-full"
+              <SelectInput
+                density="compact"
                 value={effectiveSpaceId > 0 ? String(effectiveSpaceId) : ""}
                 disabled={spacesQuery.isLoading || availableSpaces.length === 0}
                 onChange={event => setSelectedSpaceId(Number(event.target.value))}
@@ -216,23 +222,25 @@ export default function RoleTrashPage() {
                         {space.name || `空间 #${space.spaceId}`}
                       </option>
                     ))}
-              </select>
+              </SelectInput>
             </div>
           )}
         </div>
         <div className="flex gap-2">
-          <button
+          <Button
             type="button"
-            className="btn btn-error btn-sm"
+            variant="error"
+            size="sm"
             onClick={() => setClearConfirmOpen(true)}
             disabled={clearDisabled}
           >
             <TrashSimpleIcon size={16} weight="regular" />
             清空回收站
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="btn btn-ghost btn-sm"
+            variant="ghost"
+            size="sm"
             onClick={() => void trashModel.refetch()}
             disabled={trashModel.isFetching}
             aria-busy={trashModel.isFetching}
@@ -244,70 +252,69 @@ export default function RoleTrashPage() {
               className={trashModel.isFetching ? "animate-spin motion-reduce:animate-none" : ""}
             />
             刷新
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="btn btn-outline btn-sm"
+            variant="outline"
+            size="sm"
             onClick={() => router.history.push("/role")}
           >
             返回角色
-          </button>
+          </Button>
         </div>
       </div>
 
       {isSpaceNpcTrash && !spacesQuery.isLoading && availableSpaces.length === 0
         ? (
-            <div className="
-              rounded-lg border border-dashed border-base-content/20 bg-base-100
-              px-6 py-12 text-center text-base-content/60
-            ">
-              暂无可查看的空间
-            </div>
+            <StateView kind="empty" title="暂无可查看的空间" className={surfaceClassName()} />
           )
         : trashModel.isLoading || (isSpaceNpcTrash && spacesQuery.isLoading)
         ? (
             <div className="space-y-2" role="status" aria-label="正在加载回收站">
-              <div className="skeleton h-20 w-full rounded-lg" />
-              <div className="skeleton h-20 w-full rounded-lg" />
-              <div className="skeleton h-20 w-full rounded-lg" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
             </div>
           )
         : trashModel.isError
           ? (
-              <div className="
-                rounded-lg border border-error/20 bg-error/5 px-6 py-10 text-center
-              ">
-                <p className="font-medium text-error">回收站加载失败</p>
-                <p className="mt-2 text-sm text-base-content/60">请检查后端服务后重试。</p>
-                <button
-                  type="button"
-                  className="btn btn-error btn-sm mt-4"
-                  onClick={() => void trashModel.refetch()}
-                  disabled={trashModel.isFetching}
-                >
-                  重试
-                </button>
-              </div>
+              <StateView
+                kind="error"
+                title="回收站加载失败"
+                description="请检查后端服务后重试。"
+                actionLabel="重试"
+                onAction={() => void trashModel.refetch()}
+                className={surfaceClassName({ className: "border-error/20" })}
+              />
             )
         : trashModel.roles.length === 0
           ? (
-              <div className="
-                rounded-lg border border-dashed border-base-content/20 bg-base-100
-                px-6 py-12 text-center text-base-content/60
-              ">
-                {hasSearch ? "没有匹配的已删除项目" : "回收站为空"}
-              </div>
+              <StateView
+                kind="empty"
+                title={hasSearch ? "没有匹配的已删除项目" : "回收站为空"}
+                className={surfaceClassName()}
+              />
             )
           : (
               <div className="space-y-2">
-                {trashModel.roles.map(role => (
-                  <RoleTrashItem
-                    key={role.id}
-                    role={role}
-                    onHardDelete={setPendingHardDeleteRole}
-                    isDeleting={hardDeleteMutation.isPending && pendingHardDeleteRole?.id === role.id}
-                  />
-                ))}
+                <AnimatePresence initial={false} mode="popLayout">
+                  {trashModel.roles.map((role, index) => (
+                    <motion.div
+                      key={role.id}
+                      {...structuralListItemMotionProps({
+                        index,
+                        staggerDelay: 0.02,
+                        maxDelay: 0.12,
+                      })}
+                    >
+                      <RoleTrashItem
+                        role={role}
+                        onHardDelete={setPendingHardDeleteRole}
+                        isDeleting={hardDeleteMutation.isPending && pendingHardDeleteRole?.id === role.id}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             )}
 

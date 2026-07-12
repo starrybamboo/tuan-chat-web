@@ -1,6 +1,7 @@
 import * as htmltoimage from "html-to-image";
 import { appToast } from "@/components/common/appToast/appToast";
 
+import { Button } from "@/components/common/Button";
 import { SharpDownload } from "@/icons";
 
 // 加载图片函数
@@ -145,16 +146,13 @@ export default function SavePictureButton({ targetRef, qrLink, className }: Save
   };
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="primary"
       onClick={handleShare}
-      className={`
-        btn btn-primary
-        ${className}
-      `}
+      className={className}
     >
       <SharpDownload className="w-5 h-5" />
       保存图片
-    </button>
+    </Button>
   );
 }

@@ -4,6 +4,8 @@ import { appToast } from "@/components/common/appToast/appToast";
 
 import type { UserNotificationItem } from "@/components/notification/notificationTypes";
 
+import { Button } from "@/components/common/Button";
+import { StateView } from "@/components/common/StateView";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import {
   useMarkAllNotificationsReadMutation,
@@ -60,13 +62,11 @@ export default function NotificationPage() {
           mx-auto flex min-h-[60vh] max-w-3xl items-center justify-center px-4
           py-10
         ">
-          <div className="
-            rounded-3xl border border-base-300 bg-base-100 px-6 py-8 text-center
-            shadow-sm
-          ">
-            <div className="text-xl font-semibold">通知中心</div>
-            <div className="mt-2 text-sm opacity-70">请先登录后查看你的反馈通知。</div>
-          </div>
+          <StateView
+            title="通知中心"
+            description="请先登录后查看你的反馈通知。"
+            className="rounded-xl border border-base-300 bg-base-100 px-6 py-8 shadow-sm"
+          />
         </div>
       </div>
     );
@@ -95,45 +95,40 @@ export default function NotificationPage() {
               <p className="mt-2 text-sm opacity-70">反馈的创建、状态变更、评论和回复会持久化记录在这里。</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                className={`
-                  btn btn-sm
-                  ${!unreadOnly ? "btn-info" : `btn-ghost`}
-                `}
+              <Button
+                variant={!unreadOnly ? "outline" : "ghost"}
+                size="sm"
+                className={!unreadOnly ? "border-info/45 text-info hover:border-info/70 hover:bg-info/10" : undefined}
                 onClick={() => setUnreadOnly(false)}
                 aria-pressed={!unreadOnly}
               >
                 全部
-              </button>
-              <button
-                type="button"
-                className={`
-                  btn btn-sm
-                  ${unreadOnly ? "btn-info" : `btn-ghost`}
-                `}
+              </Button>
+              <Button
+                variant={unreadOnly ? "outline" : "ghost"}
+                size="sm"
+                className={unreadOnly ? "border-info/45 text-info hover:border-info/70 hover:bg-info/10" : undefined}
                 onClick={() => setUnreadOnly(true)}
                 aria-pressed={unreadOnly}
               >
                 未读
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline btn-sm"
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                loading={markAllReadMutation.isPending}
                 disabled={(unreadCountQuery.data?.unreadCount ?? 0) <= 0 || markAllReadMutation.isPending}
                 onClick={() => void markAllReadMutation.mutateAsync({})}
                 aria-busy={markAllReadMutation.isPending}
                 title={(unreadCountQuery.data?.unreadCount ?? 0) <= 0 ? "没有未读通知" : undefined}
               >
                 全部已读
-              </button>
+              </Button>
             </div>
           </div>
 
           <div className="px-6 py-5">
-            <Suspense fallback={<div className="
-              flex min-h-40 items-center justify-center text-sm opacity-70
-            ">正在加载通知...</div>}>
+            <Suspense fallback={<StateView loading title="正在加载通知" className="min-h-40 py-8" />}>
               <LazyNotificationList
                 items={notifications}
                 emptyText={unreadOnly ? "当前没有未读通知。" : "还没有通知。"}
@@ -146,15 +141,16 @@ export default function NotificationPage() {
             {notificationsQuery.hasNextPage
               ? (
                   <div className="mt-4 flex justify-center">
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-sm"
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      loading={notificationsQuery.isFetchingNextPage}
                       disabled={notificationsQuery.isFetchingNextPage}
                       onClick={() => void notificationsQuery.fetchNextPage()}
                       aria-busy={notificationsQuery.isFetchingNextPage}
                     >
-                      {notificationsQuery.isFetchingNextPage ? "正在加载..." : "加载更多"}
-                    </button>
+                      加载更多
+                    </Button>
                   </div>
                 )
               : null}

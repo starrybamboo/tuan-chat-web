@@ -1,20 +1,23 @@
 import { ExportIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { fetchUserInfoWithCache } from "@tuanchat/query/users";
+import { fetchClientMetadataBatchWithCache } from "@tuanchat/query/metadata";
 import { use, useMemo, useState } from "react";
-import { appToast } from "@/components/common/appToast/appToast";
 
 import type { ExportOptions } from "@/utils/exportChatMessages";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { filterVisibleChatMessages } from "@/components/chat/utils/hiddenDiceVisibility";
+import { appToast } from "@/components/common/appToast/appToast";
+import { Button } from "@/components/common/Button";
+import { Checkbox, ChoiceField, FieldLabel, Radio } from "@/components/common/FormField";
+import { IconButton } from "@/components/common/IconButton";
+import { Divider } from "@/components/common/StatusPrimitives";
 import { exportChatMessages } from "@/utils/exportChatMessages";
 
 import type { ChatMessageResponse } from "../../../../../api";
 
 import { fetchRoomInfoWithCache, fetchSpaceInfoWithCache } from "../../../../../api/hooks/chatQueryHooks";
-import { fetchRoleWithCache, useGetRolesQueries } from "../../../../../api/hooks/RoleAndAvatarHooks";
 import { tuanchat } from "../../../../../api/instance";
 
 /**
@@ -47,22 +50,15 @@ export default function ExportChatDrawer({ messages, onClose }: ExportChatDrawer
     return [...base].sort(compareChatMessageResponsesByOrder);
   }, [messages, roomContext.chatHistory?.messages, roomContext.curMember?.memberType, roomContext.curMember?.userId]);
 
-  // 获取所有角色信息用于导出
-  const getRolesQueries = useGetRolesQueries(
-    roomContext.roomRolesThatUserOwn.map(role => role.roleId),
-  );
-
-  // 构建角色映射
   const roleMap = useMemo(() => {
     const map = new Map<number, string>();
-    getRolesQueries.forEach((query: any) => {
-      const role = query.data?.data;
+    (roomContext.roomAllRoles ?? []).forEach((role) => {
       if (role?.roleId && role?.roleName) {
         map.set(role.roleId, role.roleName);
       }
     });
     return map;
-  }, [getRolesQueries]);
+  }, [roomContext.roomAllRoles]);
 
   const queryClient = useQueryClient();
 
@@ -108,31 +104,34 @@ export default function ExportChatDrawer({ messages, onClose }: ExportChatDrawer
         }
       });
 
-      // 获取所有角色的信息
-      for (const roleId of roleIds) {
-        if (roleId <= 0 || allRoleMap.has(roleId)) {
-          continue;
-        }
-        const roleInfo = await fetchRoleWithCache(queryClient, roleId);
-        if (roleInfo.data?.roleId && roleInfo.data?.roleName) {
-          allRoleMap.set(roleInfo.data.roleId, roleInfo.data.roleName);
-        }
-      }
+      const missingRoleIds = [...roleIds].filter(roleId => roleId > 0 && !allRoleMap.has(roleId));
 
-      // 构建用户映射 - 从缓存或API中获取用户信息
       const userMap = new Map<number, string>();
+      roomContext.roomMembers.forEach((member) => {
+        if (member.userId && member.username) {
+          userMap.set(member.userId, member.username);
+        }
+      });
       const userIds = new Set<number>();
       historyMessages.forEach((msg) => {
         userIds.add(msg.message.userId);
       });
 
-      // 获取所有用户的信息
-      for (const userId of userIds) {
-        const userInfo = await fetchUserInfoWithCache(queryClient, tuanchat, userId);
-        if (userInfo.data?.userId && userInfo.data?.username) {
-          userMap.set(userInfo.data.userId, userInfo.data.username);
+      const missingUserIds = [...userIds].filter(userId => userId > 0 && !userMap.has(userId));
+      const metadata = await fetchClientMetadataBatchWithCache(queryClient, tuanchat, {
+        roleIds: missingRoleIds,
+        userIds: missingUserIds,
+      });
+      Object.values(metadata.roles ?? {}).forEach((role) => {
+        if (role.roleId && role.roleName) {
+          allRoleMap.set(role.roleId, role.roleName);
         }
-      }
+      });
+      Object.values(metadata.users ?? {}).forEach((user) => {
+        if (user.userId && user.username) {
+          userMap.set(user.userId, user.username);
+        }
+      });
 
       exportChatMessages(historyMessages, allRoleMap, userMap, fileName, exportOptions);
       appToast.success("导出成功!");
@@ -170,97 +169,90 @@ export default function ExportChatDrawer({ messages, onClose }: ExportChatDrawer
           {historyMessages.length}
         </h3>
         {onClose && (
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost btn-circle"
+          <IconButton
+            variant="ghost"
+            size="sm"
+            shape="circle"
             onClick={onClose}
-          >
-            ✕
-          </button>
+            label="关闭导出抽屉"
+            icon={<span aria-hidden="true">✕</span>}
+          />
         )}
       </div>
 
-      <div className="divider my-0"></div>
+      <Divider className="my-0" />
 
       {/* 导出选项 */}
       <div className="flex flex-col gap-3">
         <h4 className="text-base font-medium">导出选项</h4>
 
         {/* 时间戳选项 */}
-        <label className="label cursor-pointer justify-start gap-3">
-          <input
-            type="checkbox"
-            className="checkbox checkbox-sm"
-            checked={exportOptions.includeTimestamp}
-            onChange={() => toggleOption("includeTimestamp")}
-          />
-          <span className="label-text">包含时间戳</span>
-        </label>
+        <ChoiceField id="export-include-timestamp" label="包含时间戳">
+          {controlProps => (
+            <Checkbox
+              {...controlProps}
+              density="compact"
+              checked={exportOptions.includeTimestamp}
+              onChange={() => toggleOption("includeTimestamp")}
+            />
+          )}
+        </ChoiceField>
 
         {/* 用户名选项 */}
-        <label className="label cursor-pointer justify-start gap-3">
-          <input
-            type="checkbox"
-            className="checkbox checkbox-sm"
-            checked={exportOptions.includeUsername}
-            onChange={() => toggleOption("includeUsername")}
-          />
-          <span className="label-text">包含用户名</span>
-        </label>
+        <ChoiceField id="export-include-username" label="包含用户名">
+          {controlProps => (
+            <Checkbox
+              {...controlProps}
+              density="compact"
+              checked={exportOptions.includeUsername}
+              onChange={() => toggleOption("includeUsername")}
+            />
+          )}
+        </ChoiceField>
 
         {/* 日期格式选项 */}
         {exportOptions.includeTimestamp && (
           <div className="flex flex-col gap-2">
-            <span className="label-text font-medium">日期格式</span>
+            <FieldLabel>日期格式</FieldLabel>
             <div className="flex flex-col gap-2 pl-4">
-              <label className="label cursor-pointer justify-start gap-3">
-                <input
-                  type="radio"
-                  name="dateFormat"
-                  className="radio radio-sm"
-                  checked={exportOptions.dateFormat === "full"}
-                  onChange={() => setDateFormat("full")}
-                />
-                <span className="label-text">完整(日期+时间)</span>
-              </label>
-              <label className="label cursor-pointer justify-start gap-3">
-                <input
-                  type="radio"
-                  name="dateFormat"
-                  className="radio radio-sm"
-                  checked={exportOptions.dateFormat === "short"}
-                  onChange={() => setDateFormat("short")}
-                />
-                <span className="label-text">简短(仅时间)</span>
-              </label>
+              <ChoiceField id="export-date-format-full" label="完整(日期+时间)">
+                {controlProps => (
+                  <Radio
+                    {...controlProps}
+                    density="compact"
+                    name="dateFormat"
+                    checked={exportOptions.dateFormat === "full"}
+                    onChange={() => setDateFormat("full")}
+                  />
+                )}
+              </ChoiceField>
+              <ChoiceField id="export-date-format-short" label="简短(仅时间)">
+                {controlProps => (
+                  <Radio
+                    {...controlProps}
+                    density="compact"
+                    name="dateFormat"
+                    checked={exportOptions.dateFormat === "short"}
+                    onChange={() => setDateFormat("short")}
+                  />
+                )}
+              </ChoiceField>
             </div>
           </div>
         )}
       </div>
 
-      <div className="divider my-2"></div>
+      <Divider className="my-2" />
 
       {/* 导出按钮 */}
-      <button
-        type="button"
-        className={`
-          btn btn-primary
-          ${isExporting ? "btn-disabled" : ""}
-        `}
+      <Button
+        variant="primary"
         onClick={handleExport}
+        loading={isExporting}
         disabled={isExporting || historyMessages.length === 0}
       >
-        {isExporting
-          ? (
-              <>
-                <span className="loading loading-spinner loading-sm"></span>
-                导出中...
-              </>
-            )
-          : (
-              "导出为 TXT 文件"
-            )}
-      </button>
+        {isExporting ? "导出中..." : "导出为 TXT 文件"}
+      </Button>
 
       {/* 说明文字 */}
       <div className="text-xs opacity-60 mt-auto">

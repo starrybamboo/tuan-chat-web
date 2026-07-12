@@ -17,6 +17,7 @@
     "./message-type": "./src/messageType.ts",
     "./notification": "./src/notification.ts",
     "./open-api-result": "./src/open-api-result.ts",
+    "./poke-message": "./src/poke-message.ts",
     "./role-api-error": "./src/role-api-error.ts",
     "./room-identity": "./src/room-identity.ts",
     "./sidebar-tree": "./src/sidebar-tree.ts",

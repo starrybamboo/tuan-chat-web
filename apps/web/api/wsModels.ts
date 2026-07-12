@@ -23,6 +23,7 @@ export enum MessageType {
     WEBGAL_CHOOSE = 13,
     VIDEO = 14,
     STATE_EVENT = 15,
+    POKE = 16,
     CLUE_CARD = 1000,
     ROOM_JUMP = 1003,
 }
@@ -135,10 +136,14 @@ export interface DirectMessageEvent {
  * Corresponds to message type 17.
  */
 export type ChatStatusType = "idle" | "wait" | "input" | "leave";
+export interface ChatStatusPayload {
+    type: ChatStatusType;
+    description: string;
+}
 export interface ChatStatusEvent {
     roomId: number;  // 状态变更发生的房间ID
     userId: number;  // 状态变更的成员ID
-    status: ChatStatusType ;
+    status: ChatStatusPayload;
     windowId?: string; // 可选的窗口标识符，用于区分多窗口环境下的状态更新
 }
 

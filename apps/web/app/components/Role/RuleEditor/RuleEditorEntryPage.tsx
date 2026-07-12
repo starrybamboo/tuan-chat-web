@@ -4,6 +4,9 @@ import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useGlobalUserId } from "@/components/globalContextProvider";
+import { Button } from "@/components/common/Button";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
+import { FieldDescription, FieldGroup, TextArea, TextInput } from "@/components/common/FormField";
 import CreatePageHeader from "@/components/Role/RoleCreation/CreatePageHeader";
 import RulesSection from "@/components/Role/rules/RulesSection";
 
@@ -103,20 +106,17 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             {onBack && (
-              <button type="button" className="btn btn-sm btn-ghost" onClick={onBack}>
+              <Button variant="ghost" size="sm" onClick={onBack}>
                 <span aria-hidden="true">←</span>
                 返回上一步
-              </button>
+              </Button>
             )}
             <h1 className="font-semibold text-xl">创建规则</h1>
           </div>
-          <button
-            type="button"
-            className="
-              btn btn-sm
-              md:btn-lg
-              rounded-lg btn-primary
-            "
+          <Button
+            variant="primary"
+            size="sm"
+            className="rounded-lg md:h-12 md:min-h-12 md:px-6 md:text-lg"
             onClick={handleCreate}
             disabled={!canCreate}
             title={canCreate ? "创建新规则" : "请先填写规则名称和规则描述"}
@@ -125,67 +125,56 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
               <Plus className="size-4" weight="regular" />
               创建新规则
             </span>
-          </button>
+          </Button>
         </div>
         <p className="text-sm text-base-content/60">创建规则作为角色能力的模板值</p>
       </div>
 
       <div className="grid grid-cols-1 gap-5">
-        <div className="
-          card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10
-        ">
+        <div className={surfaceClassName({ level: "content", className: "border-2 border-base-content/10 shadow-xs" })}>
           <div className="
-            card-body p-4
+            p-4
             md:p-5
             space-y-3
           ">
-            <h2 className="card-title flex items-center gap-2 mb-2">基础信息设置</h2>
+            <h2 className="mb-2 flex items-center gap-2 text-component-title font-medium">基础信息设置</h2>
 
             <div className="space-y-4">
-              <div className="form-control">
+              <FieldGroup>
                 <div className="flex gap-2 mb-2 items-center font-semibold">
                   <label htmlFor="rule-editor-entry-name">规则名称</label>
-                  <span className="label-text-alt text-base-content/60">
+                  <FieldDescription as="span">
                     {ruleName.length}
                     /
                     {RULE_NAME_MAX_LENGTH}
-                  </span>
+                  </FieldDescription>
                 </div>
-                <input
+                <TextInput
+                  surface="muted"
                   id="rule-editor-entry-name"
                   type="text"
                   autoComplete="off"
                   aria-label="规则名称"
-                  className="
-                    input input-bordered bg-base-200 rounded-md w-full
-                    transition
-                    focus:outline-none focus:ring-2 focus:ring-info/20
-                    focus:border-info
-                  "
                   placeholder="输入规则名称"
                   value={ruleName}
                   maxLength={RULE_NAME_MAX_LENGTH}
                   onChange={e => setRuleName(e.target.value)}
                 />
-              </div>
+              </FieldGroup>
 
-              <div className="form-control">
+              <FieldGroup>
                 <div className="flex gap-2 mb-2 items-center font-semibold">
                   <label htmlFor="rule-editor-entry-description">规则描述</label>
-                  <span className="label-text-alt text-base-content/60">
+                  <FieldDescription as="span">
                     {ruleDescription.length}
                     /
                     {RULE_DESCRIPTION_MAX_LENGTH}
-                  </span>
+                  </FieldDescription>
                 </div>
-                <textarea
+                <TextArea
+                  surface="muted"
                   id="rule-editor-entry-description"
-                  className="
-                    textarea textarea-bordered bg-base-200 rounded-md
-                    min-h-[120px] resize-y w-full transition
-                    focus:outline-none focus:ring-2 focus:ring-info/20
-                    focus:border-info
-                  "
+                  className="min-h-[120px]"
                   autoComplete="off"
                   aria-label="规则描述"
                   placeholder="描述规则定位、核心机制和适用场景"
@@ -193,44 +182,38 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
                   maxLength={RULE_DESCRIPTION_MAX_LENGTH}
                   onChange={e => setRuleDescription(e.target.value)}
                 />
-              </div>
+              </FieldGroup>
             </div>
           </div>
         </div>
 
-        <div className="
-          card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10
-        ">
+        <div className={surfaceClassName({ level: "content", className: "border-2 border-base-content/10 shadow-xs" })}>
           <div className="
-            card-body p-4
+            p-4
             md:p-5
             space-y-3
           ">
             <div className="
               flex items-center gap-2 rounded-lg bg-base-200 p-1 w-fit
             ">
-              <button
-                type="button"
-                className={`
-                  btn btn-sm rounded-md
-                  ${scope === "all" ? `btn-info` : `btn-ghost`}
-                `}
+              <Button
+                variant={scope === "all" ? "outline" : "ghost"}
+                size="sm"
+                className={`rounded-md ${scope === "all" ? "border-info/45 text-info hover:border-info/70 hover:bg-info/10" : ""}`}
                 onClick={() => setScope("all")}
                 aria-pressed={scope === "all"}
               >
                 全部规则模板
-              </button>
-              <button
-                type="button"
-                className={`
-                  btn btn-sm rounded-md
-                  ${scope === "mine" ? `btn-info` : `btn-ghost`}
-                `}
+              </Button>
+              <Button
+                variant={scope === "mine" ? "outline" : "ghost"}
+                size="sm"
+                className={`rounded-md ${scope === "mine" ? "border-info/45 text-info hover:border-info/70 hover:bg-info/10" : ""}`}
                 onClick={() => setScope("mine")}
                 aria-pressed={scope === "mine"}
               >
                 我的规则模板
-              </button>
+              </Button>
             </div>
 
             <RulesSection

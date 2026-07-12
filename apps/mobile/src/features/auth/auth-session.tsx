@@ -6,7 +6,7 @@ import * as Linking from "expo-linking";
 import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
 
 import { logNotificationTrace, logNotificationTraceError } from "@/features/notifications/notificationTrace";
-import { mobileApiClient } from "@/lib/api";
+import { getMobileApiBaseUrl, mobileApiClient } from "@/lib/api";
 import { mobileQueryClient } from "@/providers/query-client";
 
 import type { StoredAuthSession } from "./auth-storage";
@@ -49,6 +49,8 @@ async function performLogin(input: LoginInput): Promise<StoredAuthSession> {
   }
 
   logNotificationTrace("auth.login.start", {
+    apiBaseUrl: getMobileApiBaseUrl(),
+    endpoint: "/user/login",
     identifier,
     method: input.method,
   });

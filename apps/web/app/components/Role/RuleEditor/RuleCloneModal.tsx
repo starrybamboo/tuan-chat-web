@@ -2,9 +2,11 @@ import type { Rule } from "@tuanchat/openapi-client/models/Rule";
 
 import { useDebounce } from "ahooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { useEscapeToClose } from "@/components/common/customHooks/useEscapeToClose";
+import { Button } from "@/components/common/Button";
+import { DialogActions, DialogFrame } from "@/components/common/DialogFrame";
+
 import RulesSection from "../rules/RulesSection";
 
 export default function RuleCloneModal({
@@ -17,7 +19,6 @@ export default function RuleCloneModal({
   onConfirm: (rule: Rule) => void;
 }) {
   const [selectedRuleId, setSelectedRuleId] = useState(0);
-  const dialogRef = useRef<HTMLDialogElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -36,12 +37,6 @@ export default function RuleCloneModal({
 
   const confirmDisabled = debouncedRuleId <= 0 || !hasValidRule || isRequestingName;
 
-  useEscapeToClose({
-    enabled: isOpen,
-    onClose,
-    containerRef: dialogRef,
-  });
-
   const statusNode = useMemo(() => {
     if (debouncedRuleId <= 0) {
       return <span className="text-base-content/60">请选择要导入的规则</span>;
@@ -49,8 +44,8 @@ export default function RuleCloneModal({
 
     if (isRequestingName) {
       return (
-        <span className="flex items-center gap-2 text-base-content/60">
-          <span className="loading loading-spinner loading-xs" />
+        <span className="flex items-center gap-2 text-base-content/60" aria-busy="true">
+          <span className="size-3 animate-spin rounded-full border-2 border-base-content/30 border-t-base-content/70" aria-hidden="true" />
           正在获取规则详情…
         </span>
       );
@@ -60,7 +55,7 @@ export default function RuleCloneModal({
       return (
         <span className="text-base-content/80">
           已选择：
-          <span className="font-semibold">{ruleQuery.data.ruleName || "（未命名）"}</span>
+          <span className="font-semibold">{ruleQuery.data?.ruleName || "（未命名）"}</span>
         </span>
       );
     }
@@ -72,29 +67,13 @@ export default function RuleCloneModal({
     return null;
 
   return (
-    <dialog
-      ref={dialogRef}
-      data-modal-layer="true"
-      role="dialog"
-      aria-modal="true"
-      aria-label="导入规则"
-      className={`
-      modal
-      ${isOpen ? "modal-open" : ""}
-    `}
+    <DialogFrame
+      open={isOpen}
+      mode="native"
+      onClose={onClose}
+      ariaLabel="导入规则"
+      panelClassName="max-w-lg"
     >
-      <div className="modal-box max-w-lg">
-        <form method="dialog">
-          <button
-            type="button"
-            className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-            onClick={onClose}
-            aria-label="关闭克隆规则弹窗"
-          >
-            ✕
-          </button>
-        </form>
-
         <h3 className="font-bold text-lg mb-2">导入规则</h3>
         <p className="text-sm text-base-content/70 mb-4">
           选择一个规则进行导入，确认后将覆盖当前编辑的内容。
@@ -109,15 +88,14 @@ export default function RuleCloneModal({
           />
         </div>
 
-        <div className="modal-action justify-between w-full items-center">
+        <DialogActions className="w-full justify-between">
           <div className="min-h-6 text-sm flex items-center" role="status">{statusNode}</div>
           <div className="flex items-center gap-2">
-            <button type="button" className="btn btn-ghost" onClick={onClose}>
+            <Button variant="ghost" onClick={onClose}>
               取消
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
+            </Button>
+            <Button
+              variant="primary"
               disabled={confirmDisabled}
               title={confirmDisabled ? "请选择要导入的规则" : "导入所选规则并覆盖当前编辑内容"}
               onClick={() => {
@@ -128,14 +106,9 @@ export default function RuleCloneModal({
               }}
             >
               确认
-            </button>
+            </Button>
           </div>
-        </div>
-      </div>
-
-      <form method="dialog" className="modal-backdrop">
-        <button type="button" onClick={onClose}>close</button>
-      </form>
-    </dialog>
+        </DialogActions>
+    </DialogFrame>
   );
 }

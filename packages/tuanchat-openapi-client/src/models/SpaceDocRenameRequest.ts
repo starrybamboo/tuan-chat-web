@@ -15,3 +15,4 @@ export type SpaceDocRenameRequest = {
      */
     title: string;
 };
+

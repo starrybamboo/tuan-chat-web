@@ -1,20 +1,23 @@
+import type {
+  VoiceboxLanguage,
+  VoiceboxQwenCustomVoiceId,
+} from "@/tts/engines/voicebox/api";
+
 export type RealtimeTTSConfig = {
   /** 是否启用 TTS */
   enabled: boolean;
-  /** TTS 引擎：目前仅支持 IndexTTS */
-  engine?: "index";
-  /** TTS API 地址（如 http://localhost:9000） */
+  /** TTS 引擎 */
+  engine?: "voicebox";
+  /** VoiceBox API 地址（默认 http://127.0.0.1:17493） */
   apiUrl?: string;
-  /** 情感模式: 0=同音色参考,1=情感参考音频,2=情感向量,3=情感描述文本 */
-  emotionMode?: number;
-  /** 情感权重 */
-  emotionWeight?: number;
-  /** 温度 */
-  temperature?: number;
-  /** top_p */
-  topP?: number;
-  /** 单段最大 token 数 */
-  maxTokensPerSegment?: number;
+  /** Qwen CustomVoice 预设音色 */
+  voiceId?: VoiceboxQwenCustomVoiceId;
+  /** 合成语言 */
+  language?: VoiceboxLanguage;
+  /** 自然语言风格指令 */
+  instruct?: string;
+  /** 当前固定使用 Qwen CustomVoice 0.6B */
+  modelSize?: "0.6B";
 };
 
 export type RealtimeGameConfig = {

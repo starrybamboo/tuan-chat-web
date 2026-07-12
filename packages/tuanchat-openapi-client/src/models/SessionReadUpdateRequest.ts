@@ -15,3 +15,4 @@ export type SessionReadUpdateRequest = {
      */
     syncId: number;
 };
+

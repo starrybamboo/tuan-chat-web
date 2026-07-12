@@ -174,6 +174,64 @@ describe("parseRoomMessagePushPayload", () => {
     expect(mocks.addOrUpdateMessagesBatch).not.toHaveBeenCalled();
   });
 
+  it("收到结构化聊天状态时按 type 更新或清除本地状态", () => {
+    const chatStatus: Record<number, any[]> = {};
+    const sink: { onMessage?: (message: { type: number; data: unknown }) => void } = {};
+
+    function Harness() {
+      const { onMessage } = useWebSocketMessageHandlers({
+        queryClient: {
+          invalidateQueries: vi.fn(),
+          setQueryData: vi.fn(),
+          getQueryData: vi.fn(),
+        } as any,
+        wsRef: { current: null },
+        closingRef: { current: false },
+        reconnectAttempts: { current: 0 },
+        optimisticDirectMessageRequestMapRef: { current: new Map() },
+        unhandledWsTypes: { current: new Set() },
+        connect: vi.fn(),
+        cleanupRoomDescriptionDocOnDissolve: vi.fn(),
+        notifyNewDirectMessage: vi.fn(async () => undefined),
+        notifyNewFriendRequest: vi.fn(async () => undefined),
+        notifyNewGroupMessage: vi.fn(async () => undefined),
+        notifyNewUserNotification: vi.fn(async () => undefined),
+        resolveSelfUserId: () => 999,
+        syncWsDebugToWindow: vi.fn(),
+        updateChatStatus: createImmerUpdater(chatStatus),
+        updateLatestSyncId: vi.fn(),
+      });
+      sink.onMessage = onMessage;
+      return null;
+    }
+
+    renderToStaticMarkup(createElement(Harness));
+    sink.onMessage?.({
+      type: 17,
+      data: {
+        roomId: 9,
+        userId: 7,
+        status: { type: "input", description: "正在构思" },
+      },
+    });
+
+    expect(chatStatus[9]).toEqual([{
+      userId: 7,
+      status: { type: "input", description: "正在构思" },
+    }]);
+
+    sink.onMessage?.({
+      type: 17,
+      data: {
+        roomId: 9,
+        userId: 7,
+        status: { type: "idle", description: "空闲" },
+      },
+    });
+
+    expect(chatStatus[9]).toEqual([]);
+  });
+
   it("收到已存在 BGM annotation 的声音消息 WS 更新时不会重复自动播放", async () => {
     const incoming = createRoomMessage(5);
     incoming.message.messageType = MessageType.SOUND;
@@ -384,6 +442,7 @@ describe("parseRoomMessagePushPayload", () => {
 
     expect(setQueryData).toHaveBeenCalledWith(["dmInbox", 999], expect.any(Function));
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["dmInbox"] });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["directBadgeSummary"] });
     expect(invalidateQueries).not.toHaveBeenCalledWith({ queryKey: ["getInboxMessagePage"] });
     expect(invalidateQueries).not.toHaveBeenCalledWith({ queryKey: ["inboxMessageWithUser"] });
   });

@@ -3,6 +3,8 @@ import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import { useQuery } from "@tanstack/react-query";
 
+import { bindCancelablePromiseToSignal } from "./cancelable";
+
 export type MemberQueryOptions = {
   enabled?: boolean;
   staleTime?: number;
@@ -22,7 +24,7 @@ export function getRoomMembersQueryKey(roomId: number) {
 export function useGetSpaceMembersQuery(client: MemberClient, spaceId: number, options?: MemberQueryOptions) {
   return useQuery({
     queryKey: getSpaceMembersQueryKey(spaceId),
-    queryFn: () => client.spaceMemberController.getMemberList(spaceId),
+    queryFn: ({ signal }) => bindCancelablePromiseToSignal(client.spaceMemberController.getMemberList(spaceId), signal),
     staleTime: options?.staleTime ?? 300_000,
     refetchOnMount: options?.refetchOnMount,
     enabled: (options?.enabled ?? true) && spaceId > 0,
@@ -32,7 +34,7 @@ export function useGetSpaceMembersQuery(client: MemberClient, spaceId: number, o
 export function useGetRoomMembersQuery(client: MemberClient, roomId: number, options?: MemberQueryOptions) {
   return useQuery({
     queryKey: getRoomMembersQueryKey(roomId),
-    queryFn: () => client.roomMemberController.getMemberList1(roomId),
+    queryFn: ({ signal }) => bindCancelablePromiseToSignal(client.roomMemberController.getMemberList1(roomId), signal),
     staleTime: options?.staleTime ?? 300_000,
     refetchOnMount: options?.refetchOnMount,
     enabled: (options?.enabled ?? true) && roomId > 0,

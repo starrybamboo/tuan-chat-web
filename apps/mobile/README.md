@@ -15,6 +15,7 @@
 ```bash
 pnpm install
 pnpm mobile:start
+pnpm mobile:start:local-backend
 pnpm mobile:android
 pnpm mobile:ios
 pnpm mobile:web
@@ -32,6 +33,7 @@ pnpm mobile:ios:bootstrap-production
 
 ```bash
 pnpm start
+pnpm start:local-backend
 pnpm android
 pnpm ios
 pnpm web
@@ -49,6 +51,14 @@ pnpm mobile:start
 ```
 
 这条命令固定监听 `8082`，不会重新构建 APK，也不会重新安装 App。手机上的应用已经打开时，保存代码后走热更新 / 刷新即可。
+
+排查移动端登录、聊天、WebSocket、首条消息发送或跨端推送时，直接运行本地后端联调入口：
+
+```powershell
+pnpm mobile:start:local-backend
+```
+
+这个脚本会建立 Metro 所需的 `8082` 端口转发，并注入 `EXPO_PUBLIC_TUANCHAT_API_BASE_URL=http://10.0.2.2:8081`、`EXPO_PUBLIC_TUANCHAT_API_WS_URL=ws://10.0.2.2:8090` 与聊天链路 trace。
 
 如果 Metro 还没连上，或者需要从电脑侧重新唤起 Android 上的 dev client，运行：
 
@@ -92,7 +102,21 @@ pnpm mobile:local-apk
   7. 执行 `adb install -r`，并启动 `com.tuanchat.mobile/.MainActivity`
   8. 只有显式追加 `-ReversePorts` 时，才会补 `adb reverse tcp:8082 tcp:8082` 和 `adb reverse tcp:8081 tcp:8081`
 - 如果 `watch-maid` 已占用 `8081`，团剧共创移动端请固定用 `8082`，不要和它共用同一端口。
-- 移动端 API 默认显示 `http://127.0.0.1:8081`，这里的 `127.0.0.1` 是设备侧 localhost；脚本会通过 `adb reverse` 转发到电脑上的 TuanChat 后端。
+- Android 模拟器访问电脑本地后端时默认使用 `10.0.2.2` 网关，避免依赖 `adb reverse` 转发 API / WebSocket 请求。
+- Android prebuild 会通过 `with-android-network-concurrency.cjs` 将 OkHttp 单主机并发上限设为 16，避免进房首屏请求占满默认连接槽位后阻塞首条消息发送。
+- 排查移动端登录、聊天、WebSocket、首条消息发送或跨端推送时，默认连接本地 `TuanChat` 后端，减少线上人机校验对问题复现的干扰。优先使用 `pnpm mobile:start:local-backend`；手动流程只需要给 Metro 建立端口反向转发：
+
+```powershell
+D:\AndroidSdk\platform-tools\adb.exe reverse tcp:8082 tcp:8082
+```
+
+- 本地联调移动端时使用以下环境变量：
+
+```powershell
+$env:EXPO_PUBLIC_TUANCHAT_API_BASE_URL="http://10.0.2.2:8081"
+$env:EXPO_PUBLIC_TUANCHAT_API_WS_URL="ws://10.0.2.2:8090"
+```
+
 - Windows 中文用户目录下，Node 临时目录和 Gradle 用户目录会触发 `expo prebuild` / prefab `.bat` 路径问题；上面的脚本已经把这两个目录强制切到纯 ASCII 路径，不要再改回中文路径。
 - 构建 SDK 与模拟器 SDK 现在分离：
   - 模拟器 / `adb`：`D:\android-sdk`

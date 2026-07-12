@@ -11,7 +11,7 @@ import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { CachedImage } from "@/components/CachedImage";
+import { CachedImage, useCachedImageUri } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobileMessageAttachments } from "@/features/messages/mobileMessageAttachment";
@@ -310,7 +310,8 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
 
   const map = roomDndMapQuery.data;
   const mapImageUrl = getRoomDndMapImageUrl(map);
-  const mapImageSize = useImageSize(mapImageUrl ?? "");
+  const cachedMapImageUri = useCachedImageUri(mapImageUrl);
+  const mapImageSize = useImageSize(cachedMapImageUri ?? "");
   const [gridRowsInput, setGridRowsInput] = useState("");
   const [gridColsInput, setGridColsInput] = useState("");
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
@@ -333,7 +334,7 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
   const mapContainerHeight = Math.min(containerLayout.width * 0.75, 300);
 
   const imageRect = useContainedImageRect(
-    mapImageUrl ?? "",
+    cachedMapImageUri ?? "",
     containerLayout.width,
     mapContainerHeight,
   );
@@ -563,7 +564,7 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
               ? (
                   <>
                     <CachedImage
-                      uri={mapImageUrl}
+                      uri={cachedMapImageUri}
                       contentFit="contain"
                       style={StyleSheet.absoluteFill}
                     />
@@ -832,7 +833,7 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
                       <CachedImage
                         contentFit="contain"
                         style={StyleSheet.absoluteFill}
-                        uri={mapImageUrl}
+                        uri={cachedMapImageUri}
                       />
                       <View style={StyleSheet.absoluteFill}>
                         <MapGridOverlay

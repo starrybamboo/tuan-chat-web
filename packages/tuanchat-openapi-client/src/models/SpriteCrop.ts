@@ -19,6 +19,9 @@ export type SpriteCrop = {
      * 来源原图高度
      */
     sourceHeight?: number;
+    /**
+     * 立绘裁剪矩形
+     */
     crop?: CropRect;
     /**
      * 输出立绘宽度
@@ -29,3 +32,4 @@ export type SpriteCrop = {
      */
     outputHeight?: number;
 };
+

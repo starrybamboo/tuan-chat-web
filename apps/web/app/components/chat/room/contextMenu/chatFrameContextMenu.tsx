@@ -9,6 +9,7 @@ import {
   isSoundMessageMarkedAsBgm,
 } from "@/components/chat/room/contextMenu/messageMediaQuickActions";
 import { useGlobalUserId } from "@/components/globalContextProvider";
+import { MenuItem, MenuSurface } from "@/components/common/MenuPopover";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { ChatMessageResponse, Message } from "../../../../../api";
@@ -27,6 +28,7 @@ type ContextMenuProps = {
   onOpenAnnotations: (messageId: number) => void;
   onInsertAfter: (messageId: number) => void;
   onCopyMessageToClueFolder?: (message: Message, scope: ClueFolderScope) => void | Promise<void>;
+  onPokeMessage?: (message: Message) => void;
   onToggleNarrator?: (messageId: number) => void;
 }
 
@@ -50,6 +52,7 @@ export default function ChatFrameContextMenu({
   onOpenAnnotations,
   onInsertAfter,
   onCopyMessageToClueFolder,
+  onPokeMessage,
 }: ContextMenuProps) {
   const currentUserId = useGlobalUserId();
   const spaceContext = use(SpaceContext);
@@ -137,6 +140,16 @@ export default function ChatFrameContextMenu({
           onClose();
         },
       });
+      if ((message.message.roleId ?? -1) > 0 && onPokeMessage) {
+        items.push({
+          key: "poke",
+          label: "戳一戳",
+          onSelect: () => {
+            onPokeMessage(message.message);
+            onClose();
+          },
+        });
+      }
     }
 
     if (canEditMessage) {
@@ -237,6 +250,7 @@ export default function ChatFrameContextMenu({
     onEditMessage,
     onInsertAfter,
     onOpenAnnotations,
+    onPokeMessage,
     onReply,
     onToggleBackground,
     onToggleBgm,
@@ -252,18 +266,18 @@ export default function ChatFrameContextMenu({
       ref={menuRef}
       className="fixed bg-base-100 shadow-lg rounded-md z-50"
     >
-      <ul className="menu p-2 w-40">
+      <MenuSurface as="ul" ariaLabel="聊天页操作" className="w-40 p-2">
         {menuItems.map(item => (
-          <li key={item.key}>
-            <button
-              type="button"
+          <li key={item.key} role="none">
+            <MenuItem
+              tone={item.key === "delete" ? "danger" : "default"}
               onClick={item.onSelect}
             >
               {item.label}
-            </button>
+            </MenuItem>
           </li>
         ))}
-      </ul>
+      </MenuSurface>
     </div>
   );
 }

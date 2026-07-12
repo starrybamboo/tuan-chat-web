@@ -1,4 +1,5 @@
 import { AddressBookIcon, UsersIcon } from "@phosphor-icons/react";
+import { AnimatePresence, motion } from "motion/react";
 import { lazy, Suspense, use, useMemo, useState } from "react";
 import { appToast } from "@/components/common/appToast/appToast";
 
@@ -7,11 +8,15 @@ import { SpaceContext } from "@/components/chat/core/spaceContext";
 import MemberLists from "@/components/chat/shared/components/memberLists";
 import { canManageMemberPermissions, canManageRoomRoles, canViewRoomNpcRoles, hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
+import { Button } from "@/components/common/Button";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import { panelSwapMotionProps } from "@/components/common/motion/listItemMotion";
+import { StateView } from "@/components/common/StateView";
+import { Divider } from "@/components/common/StatusPrimitives";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { getScreenSize } from "@/utils/getScreenSize";
 
-import { useAddRoomMemberMutation, useAddRoomRoleMutation, useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../../api/hooks/chatQueryHooks";
+import { useAddRoomMemberMutation, useAddRoomRoleMutation } from "../../../../../api/hooks/chatQueryHooks";
 import RoleList from "../../shared/components/roleLists";
 
 const LazyAddRoleWindow = lazy(async () => {
@@ -23,6 +28,10 @@ const LazyAddNpcRoleWindow = lazy(async () => {
   const module = await import("../../window/addNpcRoleWindow");
   return { default: module.AddNpcRoleWindow };
 });
+
+function showMutationError(error: unknown, fallbackMessage: string) {
+  appToast.error(error instanceof Error && error.message ? error.message : fallbackMessage);
+}
 
 export default function RoomUserList({ type}: { type: string }) {
   const isRole = type === "Role";
@@ -50,23 +59,23 @@ export default function RoomUserList({ type}: { type: string }) {
       roomId,
       userIdList: [userId],
     }, {
-      onSettled: () => {
+      onSuccess: () => {
         setIsMemberHandleOpen(false);
-        appToast.info("添加成员成功");
+        appToast.success("添加成员成功");
       },
+      onError: error => showMutationError(error, "添加成员失败"),
     });
   }
 
-  const roomRolesQuery = useGetRoomRoleQuery(roomId);
-  const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
-
-  const npcRolesQuery = useGetRoomNpcRoleQuery(canViewNpcRoles ? roomId : -1);
-  const npcRoles = useMemo(() => {
-    if (!canViewNpcRoles) {
-      return [];
-    }
-    return npcRolesQuery.data?.data ?? [];
-  }, [canViewNpcRoles, npcRolesQuery.data?.data]);
+  const allRoomRoles = roomContext.roomAllRoles ?? [];
+  const roomRoles = useMemo(
+    () => allRoomRoles.filter(role => role.type !== 2),
+    [allRoomRoles],
+  );
+  const npcRoles = useMemo(
+    () => canViewNpcRoles ? allRoomRoles.filter(role => role.type === 2) : [],
+    [allRoomRoles, canViewNpcRoles],
+  );
 
   const [isRoleHandleOpen, setIsRoleHandleOpen] = useState<boolean>(false);
   const [isNpcRoleHandleOpen, setIsNpcRoleHandleOpen] = useState<boolean>(false);
@@ -77,9 +86,10 @@ export default function RoomUserList({ type}: { type: string }) {
     addRoleMutation.mutate(
       { roomId, roleIdList: [roleId] },
       {
-        onSettled: () => {
-          appToast.info("添加角色成功");
+        onSuccess: () => {
+          appToast.success("添加角色成功");
         },
+        onError: error => showMutationError(error, "添加角色失败"),
       },
     );
   };
@@ -88,9 +98,10 @@ export default function RoomUserList({ type}: { type: string }) {
     addRoleMutation.mutate(
       { roomId, roleIdList: [roleId] },
       {
-        onSettled: () => {
-          appToast.info("添加NPC成功");
+        onSuccess: () => {
+          appToast.success("添加NPC成功");
         },
+        onError: error => showMutationError(error, "添加NPC失败"),
       },
     );
   };
@@ -131,35 +142,37 @@ export default function RoomUserList({ type}: { type: string }) {
 
         <div className="flex gap-2">
           {!isRole && canInviteMembers && (
-            <button
-              className="btn btn-dash btn-info"
-              type="button"
+            <Button
+              variant="outline"
+              className="border-dashed border-info/45 text-info hover:border-info/70 hover:bg-info/10"
               onClick={() => setIsMemberHandleOpen(true)}
             >
               添加成员
-            </button>
+            </Button>
           )}
           {isRole && canAddRole && (
-            <button
-              type="button"
-              className="btn btn-xs btn-dash btn-info"
+            <Button
+              variant="outline"
+              size="xs"
+              className="border-dashed border-info/45 text-info hover:border-info/70 hover:bg-info/10"
               onClick={() => setIsRoleHandleOpen(true)}
             >
               角色+
-            </button>
+            </Button>
           )}
           {isRole && hasHostAccess && (
-            <button
-              type="button"
-              className="btn btn-xs btn-dash btn-info"
+            <Button
+              variant="outline"
+              size="xs"
+              className="border-dashed border-info/45 text-info hover:border-info/70 hover:bg-info/10"
               onClick={() => setIsNpcRoleHandleOpen(true)}
             >
               NPC+
-            </button>
+            </Button>
           )}
         </div>
       </div>
-      <div className="divider w-full" />
+      <Divider />
 
       <div
         className="
@@ -167,34 +180,42 @@ export default function RoomUserList({ type}: { type: string }) {
           items-stretch gap-2
         "
       >
-        {isRole
-          ? (
-              <>
-                <RoleList roles={roomRoles} className={getScreenSize() === "sm" ? `
-                  w-full
-                ` : `w-full max-w-md`} sourceRoomId={roomId} />
-                <RoleList
-                  roles={npcRoles}
-                  className={getScreenSize() === "sm" ? "w-full" : `
-                    w-full max-w-md
-                  `}
-                  isNpcRole={true}
-                  allowKickOut={true}
-                  kickOutByManagerOnly={true}
-                  sourceRoomId={roomId}
-                />
-              </>
-            )
-          : (
-              <MemberLists
-                members={visibleMembers}
-                className={getScreenSize() === "sm" ? "w-full" : `
-                  w-full max-w-md
-                `}
-                isSpace={false}
-                roomMemberUserIds={roomMemberUserIds}
-              />
-            )}
+        <AnimatePresence initial={false} mode="wait">
+          <motion.div
+            key={isRole ? "roles" : "members"}
+            className="flex w-full flex-col items-stretch gap-2"
+            {...panelSwapMotionProps}
+          >
+            {isRole
+              ? (
+                  <>
+                    <RoleList roles={roomRoles} className={getScreenSize() === "sm" ? `
+                      w-full
+                    ` : `w-full max-w-md`} sourceRoomId={roomId} />
+                    <RoleList
+                      roles={npcRoles}
+                      className={getScreenSize() === "sm" ? "w-full" : `
+                        w-full max-w-md
+                      `}
+                      isNpcRole={true}
+                      allowKickOut={true}
+                      kickOutByManagerOnly={true}
+                      sourceRoomId={roomId}
+                    />
+                  </>
+                )
+              : (
+                  <MemberLists
+                    members={visibleMembers}
+                    className={getScreenSize() === "sm" ? "w-full" : `
+                      w-full max-w-md
+                    `}
+                    isSpace={false}
+                    roomMemberUserIds={roomMemberUserIds}
+                  />
+                )}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       <ToastWindow
@@ -225,11 +246,5 @@ export default function RoomUserList({ type}: { type: string }) {
 }
 
 function RoomUserListToastFallback() {
-  return (
-    <div className="
-      flex min-h-40 w-full items-center justify-center text-base-content/60
-    ">
-      <span className="loading loading-spinner loading-md"></span>
-    </div>
-  );
+  return <StateView loading className="min-h-40 w-full py-0" />;
 }

@@ -111,6 +111,8 @@ export function UserProfileSheet({ avatarFileId, onClose, userId, username, visi
         onRequestClose={() => setAvatarPreviewVisible(false)}
       >
         <Pressable
+          accessibilityLabel="关闭头像预览"
+          accessibilityRole="button"
           style={styles.avatarPreviewOverlay}
           onPress={() => setAvatarPreviewVisible(false)}
         >

@@ -20,6 +20,13 @@ export type RoleAvatarCreateRequest = {
      * 角色立绘组 ID；为空表示不参与合成
      */
     variantId?: number;
+    /**
+     * 立绘裁剪上下文（原图生成立绘）
+     */
     spriteCropContext?: SpriteCropContext;
+    /**
+     * 头像裁剪上下文（WebGAL 合成立绘）
+     */
     avatarCropContext?: AvatarCropContext;
 };
+

@@ -56,7 +56,7 @@ export default function ForwardMessage({ messageResponse }: { messageResponse: C
     <div>
       <button
         type="button"
-        className="bg-base-200 rounded-box p-3 max-w-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30"
+        className="bg-base-200 rounded-md p-3 max-w-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30"
         onClick={openForwardDetail}
         aria-haspopup="dialog"
         aria-label={previewLabel}

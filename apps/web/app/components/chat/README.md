@@ -12,7 +12,7 @@ Chat 模块是 TuanChat 的核心功能模块，提供了完整的 TRPG（桌面
 - **富文本消息**：支持文本、图片、表情、音频、特效、背景等多种消息类型
 - **消息回复**：支持基于 replyMessageId 的普通回复锚点
 - **骰子系统**：内置 TRPG 骰子命令系统，支持多种游戏规则
-- **实时状态同步**：通过 WebSocket 实时同步成员状态（输入中、等待扮演、暂离等）
+- **实时状态同步**：通过 WebSocket 实时同步成员状态（正在输入、等待扮演、暂时离开等）
 - **历史消息管理**：基于官方 sqlite-wasm OPFS SAH pool 的本地消息缓存，支持已缓存消息快速加载；不可用时禁用本地缓存并提示
 
 ---
@@ -255,9 +255,9 @@ const spaceContextValue: SpaceContextType = {
    - WebGAL 联动模式下支持旁白模式（无角色）
 
 4. **实时状态广播**：
-   - 输入中（typing）：用户开始输入时广播
+   - 正在输入（typing）：用户开始输入时广播
    - 等待扮演（wait）：等待其他玩家行动
-   - 暂离（leave）：临时离开
+   - 暂时离开（leave）：临时离开
 
 5. **WebGAL 联动功能**：
    - 实时渲染：将聊天消息转换为 WebGAL 场景
@@ -597,9 +597,9 @@ export interface ChatInputAreaHandle {
    
    支持的状态：
    - `idle`：空闲（默认）
-   - `input`：输入中（自动触发，也可手动设置）
+   - `input`：正在输入（自动触发，也可手动设置）
    - `wait`：等待扮演（等待其他玩家行动）
-   - `leave`：暂离（临时离开）
+   - `leave`：暂时离开（临时离开）
 
 2. **文件上传**：
    - **表情上传**：使用 `EmojiWindow` 组件选择或上传表情
@@ -664,7 +664,7 @@ export interface ChatInputAreaHandle {
 
 ### 7. chatStatusBar.tsx
 
-**作用**：显示房间内其他成员的实时状态（输入中、等待扮演、暂离）。
+**作用**：显示房间内其他成员的实时状态（正在输入、等待扮演、暂时离开）。
 
 **业务流程**：
 
@@ -1089,7 +1089,7 @@ enum WebSocketMessageType {
   MESSAGE_DELETE = "chat.message.delete",  // 消息删除
   
   // 状态同步
-  CHAT_STATUS = "chat.status",             // 用户状态（输入中/等待/暂离）
+  CHAT_STATUS = "chat.status",             // 用户状态（正在输入/等待/暂时离开）
   MEMBER_JOIN = "chat.member.join",        // 成员加入
   MEMBER_LEAVE = "chat.member.leave",      // 成员离开
   

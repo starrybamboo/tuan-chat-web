@@ -1,6 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 
-import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import type {RuleCloneRequest} from "@tuanchat/openapi-client/models/RuleCloneRequest";
 import type {RuleCreateRequest} from "@tuanchat/openapi-client/models/RuleCreateRequest";
@@ -10,7 +10,6 @@ import type {Rule} from "@tuanchat/openapi-client/models/Rule";
 import type { PageBaseRespRuleResponse } from "@tuanchat/openapi-client/models/PageBaseRespRuleResponse";
 
 import {tuanchat} from "../instance";
-import { createUniqueQuerySlots, mapUniqueQueryResults } from "./querySlots";
 
 export const RULE_DETAIL_STALE_TIME_MS = 300000;
 
@@ -117,22 +116,6 @@ export function useGetRuleDetailQuery(ruleId: number) {
         enabled: ruleId > 0 // 只有ruleId有效时才启用查询
     });
 }
-export function useGetRuleDetailQueries(ruleIds: number[]) {
-    const querySlots = createUniqueQuerySlots(
-        ruleIds,
-        (ruleId, index) => ruleId > 0 ? String(ruleId) : `invalid:${index}`,
-    );
-    const results = useQueries({
-        queries: querySlots.queryItems.map(({ item: ruleId, originalIndex }) => ({
-            queryKey: ruleId > 0 ? ruleDetailQueryKey(ruleId) : ["getRuleDetail", "invalid", originalIndex],
-            queryFn: () => tuanchat.ruleController.getRuleDetail(ruleId),
-            staleTime: RULE_DETAIL_STALE_TIME_MS,
-            enabled: ruleId > 0
-        }))
-    });
-    return mapUniqueQueryResults(results, querySlots.resultIndexes);
-}
-
 /**
  * 删除规则
  */
@@ -154,17 +137,11 @@ export function useDeleteRuleMutation() {
 
 // 获取规则详情角色界面
 export function useRuleDetailQuery(ruleId: number, options?: { enabled?: boolean }) {
-    return useQuery({
-      queryKey: ["ruleDetail", ruleId],
-      queryFn: async (): Promise<Rule> => {
-        const res = await tuanchat.ruleController.getRuleDetail(ruleId)
-        if (res.success && res.data) {
-          return res.data;
-        }
-        throw new Error('获取规则详情失败');
-      },
-      enabled: options?.enabled ?? true, // 默认启用，但允许通过 options 禁用
-    })
+    const query = useGetRuleDetailQuery((options?.enabled ?? true) ? ruleId : 0);
+    return {
+      ...query,
+      data: query.data?.data,
+    };
   }
 
 /**
@@ -269,18 +246,7 @@ export function useRulePageSuspenseQuery(page: number, keyword?: string, pageSiz
 }
 
 export function useRuleListQuery(options?: { enabled?: boolean }) {
-  return useQuery({
-    queryKey: ["ruleList"],
-    queryFn: async (): Promise<Rule[]> => {
-      const res = await tuanchat.ruleController.getRulePage({ pageNo: 1, pageSize: 100 });
-      if (res.success && res.data?.list) {
-        return res.data.list;
-      }
-      throw new Error('获取规则列表失败');
-    },
-    staleTime: 300000, // 5分钟缓存
-    enabled: options?.enabled ?? true,
-  });
+  return useAllRuleListQuery(100, options?.enabled ?? true);
 }
 
 export function useAllRuleListQuery(pageSize: number = 100, enabled: boolean = true) {

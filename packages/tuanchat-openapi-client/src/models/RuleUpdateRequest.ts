@@ -27,3 +27,4 @@ export type RuleUpdateRequest = {
     basicDefault?: Record<string, string>;
     dicerConfig?: Record<string, string>;
 };
+

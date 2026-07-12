@@ -35,3 +35,4 @@ export type AbilityByRuleUpdateRequest = {
      */
     extra?: Record<string, string>;
 };
+

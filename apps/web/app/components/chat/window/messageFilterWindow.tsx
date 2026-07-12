@@ -7,6 +7,9 @@ import type {
 } from "@/components/chat/utils/messageDisplayFilter";
 
 import { createMessageDisplayFilterMatcher } from "@/components/chat/utils/messageDisplayFilter";
+import { Button } from "@/components/common/Button";
+import { ControlGroup } from "@/components/common/ControlGroup";
+import { Switch } from "@/components/common/FormField";
 
 import type { ChatMessageResponse } from "../../../../api";
 
@@ -120,34 +123,32 @@ export default function MessageFilterWindow({
           </div>
         </div>
 
-        <div className="join shrink-0">
-          <button
-            type="button"
+        <ControlGroup className="shrink-0" aria-label="消息筛选方式">
+          <Button
+            variant={filterAction === "remove" ? "outline" : "ghost"}
+            size="sm"
             className={`
-              join-item btn btn-sm h-8 min-h-0 rounded-md px-3
-              ${filterAction === "remove" ? `btn-info` : `
-                btn-ghost border border-base-content/15
-              `}
+              h-8 min-h-0 px-3
+              ${filterAction === "remove" ? "border-info/45 text-info hover:border-info/70 hover:bg-info/10" : "border border-base-content/15"}
             `}
             onClick={() => setFilterAction("remove")}
             aria-pressed={filterAction === "remove"}
           >
             筛选
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant={filterAction === "keep" ? "outline" : "ghost"}
+            size="sm"
             className={`
-              join-item btn btn-sm h-8 min-h-0 rounded-md px-3
-              ${filterAction === "keep" ? `btn-info` : `
-                btn-ghost border border-base-content/15
-              `}
+              h-8 min-h-0 px-3
+              ${filterAction === "keep" ? "border-info/45 text-info hover:border-info/70 hover:bg-info/10" : "border border-base-content/15"}
             `}
             onClick={() => setFilterAction("keep")}
             aria-pressed={filterAction === "keep"}
           >
             反选
-          </button>
-        </div>
+          </Button>
+        </ControlGroup>
       </div>
 
       <div className="space-y-3 p-3">
@@ -168,9 +169,9 @@ export default function MessageFilterWindow({
           }
           `}
           >
-            <input
-              type="checkbox"
-              className="toggle toggle-xs mt-1"
+            <Switch
+              density="compact"
+              className="mt-1"
               checked={filterOutOfCharacterSpeech}
               onChange={event => setFilterOutOfCharacterSpeech(event.target.checked)}
             />
@@ -195,9 +196,9 @@ export default function MessageFilterWindow({
           }
           `}
           >
-            <input
-              type="checkbox"
-              className="toggle toggle-xs mt-1"
+            <Switch
+              density="compact"
+              className="mt-1"
               checked={filterStateMessages}
               onChange={event => setFilterStateMessages(event.target.checked)}
             />

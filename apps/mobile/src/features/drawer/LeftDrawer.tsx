@@ -581,6 +581,9 @@ function LeftDrawerInner({
     const avatarUrl = resolveAvatarUrl(space.avatarFileId);
     return (
       <Pressable
+        accessibilityLabel={`切换到空间${space.name ? ` ${space.name}` : ""}`}
+        accessibilityRole="button"
+        accessibilityState={{ selected: active }}
         onPress={() => {
           if (draggingSpaceId != null) {
             return;
@@ -618,6 +621,8 @@ function LeftDrawerInner({
         ? renderRetryText(getErrorMessage(spacesError, "加载空间失败"))
         : null}
       <Pressable
+        accessibilityLabel="创建空间"
+        accessibilityRole="button"
         onPress={onCreateSpace}
         style={[styles.createSpaceButton, { borderColor: theme.accent }]}
       >
@@ -674,6 +679,9 @@ function LeftDrawerInner({
       <View style={[styles.rail, { borderRightColor: theme.border, backgroundColor: theme.background }]}>
         <View style={styles.railFixedTop}>
           <Pressable
+            accessibilityLabel={dmRailBadgeCount > 0 ? `打开私聊，${dmRailBadgeCount > 99 ? "99 条以上" : dmRailBadgeCount} 条未读` : "打开私聊"}
+            accessibilityRole="button"
+            accessibilityState={{ selected: drawerMode === "dm" }}
             onPress={() => onSwitchMode("dm")}
             style={[styles.railIconButton, { backgroundColor: drawerMode === "dm" ? theme.accentMuted : theme.backgroundElement }]}
           >

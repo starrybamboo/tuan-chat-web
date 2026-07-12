@@ -14,32 +14,38 @@ type CachedImageProps = Omit<ImageProps, "pointerEvents" | "source"> & {
   uri: string | null | undefined;
 };
 
-export function CachedImage({ onError: externalOnError, pointerEvents, uri, ...props }: CachedImageProps) {
-  const [fallbackImage, setFallbackImage] = useState<{ fallbackUri: string; sourceUri: string | null | undefined } | null>(null);
+/** 将远程图片解析为永久缓存中的本地文件 URI。 */
+export function useCachedImageUri(uri: string | null | undefined) {
   const [asyncResolvedImage, setAsyncResolvedImage] = useState<{ resolvedUri: string; uri: string } | null>(null);
-  const resolvedPointerEvents = resolveCachedImagePointerEvents(pointerEvents);
-  const requestedUri = fallbackImage && fallbackImage.sourceUri === uri ? fallbackImage.fallbackUri : uri;
-  const syncResolvedUri = getCachedImageUriSync(requestedUri);
-  const asyncResolvedUri = asyncResolvedImage && asyncResolvedImage.uri === requestedUri ? asyncResolvedImage.resolvedUri : null;
-  const resolvedUri = syncResolvedUri ?? asyncResolvedUri;
+  const syncResolvedUri = getCachedImageUriSync(uri);
+  const asyncResolvedUri = asyncResolvedImage && asyncResolvedImage.uri === uri ? asyncResolvedImage.resolvedUri : null;
 
   useEffect(() => {
-    const nextUri = getCachedImageUriSync(requestedUri);
-    if (nextUri || !requestedUri) {
+    const nextUri = getCachedImageUriSync(uri);
+    if (nextUri || !uri) {
       return;
     }
 
     let cancelled = false;
-    void resolveCachedImageUri(requestedUri).then((cachedUri) => {
+    void resolveCachedImageUri(uri).then((cachedUri) => {
       if (!cancelled && cachedUri) {
-        setAsyncResolvedImage({ resolvedUri: cachedUri, uri: requestedUri });
+        setAsyncResolvedImage({ resolvedUri: cachedUri, uri });
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [requestedUri]);
+  }, [uri]);
+
+  return syncResolvedUri ?? asyncResolvedUri;
+}
+
+export function CachedImage({ onError: externalOnError, pointerEvents, uri, ...props }: CachedImageProps) {
+  const [fallbackImage, setFallbackImage] = useState<{ fallbackUri: string; sourceUri: string | null | undefined } | null>(null);
+  const resolvedPointerEvents = resolveCachedImagePointerEvents(pointerEvents);
+  const requestedUri = fallbackImage && fallbackImage.sourceUri === uri ? fallbackImage.fallbackUri : uri;
+  const resolvedUri = useCachedImageUri(requestedUri);
 
   if (!resolvedUri) {
     return null;
@@ -49,7 +55,6 @@ export function CachedImage({ onError: externalOnError, pointerEvents, uri, ...p
     if (fallbackImage?.sourceUri !== uri) {
       const fallbackUri = resolveCachedImageOriginalFallbackUri(requestedUri);
       if (fallbackUri) {
-        setAsyncResolvedImage(null);
         setFallbackImage({ fallbackUri, sourceUri: uri });
         return;
       }
@@ -59,7 +64,7 @@ export function CachedImage({ onError: externalOnError, pointerEvents, uri, ...p
 
   return (
     <Image
-      cachePolicy="memory-disk"
+      cachePolicy="memory"
       pointerEvents={resolvedPointerEvents}
       recyclingKey={resolvedUri}
       source={{ uri: resolvedUri }}

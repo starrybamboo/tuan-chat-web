@@ -11,6 +11,7 @@ import {
 } from "@/components/chat/message/annotations/annotationCatalog";
 import AnnotationChip from "@/components/chat/message/annotations/annotationChip";
 import { buildAnnotationPickerSections } from "@/components/chat/message/annotations/annotationPickerLayout";
+import { Button } from "@/components/common/Button";
 import { reactionPanelMotionProps } from "@/components/common/motion/chatMessageMotion";
 import PortalTooltip from "@/components/common/portalTooltip";
 import { normalizeAnnotations } from "@/types/messageAnnotations";
@@ -218,14 +219,15 @@ export default function AnnotationPicker({ initialSelected = DEFAULT_SELECTED, m
                 )}
           </div>
         </div>
-        <button
+        <Button
           type="button"
-          className="btn btn-neutral min-w-[80px] rounded-xl px-6"
+          variant="outline"
+          className="min-w-[80px] rounded-xl border-base-300 px-6 text-base-content hover:border-base-content/30 hover:bg-base-200/60"
           onClick={onClose}
           aria-label="完成标注选择并关闭面板"
         >
           完成
-        </button>
+        </Button>
       </div>
     </motion.div>
   );

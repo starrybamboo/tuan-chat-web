@@ -7,7 +7,7 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import type { ChatMessageResponse } from "../../../../api";
 
 import { ChatBubble, ClueCardReadonlyContent } from "./chatBubble";
-import { getMessagePreviewText } from "./preview/getMessagePreviewText";
+import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 
 const roomPreferenceState = vi.hoisted(() => ({
   useChatBubbleStyle: false,

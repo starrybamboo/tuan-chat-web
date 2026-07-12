@@ -4,6 +4,7 @@ import { formatUnreadBadgeCount, useVisibleClueFolderUnreadCount } from "@/compo
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { getNextRunSideDrawerState } from "@/components/chat/room/runSideDrawerState";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import PortalTooltip from "@/components/common/portalTooltip";
 import { Detective, PointOnMapPerspectiveLinear, SwordSwing } from "@/icons";
 
 type RunSideDrawerButtonsProps = {
@@ -43,14 +44,8 @@ export default function RunSideDrawerButtons({
   const isClueDrawerOpen = sideDrawerState === "clue";
   const isMapDrawerOpen = sideDrawerState === "map";
 
-  const tooltipClassName = tooltipPlacement === "bottom"
-    ? "tooltip-bottom"
-    : tooltipPlacement === "right"
-      ? "tooltip-right"
-      : "tooltip-top";
   const getRunDrawerButtonClassName = (isActive: boolean, hasBadge: boolean) => [
-    "tooltip relative flex h-7 items-center gap-1.5 px-2 text-xs leading-none transition-colors",
-    tooltipClassName,
+    "relative flex h-7 items-center gap-1.5 px-2 text-xs leading-none transition-colors",
     hasBadge ? "pr-5" : "",
     isActive
       ? "bg-info/15 text-info"
@@ -72,18 +67,19 @@ export default function RunSideDrawerButtons({
     tip?: string;
     unreadCount?: number;
   }) => (
-    <button
-      type="button"
-      className={getRunDrawerButtonClassName(isActive, Boolean(unreadCount && unreadCount > 0))}
-      data-tip={tip ?? label}
-      data-side-drawer-toggle="true"
-      aria-pressed={isActive}
-      onClick={onClick}
-    >
-      {icon}
-      <span className="whitespace-nowrap font-medium">{label}</span>
-      <UnreadBadge count={unreadCount} />
-    </button>
+    <PortalTooltip label={tip ?? label} placement={tooltipPlacement}>
+      <button
+        type="button"
+        className={getRunDrawerButtonClassName(isActive, Boolean(unreadCount && unreadCount > 0))}
+        data-side-drawer-toggle="true"
+        aria-pressed={isActive}
+        onClick={onClick}
+      >
+        {icon}
+        <span className="whitespace-nowrap font-medium">{label}</span>
+        <UnreadBadge count={unreadCount} />
+      </button>
+    </PortalTooltip>
   );
 
   return (

@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { Dimensions, Modal, Pressable, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
+  ReduceMotion,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -21,6 +22,10 @@ const CROP_TOP = (SCREEN_HEIGHT - CROP_SIZE) / 2;
 const CROP_LEFT = (SCREEN_WIDTH - CROP_SIZE) / 2;
 const DEFAULT_OUTPUT_SIZE = 256;
 const DEFAULT_OUTPUT_COMPRESS = 0.85;
+const CROP_SETTLE_ANIMATION_CONFIG = {
+  duration: 150,
+  reduceMotion: ReduceMotion.System,
+};
 
 const styles = StyleSheet.create({
   overlay: {
@@ -148,8 +153,8 @@ export function AvatarCropModal({
         translateX: translateX.get(),
         translateY: translateY.get(),
       });
-      translateX.set(withTiming(clamped.x, { duration: 150 }));
-      translateY.set(withTiming(clamped.y, { duration: 150 }));
+      translateX.set(withTiming(clamped.x, CROP_SETTLE_ANIMATION_CONFIG));
+      translateY.set(withTiming(clamped.y, CROP_SETTLE_ANIMATION_CONFIG));
       savedTranslateX.set(clamped.x);
       savedTranslateY.set(clamped.y);
     });
@@ -168,8 +173,8 @@ export function AvatarCropModal({
         translateX: translateX.get(),
         translateY: translateY.get(),
       });
-      translateX.set(withTiming(clamped.x, { duration: 150 }));
-      translateY.set(withTiming(clamped.y, { duration: 150 }));
+      translateX.set(withTiming(clamped.x, CROP_SETTLE_ANIMATION_CONFIG));
+      translateY.set(withTiming(clamped.y, CROP_SETTLE_ANIMATION_CONFIG));
       savedTranslateX.set(clamped.x);
       savedTranslateY.set(clamped.y);
     });
@@ -247,7 +252,12 @@ export function AvatarCropModal({
     return null;
 
   return (
-    <Modal visible={visible} animationType="fade" statusBarTranslucent>
+    <Modal
+      visible={visible}
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={handleCancel}
+    >
       <GestureHandlerRootView style={styles.modalRoot}>
         <View style={styles.overlay}>
           <GestureDetector gesture={composedGesture}>

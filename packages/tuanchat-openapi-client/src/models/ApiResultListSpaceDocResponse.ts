@@ -24,3 +24,4 @@ export type ApiResultListSpaceDocResponse = {
      */
     data?: Array<SpaceDocResponse>;
 };
+

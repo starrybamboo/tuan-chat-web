@@ -67,9 +67,13 @@ export type MessageDirectResponse = {
      * 消息状态
      */
     status?: number;
+    /**
+     * 扩展信息
+     */
     extra?: MessageExtra;
     /**
      * 创建时间
      */
     createTime?: string;
 };
+

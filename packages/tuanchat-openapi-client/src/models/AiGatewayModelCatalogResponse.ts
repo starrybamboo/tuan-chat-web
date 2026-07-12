@@ -24,3 +24,4 @@ export type AiGatewayModelCatalogResponse = {
      */
     models?: Array<ModelOption>;
 };
+

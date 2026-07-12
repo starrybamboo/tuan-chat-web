@@ -112,3 +112,7 @@ export function getRoomJumpExtra(extra: unknown) {
 export function getStateEventExtra(extra: unknown) {
   return getNestedMessageExtra(extra, "stateEvent");
 }
+
+export function getPokeExtra(extra: unknown) {
+  return getNestedMessageExtra(extra, "poke");
+}

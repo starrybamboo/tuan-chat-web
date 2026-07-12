@@ -32,7 +32,9 @@
     "plugins": [
       "expo-router",
       "expo-notifications",
+      "./plugins/with-android-local-backend-network.cjs",
       "./plugins/with-android-foreground-message-service.cjs",
+      "./plugins/with-android-network-concurrency.cjs",
       [
         "expo-splash-screen",
         {

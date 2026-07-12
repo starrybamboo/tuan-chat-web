@@ -56,7 +56,7 @@ export default function MessageAnnotationsBar({
       flex items-center
       ${compact ? `
         flex-nowrap gap-0.5
-        ${compactScroll ? `overflow-x-auto pb-0.5` : `overflow-visible pb-0`}
+        ${compactScroll ? `overflow-x-auto overscroll-x-none pb-0.5` : `overflow-visible pb-0`}
       ` : `
         flex-wrap gap-0.5
       `}

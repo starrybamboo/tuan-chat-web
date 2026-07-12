@@ -1,10 +1,10 @@
 import type { ChangeEvent, ClipboardEvent, DragEvent, MouseEvent } from "react";
-import { appToast } from "@/components/common/appToast/appToast";
 
 import { FilmSlateIcon, ImageIcon, MusicNotesIcon, PlusIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 import { getUserMessageSessionsQueryKey } from "@tuanchat/query/message-sessions";
+import { AnimatePresence, motion } from "motion/react";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -23,8 +23,15 @@ import { setClueRefDragData } from "@/components/chat/utils/clueRef";
 import { isFileDrag } from "@/components/chat/utils/dndUpload";
 import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { hasHostPrivileges, isObserverLike } from "@/components/chat/utils/memberPermissions";
+import { appToast } from "@/components/common/appToast/appToast";
+import { Button } from "@/components/common/Button";
+import { FileInput, TextArea } from "@/components/common/FormField";
 import { confirm } from "@/components/common/ConfirmDialog";
+import { DialogActions, DialogFrame } from "@/components/common/DialogFrame";
+import { IconButton } from "@/components/common/IconButton";
 import { MediaImage } from "@/components/common/mediaImage";
+import { StateView } from "@/components/common/StateView";
+import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
 import { useGlobalWebSocket } from "@/components/globalContextProvider";
 import { BaselineDeleteOutline, CloseIcon, FileTextIcon, SaveIcon } from "@/icons";
 import { buildChatMessageRequestFromDraft, buildMessageDraftsFromUploadedMedia } from "@/types/messageDraft";
@@ -392,38 +399,51 @@ function ClueFolderSection({
 
   return (
     <div className="group/clue-list relative py-0.5">
-      {isLoading && (
-        <div className="
-          flex items-center gap-2 rounded-md border border-dashed border-base-content/10
-          bg-base-100/35 px-2.5 py-2 text-xs text-base-content/55
-        ">
-          <span className="loading loading-spinner loading-xs"></span>
-          <span>正在加载线索...</span>
-        </div>
-      )}
+      <AnimatePresence initial={false} mode="popLayout">
+        {isLoading && (
+          <motion.div
+            key="clue-loading"
+            className="
+              flex items-center gap-2 rounded-md border border-dashed border-base-content/10
+              bg-base-100/35 px-2.5 py-2 text-xs text-base-content/55
+            "
+            {...structuralListItemMotionProps()}
+          >
+            <StateView loading title="正在加载线索..." className="w-full px-0 py-0 text-xs" />
+          </motion.div>
+        )}
 
-      {!isLoading && clueMessages.length === 0 && (
-        <div className="
-          rounded-md border border-dashed border-base-content/12 bg-base-100/30
-          px-2.5 py-2 text-xs text-base-content/55
-        ">
-          暂无线索
-        </div>
-      )}
+        {!isLoading && clueMessages.length === 0 && (
+          <motion.div
+            key="clue-empty"
+            className="
+              rounded-md border border-dashed border-base-content/12 bg-base-100/30
+              px-2.5 py-2 text-xs text-base-content/55
+            "
+            {...structuralListItemMotionProps()}
+          >
+            暂无线索
+          </motion.div>
+        )}
 
-      {clueMessages.map(({ message }, index) => {
-        const messageId = getMessageId(message);
-        if (!messageId) {
-          return null;
-        }
-        const previewText = getClueListPreviewText(message);
-        const titleText = getClueListPreviewText(message, CLUE_TITLE_PREVIEW_MAX_LENGTH);
-        const isDropTarget = reorderState?.targetMessageId === messageId;
-        const imagePayload = getImageMessageExtra(message.extra);
-        const thumbUrl = imagePayload ? resolveMessageMediaUrl(imagePayload, "low", "image") : "";
-        return (
-          <button
-            key={messageId}
+        {!isLoading && clueMessages.map(({ message }, index) => {
+          const messageId = getMessageId(message);
+          if (!messageId) {
+            return null;
+          }
+          const previewText = getClueListPreviewText(message);
+          const titleText = getClueListPreviewText(message, CLUE_TITLE_PREVIEW_MAX_LENGTH);
+          const isDropTarget = reorderState?.targetMessageId === messageId;
+          const imagePayload = getImageMessageExtra(message.extra);
+          const thumbUrl = imagePayload ? resolveMessageMediaUrl(imagePayload, "low", "image") : "";
+          return (
+            <motion.button
+              key={messageId}
+              {...structuralListItemMotionProps({
+                index,
+                staggerDelay: 0.015,
+                maxDelay: 0.12,
+              })}
             type="button"
             className={`
               group/clue-card relative w-full select-none border-base-content/10 px-2.5 py-2
@@ -450,7 +470,7 @@ function ClueFolderSection({
               clearActiveTextSelection();
               onEditClue(message);
             }}
-            onDragStart={(event) => {
+            onDragStartCapture={(event: DragEvent<HTMLButtonElement>) => {
               const payload = buildClueDragPayload(message);
               const sourceMessageId = getMessageId(message);
               event.dataTransfer.effectAllowed = "copyMove";
@@ -473,7 +493,7 @@ function ClueFolderSection({
               setDraggingClue(null);
               setReorderState(null);
             }}
-            onDragOver={(event) => {
+            onDragOver={(event: DragEvent<HTMLButtonElement>) => {
               if (draggingClue?.sourceRoomId !== roomId || draggingClue.sourceMessageId === messageId) {
                 return;
               }
@@ -483,7 +503,7 @@ function ClueFolderSection({
               const placement: ClueDropPlacement = event.clientY < rect.top + rect.height / 2 ? "before" : "after";
               setReorderState({ targetMessageId: messageId, placement });
             }}
-            onDragLeave={(event) => {
+            onDragLeave={(event: DragEvent<HTMLButtonElement>) => {
               const relatedTarget = event.relatedTarget as Node | null;
               if (relatedTarget && event.currentTarget.contains(relatedTarget)) {
                 return;
@@ -492,7 +512,7 @@ function ClueFolderSection({
                 setReorderState(null);
               }
             }}
-            onDrop={(event) => {
+            onDrop={(event: DragEvent<HTMLButtonElement>) => {
               if (draggingClue?.sourceRoomId !== roomId || !draggingClue.sourceMessageId || draggingClue.sourceMessageId === messageId) {
                 return;
               }
@@ -543,10 +563,11 @@ function ClueFolderSection({
               ">
                 {previewText}
               </span>
-            </span>
-          </button>
-        );
-      })}
+              </span>
+            </motion.button>
+          );
+        })}
+      </AnimatePresence>
     </div>
   );
 }
@@ -1055,34 +1076,19 @@ export default function ClueFolderSidebar({
       </div>
 
       {portalTarget && editorState && createPortal(
-        <div
-          className="modal modal-open z-10000"
-          role="dialog"
-          aria-modal="true"
-          aria-label={editorState.mode === "create" ? "新建线索" : "编辑线索"}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              closeEditor();
-            }
-          }}
+        <DialogFrame
+          open
+          mode="inline"
+          onClose={closeEditor}
+          ariaLabel={editorState.mode === "create" ? "新建线索" : "编辑线索"}
+          rootClassName="z-10000"
+          panelClassName="max-w-2xl"
         >
-          <div
-            className="modal-box max-w-2xl"
-            onDragOver={handleAttachmentDragOver}
-            onDrop={handleAttachmentDrop}
-          >
-            <div className="mb-3 flex items-center justify-between gap-3">
+          <div onDragOver={handleAttachmentDragOver} onDrop={handleAttachmentDrop}>
+            <div className="mb-3">
               <h3 className="text-base font-semibold">
                 {editorState.mode === "create" ? "新建线索" : "编辑线索"}
               </h3>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm btn-square"
-                aria-label="关闭"
-                onClick={closeEditor}
-              >
-                <CloseIcon className="size-5" />
-              </button>
             </div>
 
             {editorState.mode === "create" && (
@@ -1090,23 +1096,22 @@ export default function ClueFolderSidebar({
                 mb-3 rounded-lg border border-base-300 bg-base-200/40 p-3
               ">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     aria-label="添加线索附件"
                     disabled={isSaving || isDeleting}
                     onClick={() => attachmentInputRef.current?.click()}
                   >
                     <PlusIcon className="size-4" />
                     上传附件
-                  </button>
+                  </Button>
                   <span className="text-xs text-base-content/50">
                     支持点击上传、拖入文件，或在输入框里 Ctrl+V 粘贴图片
                   </span>
                 </div>
-                <input
+                <FileInput
                   ref={attachmentInputRef}
-                  type="file"
                   className="hidden"
                   aria-label="上传附件"
                   accept="image/*,audio/*,video/*,*/*"
@@ -1140,17 +1145,17 @@ export default function ClueFolderSidebar({
                           {draftAttachment.file.name}
                         </span>
                       </div>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-xs btn-square"
-                        aria-label="移除附件"
+                      <IconButton
+                        variant="ghost"
+                        size="xs"
+                        shape="square"
+                        label="移除附件"
                         onClick={clearAttachment}
-                      >
-                        <CloseIcon className="size-4" />
-                      </button>
+                        icon={<CloseIcon className="size-4" />}
+                      />
                     </div>
                     {draftAttachment.kind === "image" && (
-                      <img
+                      <MediaImage
                         src={draftAttachment.previewUrl}
                         alt={draftAttachment.file.name}
                         className="
@@ -1193,11 +1198,8 @@ export default function ClueFolderSidebar({
               </div>
             )}
 
-            <textarea
-              className="
-                textarea textarea-bordered min-h-72 max-h-[60vh] w-full resize-y
-                text-sm/6
-              "
+            <TextArea
+              className="min-h-72 max-h-[60vh] text-sm/6"
               value={draftContent}
               maxLength={CLUE_CONTENT_MAX_LENGTH}
               autoComplete="off"
@@ -1214,47 +1216,44 @@ export default function ClueFolderSidebar({
               {CLUE_CONTENT_MAX_LENGTH}
             </div>
 
-            <div className="modal-action items-center justify-between">
+            <DialogActions className="justify-between">
               <div>
                 {editorState.mode === "edit" && (
-                  <button
-                    type="button"
-                    className="btn btn-error btn-outline btn-sm"
+                  <Button
+                    variant="errorOutline"
+                    size="sm"
                     disabled={isSaving || isDeleting}
+                    loading={isDeleting}
                     onClick={deleteClue}
                   >
-                    {isDeleting
-                      ? <span className="loading loading-spinner loading-xs"></span>
-                      : <BaselineDeleteOutline className="size-4" />}
+                    {!isDeleting && <BaselineDeleteOutline className="size-4" />}
                     删除
-                  </button>
+                  </Button>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
+                <Button
+                  variant="ghost"
+                  size="sm"
                   disabled={isSaving || isDeleting}
                   onClick={closeEditor}
                 >
                   取消
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
                   disabled={isSaving || isDeleting}
+                  loading={isSaving}
                   onClick={saveClue}
                 >
-                  {isSaving
-                    ? <span className="loading loading-spinner loading-xs"></span>
-                    : <SaveIcon className="size-4" />}
+                  {!isSaving && <SaveIcon className="size-4" />}
                   保存
-                </button>
+                </Button>
               </div>
-            </div>
+            </DialogActions>
           </div>
-          <button type="button" className="modal-backdrop" onClick={closeEditor}>关闭</button>
-        </div>,
+        </DialogFrame>,
         portalTarget,
       )}
     </>

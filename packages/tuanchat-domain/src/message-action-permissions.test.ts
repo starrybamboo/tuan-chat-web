@@ -97,6 +97,16 @@ describe("canEditRoomMessage", () => {
       messageType: MESSAGE_TYPE.SOUND,
     })).toBe(false);
   });
+
+  it("sender can edit poke message", () => {
+    expect(canEditRoomMessage({
+      currentUserId: 5,
+      hasHostPrivileges: false,
+      messageSenderId: 5,
+      messageStatus: 0,
+      messageType: MESSAGE_TYPE.POKE,
+    })).toBe(true);
+  });
 });
 
 describe("canDeleteRoomMessage", () => {
@@ -168,6 +178,16 @@ describe("canDeleteRoomMessage", () => {
       messageStatus: 0,
       messageType: MESSAGE_TYPE.SYSTEM,
     })).toBe(false);
+  });
+
+  it("sender can delete poke message", () => {
+    expect(canDeleteRoomMessage({
+      currentUserId: 5,
+      hasHostPrivileges: false,
+      messageSenderId: 5,
+      messageStatus: 0,
+      messageType: MESSAGE_TYPE.POKE,
+    })).toBe(true);
   });
 });
 

@@ -20,12 +20,12 @@ export function useUnsubscribeRoomMutation() {
     return useMutation({
         mutationFn: (roomId: number) => tuanchat.messageSession.unsubscribeRoom(roomId),
         mutationKey: ['unsubscribeRoom'],
-        onMutate: (roomId) => {
-            const previous = optimisticRemoveRoomSessionQueryCache(queryClient, roomId);
-            return { previous };
+        onMutate: async (roomId) => {
+            const transaction = await optimisticRemoveRoomSessionQueryCache(queryClient, roomId);
+            return { transaction };
         },
         onError: (_error, _roomId, context) => {
-            rollbackUserSessionsQueryCache(queryClient, context?.previous);
+            rollbackUserSessionsQueryCache(queryClient, context?.transaction);
         },
         onSuccess: (_response, roomId) => {
             reconcileRemovedRoomSessionQueryCache(queryClient, roomId);
@@ -44,12 +44,12 @@ export function useSubscribeRoomMutation() {
     return useMutation({
         mutationFn: (roomId: number) => tuanchat.messageSession.subscribeRoom(roomId),
         mutationKey: ['subscribeRoom'],
-        onMutate: (roomId) => {
-            const previous = optimisticUpsertRoomSessionQueryCache(queryClient, roomId);
-            return { previous };
+        onMutate: async (roomId) => {
+            const transaction = await optimisticUpsertRoomSessionQueryCache(queryClient, roomId);
+            return { transaction };
         },
         onError: (_error, _roomId, context) => {
-            rollbackUserSessionsQueryCache(queryClient, context?.previous);
+            rollbackUserSessionsQueryCache(queryClient, context?.transaction);
         },
         onSuccess: (response, roomId) => {
             reconcileUpsertedRoomSessionQueryCache(queryClient, roomId, response.data);

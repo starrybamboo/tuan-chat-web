@@ -10,6 +10,8 @@ import { ReactCrop } from "react-image-crop";
 import type { ImageCompressionPreset } from "@/utils/media/imgCompressUtils";
 
 import { appToast } from "@/components/common/appToast/appToast";
+import { Button } from "@/components/common/Button";
+import { Divider } from "@/components/common/StatusPrimitives";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { canvasPreview, createCenteredAspectCrop, getCroppedImageFile, useDebounceEffect } from "@/utils/imgCropper";
@@ -398,10 +400,7 @@ export function ImgUploaderWithCopper({
               </ReactCrop>
             </div>
           )}
-          <div className={isMobile ? "divider" : `
-            divider
-            lg:divider-horizontal
-          `}></div>
+          <Divider orientation={isMobile ? "horizontal" : "vertical"} className={isMobile ? "" : "hidden self-stretch lg:block"} />
           {!!completedCrop && (
             <div className="flex flex-col gap-3 items-center">
               <div className={isMobile ? "w-64 h-64 shrink-0" : `
@@ -424,40 +423,32 @@ export function ImgUploaderWithCopper({
               {
                 isSubmitting
                   ? (
-                      <button
-                        className={isMobile ? "btn loading btn-sm" : `
-                          btn loading
-                        `}
-                        disabled={true}
-                        type="button"
-                        aria-label="上传中"
-                        aria-busy={true}
-                      >
+                      <Button size={isMobile ? "sm" : "md"} loading aria-label="上传中">
                         <span className="sr-only">上传中</span>
-                      </button>
+                      </Button>
                     )
                   : (
                       <div className={isMobile ? "flex flex-col gap-2 w-full" : `
                         flex flex-row justify-center gap-4
                       `}>
-                        <button
-                          className={isMobile ? `
-                            btn btn-info btn-md w-full text-md
-                          ` : `btn w-max btn-info`}
+                        <Button
+                          variant="primary"
+                          size="md"
+                          className={isMobile ? "w-full text-md" : "w-max"}
                           onClick={handleSubmit}
-                          type="button"
                         >
                           完成
-                        </button>
-                        <button
-                          className={isMobile ? `
-                            btn btn-outline btn-info btn-md w-full text-md
-                          ` : `btn w-max btn-info`}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="md"
+                          className={isMobile
+                            ? "w-full border-info text-md text-info hover:border-info hover:bg-info/10"
+                            : "w-max border-info/45 text-info hover:border-info/70 hover:bg-info/10"}
                           onClick={handleDownload}
-                          type="button"
                         >
                           下载裁切后的图像
-                        </button>
+                        </Button>
                       </div>
                     )
               }

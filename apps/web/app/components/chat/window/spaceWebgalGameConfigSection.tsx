@@ -2,6 +2,8 @@ import type { ChangeEvent, Dispatch, RefObject, SetStateAction } from "react";
 
 import type { RealtimeGameConfig } from "@/webGAL/realtimeRenderer";
 
+import { Button } from "@/components/common/Button";
+import { FileInput, SelectInput, Switch, TextInput } from "@/components/common/FormField";
 import { MediaImage } from "@/components/common/mediaImage";
 import { mediaFileUrl } from "@/utils/media/mediaUrl";
 
@@ -130,9 +132,8 @@ export function SpaceWebgalGameConfigSection({
                 label="未设置标题背景图时使用群聊头像"
                 description="如果你没有上传标题背景图，就自动用群聊头像当首页背景。"
               />
-              <input
-                type="checkbox"
-                className="toggle toggle-sm toggle-info"
+              <Switch
+                density="compact"
                 checked={gameConfig.coverFromRoomAvatarEnabled}
                 onChange={event => setGameConfig({ coverFromRoomAvatarEnabled: event.target.checked })}
               />
@@ -145,9 +146,8 @@ export function SpaceWebgalGameConfigSection({
                 label="未设置启动图时使用群聊头像"
                 description="如果你没有上传启动图，就自动用群聊头像当启动图。"
               />
-              <input
-                type="checkbox"
-                className="toggle toggle-sm toggle-info"
+              <Switch
+                density="compact"
                 checked={gameConfig.startupLogoFromRoomAvatarEnabled}
                 onChange={event => setGameConfig({ startupLogoFromRoomAvatarEnabled: event.target.checked })}
               />
@@ -160,9 +160,8 @@ export function SpaceWebgalGameConfigSection({
                 label="游戏图标使用群聊头像"
                 description="让游戏图标和群聊头像保持一致。"
               />
-              <input
-                type="checkbox"
-                className="toggle toggle-sm toggle-info"
+              <Switch
+                density="compact"
                 checked={gameConfig.gameIconFromRoomAvatarEnabled}
                 onChange={event => setGameConfig({ gameIconFromRoomAvatarEnabled: event.target.checked })}
               />
@@ -175,9 +174,8 @@ export function SpaceWebgalGameConfigSection({
                 label="游戏名使用空间名+ID"
                 description="自动用“空间名 + 编号”当游戏名，避免重名。"
               />
-              <input
-                type="checkbox"
-                className="toggle toggle-sm toggle-info"
+              <Switch
+                density="compact"
                 checked={gameConfig.gameNameFromRoomNameEnabled}
                 onChange={event => setGameConfig({ gameNameFromRoomNameEnabled: event.target.checked })}
               />
@@ -190,9 +188,8 @@ export function SpaceWebgalGameConfigSection({
                 label="启用紧急回避"
                 description="需要快速遮住画面时可以一键隐藏当前内容。"
               />
-              <input
-                type="checkbox"
-                className="toggle toggle-sm toggle-info"
+              <Switch
+                density="compact"
                 checked={gameConfig.showPanicEnabled}
                 onChange={event => setGameConfig({ showPanicEnabled: event.target.checked })}
               />
@@ -205,9 +202,8 @@ export function SpaceWebgalGameConfigSection({
                 label="启用鉴赏模式"
                 description="开启后可在菜单里查看已看过的内容，方便回顾。"
               />
-              <input
-                type="checkbox"
-                className="toggle toggle-sm toggle-info"
+              <Switch
+                density="compact"
                 checked={gameConfig.enableAppreciation}
                 onChange={event => setGameConfig({ enableAppreciation: event.target.checked })}
               />
@@ -220,9 +216,8 @@ export function SpaceWebgalGameConfigSection({
                 label="允许打开完整设置"
                 description="允许玩家在 WebGAL 里打开完整设置页；关闭后会隐藏设置入口。"
               />
-              <input
-                type="checkbox"
-                className="toggle toggle-sm toggle-info"
+              <Switch
+                density="compact"
                 checked={gameConfig.allowOpenFullSettings}
                 onChange={event => setGameConfig({ allowOpenFullSettings: event.target.checked })}
               />
@@ -235,9 +230,8 @@ export function SpaceWebgalGameConfigSection({
                 label="角色发言聚焦"
                 description="命中发言目标时，其他立绘会自动压暗；当前角色保持原亮度。这是开发期配置，不会在游戏内提供给玩家切换。"
               />
-              <input
-                type="checkbox"
-                className="toggle toggle-sm toggle-info"
+              <Switch
+                density="compact"
                 checked={gameConfig.speakerFocusEnabled}
                 onChange={event => setGameConfig({ speakerFocusEnabled: event.target.checked })}
               />
@@ -258,9 +252,8 @@ export function SpaceWebgalGameConfigSection({
                     px-2 py-1 text-xs
                   ">
                     <span>打字音</span>
-                    <input
-                      type="checkbox"
-                      className="toggle toggle-xs toggle-info"
+                    <Switch
+                      density="compact"
                       checked={gameConfig.typingSoundEnabled}
                       onChange={event => setGameConfig({ typingSoundEnabled: event.target.checked })}
                     />
@@ -281,12 +274,13 @@ export function SpaceWebgalGameConfigSection({
                     <div>
                       <div className="mb-1 text-xs text-base-content/70">每隔多少个字播放一次</div>
                       <div className="flex gap-2">
-                        <input
+                        <TextInput
+                          density="compact"
                           type="number"
                           min={0.1}
                           max={20}
                           step={0.1}
-                          className="input input-bordered input-sm flex-1"
+                          className="flex-1"
                           aria-label="打字音播放间隔（每多少字播放一次）"
                           value={typingSoundIntervalInput}
                           onChange={event => setTypingSoundIntervalInput(event.target.value)}
@@ -298,24 +292,25 @@ export function SpaceWebgalGameConfigSection({
                             }
                           }}
                         />
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline"
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={handleSaveTypingSoundInterval}
                         >
                           保存
-                        </button>
+                        </Button>
                       </div>
                     </div>
                     <div>
                       <div className="mb-1 text-xs text-base-content/70">标点额外停顿（毫秒）</div>
                       <div className="flex gap-2">
-                        <input
+                        <TextInput
+                          density="compact"
                           type="number"
                           min={0}
                           max={5000}
                           step={10}
-                          className="input input-bordered input-sm flex-1"
+                          className="flex-1"
                           aria-label="打字音标点额外停顿（毫秒）"
                           value={typingSoundPunctuationPauseInput}
                           onChange={event => setTypingSoundPunctuationPauseInput(event.target.value)}
@@ -327,35 +322,36 @@ export function SpaceWebgalGameConfigSection({
                             }
                           }}
                         />
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline"
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={handleSaveTypingSoundPunctuationPause}
                         >
                           保存
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
                   <div className="mt-3">
                     <div className="mb-1 text-xs text-base-content/70">打字音效文件</div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline"
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={handlePickTypingSoundSe}
                         disabled={isTypingSoundSeUploading}
+                        loading={isTypingSoundSeUploading}
                       >
                         {isTypingSoundSeUploading ? "上传中..." : "上传音频"}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-ghost"
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={handleClearTypingSoundSe}
                         disabled={isTypingSoundSeUploading || !hasTypingSoundSe}
                       >
                         恢复默认
-                      </button>
+                      </Button>
                       <span className="text-xs text-base-content/70">
                         {hasTypingSoundSe ? "已设置自定义打字音" : "使用默认打字音"}
                       </span>
@@ -370,9 +366,8 @@ export function SpaceWebgalGameConfigSection({
                         <track kind="captions" />
                       </audio>
                     )}
-                    <input
+                    <FileInput
                       ref={typingSoundSeFileInputRef}
-                      type="file"
                       accept="audio/*"
                       className="hidden"
                       onChange={handleTypingSoundSeFileChange}
@@ -399,12 +394,13 @@ export function SpaceWebgalGameConfigSection({
                 <div>
                   <div className="mb-1 text-xs text-base-content/70">默认入场（毫秒）</div>
                   <div className="flex gap-2">
-                    <input
+                  <TextInput
+                    density="compact"
                       type="number"
                       min={0}
                       max={5000}
                       step={10}
-                      className="input input-bordered input-sm flex-1"
+                      className="flex-1"
                       aria-label="立绘默认入场时长（毫秒）"
                       value={figureDefaultEnterDurationInput}
                       onChange={event => setFigureDefaultEnterDurationInput(event.target.value)}
@@ -416,24 +412,25 @@ export function SpaceWebgalGameConfigSection({
                         }
                       }}
                     />
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline"
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={handleSaveFigureDefaultEnterDuration}
                     >
                       保存
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 <div>
                   <div className="mb-1 text-xs text-base-content/70">默认出场（毫秒）</div>
                   <div className="flex gap-2">
-                    <input
+                  <TextInput
+                    density="compact"
                       type="number"
                       min={0}
                       max={5000}
                       step={10}
-                      className="input input-bordered input-sm flex-1"
+                      className="flex-1"
                       aria-label="立绘默认出场时长（毫秒）"
                       value={figureDefaultExitDurationInput}
                       onChange={event => setFigureDefaultExitDurationInput(event.target.value)}
@@ -445,13 +442,13 @@ export function SpaceWebgalGameConfigSection({
                         }
                       }}
                     />
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline"
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={handleSaveFigureDefaultExitDuration}
                     >
                       保存
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -464,15 +461,16 @@ export function SpaceWebgalGameConfigSection({
                 label="默认语言"
                 description="玩家第一次打开游戏时默认显示的语言。"
               />
-              <select
-                className="select select-bordered select-sm w-40"
+              <SelectInput
+                density="compact"
+                className="w-40"
                 value={gameConfig.defaultLanguage}
                 onChange={event => setGameConfig({ defaultLanguage: event.target.value as typeof gameConfig.defaultLanguage })}
               >
                 {DEFAULT_LANGUAGE_OPTIONS.map(option => (
                   <option key={option.value || "empty"} value={option.value}>{option.label}</option>
                 ))}
-              </select>
+              </SelectInput>
             </label>
             <label className="
               flex items-center justify-between gap-2 rounded-md border
@@ -482,15 +480,16 @@ export function SpaceWebgalGameConfigSection({
                 label="WebGAL模板"
                 description="默认使用团剧共创模板；black 会覆盖为 WebGAL Black。"
               />
-              <select
-                className="select select-bordered select-sm w-40"
+              <SelectInput
+                density="compact"
+                className="w-40"
                 value={gameConfig.baseTemplate}
                 onChange={event => setGameConfig({ baseTemplate: event.target.value as typeof gameConfig.baseTemplate })}
               >
                 {BASE_TEMPLATE_OPTIONS.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
-              </select>
+              </SelectInput>
             </label>
           </div>
 
@@ -504,11 +503,12 @@ export function SpaceWebgalGameConfigSection({
                 <ConfigHelpButton label="游戏简介（Description）" description="给玩家看的简介文字，会显示在游戏信息里。" />
               </div>
               <div className="flex gap-2">
-                <input
+                <TextInput
+                  density="compact"
                   type="text"
                   autoComplete="off"
                   aria-label="游戏简介"
-                  className="input input-bordered input-sm flex-1"
+                  className="flex-1"
                   placeholder="留空则不设定"
                   value={descriptionInput}
                   onChange={event => setDescriptionInput(event.target.value)}
@@ -520,13 +520,13 @@ export function SpaceWebgalGameConfigSection({
                     }
                   }}
                 />
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline"
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={handleSaveDescription}
                 >
                   保存
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -536,11 +536,12 @@ export function SpaceWebgalGameConfigSection({
                 <ConfigHelpButton label="游戏包名（Package_name）" description="打包发布时使用的应用标识；不确定可先保持当前值。" />
               </div>
               <div className="flex gap-2">
-                <input
+                <TextInput
+                  density="compact"
                   type="text"
                   autoComplete="off"
                   aria-label="游戏包名"
-                  className="input input-bordered input-sm flex-1"
+                  className="flex-1"
                   placeholder="如 com.openwebgal.demo"
                   value={packageNameInput}
                   onChange={event => setPackageNameInput(event.target.value)}
@@ -552,13 +553,13 @@ export function SpaceWebgalGameConfigSection({
                     }
                   }}
                 />
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline"
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={handleSavePackageName}
                 >
                   保存
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -574,22 +575,23 @@ export function SpaceWebgalGameConfigSection({
                 />
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline"
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={handlePickTitleImage}
                   disabled={isTitleImageUploading}
+                  loading={isTitleImageUploading}
                 >
                   {isTitleImageUploading ? "上传中..." : "上传图片"}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-ghost"
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={handleClearTitleImage}
                   disabled={isTitleImageUploading || !hasTitleImage}
                 >
                   清空
-                </button>
+                </Button>
                 <span className="text-xs text-base-content/70">
                   {hasTitleImage ? "已设置标题背景图" : "未设置标题背景图（可用上方头像兜底）"}
                 </span>
@@ -607,9 +609,8 @@ export function SpaceWebgalGameConfigSection({
                   />
                 </div>
               )}
-              <input
+              <FileInput
                 ref={titleImageFileInputRef}
-                type="file"
                 accept="image/*"
                 className="hidden"
                 onChange={handleTitleImageFileChange}
@@ -628,22 +629,23 @@ export function SpaceWebgalGameConfigSection({
                 />
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline"
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={handlePickStartupLogo}
                   disabled={isStartupLogoUploading}
+                  loading={isStartupLogoUploading}
                 >
                   {isStartupLogoUploading ? "上传中..." : "上传图片"}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-ghost"
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={handleClearStartupLogo}
                   disabled={isStartupLogoUploading || !hasStartupLogo}
                 >
                   清空
-                </button>
+                </Button>
                 <span className="text-xs text-base-content/70">
                   {hasStartupLogo ? "已设置启动图" : "未设置启动图（可用上方头像兜底）"}
                 </span>
@@ -661,9 +663,8 @@ export function SpaceWebgalGameConfigSection({
                   />
                 </div>
               )}
-              <input
+              <FileInput
                 ref={startupLogoFileInputRef}
-                type="file"
                 accept="image/*"
                 className="hidden"
                 onChange={handleStartupLogoFileChange}

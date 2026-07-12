@@ -24,6 +24,7 @@ type UseChatFrameMessageRendererParams = {
   }) => void;
   isCommandRequestConsumed?: (requestMessageId: number) => boolean;
   onEditWebgalChoose?: (messageId: number) => void;
+  onPokeMessage?: (message: Message) => void;
   onMessageClick: (event: MouseEvent<HTMLElement>, messageId: number) => void;
   onToggleSelection?: (messageId: number) => void;
   onDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
@@ -54,6 +55,7 @@ export default function useChatFrameMessageRenderer({
   onExecuteCommandRequest,
   isCommandRequestConsumed,
   onEditWebgalChoose,
+  onPokeMessage,
   onMessageClick,
   onToggleSelection,
   onDragOver,
@@ -89,6 +91,7 @@ export default function useChatFrameMessageRenderer({
         onExecuteCommandRequest={onExecuteCommandRequest}
         isCommandRequestConsumed={isCommandRequestConsumed}
         onEditWebgalChoose={onEditWebgalChoose}
+        onPokeMessage={onPokeMessage}
         baseVersionMessage={getBaseVersionMessage?.(chatMessageResponse) ?? null}
         showFullMessageDiff={showFullMessageDiff}
         showAddedMessageDiff={showAddedMessageDiff}
@@ -122,6 +125,7 @@ export default function useChatFrameMessageRenderer({
     onDragStart,
     onDrop,
     onEditWebgalChoose,
+    onPokeMessage,
     onExecuteCommandRequest,
     isCommandRequestConsumed,
     onMessageClick,

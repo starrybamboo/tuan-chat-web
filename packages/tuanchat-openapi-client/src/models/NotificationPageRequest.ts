@@ -23,3 +23,4 @@ export type NotificationPageRequest = {
      */
     category?: string;
 };
+

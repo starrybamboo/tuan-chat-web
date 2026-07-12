@@ -148,9 +148,13 @@ describe("getCacheKey", () => {
     expect(getCacheKey("https://media.tuan.chat/media/v1/files/001/1/original")).toBe("1_original");
   });
 
-  it("returns URL as-is for non-media URLs", () => {
+  it("creates a stable filesystem-safe key for external URLs", () => {
     const url = "https://example.com/avatar.png";
-    expect(getCacheKey(url)).toBe(url);
+    const cacheKey = getCacheKey(url);
+
+    expect(cacheKey).toMatch(/^external_[a-f0-9]{16}$/);
+    expect(getCacheKey(url)).toBe(cacheKey);
+    expect(getCacheKey(`${url}?version=2`)).not.toBe(cacheKey);
   });
 
   it("normalizes media URLs with different query strings to the same cache key", () => {
@@ -175,6 +179,21 @@ describe("native disk cache", () => {
     expect(getCachedImageUriSync(LOW_URL)).toBe(LOW_FILE_URI);
     expect(isAlreadyCached(LOW_URL)).toBe(true);
     expect(fileSystemMock.fileContents.has(DERIVATIVE_STATUS_FILE_URI)).toBe(false);
+  });
+
+  it("downloads an external URL into a flat safe cache file", async () => {
+    const url = "https://example.com/images/avatar.png?version=2";
+
+    const result = await prefetchImage(url);
+
+    expect(result).toBe(true);
+    expect(fileSystemMock.MockFile.downloadFileAsync).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        uri: expect.stringMatching(/^file:\/\/\/mock\/document\/mobile-image-cache\/external_[a-f0-9]{16}\.img$/),
+      }),
+      { idempotent: true },
+    );
   });
 
   it("returns the local file URI when resolving an uncached remote image", async () => {

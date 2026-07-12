@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import type { ToastWindowOptions } from "@/components/common/toastWindow/toastWindowRenderer";
 
+import { IconButton } from "@/components/common/IconButton";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
@@ -27,8 +28,8 @@ export function resolveBetterImgPreviewToastOptions(transparent: boolean): Toast
   return {
     fullScreen: true,
     transparent,
-    rootClassName: "z-[11000]",
-    panelClassName: "max-h-dvh max-w-dvw overflow-hidden",
+    rootClassName: "z-[11000] !p-0",
+    panelClassName: "!w-full !max-h-none !max-w-none overflow-hidden !rounded-none !border-0 !p-0 !shadow-none",
     bodyClassName: "overflow-hidden",
     disableScroll: true,
   };
@@ -137,17 +138,16 @@ function BetterImg({ src, className, onClose, size, transparent = true, zoomQual
       </button>
 
       {onClose && (
-        <button
-          type="button"
+        <IconButton
+          size="xs"
+          label="移除图片"
           className="
-            btn btn-xs btn-circle right-0 top-0 absolute opacity-100
+            right-0 top-0 absolute opacity-100
             duration-200 origin-top-right
           "
           onClick={onClose}
-          aria-label="移除图片"
-        >
-          <span className="text-xs">✕</span>
-        </button>
+          icon={<span className="text-xs">✕</span>}
+        />
       )}
     </div>
   );

@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 
-import { XIcon } from "@phosphor-icons/react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import type { StartupNoticeId } from "@/components/startupNotice/startupNoticeRules";
 
+import { DialogFrame } from "@/components/common/DialogFrame";
+import { textLinkClassName } from "@/components/common/DesignLanguage";
 import {
   resolveStartupNoticeIds,
   STARTUP_NOTICE_SESSION_KEYS,
@@ -77,7 +77,6 @@ export default function StartupNoticeCenter({
   shouldShowBugFeedbackGuide,
 }: StartupNoticeCenterProps) {
   const [acknowledgedNoticeIds, setAcknowledgedNoticeIds] = useState<Set<StartupNoticeId>>(() => new Set());
-  const shouldReduceMotion = useReducedMotion();
 
   const noticeIds = useMemo(() => {
     const seenNoticeIds = readSeenNoticeIds();
@@ -160,86 +159,29 @@ export default function StartupNoticeCenter({
     acknowledgeNoticeIds(notices.map(notice => notice.id));
   }, [acknowledgeNoticeIds, notices]);
 
-  // 打开时支持 Esc 关闭
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.isComposing)
-        return;
-      if (event.key === "Escape") {
-        handleCloseAll();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleCloseAll, isOpen]);
-
-  // 打开时锁定背景滚动，关闭/卸载时还原
-  useEffect(() => {
-    if (!isOpen || typeof document === "undefined") {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isOpen]);
-
   if (displayedNotices.length === 0) {
     return null;
   }
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="modal modal-open" role="dialog" aria-modal="true" aria-labelledby="startup-notice-title">
-          <motion.div
-            className="modal-box max-w-3xl p-0 overflow-hidden"
-            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 8 }}
-            animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
-            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 8 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-          >
-            <div className="flex justify-end px-3 pt-3">
-              <button
-                type="button"
-                className="btn btn-ghost btn-square btn-sm"
-                onClick={handleCloseAll}
-                aria-label="关闭启动提示"
-              >
-                <XIcon className="size-4" weight="regular" aria-hidden="true" />
-              </button>
-            </div>
-
-            <h2 id="startup-notice-title" className="sr-only">启动提示</h2>
-            <div className="max-h-[70vh] divide-y divide-base-300/60 overflow-y-auto">
-              {displayedNotices.map(notice => (
-                <section key={notice.id} className="px-6 py-6 first:pt-2">
-                  <h3 className="mb-3 text-base font-semibold text-base-content">{notice.title}</h3>
-                  {notice.content}
-                </section>
-              ))}
-            </div>
-          </motion.div>
-          <motion.button
-            type="button"
-            aria-label="关闭启动提示"
-            className="modal-backdrop"
-            onClick={handleCloseAll}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18, ease: "linear" }}
-          />
-        </div>
-      )}
-    </AnimatePresence>
+    <DialogFrame
+      open={isOpen}
+      mode="inline"
+      onClose={handleCloseAll}
+      ariaLabel="启动提示"
+      closeButtonLabel="关闭启动提示"
+      panelClassName="max-w-3xl overflow-hidden p-0"
+    >
+      <h2 id="startup-notice-title" className="sr-only">启动提示</h2>
+      <div className="max-h-[70vh] divide-y divide-base-300/60 overflow-y-auto">
+        {displayedNotices.map(notice => (
+          <section key={notice.id} className="px-6 py-6 first:pt-2">
+            <h3 className="mb-3 text-base font-semibold text-base-content">{notice.title}</h3>
+            {notice.content}
+          </section>
+        ))}
+      </div>
+    </DialogFrame>
   );
 }
 
@@ -251,7 +193,7 @@ function TestEnvironmentNoticeContent() {
       </p>
       <p>
         如果你不是团剧共创的深度用户，建议优先使用正式环境：
-        <a className="link link-primary ml-1" href="https://tuan.chat" target="_blank" rel="noopener noreferrer">tuan.chat</a>
+        <a className={textLinkClassName("ml-1")} href="https://tuan.chat" target="_blank" rel="noopener noreferrer">tuan.chat</a>
       </p>
     </div>
   );
@@ -265,7 +207,7 @@ function DevEnvironmentNoticeContent() {
       </p>
       <p>
         如果你不是团剧共创的开发者，建议优先使用正式环境：
-        <a className="link link-primary ml-1" href="https://tuan.chat" target="_blank" rel="noopener noreferrer">tuan.chat</a>
+        <a className={textLinkClassName("ml-1")} href="https://tuan.chat" target="_blank" rel="noopener noreferrer">tuan.chat</a>
       </p>
     </div>
   );

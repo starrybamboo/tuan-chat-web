@@ -70,13 +70,12 @@
 - 图标按钮必须补齐 `title`/`aria-label` 等可访问说明；仅在语义不够直观、风险较高或首次引导时，再同时保留文字标签。
 - 使用 Tailwind CSS v4 的样式类。
 
-## 浏览器测试登录态
+## 移动端本地联调
 
-- 需要登录态的 Playwright / Codex Browser / Computer Use 验证，不要反复走登录页 UI。
-- 优先运行 `pnpm test:e2e:auth-state` 生成 `.auth/e2e-storage-state.json`。
-- Playwright 测试使用 `storageState: ".auth/e2e-storage-state.json"`。
-- 已打开页面的 Browser / Computer Use 测试，运行 `pnpm e2e:browser-auth-snippet -- --output .auth/e2e-browser-auth-snippet.js`，再在目标页面执行生成脚本注入登录态。
-- `.auth/` 是本机认证缓存目录，包含敏感登录态，禁止提交。
+- 排查移动端登录、聊天、WebSocket、首条消息发送或跨端推送问题时，优先让 Web 与移动端共同连接本地 `TuanChat` 后端，避开线上人机校验和生产网络变量。
+- Android 本地后端联调使用 `adb reverse`：先执行 `D:\AndroidSdk\platform-tools\adb.exe reverse tcp:8081 tcp:8081`，需要本地 WebSocket 时再执行 `D:\AndroidSdk\platform-tools\adb.exe reverse tcp:8090 tcp:8090`。
+- 移动端 Expo 环境变量使用 `EXPO_PUBLIC_TUANCHAT_API_BASE_URL=http://127.0.0.1:8081` 与 `EXPO_PUBLIC_TUANCHAT_API_WS_URL=ws://127.0.0.1:8090`；这里的 `127.0.0.1` 是设备侧 localhost，由 `adb reverse` 转发到电脑本机。
+- 只有验证线上环境特有行为、线上账号权限或生产网关问题时，才把移动端切回 `https://api.tuan.chat/api` / `wss://api.tuan.chat/ws`。
 
 ## 文档要求
 

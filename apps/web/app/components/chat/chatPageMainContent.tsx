@@ -8,6 +8,8 @@ import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContex
 import useChatFrameMessages from "@/components/chat/hooks/useChatFrameMessages";
 import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
 import RoomWindowLoadingState from "@/components/chat/room/roomWindowLoadingState";
+import { IconButton } from "@/components/common/IconButton";
+import { StateView } from "@/components/common/StateView";
 import MessageEditor from "@/components/messageEditor/MessageEditor";
 import FriendsListPanel from "@/components/privateChat/components/FriendsListPanel";
 import NewFriendsPanel from "@/components/privateChat/components/NewFriendsPanel";
@@ -26,14 +28,7 @@ function RoomWindowLoadingFallback() {
 }
 
 function ChatPageLoadingFallback({ text }: { text: string }) {
-  return (
-    <div className="
-      flex size-full items-center justify-center text-sm text-base-content/60
-    ">
-      <span className="loading loading-spinner loading-md"></span>
-      <span className="ml-2">{text}</span>
-    </div>
-  );
+  return <StateView loading title={text} className="size-full py-0" />;
 }
 
 type ChatPageDocToolbarProps = {
@@ -55,43 +50,17 @@ function ChatPageDocToolbar({ onBack }: ChatPageDocToolbarProps) {
             dark:border-white/10 dark:bg-base-300/25
           "
         >
-          <button
-            type="button"
-            className="
-              btn btn-ghost btn-square btn-sm rounded-md
-              active:scale-95
-            "
+          <IconButton
+            variant="ghost"
+            size="sm"
+            shape="square"
+            className="rounded-md active:scale-95"
             onClick={() => onBack?.()}
-            aria-label="返回房间"
+            label="返回房间"
             title="返回房间"
-          >
-            <ArrowLeftIcon className="size-4" weight="regular" />
-          </button>
+            icon={<ArrowLeftIcon className="size-4" weight="regular" />}
+          />
         </div>
-      </div>
-    </div>
-  );
-}
-
-function PrivateChatEmptyState() {
-  const { setPrivateChatTab } = useChatPageLayoutContext();
-  return (
-    <div className="
-      flex size-full items-center justify-center px-6 text-base-content/60
-    ">
-      <div className="flex max-w-sm flex-col items-center gap-3 text-center">
-        <svg xmlns="http://www.w3.org/2000/svg" className="size-12 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-        </svg>
-        <h2 className="text-sm font-semibold text-base-content/80">选择一个对话开始聊天</h2>
-        <p className="text-xs/5 opacity-70">从左侧会话继续聊天，或从好友列表发起新的私聊。</p>
-        <button
-          type="button"
-          className="btn btn-primary btn-sm mt-1"
-          onClick={() => setPrivateChatTab("friends")}
-        >
-          查看好友
-        </button>
       </div>
     </div>
   );
@@ -107,7 +76,6 @@ function ChatPageChatContent() {
   const {
     isPrivateChatMode,
     activeRoomId,
-    setIsOpenLeftDrawer,
     activeSpaceId,
     targetMessageId,
     privateChatTab,
@@ -119,21 +87,15 @@ function ChatPageChatContent() {
 
   if (isPrivateChatMode) {
     const privateChatContent = (() => {
-      if (privateChatTab === "friends") {
-        return <FriendsListPanel />;
-      }
-
       if (privateChatTab === "new-friends") {
         return <NewFriendsPanel />;
       }
 
       return activeRoomId
         ? (
-            <RightChatView
-              setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-            />
+            <RightChatView />
           )
-        : <PrivateChatEmptyState />;
+        : <FriendsListPanel />;
     })();
 
     return (

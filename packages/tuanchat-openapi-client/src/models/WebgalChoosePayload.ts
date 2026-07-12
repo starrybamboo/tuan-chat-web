@@ -9,3 +9,4 @@ export type WebgalChoosePayload = {
      */
     options: Array<WebgalChooseOption>;
 };
+

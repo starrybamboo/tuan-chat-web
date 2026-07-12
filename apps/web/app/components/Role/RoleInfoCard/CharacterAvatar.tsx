@@ -57,7 +57,7 @@ export default function CharacterAvatar({
     <div className="flex justify-center">
       <div
         className={`
-          avatar flex items-center justify-center
+          relative inline-flex items-center justify-center align-middle
           ${avatarSizeClassName}
           ${editable ? `cursor-pointer group` : `cursor-default`}
         `}
@@ -87,6 +87,7 @@ export default function CharacterAvatar({
         ">
           <div className={`
             absolute inset-0 transition-all flex items-center justify-center z-1
+            motion-reduce:transition-none
             ${
             editable ? `
               bg-black/0
@@ -100,6 +101,7 @@ export default function CharacterAvatar({
             alt={role.name ? `${role.name}头像` : "角色头像"}
             className={`
               size-full object-contain transition-transform duration-300
+              motion-reduce:transform-none motion-reduce:transition-none
               ${editable ? `group-hover:scale-105` : ""}
             `}
             fallbackSrc={ROLE_DEFAULT_AVATAR_URL}

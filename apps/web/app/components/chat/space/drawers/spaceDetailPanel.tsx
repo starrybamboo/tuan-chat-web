@@ -12,6 +12,9 @@ import { canViewSpaceDetailTab } from "@/components/chat/utils/spaceDetailPermis
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
 import SpaceTrpgSettingWindow from "@/components/chat/window/spaceTrpgSettingWindow";
+import { Button } from "@/components/common/Button";
+import { IconButton } from "@/components/common/IconButton";
+import { StateView } from "@/components/common/StateView";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { BaselineArrowBackIosNew } from "@/icons";
 
@@ -22,20 +25,13 @@ import {
   useSetPlayerMutation,
 } from "../../../../../api/hooks/chatQueryHooks";
 import { useGetSpaceRepositoryRoleQuery } from "../../../../../api/hooks/spaceRepositoryHooks";
+import FeaturePlaceholderPage from "@/components/common/featurePlaceholderPage";
 
 const LazyWorkflowWindow = lazy(() => import("../../window/workflowWindow"));
 const LazySpaceWebgalRenderWindow = lazy(() => import("@/components/chat/window/spaceWebgalRenderWindow"));
-const LazySpaceMaterialLibraryPage = lazy(() => import("@/components/material/pages/spaceMaterialLibraryPage"));
 
 function SpaceDetailLazyFallback({ text }: { text: string }) {
-  return (
-    <div className="
-      flex h-full items-center justify-center text-sm text-base-content/60
-    ">
-      <span className="loading loading-spinner loading-sm" />
-      <span className="ml-2">{text}</span>
-    </div>
-  );
+  return <StateView loading title={text} className="h-full py-0" />;
 }
 
 export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: SpaceDetailTab; onClose: () => void }) {
@@ -133,14 +129,13 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
         dark:border-base-300
         bg-base-100
       ">
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm btn-square"
-          aria-label="返回聊天"
+        <IconButton
+          size="sm"
+          shape="square"
+          label="返回聊天"
           onClick={onClose}
-        >
-          <BaselineArrowBackIosNew className="size-5" />
-        </button>
+          icon={<BaselineArrowBackIosNew className="size-5" />}
+        />
         <div className="text-sm font-medium opacity-80 truncate">
           {panelTitle}
         </div>
@@ -169,14 +164,15 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
               {spaceRoles.length}
             </div>
             {spaceContext.isSpaceOwner && (
-              <button
-                type="button"
-                className="btn btn-xs btn-dash btn-info"
+              <Button
+                variant="outline"
+                size="xs"
+                className="border-dashed border-info/45 text-info hover:border-info/70 hover:bg-info/10"
                 onClick={() => setIsRoleHandleOpen(true)}
                 aria-label="添加空间角色"
               >
                 添加角色
-              </button>
+              </Button>
             )}
           </div>
           {spaceRoles.length === 0
@@ -219,9 +215,11 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
 
       {resolvedTab === "material" && (
         <div className="h-full overflow-hidden">
-          <Suspense fallback={<SpaceDetailLazyFallback text="正在加载局内素材包..." />}>
-            <LazySpaceMaterialLibraryPage spaceId={spaceId} embedded />
-          </Suspense>
+          <FeaturePlaceholderPage
+            compact
+            title="局内素材包正在重写"
+            description="当前入口暂时保留，新的素材工作流将在这里重新接入。"
+          />
         </div>
       )}
 

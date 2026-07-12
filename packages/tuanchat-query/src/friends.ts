@@ -6,6 +6,12 @@ import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import {
+  beginOptimisticQueryTransaction,
+  optimisticQueryPatch,
+  rollbackOptimisticQueryTransaction,
+} from "./optimistic-cache";
+
 type FriendClient = Pick<TuanChat, "friendController">;
 
 export const FRIEND_REQUEST_STATUS_PENDING = 1;
@@ -113,17 +119,17 @@ export function useAcceptFriendRequestMutation(client: FriendClient) {
       client.friendController.acceptFriendRequest({ friendReqId } satisfies FriendReqHandleRequest),
     mutationKey: ["acceptFriendRequest"],
     onMutate: async (friendReqId) => {
-      await queryClient.cancelQueries({ queryKey: ["friendRequests"] });
-      const previousData = queryClient.getQueriesData({ queryKey: ["friendRequests"] });
-      reconcileFriendRequestPageCaches(queryClient, friendReqId);
-      return { previousData };
+      const transaction = await beginOptimisticQueryTransaction(queryClient, [
+        optimisticQueryPatch({
+          queryKey: ["friendRequests"],
+          exact: false,
+          update: old => removeFriendRequestFromList(old, friendReqId),
+        }),
+      ]);
+      return { transaction };
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousData) {
-        for (const [key, data] of context.previousData) {
-          queryClient.setQueryData(key, data);
-        }
-      }
+      rollbackOptimisticQueryTransaction(queryClient, context?.transaction);
     },
     onSuccess: (_result, friendReqId) => {
       reconcileFriendRequestPageCaches(queryClient, friendReqId);
@@ -144,17 +150,17 @@ export function useRejectFriendRequestMutation(client: FriendClient) {
       client.friendController.rejectFriendRequest({ friendReqId } satisfies FriendReqHandleRequest),
     mutationKey: ["rejectFriendRequest"],
     onMutate: async (friendReqId) => {
-      await queryClient.cancelQueries({ queryKey: ["friendRequests"] });
-      const previousData = queryClient.getQueriesData({ queryKey: ["friendRequests"] });
-      reconcileFriendRequestPageCaches(queryClient, friendReqId);
-      return { previousData };
+      const transaction = await beginOptimisticQueryTransaction(queryClient, [
+        optimisticQueryPatch({
+          queryKey: ["friendRequests"],
+          exact: false,
+          update: old => removeFriendRequestFromList(old, friendReqId),
+        }),
+      ]);
+      return { transaction };
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousData) {
-        for (const [key, data] of context.previousData) {
-          queryClient.setQueryData(key, data);
-        }
-      }
+      rollbackOptimisticQueryTransaction(queryClient, context?.transaction);
     },
     onSuccess: (_result, friendReqId) => {
       reconcileFriendRequestPageCaches(queryClient, friendReqId);

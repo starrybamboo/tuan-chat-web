@@ -5,6 +5,8 @@ import { useCallback, useState } from "react";
 
 import type { RoleConfigTabKey } from "../rules/configTabMeta";
 
+import { Button } from "@/components/common/Button";
+import { CountBadge } from "@/components/common/StatusPrimitives";
 import Section from "../Editors/Section";
 import { ROLE_CONFIG_TAB_ITEMS } from "../rules/configTabMeta";
 import { RuleConfigurationSection } from "./RuleConfigurationSection";
@@ -77,13 +79,11 @@ export default function RuleExpansionModule({
       ">
         <>
           {ROLE_CONFIG_TAB_ITEMS.map(({ key, label, shortLabel, Icon }) => (
-            <button
+            <Button
               key={key}
-              type="button"
-              className={`
-                btn btn-md inline-flex items-center gap-1.5 rounded-lg
-                ${activeTab === key ? `btn-info` : `btn-ghost`}
-              `}
+              variant={activeTab === key ? "outline" : "ghost"}
+              size="md"
+              className={`inline-flex items-center gap-1.5 rounded-lg ${activeTab === key ? "border-info/45 text-info hover:border-info/70 hover:bg-info/10" : ""}`}
               onClick={() => setActiveTab(key)}
             >
               <Icon className="size-4 shrink-0" weight="regular" aria-hidden="true" />
@@ -92,7 +92,7 @@ export default function RuleExpansionModule({
                 hidden
                 md:inline
               ">{label}</span>
-            </button>
+            </Button>
           ))}
         </>
       </div>
@@ -149,7 +149,7 @@ export default function RuleExpansionModule({
             <div className="flex items-center gap-2">
               <MaskHappyIcon className="size-5 shrink-0 text-base-content/80" weight="regular" aria-hidden="true" />
               <h4 className="text-lg font-semibold">表演模版</h4>
-              <div className="badge badge-info badge-sm">{Object.keys(localRule.actTemplate ?? {}).length}</div>
+              <CountBadge tone="info">{Object.keys(localRule.actTemplate ?? {}).length}</CountBadge>
             </div>
             <RulePerformanceEditor
               title="表演"

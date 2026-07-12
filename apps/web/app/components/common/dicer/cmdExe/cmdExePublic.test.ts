@@ -1,18 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import UTILS from "@/components/common/dicer/utils/utils";
-
 import executorPublic from "./cmdExePublic";
-
-vi.mock("@/components/common/dicer/utils/utils", async () => {
-  const actual = await vi.importActual<typeof import("@/components/common/dicer/utils/utils")>("@/components/common/dicer/utils/utils");
-  return {
-    default: {
-      ...actual.default,
-      getRoleAbilityValue: vi.fn<(...args: any[]) => any>(),
-    },
-  };
-});
 
 describe("通用骰子指令", () => {
   let cpi: CPI;
@@ -27,10 +15,6 @@ describe("通用骰子指令", () => {
       setRoleAbilityList: vi.fn<(...args: any[]) => any>(),
       setCopywritingKey: vi.fn<(...args: any[]) => any>(),
     } as unknown as CPI;
-
-    (UTILS.getRoleAbilityValue as any).mockImplementation((ability: any, key: string) => {
-      return ability?.basic?.[key] ?? ability?.ability?.[key] ?? ability?.skill?.[key];
-    });
   });
 
   afterEach(() => {
@@ -70,6 +54,23 @@ describe("通用骰子指令", () => {
     await executor?.solve(["手枪"], [{ roleId: 1, roleName: "调查员" }] as any, cpi);
 
     expect(cpi.replyMessage).toHaveBeenCalledWith("掷骰结果：手枪 = 1d8+1d4 = 1d8[1]+1d4[3] = 4");
+  });
+
+  it("r 支持 # 重复掷骰", async () => {
+    vi.spyOn(Math, "random")
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0.5)
+      .mockReturnValueOnce(0.99);
+
+    const executor = executorPublic.cmdMap.get("r");
+    await executor?.solve(["3#", "1d6"], [{ roleId: 1, roleName: "调查员" }] as any, cpi);
+
+    expect(cpi.replyMessage).toHaveBeenCalledWith([
+      "掷骰3次:",
+      "1d6 = 1d6[1] = 1",
+      "1d6 = 1d6[4] = 4",
+      "1d6 = 1d6[6] = 6",
+    ].join("\n"));
   });
 
   it("st 支持把掷骰表达式写入 skill", async () => {

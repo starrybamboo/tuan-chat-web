@@ -3,6 +3,7 @@ import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/Mess
 import { describe, expect, it } from "vitest";
 
 import {
+  getDirectBadgeSummaryQueryKey,
   getDirectInboxQueryKey,
   markDirectMessageRecalledData,
   removeDirectInboxMessageData,
@@ -28,6 +29,11 @@ describe("direct message query helpers", () => {
   it("提供稳定 inbox query key", () => {
     expect(getDirectInboxQueryKey(7)).toEqual(["dmInbox", 7]);
     expect(getDirectInboxQueryKey(null)).toEqual(["dmInbox", null]);
+  });
+
+  it("按当前用户隔离轻量角标摘要缓存", () => {
+    expect(getDirectBadgeSummaryQueryKey(7)).toEqual(["directBadgeSummary", 7]);
+    expect(getDirectBadgeSummaryQueryKey(null)).toEqual(["directBadgeSummary", null]);
   });
 
   it("upsert inbox 消息时按 messageId 去重", () => {

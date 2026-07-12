@@ -1,13 +1,15 @@
-import type { WithSpringConfig } from "react-native-reanimated";
+import { ReduceMotion, type WithSpringConfig } from "react-native-reanimated";
 
 export const SPRING_CONFIG: WithSpringConfig = {
   damping: 20,
+  reduceMotion: ReduceMotion.System,
   stiffness: 200,
   mass: 0.8,
 };
 
 export const SPRING_SNAPPY: WithSpringConfig = {
   damping: 28,
+  reduceMotion: ReduceMotion.System,
   stiffness: 300,
   mass: 0.6,
 };

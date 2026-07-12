@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { fetchClientMetadataBatchWithCache } from "@tuanchat/query/metadata";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
@@ -17,12 +18,11 @@ import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api"
 import type { RealtimeTTSConfig } from "./realtimeRenderer";
 
 import { fetchRoleAvatarWithCache } from "../../api/hooks/RoleAndAvatarHooks";
+import { tuanchat } from "../../api/instance";
 import { onWebgalAvatarUpdated } from "./avatarSync";
 import {
   collectMessageAssetWarmupPlan,
   collectMissingAvatarIdsFromRoles,
-  DEFAULT_REALTIME_ASSET_CONCURRENCY,
-  runWithConcurrencyLimit,
 } from "./realtimeRenderAssetWarmup";
 import { debugRealtimeRender } from "./realtimeRenderDebug";
 import { RealtimeRenderer } from "./realtimeRenderer";
@@ -157,19 +157,8 @@ function useRealtimeRender({
       return;
     }
 
-    let completedCount = 0;
-    await runWithConcurrencyLimit(avatarIds, DEFAULT_REALTIME_ASSET_CONCURRENCY, async (avatarId) => {
-      try {
-        await fetchRoleAvatarWithCache(queryClient, avatarId);
-      }
-      catch (error) {
-        console.error(`获取头像 ${avatarId} 失败:`, error);
-      }
-      finally {
-        completedCount += 1;
-        onProgress?.(completedCount, avatarIds.length);
-      }
-    });
+    await fetchClientMetadataBatchWithCache(queryClient, tuanchat, { avatarIds });
+    onProgress?.(avatarIds.length, avatarIds.length);
   }, [queryClient]);
 
   const collectMissingWarmupAvatarIds = useCallback((messages: ChatMessageResponse[]): number[] => {

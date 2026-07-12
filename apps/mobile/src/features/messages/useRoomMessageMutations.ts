@@ -17,6 +17,7 @@ import {
   readCachedRoomMessages,
   writeCachedRoomMessages,
 } from "./mobileRoomMessageCache";
+import { resolveMovedRoomMessagePosition } from "./roomMessageMovePosition";
 import { resolveRoomMessageSnapshots } from "./roomMessageMutationSnapshots";
 import { extractRoomMessagesFromQueryData, updateRoomMessagesQueryData } from "./roomMessagesQueryData";
 import { getRoomMessagesQueryKey } from "./roomMessagesQueryKey";
@@ -92,6 +93,92 @@ export function useEditRoomMessageMutation(roomId: number | null) {
   };
 
   return { editMessage };
+}
+
+export function useMoveRoomMessageMutation(roomId: number | null) {
+  const queryClient = useQueryClient();
+
+  const moveMessage = async ({
+    movingMessage,
+    placement,
+    targetMessage,
+  }: {
+    movingMessage: Message;
+    placement?: "after" | "before";
+    targetMessage: Message;
+  }) => {
+    const resolvedRoomId = roomId ?? -1;
+    if (resolvedRoomId <= 0) {
+      throw new Error("请先选择一个房间。");
+    }
+    const messageId = movingMessage.messageId;
+    if (!messageId) {
+      throw new Error("消息 ID 无效。");
+    }
+    if (!targetMessage.messageId || targetMessage.messageId === messageId) {
+      return;
+    }
+
+    const queryKey = getRoomMessagesQueryKey(resolvedRoomId);
+    const currentMessages = extractRoomMessagesFromQueryData(
+      queryClient.getQueryData<RoomMessagesQueryData>(queryKey),
+    );
+    const snapshot = resolveRoomMessageSnapshots({
+      fallbackMessages: [movingMessage],
+      messageIds: [messageId],
+      queryMessages: currentMessages,
+    })[0];
+    if (!snapshot) {
+      throw new Error("找不到要移动的消息。");
+    }
+
+    const nextPosition = resolveMovedRoomMessagePosition({
+      messages: currentMessages,
+      movingMessage,
+      placement,
+      targetMessage,
+    });
+    const optimisticMessage = {
+      ...snapshot.message,
+      position: nextPosition,
+    };
+    queryClient.setQueryData<RoomMessagesQueryData>(queryKey, current => updateRoomMessagesQueryData(current, messages =>
+      restoreRoomMessageInList(messages, createMessageSnapshot(optimisticMessage))));
+
+    try {
+      const result = await mobileApiClient.chatController.patchRoomMessages({
+        mutationMeta: {
+          operationCause: "normal",
+          sourceSurface: "chat_input",
+        },
+        operations: [{
+          messageId,
+          op: "move",
+          position: nextPosition,
+        }],
+        roomId: resolvedRoomId,
+      });
+      if (!result?.success) {
+        queryClient.setQueryData<RoomMessagesQueryData>(queryKey, current => updateRoomMessagesQueryData(current, messages =>
+          restoreRoomMessageInList(messages, snapshot)));
+        throw new Error("移动消息失败。");
+      }
+      const nextMessage = (result.data ?? []).find(message => message?.messageId === messageId);
+      if (nextMessage) {
+        queryClient.setQueryData<RoomMessagesQueryData>(queryKey, current => updateRoomMessagesQueryData(current, messages =>
+          restoreRoomMessageInList(messages, createMessageSnapshot(nextMessage))));
+        void writeCachedRoomMessages(resolvedRoomId, [{ message: nextMessage }]).catch(() => {});
+      }
+      return result;
+    }
+    catch (error) {
+      queryClient.setQueryData<RoomMessagesQueryData>(queryKey, current => updateRoomMessagesQueryData(current, messages =>
+        restoreRoomMessageInList(messages, snapshot)));
+      throw new Error(extractOpenApiErrorMessage(error, "移动消息失败。"));
+    }
+  };
+
+  return { moveMessage };
 }
 
 export function useDeleteRoomMessageMutation(roomId: number | null) {

@@ -6,6 +6,8 @@ import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { bindCancelablePromiseToSignal } from "./cancelable";
+
 type MessageSessionClient = Pick<TuanChat, "messageSession">;
 
 export function getUserMessageSessionsQueryKey() {
@@ -105,7 +107,7 @@ export function useUserMessageSessionsQuery(
 ) {
   return useQuery({
     enabled: options.enabled ?? true,
-    queryFn: () => client.messageSession.getUserSessions(),
+    queryFn: ({ signal }) => bindCancelablePromiseToSignal(client.messageSession.getUserSessions(), signal),
     queryKey: getUserMessageSessionsQueryKey(),
     staleTime: options.staleTime ?? 30_000,
   });

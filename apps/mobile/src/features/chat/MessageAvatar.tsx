@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { bindCancelablePromiseToSignal } from "@tuanchat/query";
 import { getUserInfoQueryKey, USER_INFO_STALE_TIME_MS } from "@tuanchat/query/users";
 import { memo } from "react";
 import { StyleSheet, View } from "react-native";
@@ -41,6 +42,7 @@ type MessageAvatarProps = {
   preferUserAvatar?: boolean;
   roleId?: number | null;
   roomRolesById?: RoomRolesById;
+  shouldFetchMissingAvatar?: boolean;
   size?: number;
   userId?: number | null;
 };
@@ -53,6 +55,7 @@ export const MessageAvatar = memo(({
   preferUserAvatar,
   roleId,
   roomRolesById,
+  shouldFetchMissingAvatar = true,
   size = 40,
   userId,
 }: MessageAvatarProps) => {
@@ -76,19 +79,23 @@ export const MessageAvatar = memo(({
         roomRolesById,
       );
   const hasProvidedAvatarUrl = avatarUrl !== undefined;
-  const shouldFetchAvatar = !hasProvidedAvatarUrl && resolvedAvatarFileId == null && resolvedAvatarId != null;
+  const shouldFetchAvatar = shouldFetchMissingAvatar && !hasProvidedAvatarUrl && resolvedAvatarFileId == null && resolvedAvatarId != null;
   const roleAvatarQuery = useQuery({
     enabled: shouldFetchAvatar,
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (resolvedAvatarId == null)
         return null;
-      const response = await mobileApiClient.avatarController.getRoleAvatar(resolvedAvatarId);
+      const response = await bindCancelablePromiseToSignal(
+        mobileApiClient.avatarController.getRoleAvatar(resolvedAvatarId),
+        signal,
+      );
       return response.data ?? null;
     },
     queryKey: ["getRoleAvatar", resolvedAvatarId] as const,
     staleTime: 24 * 60 * 60_000,
   });
   const shouldFetchUserAvatar = shouldUseUserIdentity
+    && shouldFetchMissingAvatar
     && !hasProvidedAvatarUrl
     && resolvedAvatarFileId == null
     && !roleAvatarQuery.data?.avatarFileId
@@ -96,10 +103,13 @@ export const MessageAvatar = memo(({
     && userId > 0;
   const userInfoQuery = useQuery({
     enabled: shouldFetchUserAvatar,
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (typeof userId !== "number" || userId <= 0)
         return null;
-      const response = await mobileApiClient.userController.getUserInfo(userId);
+      const response = await bindCancelablePromiseToSignal(
+        mobileApiClient.userController.getUserInfo(userId),
+        signal,
+      );
       return response.data ?? null;
     },
     queryKey: getUserInfoQueryKey(userId ?? -1),

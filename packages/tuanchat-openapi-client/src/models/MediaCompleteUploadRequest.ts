@@ -28,3 +28,4 @@ export type MediaCompleteUploadRequest = {
      */
     failedTargets?: Array<MediaCompleteUploadFailedTarget>;
 };
+

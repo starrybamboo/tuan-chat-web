@@ -4,6 +4,7 @@ import { DIRECT_MESSAGE_READ_LINE_TYPE } from "@tuanchat/domain/direct-message";
 import { describe, expect, it } from "vitest";
 
 import { hasPersistableDirectInboxMessages } from "./dmInboxCacheState";
+import { shouldEnableDmInboxQuery } from "./dmInboxQueryOptions";
 
 function createDirectMessage(messageId: number, overrides: Partial<MessageDirectResponse> = {}): MessageDirectResponse {
   return {
@@ -21,6 +22,12 @@ function createDirectMessage(messageId: number, overrides: Partial<MessageDirect
 }
 
 describe("useDmInboxQuery helpers", () => {
+  it("允许房间首屏按需关闭私聊 inbox 请求", () => {
+    expect(shouldEnableDmInboxQuery(10001, { enabled: false })).toBe(false);
+    expect(shouldEnableDmInboxQuery(10001, { enabled: true })).toBe(true);
+    expect(shouldEnableDmInboxQuery(null, { enabled: true })).toBe(false);
+  });
+
   it("只有已读线时不应把旧私聊缓存继续保留下来", () => {
     expect(hasPersistableDirectInboxMessages([])).toBe(false);
     expect(hasPersistableDirectInboxMessages([

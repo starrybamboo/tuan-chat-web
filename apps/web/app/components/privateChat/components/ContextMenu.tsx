@@ -1,6 +1,8 @@
 import React, { useLayoutEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { MenuItem, MenuSurface } from "@/components/common/MenuPopover";
+
 import type { MessageDirectRecallRequest, MessageDirectResponse } from "api";
 
 type PrivateContextMenuState = { messageId: number } | null;
@@ -93,34 +95,33 @@ export default function ContextMenu({
       onContextMenu={event => event.stopPropagation()}
       onPointerDown={event => event.stopPropagation()}
     >
-      <ul className="menu w-40 p-2">
+      <MenuSurface as="ul" ariaLabel="私聊消息操作" className="w-40 p-2">
         {message?.senderId === userId && (
-          <li>
-            <button
-              type="button"
+          <li role="none">
+            <MenuItem
+              tone="danger"
               onClick={() => {
                 handleRevokeMessage({ messageId: contextMenu.messageId });
                 setContextMenu(null);
               }}
             >
               撤回
-            </button>
+            </MenuItem>
           </li>
         )}
         {message && message.status !== 1 && (
-          <li>
-            <button
-              type="button"
+          <li role="none">
+            <MenuItem
               onClick={() => {
                 handleReplyMessage(message);
                 setContextMenu(null);
               }}
             >
               回复
-            </button>
+            </MenuItem>
           </li>
         )}
-      </ul>
+      </MenuSurface>
     </div>,
     document.body,
   );

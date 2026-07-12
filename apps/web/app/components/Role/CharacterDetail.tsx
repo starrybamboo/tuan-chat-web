@@ -1,17 +1,22 @@
 import { Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { appToast } from "@/components/common/appToast/appToast";
-
-import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
-import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
-import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
-import { CloseIcon, SlidersIcon } from "@/icons";
 import {
   useAbilityByRuleAndRole,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
 import { useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateAvatarNameMutation, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
+import { useMemo, useState } from "react";
+
+import { appToast } from "@/components/common/appToast/appToast";
+import { Button, buttonClassName } from "@/components/common/Button";
+import { DialogFrame } from "@/components/common/DialogFrame";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
+import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
+import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
+import PortalTooltip from "@/components/common/portalTooltip";
+import { Divider, Skeleton } from "@/components/common/StatusPrimitives";
+import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
+import { SlidersIcon } from "@/icons";
 
 // import type { Transform } from "./sprite/TransformControl";
 import type { Role } from "./types";
@@ -352,32 +357,26 @@ function CharacterDetailInner({
             <div className="space-y-6">
               {/* 骨架屏 - 模拟扩展模块 */}
               <div className="flex gap-2">
-                <div className="skeleton h-10 w-20 rounded-lg"></div>
-                <div className="skeleton h-10 w-20 rounded-lg"></div>
-                <div className="skeleton h-10 w-20 rounded-lg"></div>
-                <div className="skeleton h-10 w-20 rounded-lg"></div>
+                <Skeleton className="h-10 w-20 rounded-lg" />
+                <Skeleton className="h-10 w-20 rounded-lg" />
+                <Skeleton className="h-10 w-20 rounded-lg" />
+                <Skeleton className="h-10 w-20 rounded-lg" />
               </div>
-              <div className="
-                card-sm
-                md:card-xl
-                bg-base-100 shadow-xs
-                md:rounded-xl md:border-2
-                border-base-content/10
-              ">
-                <div className="card-body">
+              <div className={surfaceClassName({ level: "content", className: "border-base-content/10 shadow-xs md:border-2" })}>
+                <div className="p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="skeleton h-6 w-32"></div>
+                    <Skeleton className="h-6 w-32" />
                   </div>
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="skeleton h-10 w-full"></div>
-                      <div className="skeleton h-10 w-full"></div>
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="skeleton h-10 w-full"></div>
-                      <div className="skeleton h-10 w-full"></div>
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
                     </div>
-                    <div className="skeleton h-20 w-full"></div>
+                    <Skeleton className="h-20 w-full" />
                   </div>
                 </div>
               </div>
@@ -408,11 +407,15 @@ function CharacterDetailInner({
           md:w-auto md:items-center md:justify-start md:gap-4 md:px-0
         ">
           {layout !== "popup" && (
-            <Link to="/role" type="button" className="
-              hidden
-              md:inline-flex
-              btn btn-lg btn-outline rounded-md btn-ghost
-            ">
+            <Link
+              to="/role"
+              type="button"
+              className={buttonClassName({
+                variant: "outline",
+                size: "lg",
+                className: "hidden rounded-md md:inline-flex",
+              })}
+            >
               ← 返回
             </Link>
           )}
@@ -456,35 +459,32 @@ function CharacterDetailInner({
           ">
             {layout === "popup"
               ? (
-                  <button
+                  <Button
                     type="button"
-                    className="
-                      btn btn-error btn-sm
-                      md:btn-lg
-                      rounded-md
-                      md:mr-4
-                    "
+                    variant="error"
+                    size="sm"
+                    className="rounded-md md:mr-4 md:min-h-12 md:px-6 md:text-lg"
                     onClick={onKickOut}
                     disabled={!canKickOut}
                   >
                     踢出角色
-                  </button>
+                  </Button>
                 )
               : isDiceMaiden && (
-                <div className="
-                  tooltip tooltip-bottom
-                  md:hidden
-                " data-tip="查看和导出骰娘文案配置的JSON格式">
-                  <button
-                    type="button"
+                <PortalTooltip
+                  label="查看和导出骰娘文案配置的JSON格式"
+                  placement="bottom"
+                  anchorClassName="md:hidden"
+                >
+                  <Button
+                    variant="info"
+                    size="md"
                     onClick={() => setIsDicerConfigJsonModalOpen(true)}
-                    className="
-                      btn rounded-lg bg-info/70 text-info-content btn-md px-4
-                    "
+                    className="rounded-lg px-4"
                   >
                     配置
-                  </button>
-                </div>
+                  </Button>
+                </PortalTooltip>
               )}
           </div>
         </div>
@@ -506,36 +506,29 @@ function CharacterDetailInner({
             {displayRole.id}
           </div>
           {isDiceMaiden && (
-            <div className="
-              tooltip tooltip-bottom hidden
-              md:block
-            " data-tip="查看和导出骰娘文案配置的JSON格式">
-              <button
-                type="button"
+            <PortalTooltip
+              label="查看和导出骰娘文案配置的JSON格式"
+              placement="bottom"
+              anchorClassName="hidden md:block"
+            >
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setIsDicerConfigJsonModalOpen(true)}
-                className="
-                  btn rounded-lg bg-info/70 text-info-content btn-sm
-                  md:btn-lg
-                "
+                className="rounded-lg border-info/45 text-info hover:border-info/70 hover:bg-info/10 md:h-12 md:min-h-12 md:px-6 md:text-lg"
               >
                 <span className="flex items-center gap-1">
                   <SlidersIcon className="size-4" />
                   配置
                 </span>
-              </button>
-            </div>
+              </Button>
+            </PortalTooltip>
           )}
         </div>
       </div>
 
-      <div className="
-        md:hidden
-        divider my-0
-      "></div>
-      <div className="
-        max-md:hidden
-        divider
-      "></div>
+      <Divider className="my-0 md:hidden" />
+      <Divider className="max-md:hidden" />
       {layout === "popup"
         ? (
             <div className="space-y-6">
@@ -609,44 +602,24 @@ function CharacterDetailInner({
           )}
 
       {/* 规则选择弹窗 */}
-      {isRuleModalOpen && (
-        <div className="
-          fixed inset-0 z-50 flex items-center justify-center bg-black/50
-        " onClick={() => setIsRuleModalOpen(false)}>
-          <div className="
-            bg-base-100 rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh]
-            overflow-auto
-          "
-            role="dialog"
-            aria-modal="true"
-            aria-label="选择规则系统"
-            onClick={e => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                setIsRuleModalOpen(false);
-              }
-            }}
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold">选择规则系统</h3>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-circle btn-ghost"
-                  aria-label="关闭"
-                  onClick={() => setIsRuleModalOpen(false)}
-                >
-                  <CloseIcon className="size-4" aria-hidden="true" />
-                </button>
-              </div>
-              <RulesSection
-                currentRuleId={selectedRuleId}
-                onRuleChange={handleRuleChange}
-              />
-            </div>
+      <DialogFrame
+        open={isRuleModalOpen}
+        mode="inline"
+        onClose={() => setIsRuleModalOpen(false)}
+        ariaLabel="选择规则系统"
+        rootClassName="z-50 bg-black/50"
+        panelClassName="bg-base-100 rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-auto"
+      >
+        <div className="p-6">
+          <div className="mb-6">
+            <h3 className="text-xl font-semibold">选择规则系统</h3>
           </div>
+          <RulesSection
+            currentRuleId={selectedRuleId}
+            onRuleChange={handleRuleChange}
+          />
         </div>
-      )}
+      </DialogFrame>
 
       {/* 音频上传弹窗 */}
       <AudioUploadModal

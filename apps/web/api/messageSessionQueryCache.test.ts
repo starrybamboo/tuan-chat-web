@@ -26,24 +26,24 @@ function sessions(roomIds: number[]): ApiResultListMessageSessionResponse {
 }
 
 describe("messageSessionQueryCache", () => {
-  it("会乐观移除房间会话并可回滚", () => {
+  it("会乐观移除房间会话并可回滚", async () => {
     const queryClient = new QueryClient();
     queryClient.setQueryData(USER_SESSIONS_QUERY_KEY, sessions([1, 2]));
 
-    const previous = optimisticRemoveRoomSessionQueryCache(queryClient, 1);
+    const transaction = await optimisticRemoveRoomSessionQueryCache(queryClient, 1);
 
     expect(queryClient.getQueryData<ApiResultListMessageSessionResponse>(USER_SESSIONS_QUERY_KEY)?.data?.map(item => item.roomId)).toEqual([2]);
 
-    rollbackUserSessionsQueryCache(queryClient, previous);
+    rollbackUserSessionsQueryCache(queryClient, transaction);
 
     expect(queryClient.getQueryData<ApiResultListMessageSessionResponse>(USER_SESSIONS_QUERY_KEY)?.data?.map(item => item.roomId)).toEqual([1, 2]);
   });
 
-  it("订阅房间会乐观新增并用服务端会话校准", () => {
+  it("订阅房间会乐观新增并用服务端会话校准", async () => {
     const queryClient = new QueryClient();
     queryClient.setQueryData(USER_SESSIONS_QUERY_KEY, sessions([1]));
 
-    optimisticUpsertRoomSessionQueryCache(queryClient, 2);
+    await optimisticUpsertRoomSessionQueryCache(queryClient, 2);
 
     expect(queryClient.getQueryData<ApiResultListMessageSessionResponse>(USER_SESSIONS_QUERY_KEY)?.data?.map(item => item.roomId)).toEqual([1, 2]);
 

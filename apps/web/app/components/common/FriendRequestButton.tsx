@@ -1,11 +1,14 @@
 import type { Ref } from "react";
-import { appToast } from "@/components/common/appToast/appToast";
 
 import { UserPlusIcon } from "@phosphor-icons/react";
 import { useCheckFriendQuery, useSendFriendRequestMutation } from "api/hooks/friendQueryHooks";
-import { useId, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { appToast } from "@/components/common/appToast/appToast";
+import { Button } from "@/components/common/Button";
+import { DialogFrame } from "@/components/common/DialogFrame";
+import { TextArea } from "@/components/common/FormField";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 
 type FriendRequestButtonVariant = "button" | "menu-item";
@@ -74,7 +77,6 @@ export function FriendRequestButton({
   firstItemRef,
   onAfterClick,
 }: FriendRequestButtonProps) {
-  const dialogId = useId();
   const loginUserId = useGlobalUserId() ?? -1;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [verifyMsg, setVerifyMsg] = useState("你好，我想加你为好友");
@@ -147,74 +149,60 @@ export function FriendRequestButton({
   const portalTarget = typeof document === "undefined" ? null : document.body;
   const dialog = isDialogOpen && portalTarget
     ? createPortal(
-        <div
-          className="
-            fixed inset-0 z-[1000] flex items-center justify-center bg-black/35
-            p-4
-          "
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={`${dialogId}-title`}
-          onClick={(event) => {
-            if (event.target === event.currentTarget && !sendFriendRequestMutation.isPending) {
+        <DialogFrame
+          open
+          mode="inline"
+          onClose={() => {
+            if (!sendFriendRequestMutation.isPending) {
               setIsDialogOpen(false);
             }
           }}
-          onKeyDown={(event) => {
-            if (event.nativeEvent.isComposing)
-              return;
-            if (event.key === "Escape" && !sendFriendRequestMutation.isPending) {
-              setIsDialogOpen(false);
-            }
-          }}
+          ariaLabel="发送好友申请"
+          rootClassName="z-[1000] bg-black/35 p-4"
+          panelClassName="w-full max-w-sm rounded-lg border border-base-300 bg-base-100 p-4 shadow-xl"
         >
           <form
-            className="
-              w-full max-w-sm rounded-lg border border-base-300 bg-base-100 p-4
-              shadow-xl
-            "
             onSubmit={(event) => {
               event.preventDefault();
               void handleSendFriendRequest();
             }}
           >
-            <h3 id={`${dialogId}-title`} className="text-base font-semibold">发送好友申请</h3>
+            <h3 className="text-base font-semibold">发送好友申请</h3>
             <p className="mt-1 text-sm text-base-content/60">{dialogSubtitle}</p>
-            <label htmlFor={`${dialogId}-verify`} className="
+            <label htmlFor="friend-request-verify" className="
               mt-4 block text-sm font-medium
             ">
               验证信息
             </label>
-            <textarea
-              id={`${dialogId}-verify`}
-              className="
-                textarea textarea-bordered mt-2 min-h-24 w-full resize-none
-                text-sm
-              "
+            <TextArea
+              id="friend-request-verify"
+              className="mt-2 min-h-24 resize-none"
               value={verifyMsg}
               onChange={event => setVerifyMsg(event.target.value)}
               disabled={sendFriendRequestMutation.isPending}
 
             />
             <div className="mt-4 flex justify-end gap-2">
-              <button
+              <Button
                 type="button"
-                className="btn btn-sm"
+                size="sm"
                 disabled={sendFriendRequestMutation.isPending}
                 onClick={() => setIsDialogOpen(false)}
               >
                 取消
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
-                className="btn btn-sm btn-primary"
+                variant="primary"
+                size="sm"
+                loading={sendFriendRequestMutation.isPending}
                 disabled={sendFriendRequestMutation.isPending || verifyMsg.trim().length === 0}
               >
                 {sendFriendRequestMutation.isPending ? "发送中..." : "发送"}
-              </button>
+              </Button>
             </div>
           </form>
-        </div>,
+        </DialogFrame>,
         portalTarget,
       )
     : null;
@@ -246,15 +234,10 @@ export function FriendRequestButton({
 
   return (
     <>
-      <button
-        type="button"
-        className={`
-          ${className ?? `
-            btn btn-sm flex h-8 items-center gap-2 border border-base-300 px-3
-            hover:text-info
-          `}
-          whitespace-nowrap
-        `}
+      <Button
+        variant="ghost"
+        size="sm"
+        className={className ?? "flex h-8 items-center gap-2 border border-base-300 px-3 hover:text-info whitespace-nowrap"}
         disabled={disabled}
         onClick={openDialog}
         aria-label={label}
@@ -263,7 +246,7 @@ export function FriendRequestButton({
           size-4 shrink-0
         " weight="regular" />}
         <span className="whitespace-nowrap text-sm">{label}</span>
-      </button>
+      </Button>
       {dialog}
     </>
   );

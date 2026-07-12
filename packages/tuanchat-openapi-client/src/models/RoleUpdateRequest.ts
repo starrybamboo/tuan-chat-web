@@ -39,3 +39,4 @@ export type RoleUpdateRequest = {
      */
     extra?: Record<string, string>;
 };
+

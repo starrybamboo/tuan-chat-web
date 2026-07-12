@@ -56,7 +56,7 @@ export default function CreateRoleWindow({ onClose }: { onClose: () => void }) {
   return (
     <div className="justify-center w-full">
       <div className="
-        bg-base-100 rounded-box p-2
+        bg-base-100 rounded-md p-2
         sm:p-4
       ">
         <RoleCreationFlow

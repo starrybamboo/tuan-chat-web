@@ -5,6 +5,8 @@ import type {
 
 import { SelectionPlusIcon } from "@phosphor-icons/react";
 
+import { MediaFrame } from "@/components/common/MediaFrame";
+import { MediaImage } from "@/components/common/mediaImage";
 import { XMarkICon } from "@/icons";
 
 export const HISTORY_THUMBNAIL_IMAGE_CLASS_NAME = "block h-full w-full object-contain";
@@ -34,12 +36,8 @@ export function HistoryImageTile({
 }: HistoryImageTileProps) {
   return (
     <div className={`
-      group relative w-[100px] overflow-hidden rounded-xl border bg-base-100
-      shadow-sm transition-colors
-      ${active ? `border-info ` : `
-        border-base-300
-        hover:border-info/45
-      `}
+      group relative w-[100px] overflow-hidden rounded-md bg-base-100
+      shadow-sm
     `}>
       <button
         type="button"
@@ -54,22 +52,25 @@ export function HistoryImageTile({
         onClick={onClick}
         onDragStart={onDragStart}
       >
-        <img src={dataUrl} className={`
-          ${HISTORY_THUMBNAIL_IMAGE_CLASS_NAME}
-          transition duration-200
-          group-hover:scale-[1.02]
-        `} alt={alt} />
-        {showInpaintBadge
-          ? (
-              <div className="
-                pointer-events-none absolute bottom-1.5 right-1.5 flex size-6
-                items-center justify-center rounded-md bg-black/28 text-white/78
-                backdrop-blur-[1px]
-              ">
-                <SelectionPlusIcon className="size-3.5" weight="regular" />
-              </div>
-            )
-          : null}
+        <MediaFrame aspect="square" selected={active} className="size-full">
+          <MediaImage src={dataUrl} className={`
+            ${HISTORY_THUMBNAIL_IMAGE_CLASS_NAME}
+            transition duration-200
+            group-hover:scale-[1.02]
+            motion-reduce:transform-none motion-reduce:transition-none
+          `} alt={alt} />
+          {showInpaintBadge
+            ? (
+                <div className="
+                  pointer-events-none absolute bottom-1.5 right-1.5 flex size-6
+                  items-center justify-center rounded-md bg-base-content/65
+                  text-base-100 backdrop-blur-sm
+                ">
+                  <SelectionPlusIcon className="size-3.5" weight="regular" />
+                </div>
+              )
+            : null}
+        </MediaFrame>
       </button>
 
       {onDelete

@@ -22,12 +22,11 @@ vi.mock("react", async () => {
   };
 });
 
-vi.mock("react-hot-toast", () => {
-  const toast = Object.assign(vi.fn<(...args: any[]) => any>(), {
+vi.mock("@/components/common/appToast/appToast", () => ({
+  appToast: {
     error: mocks.toastErrorMock,
-  });
-  return { toast };
-});
+  },
+}));
 
 vi.mock("@/components/chat/utils/attachmentPreprocess", () => ({
   preheatChatMediaPreprocess: mocks.preheatChatMediaPreprocessMock,

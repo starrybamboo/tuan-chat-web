@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 
+import { isSystemRowMessageType } from "@tuanchat/domain/poke-message";
 import { isOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
 import React, { useCallback } from "react";
 
@@ -7,9 +8,8 @@ import { ChatBubble } from "@/components/chat/message/chatBubble";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { DraggableIcon } from "@/icons";
-import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
-import type { ChatMessageResponse } from "../../../api";
+import type { ChatMessageResponse, Message } from "../../../api";
 
 const MESSAGE_DRAG_GUTTER_CLASS = "pl-6 sm:pl-7";
 const MESSAGE_DRAG_HANDLE_CLASS = [
@@ -51,6 +51,10 @@ export function getNextInsertAfterMessageId(currentTargetId: number | undefined,
   return currentTargetId === messageId ? undefined : messageId;
 }
 
+export function shouldShowMessageDragHandle(movable: boolean, messageType: number): boolean {
+  return movable && !isSystemRowMessageType(messageType);
+}
+
 type ChatFrameMessageItemProps = {
   chatMessageResponse: ChatMessageResponse;
   isSelected: boolean;
@@ -69,6 +73,7 @@ type ChatFrameMessageItemProps = {
   }) => void;
   isCommandRequestConsumed?: (requestMessageId: number) => boolean;
   onEditWebgalChoose?: (messageId: number) => void;
+  onPokeMessage?: (message: Message) => void;
   onMessageClick: (event: React.MouseEvent<HTMLDivElement>) => void;
   onToggleSelection?: (messageId: number) => void;
   onDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
@@ -95,6 +100,7 @@ export default function ChatFrameMessageItem({
   onExecuteCommandRequest,
   isCommandRequestConsumed,
   onEditWebgalChoose,
+  onPokeMessage,
   onMessageClick,
   onToggleSelection,
   onDragOver,
@@ -109,7 +115,10 @@ export default function ChatFrameMessageItem({
   const insertAfterMessageId = useRoomUiStore(state => state.insertAfterMessageId);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
   const isInsertTarget = insertAfterMessageId === chatMessageResponse.message.messageId;
-  const showDragHandle = movable && chatMessageResponse.message.messageType !== MESSAGE_TYPE.STATE_EVENT;
+  const showDragHandle = shouldShowMessageDragHandle(
+    movable,
+    chatMessageResponse.message.messageType,
+  );
   const isOptimisticMessage = isOptimisticRoomMessage(chatMessageResponse.message);
   const messageSendStateClass = isOptimisticMessage
     ? "message-sending"
@@ -172,6 +181,7 @@ export default function ChatFrameMessageItem({
         isCommandRequestConsumed={isCommandRequestConsumed}
         onToggleSelection={onToggleSelection}
         onEditWebgalChoose={onEditWebgalChoose}
+        onPokeMessage={onPokeMessage}
         baseVersionMessage={baseVersionMessage}
         showFullMessageDiff={showFullMessageDiff}
         showAddedMessageDiff={showAddedMessageDiff}

@@ -2,9 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * Map tokens
- */
 export type RoomDndMapTokenResponse = {
     /**
      * Role id
@@ -19,3 +16,4 @@ export type RoomDndMapTokenResponse = {
      */
     colIndex?: number;
 };
+

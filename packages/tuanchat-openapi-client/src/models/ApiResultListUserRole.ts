@@ -24,3 +24,4 @@ export type ApiResultListUserRole = {
      */
     data?: Array<UserRole>;
 };
+

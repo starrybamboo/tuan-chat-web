@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { CachedRoleAbility } from "./roleAbilityCacheData";
 
-import {useMutation, useQuery, useQueryClient, useQueries} from "@tanstack/react-query";
+import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {tuanchat} from "../instance";
 import type {AbilityByRuleFieldUpdateRequest} from "@tuanchat/openapi-client/models/AbilityByRuleFieldUpdateRequest";
 import type {AbilityByRuleUpdateRequest} from "@tuanchat/openapi-client/models/AbilityByRuleUpdateRequest";
@@ -12,7 +12,6 @@ import {
     roleAbilityByRuleQueryKey,
     roleAbilityListQueryKey,
 } from "./abilityMutationInvalidation";
-import { createUniqueQuerySlots, mapUniqueQueryResults } from "./querySlots";
 import { normalizeRoleAbilityCacheData } from "./roleAbilityCacheData";
 
 type JsonObject = Record<string, unknown>;
@@ -610,22 +609,6 @@ export function useGetRoleAbilitiesQuery(roleId: number) {
 /**
  * 批量获取多个角色的 ability（用于避免在循环中直接调用 Hook）
  */
-export function useGetRolesAbilitiesQueries(roleIds: number[]) {
-    const querySlots = createUniqueQuerySlots(
-        roleIds,
-        (roleId, index) => roleId > 0 ? String(roleId) : `invalid:${index}`,
-    );
-    const results = useQueries({
-        queries: querySlots.queryItems.map(({ item: roleId, originalIndex }) => ({
-            queryKey: roleId > 0 ? roleAbilityListQueryKey(roleId) : ["listRoleAbility", "invalid", originalIndex],
-            queryFn: () => tuanchat.abilityController.listRoleAbility(roleId),
-            staleTime: 10000,
-            enabled: roleId > 0,
-        })),
-    });
-    return mapUniqueQueryResults(results, querySlots.resultIndexes);
-}
-
 /**
  * 创建能力
  * 创建指定角色在指定规则下的能力信息，返回创建的能力ID

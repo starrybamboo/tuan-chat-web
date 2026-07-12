@@ -23,6 +23,9 @@ export type CommentTimelineVO = {
      * 用户ID
      */
     userId?: number;
+    /**
+     * 用户信息
+     */
     userInfo?: UserInfoResponse;
     /**
      * 评论内容
@@ -40,9 +43,13 @@ export type CommentTimelineVO = {
      * 父评论作者ID
      */
     parentUserId?: number;
+    /**
+     * 父评论作者信息
+     */
     parentUserInfo?: UserInfoResponse;
     /**
      * 父评论内容预览
      */
     parentContentPreview?: string;
 };
+

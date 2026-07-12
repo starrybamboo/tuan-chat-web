@@ -2,6 +2,9 @@ import type { ReactNode } from "react";
 
 import { ArrowRightIcon } from "@phosphor-icons/react";
 
+import { Button } from "@/components/common/Button";
+import { formControlShellClassName, TextInput } from "@/components/common/FormField";
+
 type RegisterFormProps = {
   username?: string;
   setUsername: (value: string) => void;
@@ -192,17 +195,11 @@ export function RegisterForm({
   const inviteCodeMeta = buildInviteCodeMeta(inviteCode);
   const hasInlineBlockingError = Boolean(usernameError || passwordError || confirmPasswordError || inviteCodeError);
   const fieldLabelClass = "text-xs font-medium uppercase tracking-[0.08em] text-base-content/55";
-  const inputShellClassName = (hasError = false) => `
-    relative flex items-center rounded-lg border bg-base-200 transition-colors
-    focus-within:ring-2 dark:bg-base-300
-    ${hasError
-      ? "border-error/70 focus-within:border-error focus-within:ring-error/20"
-      : "border-base-content/20 focus-within:border-info focus-within:ring-info/20"}
-  `;
-  const inputClassName = `
-    input w-full flex-1 border-0 bg-transparent pr-20 text-base-content
-    placeholder:text-base-content/55 focus:outline-none focus:ring-0
-  `;
+  const inputShellClassName = (hasError = false) => formControlShellClassName({
+    surface: "muted",
+    invalid: hasError,
+  });
+  const inputClassName = "flex-1 pr-20";
   const metaClassName = `
     pointer-events-none absolute right-3 top-1/2 max-w-[7.5rem] -translate-y-1/2
     truncate text-right text-xs font-semibold tabular-nums
@@ -215,7 +212,8 @@ export function RegisterForm({
           用户名
         </label>
         <div className={inputShellClassName(Boolean(usernameError))}>
-          <input
+          <TextInput
+            appearance="bare"
             id={usernameInputId}
             name="registerUsername"
             type="text"
@@ -242,7 +240,8 @@ export function RegisterForm({
           邮箱
         </label>
         <div className={inputShellClassName()}>
-          <input
+          <TextInput
+            appearance="bare"
             id={emailInputId}
             name="registerEmail"
             type="email"
@@ -250,7 +249,7 @@ export function RegisterForm({
             autoComplete="email"
             autoCapitalize="none"
             placeholder="请输入邮箱地址"
-            className="input w-full flex-1 border-0 bg-transparent text-base-content placeholder:text-base-content/55 focus:outline-none focus:ring-0"
+            className="flex-1"
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
@@ -263,7 +262,8 @@ export function RegisterForm({
           邀请码（选填）
         </label>
         <div className={inputShellClassName(Boolean(inviteCodeError))}>
-          <input
+          <TextInput
+            appearance="bare"
             id={inviteCodeInputId}
             name="accountInviteCode"
             type="text"
@@ -291,23 +291,26 @@ export function RegisterForm({
         </label>
         <div className="flex flex-col gap-2 sm:flex-row">
           <div className={`${inputShellClassName()} sm:flex-1`}>
-            <input
+            <TextInput
+              appearance="bare"
               id={verificationCodeInputId}
               name="registerEmailVerificationCode"
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
               placeholder="请输入验证码"
-              className="input w-full flex-1 border-0 bg-transparent text-base-content placeholder:text-base-content/55 focus:outline-none focus:ring-0"
+              className="flex-1"
               value={verificationCode}
               onChange={e => setVerificationCode(e.target.value)}
               required
             />
           </div>
-          <button
+          <Button
             type="button"
             aria-busy={isSendingVerificationCode}
-            className="btn btn-outline w-full whitespace-nowrap sm:w-auto"
+            variant="outline"
+            loading={isSendingVerificationCode}
+            className="w-full whitespace-nowrap sm:w-auto"
             onClick={sendVerificationCode}
             disabled={
               isSendingVerificationCode
@@ -320,7 +323,7 @@ export function RegisterForm({
               : isVerificationCodeCoolingDown
                 ? `${verificationCodeCooldownSeconds}s`
                 : "发送验证码"}
-          </button>
+          </Button>
           <span role="status" aria-live="polite" className="sr-only">
             {isSendingVerificationCode
               ? "正在发送验证码"
@@ -336,7 +339,8 @@ export function RegisterForm({
           密码
         </label>
         <div className={inputShellClassName(Boolean(passwordError))}>
-          <input
+          <TextInput
+            appearance="bare"
             id={passwordInputId}
             name="newPassword"
             type="password"
@@ -361,7 +365,8 @@ export function RegisterForm({
           确认密码
         </label>
         <div className={inputShellClassName(Boolean(confirmPasswordError))}>
-          <input
+          <TextInput
+            appearance="bare"
             id={confirmPasswordInputId}
             name="confirmNewPassword"
             type="password"
@@ -381,26 +386,16 @@ export function RegisterForm({
 
       <div className="space-y-3 pt-2">
         {turnstile}
-        <button
+        <Button
           type="submit"
-          aria-busy={isLoading}
-          className="btn btn-primary w-full gap-2 shadow-sm hover:brightness-110"
+          variant="primary"
+          loading={isLoading}
+          icon={<ArrowRightIcon className="size-4" weight="regular" />}
+          className="w-full gap-2 shadow-sm hover:brightness-110"
           disabled={isLoading || hasInlineBlockingError}
         >
-          {isLoading
-            ? (
-                <>
-                  <span className="loading loading-spinner loading-sm" />
-                  注册中...
-                </>
-              )
-            : (
-                <>
-                  <ArrowRightIcon className="size-4" weight="regular" />
-                  注册
-                </>
-              )}
-        </button>
+          {isLoading ? "注册中..." : "注册"}
+        </Button>
       </div>
     </form>
   );

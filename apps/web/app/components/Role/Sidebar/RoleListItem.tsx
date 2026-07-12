@@ -1,4 +1,6 @@
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { IconButton } from "@/components/common/IconButton";
+import { Skeleton } from "@/components/common/StatusPrimitives";
 
 import type { Role } from "../types";
 
@@ -82,12 +84,11 @@ export function RoleListItem({
       </button>
 
       {!isSelectionMode && (
-        <button
-          type="button"
+        <IconButton
+          size="xs"
+          label={`删除角色${role.name || "新角色"}`}
           className="
-            btn btn-ghost btn-xs text-error
-            hover:bg-error/10
-            md:opacity-0
+            text-error hover:bg-error/10 md:opacity-0
             md:group-hover:opacity-100
             opacity-70 rounded-full p-1
           "
@@ -96,14 +97,16 @@ export function RoleListItem({
             e.preventDefault();
             onDelete(e);
           }}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
-            <path
-              fill="currentColor"
-              d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-            />
-          </svg>
-        </button>
+          title={`删除角色${role.name || "新角色"}`}
+          icon={(
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+              <path
+                fill="currentColor"
+                d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+              />
+            </svg>
+          )}
+        />
       )}
     </div>
   );
@@ -115,17 +118,14 @@ export function RoleListItemSkeleton() {
       className="flex items-center gap-3 rounded-lg p-3"
       aria-hidden="true"
     >
-      <div className="avatar shrink-0">
-        <div className="
-          skeleton size-12 rounded-full
-          md:size-14
-        " />
+      <div className="shrink-0">
+        <Skeleton className="size-12 md:size-14" rounded="full" />
       </div>
       <div className="min-w-0 flex-1 space-y-2 overflow-hidden">
-        <div className="skeleton h-4 w-28 rounded-full" />
-        <div className="skeleton h-3 w-40 max-w-full rounded-full" />
+        <Skeleton className="h-4 w-28" rounded="full" />
+        <Skeleton className="h-3 w-40 max-w-full" rounded="full" />
       </div>
-      <div className="skeleton size-4 rounded-full opacity-70" />
+      <Skeleton className="size-4 opacity-70" rounded="full" />
     </div>
   );
 }

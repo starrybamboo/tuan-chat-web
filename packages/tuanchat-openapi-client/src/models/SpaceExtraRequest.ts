@@ -12,3 +12,4 @@ export type SpaceExtraRequest = {
      */
     key: string;
 };
+

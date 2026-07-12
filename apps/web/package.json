@@ -16,7 +16,6 @@
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest --config vitest.config.ts",
     "test:coverage": "vitest run --config vitest.config.ts --coverage",
-    "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "optimize:ai-style-images": "node ../../scripts/optimize-ai-style-images.mjs"
   },
   "dependencies": {
@@ -85,7 +84,6 @@
     "eslint-plugin-better-tailwindcss": "^4.5.0",
     "eslint-plugin-react-dom": "^5.8.13",
     "oxlint": "1.63.0",
-    "playwright": "^1.58.2",
     "tailwindcss": "^4.2.4",
     "typescript": "5.8.2",
     "vite": "^8.0.11",

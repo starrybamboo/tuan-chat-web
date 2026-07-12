@@ -2,6 +2,7 @@ import type { MouseEvent } from "react";
 
 import RoomSidebarAddPanel from "@/components/chat/room/roomSidebarAddPanel";
 import RoomSidebarCategoryItems from "@/components/chat/room/roomSidebarCategoryItems";
+import { CollapsibleMotion } from "@/components/common/motion/CollapsibleMotion";
 
 import type { Room } from "../../../../api";
 import type { MinimalDocMeta, SidebarLeafNode } from "./sidebarTree";
@@ -133,7 +134,7 @@ export default function RoomSidebarCategoryBody({
         onCloseLeftDrawer={onCloseLeftDrawer}
       />
 
-      {isAddPanelOpen && (
+      <CollapsibleMotion open={isAddPanelOpen}>
         <RoomSidebarAddPanel
           categoryId={categoryId}
           isSpaceOwner={isSpaceOwner}
@@ -148,7 +149,7 @@ export default function RoomSidebarCategoryBody({
           existingDocIdsInTree={existingDocIdsInTree}
           setAddPanelCategoryId={setAddPanelCategoryId}
         />
-      )}
+      </CollapsibleMotion>
 
     </div>
   );

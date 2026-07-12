@@ -1,6 +1,8 @@
 // Section.tsx（通用模块容器）
 import React from "react";
 
+import { Disclosure } from "@/components/common/Disclosure";
+
 export default function Section({
   title,
   icon,
@@ -42,26 +44,15 @@ export default function Section({
   }
 
   return (
-    <div className={`
-      collapse collapse-arrow border border-base-300
-      ${className}
-    `}>
-
-      <input type="checkbox" defaultChecked={defaultOpen} />
-      <div className={`
-        collapse-title px-4 py-3 text-lg font-semibold
-        ${hideTitleOnMobile ? `
-          hidden
-          md:flex
-        ` : `flex`}
-        items-center gap-2
-      `}>
-        {icon}
-        {title}
-      </div>
-      <div className="collapse-content">
-        <div className="space-y-4">{children}</div>
-      </div>
-    </div>
+    <Disclosure
+      title={title}
+      icon={icon}
+      defaultOpen={defaultOpen}
+      hideTitleOnMobile={hideTitleOnMobile}
+      className={className}
+      titleClassName="text-lg font-semibold"
+    >
+      <div className="space-y-4">{children}</div>
+    </Disclosure>
   );
 }

@@ -1,29 +1,40 @@
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 
 import type { ChatSidebarActiveTone } from "./chatSidebarActiveTone";
 
 type SidebarActiveCursorProps = {
   isActive: boolean;
   tone?: ChatSidebarActiveTone;
+  layoutId?: string;
 };
 
 export const chatSidebarActiveCursorLayoutId = "chat-sidebar-active-cursor";
 
-export default function SidebarActiveCursor({ isActive, tone = "default" }: SidebarActiveCursorProps) {
+export default function SidebarActiveCursor({
+  isActive,
+  tone = "default",
+  layoutId = chatSidebarActiveCursorLayoutId,
+}: SidebarActiveCursorProps) {
+  const shouldReduceMotion = useReducedMotion();
+
   if (!isActive) {
     return null;
   }
 
   return (
     <motion.div
-      layoutId={chatSidebarActiveCursorLayoutId}
+      layoutId={layoutId}
+      aria-hidden="true"
       className={`
-        absolute left-[-6px] z-10 top-1/2 -translate-y-1/2 h-8 w-1
-        rounded-full
+        pointer-events-none absolute left-0 top-1/2 z-10 h-10 w-1
+        -translate-y-1/2 rounded-r-full
         ${tone === "collapsed" ? "bg-warning" : "bg-info"}
       `}
       data-tone={tone}
-      transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.45 }}
+      data-sidebar-active-cursor={layoutId}
+      transition={shouldReduceMotion
+        ? { duration: 0 }
+        : { type: "spring", stiffness: 520, damping: 36, mass: 0.45 }}
     />
   );
 }

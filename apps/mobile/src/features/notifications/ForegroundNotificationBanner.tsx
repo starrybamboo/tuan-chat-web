@@ -1,7 +1,7 @@
 import { ChatCircleText, X } from "phosphor-react-native";
 import { useEffect } from "react";
 import { Platform, Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
-import Animated, { SlideInUp, SlideOutUp } from "react-native-reanimated";
+import Animated, { ReduceMotion, SlideInUp, SlideOutUp } from "react-native-reanimated";
 
 import { Colors, Radius, Spacing } from "@/constants/theme";
 
@@ -50,8 +50,8 @@ function BannerCard({ banner, onDismiss, onPress }: { banner: ForegroundBanner; 
   return (
     <View pointerEvents="box-none" style={styles.host}>
       <Animated.View
-        entering={SlideInUp.duration(280)}
-        exiting={SlideOutUp.duration(220)}
+        entering={SlideInUp.duration(280).reduceMotion(ReduceMotion.System)}
+        exiting={SlideOutUp.duration(220).reduceMotion(ReduceMotion.System)}
         style={styles.card}
       >
         <Pressable

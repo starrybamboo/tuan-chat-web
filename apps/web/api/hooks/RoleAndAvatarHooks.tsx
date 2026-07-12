@@ -9,7 +9,7 @@
 /* eslint-disable */
 import type { QueryClient } from '@tanstack/react-query';
 
-import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tuanchat } from '../instance';
 
 
@@ -29,10 +29,8 @@ import type { UserRole } from '@tuanchat/openapi-client/models/UserRole';
 import { emitWebgalAvatarUpdated } from "../../app/webGAL/avatarSync";
 
 import {
-  type ApiResultPageBaseRespUserRole,
   type ApiResultRoleAbility,
   type ApiResultRoleAvatar,
-  type ApiResultVoid,
   type RoleCreateRequest
 } from "api";
 import type { Role } from '@/components/Role/types';
@@ -52,7 +50,6 @@ import {
   seedUserRoleQueryCache,
 } from "../roleQueryCache";
 import { invalidateRoleAbilityCaches } from "./abilityMutationInvalidation";
-import { createUniqueQuerySlots, mapUniqueQueryResults } from "./querySlots";
 import { invalidateRoleCreateQueries, invalidateUpdatedRoleQueries, invalidateUserRoleListQueries } from "./roleMutationInvalidation";
 
 export const ROLE_AVATARS_STALE_TIME_MS = 86_400_000;
@@ -404,7 +401,7 @@ function toSpriteTransformPayload(transform: Transform | undefined): SpriteTrans
  * 根据id获取角色
  * @param roleId 角色ID
  */
-export function useGetRoleQuery(roleId: number) {
+export function useGetRoleQuery(roleId: number, options?: { enabled?: boolean }) {
   const queryClient = useQueryClient();
   return useQuery({
     queryKey: roleQueryKey(roleId),
@@ -413,33 +410,13 @@ export function useGetRoleQuery(roleId: number) {
     retry: shouldRetryRoleQueryError,
     retryOnMount: false,
     refetchOnMount: false,
-    enabled: typeof roleId === 'number' && !isNaN(roleId) && roleId > 0
+    enabled: (options?.enabled ?? true) && typeof roleId === 'number' && !isNaN(roleId) && roleId > 0
   });
 }
 
 /**
  * 根据id批量获取角色
  */
-export function useGetRolesQueries(roleIds: number[]) {
-  const queryClient = useQueryClient();
-  const querySlots = createUniqueQuerySlots(
-    roleIds,
-    (roleId, index) => isPositiveId(roleId) ? String(roleId) : `invalid:${index}`,
-  );
-  const results = useQueries({
-    queries: querySlots.queryItems.map(({ item: roleId, originalIndex }) => ({
-      queryKey: isPositiveId(roleId) ? roleQueryKey(roleId) : ["getRole", "invalid", originalIndex],
-      queryFn: () => loadRole(queryClient, roleId),
-      staleTime: ROLE_DETAIL_STALE_TIME_MS, // 10分钟缓存
-      retry: shouldRetryRoleQueryError,
-      retryOnMount: false,
-      refetchOnMount: false,
-      enabled: typeof roleId === 'number' && !isNaN(roleId) && roleId > 0
-    }))
-  });
-  return mapUniqueQueryResults(results, querySlots.resultIndexes);
-}
-
 /**
  * 更新角色信息（带本地角色状态）
  * @param onSave 保存成功的回调函数，接收本地角色状态
@@ -601,7 +578,6 @@ export function useSetDefaultRoleAvatarMutation(roleId?: number) {
       queryClient.invalidateQueries({ queryKey: ["roomRole"] });
       queryClient.invalidateQueries({ queryKey: ["roomNpcRole"] });
       queryClient.invalidateQueries({ queryKey: ["spaceRole"] });
-      queryClient.invalidateQueries({ queryKey: ["spaceRepositoryRole"] });
     },
   });
 }
@@ -645,7 +621,7 @@ export function useDeleteRolesMutation(onSuccess?: () => void) {
   return useMutation({
     mutationKey: ["deleteRoles"],
     mutationFn: async (roleIds: number[]) => {
-      const res = await tuanchat.roleController.deleteRole1(roleIds);
+      const res = await tuanchat.roleController.deleteRole(roleIds);
       if (!res.success) {
         throw new Error("删除角色失败");
       }
@@ -724,10 +700,7 @@ export function useClearRoleTrashMutation(onSuccess?: () => void) {
   return useMutation({
     mutationKey: ["clearRoleTrash"],
     mutationFn: async () => {
-      const res = await tuanchat.request.request<ApiResultVoid>({
-        method: "DELETE",
-        url: "/role/trash/clear",
-      });
+      const res = await tuanchat.roleController.clearRoleTrash();
       if (!res.success) {
         throw new Error(res.errMsg || "清空角色回收站失败");
       }
@@ -756,11 +729,7 @@ export function useClearSpaceNpcRoleTrashMutation(onSuccess?: () => void) {
   return useMutation({
     mutationKey: ["clearSpaceNpcRoleTrash"],
     mutationFn: async (spaceId: number) => {
-      const res = await tuanchat.request.request<ApiResultVoid>({
-        method: "DELETE",
-        url: "/role/trash/npc/clear",
-        query: { spaceId },
-      });
+      const res = await tuanchat.roleController.clearNpcRoleTrash(spaceId);
       if (!res.success) {
         throw new Error(res.errMsg || "清空空间 NPC 回收站失败");
       }
@@ -772,7 +741,6 @@ export function useClearSpaceNpcRoleTrashMutation(onSuccess?: () => void) {
       queryClient.invalidateQueries({ queryKey: ["roomRole"] });
       queryClient.invalidateQueries({ queryKey: ["roomNpcRole"] });
       queryClient.invalidateQueries({ queryKey: ["spaceRole"] });
-      queryClient.invalidateQueries({ queryKey: ["spaceRepositoryRole"] });
       onSuccess?.();
     },
     onError: (error) => {
@@ -1756,23 +1724,19 @@ export function useUpdateAvatarNameMutation(roleId?: number) {
 // ==================== 用户角色查询 ====================
 async function fetchUserRolesByTypes(userId: number, types: number[]): Promise<UserRole[]> {
   const uniqueTypes = normalizeUserRoleTypes(types);
-
-  const results = await Promise.all(
-    uniqueTypes.map(async (type) => {
-      const res = await tuanchat.roleController.getUserRolesByType(userId, type);
-      if (!res.success) {
-        throw new Error(res.errMsg || "获取用户角色失败");
-      }
-      return res.data ?? [];
-    }),
-  );
+  const res = await tuanchat.roleController.getUserRoles(userId);
+  if (!res.success) {
+    throw new Error(res.errMsg || "获取用户角色失败");
+  }
+  const requestedTypes = new Set(uniqueTypes);
 
   const roleMap = new Map<number, UserRole>();
-  for (const list of results) {
-    for (const role of list) {
-      if (typeof role.roleId === "number") {
-        roleMap.set(role.roleId, role);
-      }
+  for (const role of res.data ?? []) {
+    if (typeof role.type !== "number" || !requestedTypes.has(role.type)) {
+      continue;
+    }
+    if (typeof role.roleId === "number") {
+      roleMap.set(role.roleId, role);
     }
   }
 
@@ -1810,7 +1774,7 @@ async function loadUserRolesByTypes(userId: number, types: number[]): Promise<Us
  */
 export function useGetUserRolesQuery(userId: number) {
   return useQuery({
-    queryKey: userRolesByTypesQueryKey(userId, [0, 1]),
+    queryKey: ["getUserRoles", userId],
     queryFn: () => loadUserRolesByTypes(userId, [0, 1]),
     select: data => ({
       success: true,
@@ -1852,12 +1816,7 @@ export function useGetUserRolesPageQuery(params: RolePageQueryRequest) {
 }
 
 async function fetchDeletedUserRolesPage(params: RolePageQueryRequest) {
-  const res = await tuanchat.request.request<ApiResultPageBaseRespUserRole>({
-    method: "POST",
-    url: "/role/trash/page",
-    body: params,
-    mediaType: "application/json",
-  });
+  const res = await tuanchat.roleController.getDeletedRolesByPage(params);
   if (!res.success) {
     throw new Error(res.errMsg || "获取角色回收站失败");
   }
@@ -1865,13 +1824,7 @@ async function fetchDeletedUserRolesPage(params: RolePageQueryRequest) {
 }
 
 async function fetchDeletedSpaceNpcRolesPage(params: RolePageQueryRequest, spaceId: number) {
-  const res = await tuanchat.request.request<ApiResultPageBaseRespUserRole>({
-    method: "POST",
-    url: "/role/trash/npc/page",
-    query: { spaceId },
-    body: params,
-    mediaType: "application/json",
-  });
+  const res = await tuanchat.roleController.getDeletedNpcRolesByPage(spaceId, params);
   if (!res.success) {
     throw new Error(res.errMsg || "获取空间 NPC 回收站失败");
   }

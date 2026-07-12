@@ -13,5 +13,6 @@ export type NovelApiAnnotateImageRequest = {
     /**
      * 控制图参数对象（透传到 NovelAI）
      */
-    parameters: Record<string, Record<string, any>>;
+    parameters: Record<string, any>;
 };
+

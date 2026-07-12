@@ -11,6 +11,7 @@ export * from "./messagePreview";
 export * from "./messageType";
 export * from "./notification";
 export * from "./open-api-result";
+export * from "./poke-message";
 export * from "./role-api-error";
 export * from "./room-identity";
 export * from "./sidebar-tree";

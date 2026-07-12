@@ -136,6 +136,55 @@ function rollD20(type: "normal" | "advantage" | "disadvantage" = "normal"): { to
   }
 }
 
+function getInitiativeModifier(curAbility: RoleAbility): number {
+  const initKeys = ["先攻", "Initiative", "initiative", "Init", "init"];
+  for (const key of initKeys) {
+    const value = UTILS.getRoleAbilityValue(curAbility, key, "ability") || UTILS.getRoleAbilityValue(curAbility, key, "skill");
+    if (!value) {
+      continue;
+    }
+    const initMod = Number.parseInt(value);
+    if (!Number.isNaN(initMod)) {
+      return initMod;
+    }
+  }
+
+  const dexKeys = ["敏捷", "Dexterity", "Dex", "dex"];
+  for (const key of dexKeys) {
+    const value = getDndModifier(curAbility, key);
+    if (value && value.type === "Attribute") {
+      return value.value;
+    }
+  }
+
+  return 0;
+}
+
+function getInitiativeExtraModifier(args: string[], curAbility: RoleAbility): number {
+  const argsStr = args.join("");
+  if (!argsStr) {
+    return 0;
+  }
+  try {
+    const value = UTILS.calculateExpression(argsStr, curAbility);
+    return Number.isNaN(value) ? 0 : value;
+  }
+  catch {
+    return 0;
+  }
+}
+
+async function rollInitiativeForRole(args: string[], role: UserRole, cpi: CPI): Promise<number> {
+  const curAbility = await cpi.getRoleAbilityList(role.roleId);
+  const initMod = getInitiativeModifier(curAbility);
+  const extraMod = getInitiativeExtraModifier(args, curAbility);
+  const diceResult = rollD20("normal");
+  const total = diceResult.total + initMod + extraMod;
+  UTILS.setRoleAbilityValue(curAbility, "initiative", String(total), "skill", "skill");
+  cpi.setRoleAbilityList(role.roleId, curAbility);
+  return total;
+}
+
 /**
  * 通用检定处理器
  */
@@ -272,63 +321,22 @@ const cmdRi = new CommandExecutor(
   [".ri", ".ri +2"],
   ".ri [调整值]?",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
-    const role = mentioned[0];
-    if (!role) {
+    const roles = Array.from(new Map(
+      mentioned
+        .filter(role => typeof role.roleId === "number" && role.roleId > 0)
+        .map(role => [role.roleId, role]),
+    ).values());
+    if (roles.length === 0) {
       cpi.sendToast("未指定角色");
       return false;
     }
-    const curAbility = await cpi.getRoleAbilityList(role.roleId);
-
-    // 优先查找 "先攻" 或 "Initiative"
-    let initMod = 0;
-
-    const initKeys = ["先攻", "Initiative", "initiative", "Init", "init"];
-    let found = false;
-
-    for (const key of initKeys) {
-      const val = UTILS.getRoleAbilityValue(curAbility, key, "ability") || UTILS.getRoleAbilityValue(curAbility, key, "skill");
-      if (val) {
-        initMod = Number.parseInt(val);
-        if (!Number.isNaN(initMod)) {
-          found = true;
-          break;
-        }
-      }
-    }
-
-    // 如果没找到先攻，尝试用敏捷调整值
-    if (!found) {
-      const dexKeys = ["敏捷", "Dexterity", "Dex", "dex"];
-      for (const key of dexKeys) {
-        const val = getDndModifier(curAbility, key);
-        if (val && val.type === "Attribute") {
-          initMod = val.value;
-          found = true;
-          break;
-        }
-      }
-    }
-
-    // 额外调整
-    const argsStr = args.join("");
-    let extraMod = 0;
-    if (argsStr) {
-      try {
-        const val = UTILS.calculateExpression(argsStr, curAbility);
-        if (!Number.isNaN(val))
-          extraMod = val;
-      }
-      catch {}
-    }
-
-    const diceResult = rollD20("normal");
-    const total = diceResult.total + initMod + extraMod;
-    UTILS.setRoleAbilityValue(curAbility, "initiative", String(total), "skill", "skill");
-    cpi.setRoleAbilityList(role.roleId, curAbility);
 
     // 更新先攻列表逻辑 (需结合 RoomContext 或其他机制，此处仅显示)
     // 如果需要自动加入先攻列表，需调用相关API。由于API未明确提供，此处暂只打印。
 
+    for (const role of roles) {
+      await rollInitiativeForRole(args, role, cpi);
+    }
     return true;
   },
 );

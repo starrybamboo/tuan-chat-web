@@ -1,8 +1,13 @@
+import { useGetRoleQuery, useGetUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useMemo, useState } from "react";
 
+import { Button } from "@/components/common/Button";
+import { DialogFrame } from "@/components/common/DialogFrame";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
+import { FieldDescription, FieldError, FieldLabel, TextInput } from "@/components/common/FormField";
+import { StateView } from "@/components/common/StateView";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { useGetRoleQuery, useGetUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
 
 import type { UserRole } from "../../../api";
 
@@ -26,15 +31,17 @@ function DiceMaidenRoleItem({
   onSelect: () => void;
 }) {
   return (
-    <div
-      className={`card cursor-pointer transition-all duration-200 ${
+    <button
+      type="button"
+      className={surfaceClassName({ level: "content", className: `w-full cursor-pointer text-left transition-all duration-200 ${
         isSelected
           ? "bg-info/20 border-2 border-info"
           : "bg-base-200 hover:bg-base-300"
-      }`}
+      }` })}
       onClick={onSelect}
+      aria-pressed={isSelected}
     >
-      <div className="card-body p-4">
+      <div className="p-4">
         <div className="flex items-center gap-3">
           {/* 骰娘头像 */}
           <div className="rounded-full ring ring-info ring-offset-base-100 ring-offset-2">
@@ -61,7 +68,7 @@ function DiceMaidenRoleItem({
           )}
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -76,8 +83,8 @@ function ManualRolePreview({ roleId }: { roleId: number }) {
     return null;
 
   return (
-    <div className="card bg-info/10 border-2 border-info">
-      <div className="card-body p-4">
+    <div className={surfaceClassName({ level: "content", className: "border-2 border-info bg-info/10" })}>
+      <div className="p-4">
         <div className="flex items-center gap-3">
           <div className="rounded-full ring ring-info ring-offset-base-100 ring-offset-2">
             <RoleAvatarByRole
@@ -181,52 +188,39 @@ export default function DiceMaidenLinkModal({
     return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div
-        className="bg-base-100 rounded-xl shadow-2xl w-full mx-4 flex flex-col"
-        style={{ maxWidth: "28rem", height: "600px" }}
-        role="dialog"
-        aria-modal="true"
-        aria-label="关联骰娘"
-        onClick={e => e.stopPropagation()}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            onClose();
-          }
-        }}
-      >
+    <DialogFrame
+      open={isOpen}
+      mode="inline"
+      onClose={onClose}
+      ariaLabel="关联骰娘"
+      rootClassName="z-50 bg-black/50"
+      panelClassName="bg-base-100 rounded-xl shadow-2xl w-full mx-4 flex flex-col"
+      panelStyle={{ maxWidth: "28rem", height: "600px" }}
+    >
         {/* 头部 - 固定 */}
         <div className="p-6 pb-4 flex-shrink-0">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4">
             <h3 className="text-xl font-semibold">关联骰娘角色</h3>
-            <button
-              type="button"
-              className="btn btn-sm btn-circle btn-ghost"
-              aria-label="关闭"
-              onClick={onClose}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
           </div>
 
           {/* 选择模式切换 */}
           <div className="flex gap-2">
-            <button
-              type="button"
-              className={`btn btn-sm flex-1 ${inputMode === "select" ? "btn-info" : "btn-ghost"}`}
+            <Button
+              size="sm"
+              variant={inputMode === "select" ? "outline" : "ghost"}
+              className={`flex-1 ${inputMode === "select" ? "border-info/45 text-info hover:border-info/70 hover:bg-info/10" : ""}`}
               onClick={() => setInputMode("select")}
             >
               选择骰娘
-            </button>
-            <button
-              type="button"
-              className={`btn btn-sm flex-1 ${inputMode === "manual" ? "btn-info" : "btn-ghost"}`}
+            </Button>
+            <Button
+              size="sm"
+              variant={inputMode === "manual" ? "outline" : "ghost"}
+              className={`flex-1 ${inputMode === "manual" ? "border-info/45 text-info hover:border-info/70 hover:bg-info/10" : ""}`}
               onClick={() => setInputMode("manual")}
             >
               手动输入ID
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -260,32 +254,21 @@ export default function DiceMaidenLinkModal({
             : (
                 <div className="space-y-4 pb-4">
                   <div>
-                    <label className="label">
-                      <span className="label-text">骰娘角色ID</span>
-                    </label>
-                    <input
+                    <FieldLabel htmlFor="dice-maiden-role-id">骰娘角色ID</FieldLabel>
+                    <TextInput
+                      id="dice-maiden-role-id"
                       type="number"
-                      className={`input input-bordered w-full ${
-                        manualRoleError ? "input-error" : ""
-                      }`}
+                      aria-invalid={Boolean(manualRoleError)}
                       placeholder="请输入骰娘角色的ID"
                       value={manualInput}
                       onChange={e => setManualInput(e.target.value)}
                     />
                     {manualRoleError
                       ? (
-                          <label className="label">
-                            <span className="label-text-alt text-error">
-                              {manualRoleError}
-                            </span>
-                          </label>
+                          <FieldError>{manualRoleError}</FieldError>
                         )
                       : (
-                          <label className="label">
-                            <span className="label-text-alt text-base-content/60">
-                              输入骰娘角色的ID号进行绑定
-                            </span>
-                          </label>
+                          <FieldDescription>输入骰娘角色的ID号进行绑定</FieldDescription>
                         )}
                   </div>
 
@@ -296,9 +279,7 @@ export default function DiceMaidenLinkModal({
 
                   {/* 加载状态 */}
                   {manualInputId && isManualRoleLoading && (
-                    <div className="flex justify-center py-4">
-                      <span className="loading loading-spinner loading-md"></span>
-                    </div>
+                    <StateView loading title="正在加载角色" className="py-4" />
                   )}
                 </div>
               )}
@@ -308,24 +289,26 @@ export default function DiceMaidenLinkModal({
         <div className="p-6 pt-4 flex-shrink-0 border-t border-base-300">
           <div className="flex gap-2">
             {currentDicerRoleId && (
-              <button
-                type="button"
-                className="btn btn-error btn-sm"
+              <Button
+                size="sm"
+                variant="error"
                 onClick={handleClear}
               >
                 清除绑定
-              </button>
+              </Button>
             )}
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm flex-1"
+            <Button
+              size="sm"
+              variant="ghost"
+              className="flex-1"
               onClick={onClose}
             >
               取消
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm flex-1"
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              className="flex-1"
               onClick={handleConfirm}
               disabled={
                 inputMode === "select"
@@ -334,10 +317,9 @@ export default function DiceMaidenLinkModal({
               }
             >
               确认
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
-    </div>
+    </DialogFrame>
   );
 }

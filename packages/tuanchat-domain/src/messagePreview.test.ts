@@ -111,4 +111,12 @@ describe("getMessagePreviewText", () => {
       extra: { docCard: { title: "调查笔记" } },
     }))).toBe("[文档] 调查笔记");
   });
+
+  it("为戳一戳消息增加稳定预览前缀", () => {
+    expect(getMessagePreviewText(createMessage({
+      content: "@爱丽丝 戳了戳 @鲍勃",
+      messageType: MESSAGE_TYPE.POKE,
+      extra: { poke: { targetRoleId: 9 } },
+    }))).toBe("[戳一戳] @爱丽丝 戳了戳 @鲍勃");
+  });
 });

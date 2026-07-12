@@ -54,7 +54,7 @@ export type Message = {
     /**
      * webgal相关的演出设置
      */
-    webgal?: Record<string, any>;
+    webgal?: any;
     /**
      * 回复的消息id
      */
@@ -71,6 +71,9 @@ export type Message = {
      * 位置
      */
     position: number;
+    /**
+     * 不同类型消息持有的额外信息
+     */
     extra?: MessageExtra;
     /**
      * 继承来源的归档消息ID
@@ -83,3 +86,4 @@ export type Message = {
     createTime?: string;
     updateTime?: string;
 };
+

@@ -1,12 +1,17 @@
 import type { ReactNode } from "react";
 
-import { MagnifyingGlassIcon, UsersIcon } from "@phosphor-icons/react";
+import { MagnifyingGlassIcon, UserPlusIcon, UsersIcon } from "@phosphor-icons/react";
+import { AnimatePresence, motion } from "motion/react";
 import { use, useMemo, useState } from "react";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { appToast } from "@/components/common/appToast/appToast";
+import { Button } from "@/components/common/Button";
+import { Disclosure } from "@/components/common/Disclosure";
+import { formControlShellClassName, TextInput } from "@/components/common/FormField";
 import { ImeAwareSearchInput, useImeSearchValue } from "@/components/common/imeAwareSearchInput";
+import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { CheckIcon, CopyIcon, InfoIcon, Link } from "@/icons";
 
@@ -124,35 +129,33 @@ export default function AddMemberWindow({
         icon={<Link className="size-5" />}
         title="邀请链接"
       >
-        <label className="mb-2 block text-xs font-medium text-base-content/60" htmlFor="invite-link-input">
-          链接
-        </label>
-        <div className="flex flex-col gap-2" aria-busy={isInviteLinkPending}>
-          <input
+        <div
+          className={formControlShellClassName({ surface: "muted" })}
+          aria-busy={isInviteLinkPending}
+        >
+          <TextInput
             id="invite-link-input"
             type="text"
-            className="input input-bordered min-w-0 bg-base-100 text-sm"
+            appearance="bare"
+            className="min-w-0 flex-1 pr-1 text-sm"
             aria-label="邀请链接"
             value={currentInviteLink}
             readOnly={true}
             placeholder="邀请链接生成中…"
           />
-          <button
-            type="button"
-            className={`
-              btn w-full
-              ${copied ? "btn-success" : "btn-primary"}
-            `}
+          <Button
+            variant="ghost"
+            size="sm"
+            shape="square"
+            className={`mr-1 shrink-0 ${copied ? "text-success" : "text-base-content/60 hover:text-info"}`}
+            aria-label={copied ? "邀请链接已复制" : "复制邀请链接"}
+            title={copied ? "已复制" : "复制邀请链接"}
             onClick={() => {
               void copyToClipboard();
             }}
             disabled={isInviteLinkPending}
-          >
-            {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="
-              size-4
-            " />}
-            {copied ? "已复制" : "复制链接"}
-          </button>
+            icon={copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}
+          />
         </div>
       </PanelSection>
 
@@ -168,10 +171,10 @@ export default function AddMemberWindow({
                 " htmlFor="invite-duration-input">
                   有效期（天）
                 </label>
-                <input
+                <TextInput
                   id="invite-duration-input"
                   type="number"
-                  className="input input-bordered w-full bg-base-100"
+                  className="w-full"
                   placeholder="天数"
                   aria-label="邀请链接有效期（天）"
                   min={1}
@@ -179,9 +182,9 @@ export default function AddMemberWindow({
                   value={editDurationDays}
                   onChange={event => setEditDurationDays(Number(event.currentTarget.value))}
                 />
-                <button
-                  type="button"
-                  className="btn btn-primary w-full"
+                <Button
+                  variant="primary"
+                  className="w-full"
                   onClick={() => {
                     const next = Number.isFinite(editDurationDays) ? Math.floor(editDurationDays) : duration;
                     const clamped = Math.min(365, Math.max(1, next));
@@ -191,20 +194,20 @@ export default function AddMemberWindow({
                   }}
                 >
                   完成
-                </button>
+                </Button>
               </div>
             )
           : (
-              <button
-                type="button"
-                className="btn btn-outline w-full"
+              <Button
+                variant="outline"
+                className="w-full"
                 onClick={() => {
                   setIsEditingInvite(true);
                   setEditDurationDays(duration);
                 }}
               >
                 编辑有效期
-              </button>
+              </Button>
             )}
       </PanelSection>
     </div>
@@ -212,16 +215,62 @@ export default function AddMemberWindow({
 
   const memberSelection = (
     <div className="flex h-full min-h-[460px] flex-col">
-      <div className="hidden-scrollbar flex-1 space-y-5 overflow-y-auto py-5">
-        <section>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h4 className="text-sm/6 font-semibold">好友邀请</h4>
-            <span className="text-xs text-base-content/50">
-              {filteredFriends.length}
-              {" "}
-              人
-            </span>
-          </div>
+      <div className="subtle-scrollbar flex-1 space-y-3 overflow-y-auto overscroll-contain py-5 pr-1">
+        {showSpace && (
+          <Disclosure
+            defaultOpen={true}
+            icon={<UsersIcon className="size-4 text-info" weight="regular" />}
+            title={<MemberSectionTitle label="从空间添加" count={spaceMembers.length} />}
+            className="overflow-hidden"
+            titleClassName="px-3 py-2.5"
+            contentClassName="border-t border-base-300/70 px-3 pb-3 pt-3"
+          >
+            <div className="
+              subtle-scrollbar grid max-h-[240px] gap-2 overflow-y-auto
+              overscroll-contain pr-1 sm:grid-cols-2
+            ">
+              <AnimatePresence initial={false} mode="popLayout">
+                {spaceMembers.length > 0
+                  ? spaceMembers.map((member, index) => (
+                      typeof member.userId === "number" && (
+                        <motion.div
+                          key={`space-${member.userId}`}
+                          {...structuralListItemMotionProps({
+                            index,
+                            staggerDelay: 0.01,
+                            maxDelay: 0.08,
+                          })}
+                        >
+                          <MemberCard
+                            user={member}
+                            isAdded={checkIsAdded(member.userId)}
+                            onClickAddMember={() => handleAddMember(member.userId ?? -1)}
+                          />
+                        </motion.div>
+                      )
+                    ))
+                  : (
+                      <motion.div
+                        key="space-member-empty"
+                        className="sm:col-span-2"
+                        {...structuralListItemMotionProps()}
+                      >
+                        <EmptyState>{spaceMembersQuery.isLoading ? "正在加载空间成员..." : "暂无可添加的空间成员"}</EmptyState>
+                      </motion.div>
+                    )}
+              </AnimatePresence>
+            </div>
+          </Disclosure>
+        )}
+
+        <Disclosure
+          defaultOpen={true}
+          icon={<UserPlusIcon className="size-4 text-info" weight="regular" />}
+          title={<MemberSectionTitle label="好友邀请" count={filteredFriends.length} />}
+          className="overflow-hidden"
+          titleClassName="px-3 py-2.5"
+          contentClassName="border-t border-base-300/70 px-3 pb-3 pt-3"
+        >
           <div className="relative mb-3">
             <MagnifyingGlassIcon className="
               pointer-events-none absolute left-3 top-1/2 size-4
@@ -230,7 +279,7 @@ export default function AddMemberWindow({
             <ImeAwareSearchInput
               type="text"
               autoComplete="off"
-              className="input input-bordered w-full bg-base-100 pl-9"
+              className="pl-9"
               placeholder="搜索好友"
               aria-label="搜索好友"
               {...searchInputProps}
@@ -238,69 +287,40 @@ export default function AddMemberWindow({
           </div>
 
           <div className="
-            hidden-scrollbar max-h-[320px] overflow-y-auto rounded-lg border
-            border-base-300/70 bg-base-100
+            subtle-scrollbar max-h-[300px] overflow-y-auto overscroll-contain
+            rounded-md border border-base-300/70 bg-base-100
           ">
-            {filteredFriends.length > 0
-              ? (
-                  filteredFriends.map(friend => (
+            <AnimatePresence initial={false} mode="popLayout">
+              {filteredFriends.length > 0
+                ? filteredFriends.map((friend, index) => (
                     typeof friend.userId === "number" && (
-                      <MemberRow
+                      <motion.div
                         key={`friend-${friend.userId}`}
-                        user={friend}
-                        actionText="邀请"
-                        isAdded={checkIsAdded(friend.userId)}
-                        onClickAddMember={() => handleAddMember(friend.userId ?? -1)}
-                      />
+                        {...structuralListItemMotionProps({
+                          index,
+                          staggerDelay: 0.01,
+                          maxDelay: 0.08,
+                        })}
+                      >
+                        <MemberRow
+                          user={friend}
+                          actionText="邀请"
+                          isAdded={checkIsAdded(friend.userId)}
+                          onClickAddMember={() => handleAddMember(friend.userId ?? -1)}
+                        />
+                      </motion.div>
                     )
                   ))
-                )
-              : (
-                  <EmptyState>
-                    {friendListQuery.isLoading ? "正在加载好友..." : "未找到匹配的好友"}
-                  </EmptyState>
-                )}
-          </div>
-        </section>
-
-        {showSpace && (
-          <section>
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <UsersIcon className="size-4 text-info" weight="regular" />
-                <h4 className="text-sm/6 font-semibold">从空间添加</h4>
-              </div>
-              <span className="text-xs text-base-content/50">
-                {spaceMembers.length}
-                {" "}
-                人
-              </span>
-            </div>
-            <div className="
-              hidden-scrollbar grid max-h-[260px] gap-2 overflow-y-auto
-              sm:grid-cols-2
-            ">
-              {spaceMembers.length > 0
-                ? (
-                    spaceMembers.map(member => (
-                      typeof member.userId === "number" && (
-                        <MemberCard
-                          key={`space-${member.userId}`}
-                          user={member}
-                          isAdded={checkIsAdded(member.userId)}
-                          onClickAddMember={() => handleAddMember(member.userId ?? -1)}
-                        />
-                      )
-                    ))
-                  )
                 : (
-                    <div className="sm:col-span-2">
-                      <EmptyState>{spaceMembersQuery.isLoading ? "正在加载空间成员..." : "暂无可添加的空间成员"}</EmptyState>
-                    </div>
+                    <motion.div key="friend-empty" {...structuralListItemMotionProps()}>
+                      <EmptyState>
+                        {friendListQuery.isLoading ? "正在加载好友..." : "未找到匹配的好友"}
+                      </EmptyState>
+                    </motion.div>
                   )}
-            </div>
-          </section>
-        )}
+            </AnimatePresence>
+          </div>
+        </Disclosure>
       </div>
     </div>
   );
@@ -311,7 +331,7 @@ export default function AddMemberWindow({
 
   return (
     <div className="
-      flex max-h-[min(84vh,780px)] w-[min(1040px,calc(100vw-2rem))] flex-col
+      flex h-[min(84vh,780px)] w-[min(1040px,calc(100vw-2rem))] flex-col
       overflow-hidden bg-base-100 text-base-content
       lg:grid lg:grid-cols-[330px_minmax(0,1fr)]
     ">
@@ -370,6 +390,19 @@ function PanelSection({
   );
 }
 
+function MemberSectionTitle({ label, count }: { label: string; count: number }) {
+  return (
+    <span className="flex min-w-0 items-center justify-between gap-3">
+      <span className="truncate text-sm/6 font-semibold">{label}</span>
+      <span className="shrink-0 text-xs font-normal text-base-content/50">
+        {count}
+        {" "}
+        人
+      </span>
+    </span>
+  );
+}
+
 function MemberRow({
   actionText,
   isAdded,
@@ -393,25 +426,27 @@ function MemberRow({
       <MemberIdentity user={user} />
       {isAdded
         ? (
-            <button
-              className="btn btn-ghost btn-sm min-w-20"
-              type="button"
+            <Button
+              size="sm"
+              variant="ghost"
+              className="min-w-20"
               aria-label={`${displayName} 已添加到房间`}
               title="已在房间中"
               disabled={true}
             >
               已添加
-            </button>
+            </Button>
           )
         : (
-            <button
-              className="btn btn-primary btn-sm min-w-20"
-              type="button"
+            <Button
+              size="sm"
+              variant="primary"
+              className="min-w-20"
               aria-label={`${actionText} ${displayName}`}
               onClick={onClickAddMember}
             >
               {actionText}
-            </button>
+            </Button>
           )}
     </div>
   );
@@ -434,14 +469,14 @@ function MemberCard({
       <MemberIdentity user={user} />
       {isAdded
         ? (
-            <button className="btn btn-ghost btn-sm min-w-20" type="button" disabled={true}>
+            <Button size="sm" variant="ghost" className="min-w-20" disabled={true}>
               已添加
-            </button>
+            </Button>
           )
         : (
-            <button className="btn btn-outline btn-sm min-w-20" type="button" onClick={onClickAddMember}>
+            <Button size="sm" variant="outline" className="min-w-20" onClick={onClickAddMember}>
               添加
-            </button>
+            </Button>
           )}
     </div>
   );

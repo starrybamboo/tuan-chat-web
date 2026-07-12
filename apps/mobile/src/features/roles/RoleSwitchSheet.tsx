@@ -377,8 +377,13 @@ export function RoleSwitchSheet({
 
   const renderAvatarItem = useCallback(({ item: avatar }: { item: RoleAvatar }) => {
     const isAvatarSelected = currentAvatarId === avatar.avatarId;
+    const avatarLabel = avatar.avatarTitle?.label?.trim()
+      || (avatar.avatarId ? `立绘 #${avatar.avatarId}` : "未命名立绘");
     return (
       <Pressable
+        accessibilityLabel={`选择${avatarLabel}`}
+        accessibilityRole="button"
+        accessibilityState={{ selected: isAvatarSelected }}
         onPress={() => {
           if (avatar.avatarId) {
             handleSelectAvatar(avatar.avatarId, avatar.avatarFileId);

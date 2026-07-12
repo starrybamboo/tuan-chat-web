@@ -1,6 +1,8 @@
 import type { RoleAvatar } from "api";
 
 import { DiceFiveIcon, GearOutline, MicrophoneIcon } from "@/icons";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
+import { Divider, Skeleton } from "@/components/common/StatusPrimitives";
 
 import type { Role } from "./types";
 
@@ -67,19 +69,14 @@ export default function CharacterDetailLeftPanel({
       lg:sticky lg:top-4
       space-y-6
     ">
-      <div className="
-        card-sm
-        md:card-xl
-        bg-base-100 shadow-xs rounded-xl
-        md:border-2 md:border-base-content/10
-      ">
-        <div className="card-body flex flex-col p-4">
+      <div className={surfaceClassName({ level: "content", className: "shadow-xs md:border-2 md:border-base-content/10" })}>
+        <div className="flex flex-col p-4">
           <div className="flex flex-1 items-center justify-center">
             {isQueryLoading
               ? (
                   <div className="flex flex-col items-center gap-3">
-                    <div className="skeleton size-24 rounded-full"></div>
-                    <div className="skeleton h-4 w-20"></div>
+                    <Skeleton className="size-24" rounded="full" />
+                    <Skeleton className="h-4 w-20" />
                   </div>
                 )
               : (
@@ -96,7 +93,7 @@ export default function CharacterDetailLeftPanel({
                   />
                 )}
           </div>
-          <div className="divider my-0" />
+          <Divider className="my-0" />
           <RoleBasicInfoEditor
             localRole={localRole}
             maxRoleNameLength={maxRoleNameLength}

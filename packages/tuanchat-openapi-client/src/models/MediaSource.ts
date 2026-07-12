@@ -2,9 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * 媒体资源来源
- */
 export type MediaSource = {
     /**
      * 来源类型：internal/external
@@ -24,3 +21,4 @@ export type MediaSource = {
     provider?: string;
     internalFile?: boolean;
 };
+

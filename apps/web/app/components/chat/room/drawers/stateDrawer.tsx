@@ -1,5 +1,6 @@
 import { Broom } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "motion/react";
 import React from "react";
 
 import type { ActiveStateInstance } from "@/components/chat/state/stateRuntime";
@@ -7,13 +8,17 @@ import type { StateRuntimeContextValue } from "@/components/chat/state/stateRunt
 import type { Role } from "@/components/Role/types";
 import type { StateEventAtom } from "@/types/stateEvent";
 
+import { NEXT_TURN_CONTENT } from "@tuanchat/domain/state-command";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { mergeRoleVarOpSnapshotsIntoEvents, writeRoleVarOpsThroughAbilities } from "@/components/chat/state/roleVarWriteThrough";
-import { NEXT_TURN_CONTENT } from "@/components/chat/state/stateCommandParser";
 import { getFallbackRoleAbilityValue } from "@/components/chat/state/stateRuntime";
 import { useStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import { appToast } from "@/components/common/appToast/appToast";
+import { Button } from "@/components/common/Button";
+import { TextInput } from "@/components/common/FormField";
+import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { useGlobalUserId } from "@/components/globalContextProvider";
@@ -35,7 +40,6 @@ import {
   loadRoleAbilityByRule,
   setRoleAbilityWithSuccessGuard,
   updateRoleAbilityByRuleWithSuccessGuard,
-  useGetRolesAbilitiesQueries,
   useUpdateKeyFieldByRoleIdMutation,
 } from "../../../../../api/hooks/abilityQueryHooks";
 import { useAddRoomRoleMutation, useDeleteMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
@@ -343,13 +347,11 @@ function EditableStatPill({
 }) {
   if (editingKey === editKey) {
     return (
-      <input
+      <TextInput
+        density="compact"
         type="number"
 
-        className="
-          input input-xs h-6 min-h-6 w-20 rounded-full border-base-300
-          bg-base-100 px-2 text-right text-[11px] tabular-nums
-        "
+        className="h-6 min-h-6 w-20 rounded-full px-2 text-right text-[11px] tabular-nums"
         aria-label={label ?? `编辑 ${text}`}
         value={editingValue}
         onChange={event => setEditingValue(event.target.value)}
@@ -517,18 +519,15 @@ function CompactRoleRow({
         </div>
         {row.canDelete && (
           <div className="ml-auto flex shrink-0 items-start justify-end pl-2">
-            <button
-              type="button"
-              className="
-                btn btn-ghost btn-xs h-6 min-h-6 rounded-md px-2 text-[11px]
-                text-error
-                hover:bg-error/10
-              "
+            <Button
+              variant="ghost"
+              size="xs"
+              className="h-6 min-h-6 rounded-md px-2 text-[11px] text-error hover:bg-error/10"
               title="删除这条先攻记录"
               onClick={() => onDelete?.(row)}
             >
               删除
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -561,7 +560,16 @@ export default function StateDrawer() {
     ? roomRolesThatUserOwn
     : roomRolesThatUserOwn.filter(role => role.userId === curUserId);
   const rollableRoles = spaceOwner ? visibleRoomRoles : importableRoles;
-  const abilityQueries = useGetRolesAbilitiesQueries(importableRoles.map(role => role.roleId));
+  const abilityQueries = React.useMemo(() => importableRoles.map((role) => {
+    const ability = runtime.fallbackRoleAbilitiesByRoleId[role.roleId];
+    return {
+      data: {
+        success: true,
+        data: ability ? [ability] : [],
+      },
+      isLoading: runtime.isAbilityLoading && ability === undefined,
+    };
+  }), [importableRoles, runtime.fallbackRoleAbilitiesByRoleId, runtime.isAbilityLoading]);
   const { canAdvanceTurn, canEndCombat, canStartCombat, primaryAction } = getCombatRoundControlState(runtime.combatRoundActive);
   const displayedRound = runtime.combatRoundActive ? runtime.turn : 0;
 
@@ -811,14 +819,14 @@ export default function StateDrawer() {
         avatarId: roomContext.curAvatarId ?? -1,
       }));
       if (!createdMessage) {
-        appToast.error("结束战斗失败");
+        appToast.error("结束战斗失败，请稍后重试");
         return;
       }
       appToast.success("已结束战斗");
     }
     catch (error) {
       console.error("结束战斗失败", error);
-      appToast.error(error instanceof Error && error.message ? error.message : "结束战斗失败");
+      appToast.error(error instanceof Error && error.message ? error.message : "结束战斗失败，请稍后重试");
     }
     finally {
       setIsEndingCombat(false);
@@ -846,14 +854,14 @@ export default function StateDrawer() {
         avatarId: roomContext.curAvatarId ?? -1,
       }));
       if (!createdMessage) {
-        appToast.error("开始战斗失败");
+        appToast.error("开始战斗失败，请稍后重试");
         return;
       }
       appToast.success("已开始战斗");
     }
     catch (error) {
       console.error("开始战斗失败", error);
-      appToast.error(error instanceof Error && error.message ? error.message : "开始战斗失败");
+      appToast.error(error instanceof Error && error.message ? error.message : "开始战斗失败，请稍后重试");
     }
     finally {
       setIsStartingCombat(false);
@@ -898,12 +906,12 @@ export default function StateDrawer() {
       });
 
       if (!createdMessage) {
-        appToast.error("推进回合失败");
+        appToast.error("推进回合失败，请稍后重试");
       }
     }
     catch (error) {
       console.error("推进回合失败", error);
-      appToast.error("推进回合失败");
+      appToast.error("推进回合失败，请稍后重试");
     }
     finally {
       setIsAdvancingTurn(false);
@@ -1199,24 +1207,20 @@ export default function StateDrawer() {
             </div>
             <div className="flex items-center gap-2">
               {importableRoles.length > 0 && (
-                <button
-                  type="button"
-                  className="
-                    btn btn-outline btn-xs h-8 min-h-8 rounded-lg px-3
-                    text-[11px]
-                  "
+                <Button
+                  variant="outline"
+                  size="xs"
+                  className="h-8 min-h-8 rounded-lg px-3 text-[11px]"
                   onClick={() => setIsImportPopupOpen(true)}
                 >
                   导入先攻
-                </button>
+                </Button>
               )}
               {spaceOwner && primaryAction === "start" && (
-                <button
-                  type="button"
-                  className="
-                    btn btn-outline btn-info btn-xs h-8 min-h-8 rounded-lg
-                    px-3 text-[11px]
-                  "
+                <Button
+                  variant="outline"
+                  size="xs"
+                  className="h-8 min-h-8 rounded-lg border-info px-3 text-[11px] text-info hover:border-info hover:bg-info/10"
                   onClick={() => {
                     void handleStartCombat();
                   }}
@@ -1224,15 +1228,13 @@ export default function StateDrawer() {
                   title="写入开始战斗事件"
                 >
                   {isStartingCombat ? "开始中..." : "开始战斗"}
-                </button>
+                </Button>
               )}
               {spaceOwner && primaryAction === "end" && (
-                <button
-                  type="button"
-                  className="
-                    btn btn-outline btn-error btn-xs h-8 min-h-8 gap-1
-                    rounded-lg px-3 text-[11px]
-                  "
+                <Button
+                  variant="errorOutline"
+                  size="xs"
+                  className="h-8 min-h-8 gap-1 rounded-lg px-3 text-[11px]"
                   onClick={() => {
                     void handleEndCombat();
                   }}
@@ -1241,21 +1243,19 @@ export default function StateDrawer() {
                 >
                   <Broom className="size-3.5" />
                   {isEndingCombat ? "结束中..." : "结束战斗"}
-                </button>
+                </Button>
               )}
-              <button
-                type="button"
-                className="
-                  btn btn-primary btn-xs h-8 min-h-8 rounded-lg px-3 text-[11px]
-                  font-semibold
-                "
+              <Button
+                variant="primary"
+                size="xs"
+                className="h-8 min-h-8 rounded-lg px-3 text-[11px] font-semibold"
                 onClick={() => {
                   void handleAdvanceTurn();
                 }}
                 disabled={!canAdvanceTurn || isAdvancingTurn || !roomContext.sendMessageWithInsert || !roomContext.roomId}
               >
                 {isAdvancingTurn ? "推进中..." : "下一回合"}
-              </button>
+              </Button>
             </div>
           </div>
           {runtime.isAbilityLoading && (
@@ -1284,22 +1284,25 @@ export default function StateDrawer() {
               <>
                 {rolesWithContent.length > 0 && (
                   <div className="space-y-2">
-                    {rolesWithContent.map(row => (
-                      <CompactRoleRow
-                        key={row.rowId}
-                        editingKey={editingRoleValue?.key ?? null}
-                        editingValue={editingRoleValueText}
-                        onCommitRoleValue={handleCommitRoleValue}
-                        onDelete={handleDeleteRoleRow}
-                        row={row}
-                        setEditingValue={setEditingRoleValueText}
-                        startEditing={setEditingRoleValue}
-                        stopEditing={() => {
-                          setEditingRoleValue(null);
-                          setEditingRoleValueText("");
-                        }}
-                      />
-                    ))}
+                    <AnimatePresence initial={false} mode="popLayout">
+                      {rolesWithContent.map(row => (
+                        <motion.div key={row.rowId} {...structuralListItemMotionProps()}>
+                          <CompactRoleRow
+                            editingKey={editingRoleValue?.key ?? null}
+                            editingValue={editingRoleValueText}
+                            onCommitRoleValue={handleCommitRoleValue}
+                            onDelete={handleDeleteRoleRow}
+                            row={row}
+                            setEditingValue={setEditingRoleValueText}
+                            startEditing={setEditingRoleValue}
+                            stopEditing={() => {
+                              setEditingRoleValue(null);
+                              setEditingRoleValueText("");
+                            }}
+                          />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
                   </div>
                 )}
 
@@ -1320,31 +1323,34 @@ export default function StateDrawer() {
           <section className="space-y-2">
             <div className="text-xs font-semibold text-base-content/55">其他战斗参与者</div>
             <div className="space-y-2">
-              {looseParticipants.map(participant => (
-                <div
-                  key={participant.participantId}
-                  className="
-                    rounded-2xl border border-base-300/75 bg-base-100/70 px-3
-                    py-2.5
-                  "
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="
-                      truncate text-sm font-medium text-base-content
-                    ">
-                      {participant.name || participant.participantId}
-                    </span>
-                    <StatPill text={formatInitiativeText(participant.initiative)} />
-                  </div>
-                  {participant.activeStates.length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {participant.activeStates.map(state => (
-                        <StatusPill key={state.instanceId} state={state} />
-                      ))}
+              <AnimatePresence initial={false} mode="popLayout">
+                {looseParticipants.map(participant => (
+                  <motion.div
+                    key={participant.participantId}
+                    className="
+                      rounded-2xl border border-base-300/75 bg-base-100/70 px-3
+                      py-2.5
+                    "
+                    {...structuralListItemMotionProps()}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="
+                        truncate text-sm font-medium text-base-content
+                      ">
+                        {participant.name || participant.participantId}
+                      </span>
+                      <StatPill text={formatInitiativeText(participant.initiative)} />
                     </div>
-                  )}
-                </div>
-              ))}
+                    {participant.activeStates.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {participant.activeStates.map(state => (
+                          <StatusPill key={state.instanceId} state={state} />
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           </section>
         )}
@@ -1397,22 +1403,23 @@ export default function StateDrawer() {
             </p>
           </div>
           <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
+            <Button
+              variant="ghost"
+              size="sm"
               disabled={copyRoleMutation.isPending || addRoomRoleMutation.isPending}
               onClick={() => setDuplicateImportRole(null)}
             >
               取消
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
               disabled={copyRoleMutation.isPending || addRoomRoleMutation.isPending}
+              loading={copyRoleMutation.isPending || addRoomRoleMutation.isPending}
               onClick={() => void handleConfirmDuplicateImport()}
             >
               {copyRoleMutation.isPending || addRoomRoleMutation.isPending ? "处理中..." : "复制并导入"}
-            </button>
+            </Button>
           </div>
         </div>
       </ToastWindow>

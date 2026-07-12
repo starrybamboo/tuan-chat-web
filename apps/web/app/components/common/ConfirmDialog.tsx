@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { create } from "zustand";
 
 import { Button, type ButtonVariant } from "@/components/common/Button";
-import { Modal } from "@/components/common/Modal";
+import { DialogFrame } from "@/components/common/DialogFrame";
 
 /**
  * 统一确认弹窗：替代 comfirmModel / window.confirm / aiImage HistoryConfirmModal。
@@ -75,7 +75,13 @@ export function ConfirmDialog({
   }, [onConfirm, onOpenChange]);
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange} size="sm" ariaLabel={title}>
+    <DialogFrame
+      open={open}
+      mode="native"
+      onClose={() => onOpenChange(false)}
+      ariaLabel={title}
+      panelClassName="max-w-sm"
+    >
       <div className="flex flex-col items-center gap-3 text-center">
         {icon
           ? (
@@ -87,7 +93,7 @@ export function ConfirmDialog({
         <h2 className="text-lg font-semibold">{title}</h2>
         {description ? <div className="text-sm text-base-content/75">{description}</div> : null}
         <div className="mt-2 flex w-full gap-2">
-          <Button variant="neutral" className="flex-1" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" className="flex-1 border-base-300 text-base-content hover:border-base-content/30 hover:bg-base-200/60" onClick={() => onOpenChange(false)}>
             {cancelLabel}
           </Button>
           <Button variant={VARIANT_BUTTON[variant]} className="flex-1" loading={busy} onClick={handleConfirm}>
@@ -95,7 +101,7 @@ export function ConfirmDialog({
           </Button>
         </div>
       </div>
-    </Modal>
+    </DialogFrame>
   );
 }
 

@@ -29,5 +29,6 @@ export type UserUpdateInfoRequest = {
     /**
      * 扩展字段，JSON 格式
      */
-    extra?: Record<string, Record<string, any>>;
+    extra?: Record<string, any>;
 };
+

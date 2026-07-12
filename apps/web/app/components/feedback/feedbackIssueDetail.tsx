@@ -3,6 +3,9 @@ import { Link } from "@tanstack/react-router";
 import type { FeedbackIssueStatus } from "@/components/feedback/feedbackTypes";
 
 import { appToast } from "@/components/common/appToast/appToast";
+import { Button } from "@/components/common/Button";
+import { MediaImage } from "@/components/common/mediaImage";
+import { StateView } from "@/components/common/StateView";
 import {
   useFeedbackIssueDetailQuery,
   useUpdateFeedbackIssueArchiveMutation,
@@ -89,7 +92,7 @@ function FeedbackArchivePill({ archived }: { archived: boolean }) {
 
 function getFeedbackStatusButtonClass(status: FeedbackIssueStatus, active: boolean) {
   if (!active) {
-    return "btn-ghost text-base-content/50 hover:bg-base-content/5 hover:text-base-content";
+    return "text-base-content/50 hover:bg-base-content/5 hover:text-base-content";
   }
 
   if (status === FEEDBACK_ISSUE_STATUS_COMPLETED) {
@@ -127,11 +130,12 @@ function FeedbackStatusButtons({
           const processingLocked = option.value === FEEDBACK_ISSUE_STATUS_PROCESSING && !canSetProcessingStatus;
           const optionDisabled = disabled || processingLocked;
           return (
-            <button
+            <Button
               key={option.value}
-              type="button"
+              variant="ghost"
+              size="sm"
               className={`
-                btn btn-sm h-9 min-h-0 rounded-xl border-none px-5 text-sm
+                h-9 min-h-0 rounded-xl border-none px-5 text-sm
                 font-medium shadow-none transition-all
                 ${getFeedbackStatusButtonClass(option.value, active)}
                 ${processingLocked ? `cursor-not-allowed opacity-50` : ""}
@@ -142,7 +146,7 @@ function FeedbackStatusButtons({
               onClick={() => onChange(option.value)}
             >
               {option.label}
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -163,12 +167,15 @@ function FeedbackArchiveToggle({
   onToggle: () => void;
 }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant="outline"
       className={`
-        btn h-[44px] min-h-0 rounded-2xl border px-6 text-sm font-medium
+        h-[44px] min-h-0 rounded-2xl border px-6 text-sm font-medium
         shadow-sm transition-all
-        ${archived ? `btn-neutral border-neutral` : `
+        ${archived ? `
+          border-base-content/35 bg-base-200/60 text-base-content
+          hover:border-base-content/45 hover:bg-base-200
+        ` : `
           border-base-300 bg-base-100 text-base-content
           hover:border-base-300 hover:bg-base-200/50
         `}
@@ -177,7 +184,7 @@ function FeedbackArchiveToggle({
       onClick={onToggle}
     >
       {archived ? "取消归档" : "归档"}
-    </button>
+    </Button>
   );
 }
 
@@ -190,7 +197,7 @@ function FeedbackDetailAuthor({
 }) {
   if (avatar) {
     return (
-      <img
+      <MediaImage
         src={avatar}
         alt={authorName}
         className="h-10 w-10 rounded-full object-cover"
@@ -228,13 +235,9 @@ export default function FeedbackIssueDetail({
   if (issueQuery.isLoading) {
     return (
       <section className="
-        flex min-h-[28rem] items-center justify-center rounded-xl border
-        border-base-300 bg-base-100
+        min-h-[28rem] rounded-xl border border-base-300 bg-base-100
       ">
-        <div className="flex flex-col items-center gap-3 text-base-content/60">
-          <span className="loading loading-spinner loading-md" />
-          正在加载反馈...
-        </div>
+        <StateView loading title="正在加载反馈" className="min-h-[28rem]" />
       </section>
     );
   }
@@ -242,15 +245,14 @@ export default function FeedbackIssueDetail({
   if (issueQuery.isError || !issueQuery.data) {
     return (
       <section className="rounded-xl border border-base-300 bg-base-100 p-8">
-        <div className="space-y-3 text-center">
-          <div className="text-xl font-semibold text-base-content">反馈不存在或已无法访问</div>
-          <p className="text-sm text-base-content/65">返回列表后可以重新选择。</p>
-          {onBack && (
-            <button type="button" className="btn btn-info btn-sm" onClick={onBack}>
-              返回反馈列表
-            </button>
-          )}
-        </div>
+        <StateView
+          tone="warning"
+          title="反馈不存在或已无法访问"
+          description="返回列表后可以重新选择。"
+          actionLabel={onBack ? "返回反馈列表" : undefined}
+          onAction={onBack}
+          className="py-8"
+        />
       </section>
     );
   }
@@ -343,9 +345,9 @@ export default function FeedbackIssueDetail({
     <div className="space-y-4">
       <div>
         {onBack && (
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onBack}>
+          <Button variant="ghost" size="sm" onClick={onBack}>
             ← 返回反馈列表
-          </button>
+          </Button>
         )}
       </div>
 

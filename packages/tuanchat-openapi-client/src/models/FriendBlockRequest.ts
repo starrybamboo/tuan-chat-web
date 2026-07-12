@@ -11,3 +11,4 @@ export type FriendBlockRequest = {
      */
     targetUserId: number;
 };
+

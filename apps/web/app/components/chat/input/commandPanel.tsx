@@ -1,6 +1,7 @@
 import React from "react";
 
 import { getCommandList } from "@/components/common/dicer/cmdPre";
+import { IconButton } from "@/components/common/IconButton";
 import { FloatingMotionItem, FloatingMotionPanel } from "@/components/common/motion/FloatingMotionPanel";
 
 /**
@@ -76,14 +77,14 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
               text-xs opacity-60
               dark:opacity-80
             ">指令详情 (ESC 关闭)</span>
-            <button
-              type="button"
+            <IconButton
+              icon={<span aria-hidden="true">✕</span>}
+              label="关闭提示"
+              variant="ghost"
+              size="xs"
+              shape="circle"
               onClick={onDismiss}
-              className="btn btn-ghost btn-xs btn-circle"
-              aria-label="关闭提示"
-            >
-              ✕
-            </button>
+            />
           </div>
         )}
         {suggestions.map((cmd, index) => (
@@ -245,14 +246,14 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
             text-xs opacity-60
             dark:opacity-80
           ">指令提示 (ESC 关闭)</span>
-          <button
-            type="button"
+          <IconButton
+            icon={<span aria-hidden="true">✕</span>}
+            label="关闭提示"
+            variant="ghost"
+            size="xs"
+            shape="circle"
             onClick={onDismiss}
-            className="btn btn-ghost btn-xs btn-circle"
-            aria-label="关闭提示"
-          >
-            ✕
-          </button>
+          />
         </div>
       )}
       {suggestions.length === 0

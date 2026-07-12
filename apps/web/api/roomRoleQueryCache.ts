@@ -10,6 +10,10 @@ export function roomNpcRoleQueryKey(roomId: number) {
   return ["roomNpcRole", roomId] as const;
 }
 
+export function roomAllRoleQueryKey(roomId: number) {
+  return ["roomRoles", roomId] as const;
+}
+
 type RoomRoleQuerySnapshot = {
   previousRoomRole: unknown;
   previousRoomNpcRole: unknown;
@@ -81,7 +85,6 @@ function findCachedRoleById(queryClient: QueryClient, roleId: number): UserRole 
     queryClient.getQueriesData({ queryKey: ["getUserRoles"] }),
     queryClient.getQueriesData({ queryKey: ["getUserRolesByTypes"] }),
     queryClient.getQueriesData({ queryKey: ["spaceRole"] }),
-    queryClient.getQueriesData({ queryKey: ["spaceRepositoryRole"] }),
   ];
 
   for (const group of candidateQueryGroups) {
@@ -171,6 +174,7 @@ export async function invalidateRoomRoleQueries(queryClient: QueryClient, roomId
     return;
   }
   await Promise.all([
+    queryClient.invalidateQueries({ queryKey: roomAllRoleQueryKey(roomId) }),
     queryClient.invalidateQueries({ queryKey: roomRoleQueryKey(roomId) }),
     queryClient.invalidateQueries({ queryKey: roomNpcRoleQueryKey(roomId) }),
   ]);

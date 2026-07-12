@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 
+import { Button } from "@/components/common/Button";
 import AddFieldForm from "../Editors/AddFieldForm";
 import EditableField from "../Editors/EditableField";
 
@@ -182,17 +183,23 @@ export default function RuleNumericalEditor({
   return (
     <div className={`
       space-y-4 bg-base-200 rounded-lg p-4 duration-300 transition-opacity
+      motion-reduce:transition-none
       ${
       isEditing ? "ring-2 ring-info" : ""
     }
     `}
     >
       <div className="flex items-center justify-between gap-3">
-        <h3 className="card-title text-lg flex items-center gap-2">{title}</h3>
+        <h3 className="flex items-center gap-2 text-lg font-medium">{title}</h3>
         <div className="flex items-center gap-2">
           {typeof forcedEditing !== "boolean" && (!isEditing
             ? (
-                <button type="button" className="btn btn-sm btn-info" onClick={handleStartEditing}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-info/45 text-info hover:border-info/70 hover:bg-info/10"
+                  onClick={handleStartEditing}
+                >
                   <span className="flex items-center gap-1">
                     <svg className="size-4" viewBox="0 0 24 24" fill="none">
                       <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
@@ -200,20 +207,20 @@ export default function RuleNumericalEditor({
                     </svg>
                     编辑
                   </span>
-                </button>
+                </Button>
               )
             : (
                 <>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-ghost"
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     onClick={handleCancel}
                   >
                     取消
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-primary"
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="primary"
                     onClick={() => {
                       // 只在点击应用时，向父级提交变更（不会触发后端交互）
                       onSave?.(localData ?? {});
@@ -226,7 +233,7 @@ export default function RuleNumericalEditor({
                       </svg>
                       应用
                     </span>
-                  </button>
+                  </Button>
                 </>
               ))}
         </div>

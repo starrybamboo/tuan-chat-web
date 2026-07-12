@@ -2,6 +2,7 @@ import type { CommentVO } from "api";
 
 import React, { use, useMemo, useState } from "react";
 
+import { Button } from "@/components/common/Button";
 import { CommentContext } from "@/components/common/comment/commentContext";
 import CommentInputBox from "@/components/common/comment/commentInputBox";
 import CommentPreview from "@/components/common/comment/commentPreview";
@@ -10,6 +11,9 @@ import {
 } from "@/components/common/content/mediaContent";
 import MediaContentView from "@/components/common/content/mediaContentView";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import { IconButton } from "@/components/common/IconButton";
+import { CollapsibleMotion } from "@/components/common/motion/CollapsibleMotion";
+import { StateView } from "@/components/common/StateView";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { useGlobalUserId } from "@/components/globalContextProvider";
@@ -68,10 +72,11 @@ function CommentActionButton({
       : "text-base-content/60 hover:bg-info/10 hover:text-info";
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="ghost"
+      size="xs"
       className={`
-        btn btn-ghost btn-xs h-8 min-h-8 rounded-full px-3 transition-colors
+        h-8 min-h-8 rounded-full px-3 transition-colors
         ${toneClass}
       `}
       aria-pressed={active || undefined}
@@ -82,7 +87,7 @@ function CommentActionButton({
     >
       {icon}
       <span>{label}</span>
-    </button>
+    </Button>
   );
 }
 
@@ -175,7 +180,7 @@ export default function CommentComponent({
   }, [displayMode, level, visibleChildren]);
 
   if (typeof comment === "number" && getCommentByIdQuery.isPending) {
-    return <div className="loading loading-spinner text-info"></div>;
+    return <StateView loading className="py-2" />;
   }
   if (!commentVO) {
     return null;
@@ -368,9 +373,11 @@ export default function CommentComponent({
               </div>
 
               <div className="flex shrink-0 items-center justify-end">
-                <button
+                <IconButton
+                  size="xs"
+                  label={isFolded ? "展开回复" : "收起回复"}
                   className={`
-                    btn btn-ghost btn-xs h-7 min-h-7 w-7 rounded-full p-0
+                    h-7 min-h-7 w-7 rounded-full p-0
                     text-base-content/50
                     hover:bg-info/10 hover:text-info
                     ${isFolded ? `bg-base-200/50` : `
@@ -379,25 +386,24 @@ export default function CommentComponent({
                       focus:opacity-100
                     `}
                   `}
-                  type="button"
                   aria-expanded={!isFolded}
-                  aria-label={isFolded ? "展开回复" : "收起回复"}
                   onClick={() => setIsFolded(!isFolded)}
                   title={isFolded ? "展开" : "收起"}
-                >
-                  <svg className={`
-                    h-4 w-4 transition-transform
-                    ${isFolded ? "" : `rotate-180`}
-                  `} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
+                  icon={(
+                    <svg className={`
+                      h-4 w-4 transition-transform
+                      ${isFolded ? "" : `rotate-180`}
+                    `} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  )}
+                />
               </div>
             </div>
 
             {/* Body */}
-            {!isFolded && (
-              <>
+            <CollapsibleMotion open={!isFolded}>
+              <div>
                 <div className="mt-1 pl-1">
                   <MediaContentView
                     content={commentVO.content}
@@ -449,14 +455,14 @@ export default function CommentComponent({
                     />
                   </div>
                 )}
-              </>
-            )}
+              </div>
+            </CollapsibleMotion>
           </article>
 
           {/* Children block */}
-          {level < MAX_LEVEL
-            ? (
-                !isFolded && (
+          <CollapsibleMotion open={!isFolded}>
+            {level < MAX_LEVEL
+              ? (
                   <div className="mt-1">
                     {hasLoadedChildren && (
                       <div className="space-y-1">
@@ -489,13 +495,14 @@ export default function CommentComponent({
                     )}
                   </div>
                 )
-              )
-            : (!isFolded && hasLoadedChildren)
+              : hasLoadedChildren
                 ? (
                     <div className="mt-3 ml-1.5">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="
-                          btn btn-ghost btn-sm h-8 min-h-8 rounded-full border
+                          h-8 min-h-8 rounded-full border
                           border-base-300 bg-base-200/35 px-4 text-xs
                           text-base-content/65
                           hover:border-info/25 hover:bg-info/10
@@ -506,11 +513,12 @@ export default function CommentComponent({
                       >
                         查看更深的回复
                         <ChevronRightIcon className="h-3.5 w-3.5" />
-                      </button>
+                      </Button>
                       <ToastWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>{childrenComments}</ToastWindow>
                     </div>
                   )
                 : null}
+          </CollapsibleMotion>
         </div>
       </div>
     </div>

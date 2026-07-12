@@ -77,6 +77,7 @@ export function useSendFriendRequestMutation() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [...FRIEND_CHECK_QUERY_KEY, variables.targetUserId] });
       queryClient.invalidateQueries({ queryKey: FRIEND_REQUEST_PAGE_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["directBadgeSummary"] });
     },
   });
 }
@@ -100,6 +101,7 @@ export function useAcceptFriendRequestMutation() {
     },
     onSettled: () => {
       void invalidateAcceptFriendRequestQueries(queryClient);
+      void queryClient.invalidateQueries({ queryKey: ["directBadgeSummary"] });
     },
   });
 }
@@ -123,6 +125,7 @@ export function useRejectFriendRequestMutation() {
     },
     onSettled: () => {
       void invalidateRejectFriendRequestQueries(queryClient);
+      void queryClient.invalidateQueries({ queryKey: ["directBadgeSummary"] });
     },
   });
 }

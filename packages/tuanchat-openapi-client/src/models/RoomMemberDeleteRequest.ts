@@ -12,3 +12,4 @@ export type RoomMemberDeleteRequest = {
      */
     userIdList: Array<number>;
 };
+

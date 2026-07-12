@@ -1,6 +1,9 @@
 import React from "react";
 
+import { Button, buttonClassName } from "@/components/common/Button";
+import { ControlGroup } from "@/components/common/ControlGroup";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
+import { RangeInput } from "@/components/common/FormField";
 
 import type { PreviewAnchorPosition } from "../Preview/previewAnchor";
 
@@ -91,36 +94,37 @@ export function TransformControl({
     `}>
       <div className="flex items-center justify-between gap-3">
         <label htmlFor={anchorSelectorId} className="text-xs w-16 shrink-0">中心点:</label>
-        <div id={anchorSelectorId} className="join flex-1">
+        <ControlGroup id={anchorSelectorId} className="flex-1" aria-label="预览中心点">
           {PREVIEW_ANCHOR_ORDER.map(position => (
             <button
               key={position}
               type="button"
-              className={`
-                join-item btn btn-xs flex-1
-                ${anchorPosition === position ? `btn-info` : `btn-outline`}
-              `}
+              className={buttonClassName({
+                variant: anchorPosition === position ? "info" : "outline",
+                size: "xs",
+                className: "flex-1",
+              })}
               onClick={() => setAnchorPosition(position)}
               disabled={disabled}
             >
               {PREVIEW_ANCHOR_LABELS[position]}
             </button>
           ))}
-        </div>
+        </ControlGroup>
       </div>
 
       {/* Scale控制 - 调整范围和步长，提供更精细的控制 */}
       <div className="flex items-center gap-3">
         <label htmlFor={scaleInputId} className="text-xs w-16 shrink-0">缩放:</label>
-        <input
+        <RangeInput
           id={scaleInputId}
-          type="range"
+          density="compact"
           min="0.1" // (修改) 避免完全消失
           max="4" // (修改) 提供更大的放大范围
           step="0.05" // (修改) 更精细的步长
           value={transform.scale}
           onChange={e => setTransform(prev => ({ ...prev, scale: Number.parseFloat(e.target.value) }))}
-          className="range range-xs range-info flex-1"
+          className="flex-1"
           disabled={disabled}
         />
         <DoubleClickEditableText
@@ -128,7 +132,8 @@ export function TransformControl({
           disabled={disabled}
           className="w-12"
           displayClassName="block text-xs text-right"
-          inputClassName="input input-xs w-full text-right"
+          inputDensity="compact"
+          inputClassName="w-full text-right"
           formatDisplay={value => value.toFixed(2)}
           formatInput={value => String(value)}
           parse={(rawValue) => {
@@ -152,15 +157,15 @@ export function TransformControl({
       {/* Position X控制 - 扩大范围以适应1280px的基准宽度 */}
       <div className="flex items-center gap-3">
         <label htmlFor={positionXInputId} className="text-xs w-16 shrink-0">X位移:</label>
-        <input
+        <RangeInput
           id={positionXInputId}
-          type="range"
+          density="compact"
           min={-REFERENCE_WIDTH}
           max={REFERENCE_WIDTH}
           step="5"
           value={transform.positionX}
           onChange={e => setTransform(prev => ({ ...prev, positionX: Number.parseInt(e.target.value) }))}
-          className="range range-xs range-info flex-1"
+          className="flex-1"
           disabled={disabled}
         />
         <DoubleClickEditableText
@@ -168,7 +173,8 @@ export function TransformControl({
           disabled={disabled}
           className="w-12"
           displayClassName="block text-xs text-right"
-          inputClassName="input input-xs w-full text-right"
+          inputDensity="compact"
+          inputClassName="w-full text-right"
           formatDisplay={value => String(value)}
           formatInput={value => String(value)}
           parse={(rawValue) => {
@@ -192,15 +198,15 @@ export function TransformControl({
       {/* Position Y控制 - 扩大范围以适应720px的基准高度 */}
       <div className="flex items-center gap-3">
         <label htmlFor={positionYInputId} className="text-xs w-16 shrink-0">Y位移:</label>
-        <input
+        <RangeInput
           id={positionYInputId}
-          type="range"
+          density="compact"
           min={-REFERENCE_HEIGHT}
           max={REFERENCE_HEIGHT}
           step="5"
           value={transform.positionY}
           onChange={e => setTransform(prev => ({ ...prev, positionY: Number.parseInt(e.target.value) }))}
-          className="range range-xs range-info flex-1"
+          className="flex-1"
           disabled={disabled}
         />
         <DoubleClickEditableText
@@ -208,7 +214,8 @@ export function TransformControl({
           disabled={disabled}
           className="w-12"
           displayClassName="block text-xs text-right"
-          inputClassName="input input-xs w-full text-right"
+          inputDensity="compact"
+          inputClassName="w-full text-right"
           formatDisplay={value => String(value)}
           formatInput={value => String(value)}
           parse={(rawValue) => {
@@ -232,15 +239,15 @@ export function TransformControl({
       {/* Alpha控制 - 步长改为0.05 */}
       <div className="flex items-center gap-3">
         <label htmlFor={alphaInputId} className="text-xs w-16 shrink-0">透明度:</label>
-        <input
+        <RangeInput
           id={alphaInputId}
-          type="range"
+          density="compact"
           min="0"
           max="1"
           step="0.05" // (修改)
           value={transform.alpha}
           onChange={e => setTransform(prev => ({ ...prev, alpha: Number.parseFloat(e.target.value) }))}
-          className="range range-xs range-info flex-1"
+          className="flex-1"
           disabled={disabled}
         />
         <DoubleClickEditableText
@@ -248,7 +255,8 @@ export function TransformControl({
           disabled={disabled}
           className="w-12"
           displayClassName="block text-xs text-right"
-          inputClassName="input input-xs w-full text-right"
+          inputDensity="compact"
+          inputClassName="w-full text-right"
           formatDisplay={value => value.toFixed(2)}
           formatInput={value => String(value)}
           parse={(rawValue) => {
@@ -272,15 +280,15 @@ export function TransformControl({
       {/* Rotation控制 - 步长改为5度 */}
       <div className="flex items-center gap-3">
         <label htmlFor={rotationInputId} className="text-xs w-16 shrink-0">旋转:</label>
-        <input
+        <RangeInput
           id={rotationInputId}
-          type="range"
+          density="compact"
           min="0"
           max="360"
           step="5" // (修改)
           value={transform.rotation}
           onChange={e => setTransform(prev => ({ ...prev, rotation: Number.parseInt(e.target.value) }))}
-          className="range range-xs range-info flex-1"
+          className="flex-1"
           disabled={disabled}
         />
         <DoubleClickEditableText
@@ -288,7 +296,8 @@ export function TransformControl({
           disabled={disabled}
           className="w-12"
           displayClassName="block text-xs text-right"
-          inputClassName="input input-xs w-full text-right"
+          inputDensity="compact"
+          inputClassName="w-full text-right"
           formatDisplay={value => `${value}°`}
           formatInput={value => String(value)}
           parse={(rawValue) => {
@@ -311,22 +320,22 @@ export function TransformControl({
 
       {/* 控制按钮组 */}
       <div className="flex justify-center gap-2 mt-3">
-        <button
-          className="btn btn-xs btn-outline"
+        <Button
+          variant="outline"
+          size="xs"
           onClick={handleReset}
-          type="button"
           disabled={disabled}
         >
           重置Transform
-        </button>
-        <button
-          className="btn btn-xs btn-outline"
+        </Button>
+        <Button
+          variant="outline"
+          size="xs"
           onClick={handleBottomAlign}
-          type="button"
           disabled={disabled}
         >
           贴底对齐
-        </button>
+        </Button>
       </div>
     </div>
   );

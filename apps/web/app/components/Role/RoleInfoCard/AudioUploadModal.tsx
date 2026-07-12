@@ -1,6 +1,11 @@
 import { useMemo, useState } from "react";
-import { appToast } from "@/components/common/appToast/appToast";
 
+import { appToast } from "@/components/common/appToast/appToast";
+import { Button } from "@/components/common/Button";
+import { DialogFrame } from "@/components/common/DialogFrame";
+import { UploadDropZone } from "@/components/common/MediaFrame";
+import { Surface, surfaceClassName } from "@/components/common/DesignLanguage";
+import { InlineAlert } from "@/components/common/StatusPrimitives";
 import { UploadUtils } from "@/utils/media/UploadUtils";
 
 type AudioUploadModalProps = {
@@ -20,7 +25,6 @@ export default function AudioUploadModal({
 }: AudioUploadModalProps) {
   const [selectedAudioFile, setSelectedAudioFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [isDragOver, setIsDragOver] = useState(false);
 
   // 音频上传工具实例
   const uploadUtils = useMemo(() => new UploadUtils(), []);
@@ -46,36 +50,7 @@ export default function AudioUploadModal({
       || audioExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
   };
 
-  // 处理拖拽进入
-  const handleDragEnter = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(true);
-  };
-
-  // 处理拖拽离开
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // 只有当拖拽完全离开上传区域时才设置为false
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setIsDragOver(false);
-    }
-  };
-
-  // 处理拖拽悬停
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  // 处理文件拖拽放下
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-
-    const files = Array.from(e.dataTransfer.files);
+  const handleAudioFiles = (files: File[]) => {
     const audioFile = files.find(file => isAudioFile(file));
 
     if (audioFile) {
@@ -131,111 +106,51 @@ export default function AudioUploadModal({
   // 重置文件选择
   const handleResetFile = () => {
     setSelectedAudioFile(null);
-    const input = document.getElementById("audioFileInput") as HTMLInputElement;
-    if (input)
-      input.value = "";
   };
 
   if (!isOpen)
     return null;
 
   return (
-    <div className="
-      fixed inset-0 z-50 flex items-center justify-center bg-black/50
-    " onClick={handleClose}>
-      <div className="
-        bg-base-100 rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh]
-        overflow-hidden
-      "
-        role="dialog"
-        aria-modal="true"
-        aria-label="上传音频"
-        onClick={e => e.stopPropagation()}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            handleClose();
-          }
-        }}
-      >
+    <DialogFrame
+      open={isOpen}
+      mode="inline"
+      onClose={handleClose}
+      ariaLabel="上传音频"
+      rootClassName="z-50"
+      panelClassName={surfaceClassName({
+        level: "floating",
+        className: "max-h-[80vh] w-full max-w-md overflow-hidden",
+      })}
+    >
         <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="mb-6">
             <h3 className="text-xl font-semibold">上传音频文件</h3>
-            <button
-              type="button"
-              className="btn btn-sm btn-circle btn-ghost"
-              aria-label="关闭"
-              onClick={handleClose}
-            >
-              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
           </div>
 
           <div className="space-y-4">
             {/* 提示信息 */}
-            <div className="alert bg-info/20">
-
-              <div className="text-sm">
-                <div className="flex items-start gap-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="
-                    stroke-current shrink-0 size-6
-                  ">
+            <InlineAlert
+              tone="info"
+              icon={(
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="size-6 stroke-current">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  <div className="font-semibold mb-1">音频文件要求：</div>
-                </div>
+                </svg>
+              )}
+            >
+              <div className="text-sm">
+                <div className="mb-1 font-semibold">音频文件要求：</div>
                 <ul className="ml-10 list-disc list-inside space-y-1">
                   <li>支持格式：MP3、WAV、M4A、AAC、OGG</li>
                   <li>时长要求：几秒钟即可，建议在30秒以内</li>
                   <li>用途：AI将基于此音频生成角色专属音色</li>
                 </ul>
               </div>
-            </div>
+            </InlineAlert>
 
-            {/* 文件上传区域 */}
-            <div
-              className={`
-                border-2 border-dashed rounded-lg p-6 text-center
-                transition-colors
-                ${
-                isDragOver
-                  ? "border-info bg-info/5"
-                  : `
-                    border-base-300
-                    hover:border-info/50
-                  `
-              }
-              `}
-              onDragEnter={handleDragEnter}
-              onDragLeave={handleDragLeave}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-            >
-              <input
-                type="file"
-                accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.webm"
-                className="hidden"
-                id="audioFileInput"
-                aria-label="选择音频文件"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    if (isAudioFile(file)) {
-                      handleAudioFileSelect(file);
-                    }
-                    else {
-                      appToast.error("请选择音频文件（MP3、WAV、M4A、AAC、OGG）");
-                      // 清空input值，允许重新选择同一个文件
-                      e.target.value = "";
-                    }
-                  }
-                }}
-              />
-
-              {selectedAudioFile
+            {selectedAudioFile
                 ? (
-                    <div className="space-y-3">
+                    <Surface level="inset" className="space-y-3 p-6 text-center">
                       <div className="
                         flex items-center justify-center size-12 mx-auto
                         bg-success/10 rounded-full
@@ -254,70 +169,43 @@ export default function AudioUploadModal({
                           MB
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline"
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={handleResetFile}
                       >
                         重新选择
-                      </button>
-                    </div>
+                      </Button>
+                    </Surface>
                   )
                 : (
-                    <div className="space-y-3">
-                      <div className="
-                        flex items-center justify-center size-12 mx-auto
-                        bg-base-200 rounded-full
-                      ">
-                        <svg className="size-6 text-base-content/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="font-medium">
-                          {isDragOver ? "释放文件以上传" : "选择音频文件"}
-                        </p>
-                        <p className="text-sm text-base-content/60">
-                          {isDragOver
-                            ? "松开鼠标即可开始上传音频文件"
-                            : "点击下方按钮或拖拽文件到此处"}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        className="btn btn-outline btn-sm"
-                        onClick={() => document.getElementById("audioFileInput")?.click()}
-                      >
-                        选择文件
-                      </button>
-                    </div>
+                    <UploadDropZone
+                      accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.webm"
+                      label="选择或拖入音频文件"
+                      description="支持 MP3、WAV、M4A、AAC、OGG、WEBM"
+                      onFiles={handleAudioFiles}
+                    />
                   )}
-            </div>
 
             {/* 操作按钮 */}
             <div className="flex gap-3 justify-end">
-              <button
-                type="button"
-                className="btn btn-ghost"
+              <Button
+                variant="ghost"
                 onClick={handleClose}
               >
                 取消
-              </button>
-              <button
-                type="button"
-                className={`
-                  btn btn-primary
-                  ${isUploading ? "loading" : ""}
-                `}
+              </Button>
+              <Button
+                variant="primary"
+                loading={isUploading}
                 disabled={!selectedAudioFile || isUploading}
                 onClick={handleAudioUpload}
               >
                 {isUploading ? "上传中..." : "上传"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </DialogFrame>
   );
 }

@@ -113,6 +113,39 @@ describe("roomMessageSync", () => {
     });
   });
 
+  it("AbortSignal 取消时同步取消底层历史请求", async () => {
+    const signalController = new AbortController();
+    let rejectHistory!: (reason: unknown) => void;
+    const historyRequest = new Promise((_resolve, reject) => {
+      rejectHistory = reject;
+    }) as Promise<unknown> & { cancel: () => void };
+    historyRequest.cancel = vi.fn(() => {
+      const error = new Error("Request aborted");
+      error.name = "CancelError";
+      rejectHistory(error);
+    });
+    const client = {
+      chatController: {
+        getHistoryMessages: vi.fn().mockReturnValue(historyRequest),
+      },
+    };
+
+    const loading = fetchRoomMessagesWithLocalSync(9, {
+      client,
+      getMaxCachedSyncId: vi.fn().mockResolvedValue(3),
+      signal: signalController.signal,
+    });
+    await vi.waitFor(() => {
+      expect(client.chatController.getHistoryMessages).toHaveBeenCalled();
+    });
+    signalController.abort();
+
+    await expect(loading).rejects.toMatchObject({
+      name: "CancelError",
+    });
+    expect(historyRequest.cancel).toHaveBeenCalledTimes(1);
+  });
+
   it("写入 query cache 时同步写入房间消息磁盘缓存", async () => {
     const queryClient = createQueryClientStub([createRoomMessage(1)]);
     const writeCachedRoomMessages = vi.fn().mockResolvedValue(undefined);

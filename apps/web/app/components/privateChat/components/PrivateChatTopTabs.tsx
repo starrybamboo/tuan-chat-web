@@ -1,6 +1,6 @@
 import type React from "react";
 
-import { UserCirclePlusIcon, UserListIcon } from "@phosphor-icons/react";
+import { UserCirclePlusIcon } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { useMemo } from "react";
 
@@ -22,7 +22,6 @@ export default function PrivateChatTopTabs() {
 
   const tabs: { id: PrivateChatTab; label: string; badge?: boolean; icon: React.ReactNode }[] = [
     { id: "chat", label: "私聊", icon: <RoomChatIcon className="size-4" /> },
-    { id: "friends", label: "好友", icon: <UserListIcon className="size-4" weight="regular" /> },
     { id: "new-friends", label: "新朋友", badge: hasPendingRequests, icon: <UserCirclePlusIcon className="
       size-4
     " weight="regular" /> },

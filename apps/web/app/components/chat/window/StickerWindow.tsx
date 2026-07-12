@@ -4,6 +4,7 @@ import { appToast } from "@/components/common/appToast/appToast";
 import { useCreateStickerMutation, useDeleteStickerMutation, useGetUserStickersQuery } from "api/hooks/stickerQueryHooks";
 import { useState } from "react";
 
+import { Button } from "@/components/common/Button";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { getImageSize } from "@/utils/media/getImgSize";
@@ -196,9 +197,9 @@ export default function StickerWindow({ onChoose }:
       {/* 选择表情包列表 */}
       <div className="flex">
         {/* 自定义 */}
-        <button type="button" className="btn btn-ghost btn-sm">
+        <Button variant="ghost" size="sm">
           <span>自定义表情</span>
-        </button>
+        </Button>
         {/* more emoji */}
       </div>
     </div>

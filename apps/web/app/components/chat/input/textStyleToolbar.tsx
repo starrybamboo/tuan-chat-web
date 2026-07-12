@@ -25,6 +25,7 @@ import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea"
 import type { FloatingSelectionToolbarPosition } from "@/components/common/floatingSelectionToolbar";
 
 import { appToast } from "@/components/common/appToast/appToast";
+import { ColorInput, SelectInput, TextInput } from "@/components/common/FormField";
 import { FloatingSelectionToolbar, useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import "@/components/common/textEnhanceAnimations.css";
@@ -336,8 +337,8 @@ function SwatchMenu({
       <div className="
         mt-2 flex items-center gap-2 border-t border-base-300 pt-2
       ">
-        <input
-          type="color"
+        <ColorInput
+          density="compact"
           className="
             h-8 w-10 cursor-pointer rounded border border-base-300
             bg-transparent
@@ -521,7 +522,8 @@ function SuggestField({
   return (
     <label className="flex flex-col gap-1">
       <FieldLabel>{label}</FieldLabel>
-      <input
+      <TextInput
+        density="compact"
         type="text"
         className={textInputClassName(disabled ? "opacity-50" : "", mono)}
         placeholder={placeholder}
@@ -555,7 +557,8 @@ function SelectField({
   return (
     <label className="flex flex-col gap-1">
       <FieldLabel>{label}</FieldLabel>
-      <select
+      <SelectInput
+        density="compact"
         className={textInputClassName(disabled ? "opacity-50" : "")}
         value={value}
         disabled={disabled}
@@ -563,7 +566,7 @@ function SelectField({
       >
         <option value="">{emptyLabel}</option>
         {options.map(option => <option key={option} value={option}>{option}</option>)}
-      </select>
+      </SelectInput>
     </label>
   );
 }
@@ -583,15 +586,16 @@ function ColorField({
     <label className="flex flex-col gap-1">
       <FieldLabel>{label}</FieldLabel>
       <div className="flex items-center gap-1.5">
-        <input
-          type="color"
+        <ColorInput
+          density="compact"
           className="h-8 w-9 shrink-0 cursor-pointer rounded-md border border-base-300 bg-transparent"
           value={value || fallback}
           onChange={event => onChange(event.target.value)}
           title={label}
           aria-label={label}
         />
-        <input
+        <TextInput
+          density="compact"
           type="text"
           className={textInputClassName("min-w-0 flex-1", true)}
           placeholder={fallback}
@@ -638,8 +642,8 @@ function CompactColorField({
           style={{ backgroundColor: value || "transparent" }}
         />
         {value ? null : <span className="adv-checker pointer-events-none absolute inset-0 rounded-md opacity-60" />}
-        <input
-          type="color"
+        <ColorInput
+          density="compact"
           className="absolute inset-0 size-full cursor-pointer opacity-0"
           value={value || fallback}
           onChange={event => onChange(event.target.value)}
@@ -647,7 +651,8 @@ function CompactColorField({
           aria-label={label}
         />
       </div>
-      <input
+      <TextInput
+        density="compact"
         type="text"
         className={textInputClassName("w-24 font-mono")}
         placeholder={fallback}
@@ -713,7 +718,8 @@ function CssPropertyRepeater({
     <div className="flex flex-col gap-2">
       {rows.map(row => (
         <div key={row.id} className="flex items-center gap-1.5">
-          <input
+          <TextInput
+            density="compact"
             type="text"
             className={textInputClassName("min-w-0 flex-1", true)}
             placeholder="writing-mode"
@@ -722,7 +728,8 @@ function CssPropertyRepeater({
             onChange={event => updateRow(row.id, { property: event.target.value })}
           />
           <span className="text-base-content/50">:</span>
-          <input
+          <TextInput
+            density="compact"
             type="text"
             className={textInputClassName("min-w-0 flex-1", true)}
             placeholder="vertical-rl"
@@ -995,7 +1002,8 @@ function AdvancedStyleDialog({
                 </DialogToggle>
               ))}
               <span className="mx-1 h-5 w-px bg-base-300" />
-              <select
+              <SelectInput
+                density="compact"
                 className={textInputClassName(headingLevel !== 0 ? "opacity-50" : "")}
                 value={fontSize}
                 disabled={headingLevel !== 0}
@@ -1005,7 +1013,7 @@ function AdvancedStyleDialog({
               >
                 <option value="">字号</option>
                 {FONT_SIZE_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
-              </select>
+              </SelectInput>
             </div>
             {underline || strikethrough
               ? (
@@ -1030,16 +1038,16 @@ function AdvancedStyleDialog({
             {gradientEnabled
               ? (
                   <div className="flex items-center gap-2">
-                    <input
-                      type="color"
+                    <ColorInput
+                      density="compact"
                       className="h-8 w-9 shrink-0 cursor-pointer rounded-md border border-base-300 bg-transparent"
                       value={gradientFrom}
                       onChange={event => setGradientFrom(event.target.value)}
                       title="渐变起点色"
                       aria-label="渐变起点色"
                     />
-                    <input
-                      type="color"
+                    <ColorInput
+                      density="compact"
                       className="h-8 w-9 shrink-0 cursor-pointer rounded-md border border-base-300 bg-transparent"
                       value={gradientTo}
                       onChange={event => setGradientTo(event.target.value)}
@@ -1047,7 +1055,8 @@ function AdvancedStyleDialog({
                       aria-label="渐变终点色"
                     />
                     <label className="flex items-center gap-1.5">
-                      <input
+                      <TextInput
+                        density="compact"
                         type="number"
                         className={textInputClassName("w-16", true)}
                         value={gradientAngle}
@@ -1091,7 +1100,8 @@ function AdvancedStyleDialog({
           </summary>
           <div className="mt-3 flex flex-col gap-4">
             <DialogSection title="注音" divider={false}>
-              <input
+              <TextInput
+                density="compact"
                 type="text"
                 className={textInputClassName()}
                 placeholder="为选中文本加注音 (ruby)"
@@ -1120,7 +1130,8 @@ function AdvancedStyleDialog({
             </DialogSection>
 
             <DialogSection title="自定义动画">
-              <input
+              <TextInput
+                density="compact"
                 type="text"
                 className={textInputClassName("", true)}
                 placeholder="te-shake 0.6s ease-in-out infinite"
@@ -1145,7 +1156,8 @@ function AdvancedStyleDialog({
                 <div className="mt-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                   <label className="flex flex-col gap-1">
                     <FieldLabel>作用于文字</FieldLabel>
-                    <input
+                    <TextInput
+                      density="compact"
                       type="text"
                       className={textInputClassName("", true)}
                       placeholder="color:#66327C"
@@ -1155,7 +1167,8 @@ function AdvancedStyleDialog({
                   </label>
                   <label className="flex flex-col gap-1">
                     <FieldLabel>作用于整体</FieldLabel>
-                    <input
+                    <TextInput
+                      density="compact"
                       type="text"
                       className={textInputClassName("", true)}
                       placeholder="letter-spacing:0.05em"

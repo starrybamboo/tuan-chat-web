@@ -1,6 +1,13 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { ApiResultListMessageSessionResponse } from "@tuanchat/openapi-client/models/ApiResultListMessageSessionResponse";
 import type { MessageSessionResponse } from "@tuanchat/openapi-client/models/MessageSessionResponse";
+import type { OptimisticQueryTransaction } from "@tuanchat/query/optimistic-cache";
+
+import {
+  beginOptimisticQueryTransaction,
+  optimisticQueryPatch,
+  rollbackOptimisticQueryTransaction,
+} from "@tuanchat/query/optimistic-cache";
 
 export const USER_SESSIONS_QUERY_KEY = ["getUserSessions"] as const;
 export const ROOM_SESSION_QUERY_KEY = ["getRoomSession"] as const;
@@ -63,35 +70,32 @@ export function upsertRoomSessionInCache(
 export function optimisticRemoveRoomSessionQueryCache(
   queryClient: QueryClient,
   roomId: number,
-): UserSessionsSnapshot {
-  const previous = queryClient.getQueryData<ApiResultListMessageSessionResponse>(USER_SESSIONS_QUERY_KEY);
-  queryClient.setQueryData<ApiResultListMessageSessionResponse>(
-    USER_SESSIONS_QUERY_KEY,
-    current => removeRoomSessionFromCache(current, roomId),
-  );
-  return previous;
+): Promise<OptimisticQueryTransaction> {
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<ApiResultListMessageSessionResponse>({
+      queryKey: USER_SESSIONS_QUERY_KEY,
+      update: current => removeRoomSessionFromCache(current, roomId),
+    }),
+  ]);
 }
 
 export function optimisticUpsertRoomSessionQueryCache(
   queryClient: QueryClient,
   roomId: number,
-): UserSessionsSnapshot {
-  const previous = queryClient.getQueryData<ApiResultListMessageSessionResponse>(USER_SESSIONS_QUERY_KEY);
-  queryClient.setQueryData<ApiResultListMessageSessionResponse>(
-    USER_SESSIONS_QUERY_KEY,
-    current => upsertRoomSessionInCache(current, roomId),
-  );
-  return previous;
+): Promise<OptimisticQueryTransaction> {
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<ApiResultListMessageSessionResponse>({
+      queryKey: USER_SESSIONS_QUERY_KEY,
+      update: current => upsertRoomSessionInCache(current, roomId),
+    }),
+  ]);
 }
 
 export function rollbackUserSessionsQueryCache(
   queryClient: QueryClient,
-  previous?: UserSessionsSnapshot,
+  transaction?: OptimisticQueryTransaction,
 ): void {
-  if (!previous) {
-    return;
-  }
-  queryClient.setQueryData(USER_SESSIONS_QUERY_KEY, previous);
+  rollbackOptimisticQueryTransaction(queryClient, transaction);
 }
 
 export function reconcileRemovedRoomSessionQueryCache(queryClient: QueryClient, roomId: number): void {

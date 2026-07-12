@@ -8,3 +8,4 @@ export type WebgalPublishClientFile = {
     contentType?: string;
     contentEncoding?: string;
 };
+

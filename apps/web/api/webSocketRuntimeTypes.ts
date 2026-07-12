@@ -1,9 +1,9 @@
 import type { MessageDirectSendRequest } from "@tuanchat/openapi-client/models/MessageDirectSendRequest";
-import type { ChatStatusType } from "./wsModels";
+import type { ChatStatusPayload } from "./wsModels";
 
 export interface ChatStatus {
   userId: number;
-  status: ChatStatusType;
+  status: ChatStatusPayload;
 }
 
 export interface WsMessage<T> {

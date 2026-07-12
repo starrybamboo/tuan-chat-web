@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { getChatFrameMessageItemClassName, getNextInsertAfterMessageId } from "./chatFrameMessageItem";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
+import {
+  getChatFrameMessageItemClassName,
+  getNextInsertAfterMessageId,
+  shouldShowMessageDragHandle,
+} from "./chatFrameMessageItem";
 
 describe("getChatFrameMessageItemClassName", () => {
   it("选中消息可跳转 WebGAL 时 hover 不覆盖选中态", () => {
@@ -41,5 +47,16 @@ describe("getNextInsertAfterMessageId", () => {
   it("点击其他插入线会切换插入目标", () => {
     expect(getNextInsertAfterMessageId(12, 34)).toBe(34);
     expect(getNextInsertAfterMessageId(undefined, 34)).toBe(34);
+  });
+});
+
+describe("shouldShowMessageDragHandle", () => {
+  it("系统行消息不显示拖拽手柄", () => {
+    expect(shouldShowMessageDragHandle(true, MESSAGE_TYPE.STATE_EVENT)).toBe(false);
+    expect(shouldShowMessageDragHandle(true, MESSAGE_TYPE.POKE)).toBe(false);
+  });
+
+  it("普通可移动消息显示拖拽手柄", () => {
+    expect(shouldShowMessageDragHandle(true, MESSAGE_TYPE.TEXT)).toBe(true);
   });
 });

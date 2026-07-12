@@ -65,3 +65,4 @@ export type Space = {
     active?: boolean;
     archived?: boolean;
 };
+

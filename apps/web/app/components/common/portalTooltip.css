@@ -9,5 +9,11 @@
 }
 
 .portal-tooltip {
-  animation: portal-tooltip-fade-in 120ms ease-out;
+  animation: portal-tooltip-fade-in var(--duration-fast) ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-tooltip {
+    animation: none;
+  }
 }

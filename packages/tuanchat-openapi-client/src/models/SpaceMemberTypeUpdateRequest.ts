@@ -16,3 +16,4 @@ export type SpaceMemberTypeUpdateRequest = {
      */
     memberType: number;
 };
+

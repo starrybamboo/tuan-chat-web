@@ -8,3 +8,4 @@ export type Choice = {
     message?: Message;
     finish_reason?: string;
 };
+

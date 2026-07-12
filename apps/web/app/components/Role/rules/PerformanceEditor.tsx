@@ -7,6 +7,10 @@ import {
 } from "api/hooks/abilityQueryHooks";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
+import { Button } from "@/components/common/Button";
+import { TextArea, TextInput } from "@/components/common/FormField";
+import { IconButton } from "@/components/common/IconButton";
+
 import { buildRoleAbilityFieldKeyPayload, buildRoleAbilitySectionUpdatePayload } from "./roleAbilityFieldPayload";
 
 type PerformanceEditorProps = {
@@ -369,7 +373,7 @@ export default function PerformanceEditor({
         onBlur={handleGridBlur}
         onKeyDown={handleArrowNavigation}
       >
-        <div ref={tableRef} className="overflow-x-auto">
+        <div ref={tableRef} className="overflow-x-auto overscroll-x-none">
           <table className="table-fixed border-collapse w-full min-w-[640px] text-sm">
             <colgroup>
               <col className="w-36 md:w-44" />
@@ -386,7 +390,8 @@ export default function PerformanceEditor({
                       group/field-key relative min-h-11
                       focus-within:bg-info/10 hover:bg-info/10
                     ">
-                      <input
+                      <TextInput
+                        appearance="bare"
                         type="text"
                         autoComplete="off"
                         value={editingKey === key ? tempFieldKey : key}
@@ -416,12 +421,13 @@ export default function PerformanceEditor({
                         title="编辑字段名"
                         className={`${tableControlClassName} px-8 hover:text-info`}
                       />
-                      <button
-                        type="button"
+                      <IconButton
+                        size="xs"
+                        label={`删除字段 ${key}`}
                         onMouseDown={e => e.preventDefault()}
                         onClick={() => handleDeleteField(key)}
                         className="
-                          btn btn-ghost btn-xs absolute right-2 top-1/2
+                          absolute right-2 top-1/2
                           size-6 min-h-6 -translate-y-1/2 p-0
                           text-base-content/50 opacity-0 transition
                           hover:bg-error/10 hover:text-error
@@ -429,13 +435,13 @@ export default function PerformanceEditor({
                           focus-visible:opacity-100
                         "
                         title="删除字段"
-                      >
-                        ✕
-                      </button>
+                        icon="✕"
+                      />
                     </div>
                   </th>
                   <td className={tableCellClassName}>
-                    <textarea
+                    <TextArea
+                      appearance="bare"
                       rows={1}
                       className={tableTextareaClassName}
                       autoComplete="off"
@@ -454,7 +460,8 @@ export default function PerformanceEditor({
               ))}
               <tr className="bg-base-100/25">
                 <th className={tableCellClassName}>
-                  <input
+                  <TextInput
+                    appearance="bare"
                     type="text"
                     autoComplete="off"
                     aria-label="新增字段名"
@@ -474,7 +481,8 @@ export default function PerformanceEditor({
                   />
                 </th>
                 <td className={`${tableCellClassName} relative`}>
-                  <textarea
+                  <TextArea
+                    appearance="bare"
                     rows={1}
                     autoComplete="off"
                     aria-label="新增表演描述"
@@ -496,19 +504,19 @@ export default function PerformanceEditor({
                     placeholder="新增字段内容"
                     className={`${tableTextareaClassName} px-11`}
                   />
-                  <button
-                    type="button"
+                  <Button
+                    variant="primary"
+                    size="xs"
                     onClick={handleAddDraftField}
                     disabled={!addKeyDraft.trim()}
                     className="
-                      btn btn-primary btn-xs absolute right-2 top-1/2
-                      -translate-y-1/2
-                      size-6 min-h-6 p-0
+                      absolute right-2 top-1/2 size-6 min-h-6
+                      -translate-y-1/2 p-0
                     "
                     title="添加字段"
                   >
                     +
-                  </button>
+                  </Button>
                 </td>
               </tr>
             </tbody>

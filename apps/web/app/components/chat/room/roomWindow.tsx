@@ -1,9 +1,9 @@
 import type { VirtuosoHandle } from "react-virtuoso";
-import { appToast } from "@/components/common/appToast/appToast";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { patchInsertMessages } from "@tuanchat/query/chat";
-import { fetchUserInfoWithCache } from "@tuanchat/query/users";
+import { fetchClientMetadataBatchWithCache, fetchRoleAvatarListsBatchWithCache } from "@tuanchat/query/metadata";
+import { tuanchat } from "api/instance";
 import React, { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
@@ -28,6 +28,7 @@ import RoomWindowOverlays from "@/components/chat/room/roomWindowOverlays";
 import useChatInputHandlers from "@/components/chat/room/useChatInputHandlers";
 import useChatMessageSubmit from "@/components/chat/room/useChatMessageSubmit";
 import useRealtimeRenderControls from "@/components/chat/room/useRealtimeRenderControls";
+import useRoomAvatarPrefetch from "@/components/chat/room/useRoomAvatarPrefetch";
 import useRoomCommandRequests from "@/components/chat/room/useRoomCommandRequests";
 import useRoomEffectsController from "@/components/chat/room/useRoomEffectsController";
 import useRoomImportActions from "@/components/chat/room/useRoomImportActions";
@@ -38,6 +39,7 @@ import useRoomMessageActions from "@/components/chat/room/useRoomMessageActions"
 import useRoomMessageScroll from "@/components/chat/room/useRoomMessageScroll";
 import useRoomOverlaysController from "@/components/chat/room/useRoomOverlaysController";
 import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
+import useWebPokeComposer from "@/components/chat/room/useWebPokeComposer";
 import { compareChatMessageResponsesByOrder, compareMessagesByOrder } from "@/components/chat/shared/messageOrder";
 import { StateRuntimeProvider } from "@/components/chat/state/stateRuntimeContext";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
@@ -60,17 +62,20 @@ import {
   rglMaterialImportPackagesQueryKey,
 } from "@/components/chat/utils/importRglSourceCache";
 import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
+import { appToast } from "@/components/common/appToast/appToast";
 import { ConfirmDialog, confirm } from "@/components/common/ConfirmDialog";
+import { DialogFrame } from "@/components/common/DialogFrame";
 import useCommandExecutor from "@/components/common/dicer/cmdPre";
+import { StateView } from "@/components/common/StateView";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 import { resolveRoleVoiceUrl } from "@/components/Role/roleVoiceMedia";
 import { copyBytesToBlobPart } from "@/utils/media/blobParts";
 import { UploadUtils } from "@/utils/media/UploadUtils";
-import { tuanchat } from "api/instance";
 
 import type { ChatMessageRequest, ChatMessageResponse, Message, SpaceMaterialPackageResponse } from "../../../../api";
 
 import {
+  roomAllRoleQueryKey,
   roomNpcRoleQueryKey,
   roomRoleQueryKey,
   useGetRoomInfoQuery,
@@ -79,7 +84,6 @@ import {
   useSendMessageMutation,
 } from "../../../../api/hooks/chatQueryHooks";
 import { useRepositoryDetailByIdQuery } from "../../../../api/hooks/repositoryQueryHooks";
-import { fetchRoleAvatarWithCache, fetchRoleAvatarsWithCache, fetchRoleWithCache } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 const RGL_IMPORT_MATERIAL_PAGE_SIZE = 100;
 
@@ -192,8 +196,11 @@ function RoomWindow({
   const {
     chatInputRef,
     atMentionRef,
+    captureInputDraft,
     handleInputAreaChange,
     handleSelectCommand,
+    restoreInputDraft,
+    setRoomDraftPersistenceEnabled,
     setInputText,
   } = useRoomInputController({ roomId });
   const ruleId = space?.ruleId ?? -1;
@@ -265,6 +272,11 @@ function RoomWindow({
 
   const mainHistoryMessages = useRoomMainHistoryMessages({
     historyMessages,
+  });
+  useRoomAvatarPrefetch({
+    queryClient,
+    messages: mainHistoryMessages,
+    roles: roomAllRoles,
   });
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
@@ -387,6 +399,55 @@ function RoomWindow({
   const [isReloadingAllMessages, setIsReloadingAllMessages] = useState(false);
   const noRole = curRoleId <= 0;
   const isSpaceArchived = Boolean(space?.archived || space?.status === 2);
+  const {
+    beginPoke,
+    cancelPoke,
+    completePokeSend,
+    pokeTarget,
+  } = useWebPokeComposer({
+    captureInputDraft,
+    chatInputRef,
+    restoreInputDraft,
+    roomId,
+    roomUiStoreApi: roomUiStore,
+    setInputText,
+    setRoomDraftPersistenceEnabled,
+    userId: Number(userId ?? 0),
+  });
+  const handlePokeMessage = useCallback((targetMessage: Message) => {
+    const targetRoleId = targetMessage.roleId ?? -1;
+    const targetRole = roomAllRoles.find(role => role.roleId === targetRoleId);
+    if (!(targetRoleId > 0) || !targetRole) {
+      return;
+    }
+    const initiatorRole = roomAllRoles.find(role => role.roleId === curRoleId);
+    const initiatorRoleName = initiatorRole?.roleName?.trim() || "发起者";
+    const targetRoleName = targetMessage.customRoleName?.trim()
+      || targetRole.roleName?.trim()
+      || `角色 ${targetRoleId}`;
+    beginPoke({
+      initiatorRole: {
+        ...(initiatorRole ?? {
+          roleId: curRoleId,
+          type: 0,
+          userId: Number(userId ?? 0),
+        }),
+        avatarId: curAvatarId > 0 ? curAvatarId : initiatorRole?.avatarId,
+        roleName: initiatorRoleName,
+      },
+      initiatorRoleId: curRoleId,
+      initiatorRoleName,
+      targetRole: {
+        ...targetRole,
+        avatarId: targetMessage.avatarId && targetMessage.avatarId > 0
+          ? targetMessage.avatarId
+          : targetRole.avatarId,
+        roleName: targetRoleName,
+      },
+      targetRoleId,
+      targetRoleName,
+    });
+  }, [beginPoke, curAvatarId, curRoleId, roomAllRoles, userId]);
 
   const {
     containsCommandRequestAllToken,
@@ -461,6 +522,8 @@ function RoomWindow({
     containsCommandRequestAllToken,
     stripCommandRequestAllToken,
     extractFirstCommandText,
+    onPokeMessageSent: completePokeSend,
+    pokeTarget,
     setInputText,
     queryClient,
     roomUiStoreApi: roomUiStore,
@@ -469,7 +532,6 @@ function RoomWindow({
     handleImportChatText,
     handleSendClueCard,
     handleSendDocCard,
-    handleSendMaterialItem,
     handleSendRoomJump,
   } = useRoomImportActions({
     roomId,
@@ -508,11 +570,8 @@ function RoomWindow({
         .map(role => role.roleId)
         .filter(roleId => typeof roleId === "number" && Number.isFinite(roleId) && roleId > 0),
     ));
-    const avatarEntries = await Promise.all(roleIds.map(async (roleId) => {
-      const avatars = (await fetchRoleAvatarsWithCache(queryClient, roleId)).data ?? [];
-      return [roleId, avatars] as const;
-    }));
-    return Object.fromEntries(avatarEntries);
+    const avatarsByRoleId = await fetchRoleAvatarListsBatchWithCache(queryClient, tuanchat, roleIds);
+    return Object.fromEntries(roleIds.map(roleId => [roleId, avatarsByRoleId[String(roleId)] ?? []]));
   }, [queryClient, roomAllRoles]);
 
   const loadRglImportSources = useCallback(async () => {
@@ -567,6 +626,7 @@ function RoomWindow({
     if (applied.role) {
       await refreshRglRoleAvatarImportSourceCaches(queryClient, applied.role.entries);
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: roomAllRoleQueryKey(roomId) }),
         queryClient.invalidateQueries({ queryKey: roomRoleQueryKey(roomId) }),
         queryClient.invalidateQueries({ queryKey: roomNpcRoleQueryKey(roomId) }),
         queryClient.invalidateQueries({ queryKey: ["getUserRoles"] }),
@@ -620,6 +680,7 @@ function RoomWindow({
 
     await refreshRglRoleAvatarImportSourceCaches(queryClient, result.entries);
     await Promise.all([
+      queryClient.invalidateQueries({ queryKey: roomAllRoleQueryKey(roomId) }),
       queryClient.invalidateQueries({ queryKey: roomRoleQueryKey(roomId) }),
       queryClient.invalidateQueries({ queryKey: roomNpcRoleQueryKey(roomId) }),
       queryClient.invalidateQueries({ queryKey: ["getUserRoles"] }),
@@ -898,63 +959,27 @@ function RoomWindow({
         ttsApiUrl,
       });
 
-      // 头像获取回调
-      const avatarCache = new Map<number, any>();
+      const avatarIds = exportMessages.map(item => item.message.avatarId).filter((id): id is number => Boolean(id && id > 0));
+      const roleIds = exportMessages.map(item => item.message.roleId).filter((id): id is number => Boolean(id && id > 0));
+      const userIds = exportMessages.map(item => item.message.userId).filter((id): id is number => Boolean(id && id > 0));
+      const metadata = await fetchClientMetadataBatchWithCache(queryClient, tuanchat, { avatarIds, roleIds, userIds });
+      const avatarCache = new Map(Object.values(metadata.avatars ?? {}).flatMap(avatar => avatar.avatarId ? [[avatar.avatarId, avatar] as const] : []));
+      const roleCache = new Map(Object.values(metadata.roles ?? {}).flatMap(role => role.roleId ? [[role.roleId, role] as const] : []));
+      const userCache = new Map(Object.values(metadata.users ?? {}).flatMap(user => user.userId ? [[user.userId, user] as const] : []));
+
       const fetchAvatar = async (avatarId: number) => {
-        if (avatarCache.has(avatarId))
-          return avatarCache.get(avatarId);
-
-        // 1. 尝试从缓存获取
-        const queryKey = ["getRoleAvatar", avatarId];
-        const cached = queryClient.getQueryData<{ data: any }>(queryKey);
-        if (cached?.data) {
-          avatarCache.set(avatarId, cached.data);
-          return cached.data;
-        }
-
-        try {
-          const res = await fetchRoleAvatarWithCache(queryClient, avatarId);
-          if (res.data) {
-            avatarCache.set(avatarId, res.data);
-            return res.data;
-          }
-        }
-        catch (e) {
-          console.warn(`Fetch avatar ${avatarId} failed`, e);
-        }
-        return null;
+        return avatarCache.get(avatarId) ?? null;
       };
 
       // 角色名获取回调
-      const roleNameCache = new Map<number, string>();
+      const roleNameCache = new Map(Array.from(roleCache.entries()).flatMap(([roleId, role]) => role.roleName ? [[roleId, role.roleName] as const] : []));
       // 角色参考音频回调
       const roleVocalCache = new Map<number, File | undefined>();
 
       const fetchRoleName = async (roleId?: number) => {
         if (!roleId)
           return null;
-        if (roleNameCache.has(roleId))
-          return roleNameCache.get(roleId);
-
-        // 尝试从缓存获取
-        const queryKey = ["getRole", roleId];
-        const cached = queryClient.getQueryData<{ data: any }>(queryKey);
-        if (cached?.data?.roleName) {
-          roleNameCache.set(roleId, cached.data.roleName);
-          return cached.data.roleName;
-        }
-
-        try {
-          const res = await fetchRoleWithCache(queryClient, roleId);
-          if (res.data?.roleName) {
-            roleNameCache.set(roleId, res.data.roleName);
-            return res.data.roleName;
-          }
-        }
-        catch (e) {
-          console.warn(`Fetch role name ${roleId} failed`, e);
-        }
-        return null;
+        return roleNameCache.get(roleId) ?? null;
       };
 
       const fetchRoleRefVocal = async (roleId: number) => {
@@ -962,20 +987,7 @@ function RoomWindow({
           return roleVocalCache.get(roleId);
 
         try {
-          // Get Role Info first
-          let roleData: any = null;
-          const queryKey = ["getRole", roleId];
-          const cached = queryClient.getQueryData<{ data: any }>(queryKey);
-
-          if (cached?.data) {
-            roleData = cached.data;
-          }
-          else {
-            const res = await fetchRoleWithCache(queryClient, roleId);
-            if (res.data) {
-              roleData = res.data;
-            }
-          }
+          const roleData = roleCache.get(roleId);
 
           const roleVoiceUrl = resolveRoleVoiceUrl(roleData);
           if (roleVoiceUrl) {
@@ -995,51 +1007,15 @@ function RoomWindow({
       };
 
       // 用户名获取回调 (Fallback)
-      const userNameCache = new Map<number, string>();
+      const userNameCache = new Map(Array.from(userCache.entries()).flatMap(([userId, user]) => user.username ? [[userId, user.username] as const] : []));
       const fetchUserName = async (userId?: number) => {
         if (!userId)
           return null;
-        if (userNameCache.has(userId))
-          return userNameCache.get(userId);
-
-        const queryKey = ["getUserInfo", userId];
-        const cached = queryClient.getQueryData<{ data: any }>(queryKey);
-        if (cached?.data?.username) { // UserInfoResponse usually has 'username' or 'name' or 'nickname'
-          const name = cached.data.username;
-          userNameCache.set(userId, name);
-          return name;
-        }
-
-        try {
-          const res = await fetchUserInfoWithCache(queryClient, tuanchat, userId);
-          // Check return type UserInfoResponse
-          if (res.data) {
-            const name = res.data.username || "Unknown";
-            userNameCache.set(userId, name);
-            return name;
-          }
-        }
-        catch (e) {
-          console.warn(`Fetch user ${userId} failed`, e);
-        }
-        return null;
+        return userNameCache.get(userId) ?? null;
       };
 
-      // 新增 Role Info Fetcher (for ID comparison)
       const fetchRole = async (roleId: number) => {
-        const queryKey = ["getRole", roleId];
-        const cached = queryClient.getQueryData<{ data: any }>(queryKey);
-        if (cached?.data)
-          return cached.data;
-        try {
-          // Reuse existing RoleController API
-          const res = await fetchRoleWithCache(queryClient, roleId);
-          if (res.data) {
-            return res.data;
-          }
-        }
-        catch {}
-        return undefined;
+        return roleCache.get(roleId);
       };
 
       await exporter.processMessages(
@@ -1100,7 +1076,7 @@ function RoomWindow({
         zip(zipData, (err, data) => {
           if (err) {
             console.error(err);
-            appToast.error("压缩失败");
+            appToast.error("压缩失败，请重新导出");
             return;
           }
           const blob = new Blob([copyBytesToBlobPart(data)], { type: "application/zip" });
@@ -1146,7 +1122,7 @@ function RoomWindow({
     }
     catch (e) {
       console.error(e);
-      appToast.error("导出失败，请检查控制台", { id: loadToastId });
+      appToast.error("导出失败，请重新选择消息后重试", { id: loadToastId });
     }
   }, [roomId, queryClient, backgroundUrl]);
 
@@ -1165,11 +1141,13 @@ function RoomWindow({
     baseArchiveCommitId: baseArchiveCommitIdForMessageDiff,
     sendMessageWithInsert,
     onCopyMessageToClueFolder: copyMessageToClueFolder,
+    onPokeMessage: handlePokeMessage,
     onExportPremiere: handleExportPremiere,
     showFullMessageDiff: isFullMessageDiffOpen,
   }), [
     handleExecuteCommandRequest,
     handleExportPremiere,
+    handlePokeMessage,
     isFullMessageDiffOpen,
     isCommandRequestConsumed,
     setBackgroundUrl,
@@ -1191,6 +1169,8 @@ function RoomWindow({
     commandInlineCompletion,
     ruleId,
     handleMessageSubmit: requestMessageSubmit,
+    pokeTarget,
+    onCancelPoke: cancelPoke,
     currentChatStatus: myStatue as any,
     onChangeChatStatus: handleManualStatusChange,
     isSpectator,
@@ -1251,7 +1231,6 @@ function RoomWindow({
           <RoomDocRefDropLayer
             onSendClueCard={handleSendClueCard}
             onSendDocCard={handleSendDocCard}
-            onSendMaterialItem={handleSendMaterialItem}
             onSendRoomJump={handleSendRoomJump}
           >
             <RoomWindowLayout
@@ -1312,14 +1291,17 @@ function RoomWindow({
             onConfirm={handleImportDocPasteText}
           />
           {isApplyingMessageHistory && (
-            <div className="modal modal-open" role="dialog" aria-modal="true" aria-busy="true" aria-label="正在处理消息操作">
-              <div className="modal-box max-w-sm text-center">
-                <div className="flex items-center justify-center gap-3">
-                  <span className="loading loading-spinner loading-md"></span>
-                  <span className="font-medium" role="status" aria-live="polite">正在处理，请稍候…</span>
-                </div>
-              </div>
-            </div>
+            <DialogFrame
+              open
+              mode="inline"
+              onClose={() => undefined}
+              closeOnEscape={false}
+              closeOnOverlayClick={false}
+              ariaLabel="正在处理消息操作"
+              panelClassName="max-w-sm text-center"
+            >
+                <StateView loading title="正在处理，请稍候…" className="py-4" />
+            </DialogFrame>
           )}
         </StateRuntimeProvider>
       </RoomContext>

@@ -8,6 +8,7 @@ import type { RoleAvatar, RoleAvatarVariant } from "api";
 
 import { Button } from "@/components/common/Button";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
+import { SelectInput } from "@/components/common/FormField";
 import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
 import { canvasPreview, createFullImageCrop } from "@/utils/imgCropper";
@@ -194,7 +195,7 @@ function CalibrationPreviewShell({
   const isInteractive = canOpen && Boolean(onOpen);
   const shellClassName = `
     group relative block overflow-hidden rounded-md text-left
-    outline-none transition
+    outline-none transition motion-reduce:transition-none
     ${className ?? "w-full"}
     ${isInteractive
     ? "cursor-pointer focus-visible:ring-2 focus-visible:ring-info focus-visible:ring-offset-2 focus-visible:ring-offset-base-100"
@@ -206,7 +207,7 @@ function CalibrationPreviewShell({
       <span
         className={`
           pointer-events-none absolute inset-0 flex items-center justify-center
-          bg-black/0 opacity-0 transition
+          bg-black/0 opacity-0 transition motion-reduce:transition-none
           ${isInteractive ? "group-hover:bg-black/35 group-hover:opacity-100 group-focus-visible:bg-black/35 group-focus-visible:opacity-100" : ""}
         `}
       >
@@ -222,6 +223,7 @@ function CalibrationPreviewShell({
       <span className="
         pointer-events-none absolute left-2 top-2 rounded-md bg-black/50
         px-2 py-1 text-xs font-medium text-white/90 opacity-0 transition
+        motion-reduce:transition-none
         group-hover:opacity-100 group-focus-visible:opacity-100
       ">
         {title}
@@ -401,7 +403,11 @@ function WebgalSpritePreview({ characterName, imageUrl, transform }: SpritePrevi
                   backdrop-blur-[1px] flex items-center justify-center
                   text-base-content/70
                 ">
-                  <span className="loading loading-spinner loading-sm" aria-label="正在加载预览" />
+                  <span
+                    className="size-5 animate-spin rounded-full border-2 border-base-content/20 border-t-base-content/70"
+                    role="status"
+                    aria-label="正在加载预览"
+                  />
                 </div>
               )}
             </div>
@@ -740,9 +746,10 @@ export function AvatarSettingsTab({
                 hover:bg-base-200/70
               "
               inputClassName="
-                input input-sm input-ghost h-8 min-h-8 w-[min(22rem,60vw)]
-                rounded-md px-1 text-base font-semibold
+                h-8 min-h-8 w-[min(22rem,60vw)] px-1 text-base font-semibold
               "
+              inputDensity="compact"
+              inputAppearance="bare"
               placeholder={fallbackAvatarTitle}
               invalidBehavior="revert"
               validate={nextValue => (nextValue.trim().length ? null : "头像名称不能为空")}
@@ -770,9 +777,10 @@ export function AvatarSettingsTab({
                 hover:bg-base-200 hover:text-base-content
               "
               inputClassName="
-                input input-xs input-ghost h-7 min-h-7 w-28 rounded-md
-                px-2 text-xs
+                h-7 min-h-7 w-28 px-2 text-xs
               "
+              inputDensity="compact"
+              inputAppearance="bare"
               placeholder={DEFAULT_CATEGORY}
               invalidBehavior="revert"
               validate={nextValue => (nextValue.trim().length ? null : "分类不能为空")}
@@ -800,19 +808,16 @@ export function AvatarSettingsTab({
                 className="h-8 min-h-8 gap-1.5 rounded-md px-3"
                 onClick={() => void handleUnassignVariant()}
                 disabled={!canUnassignVariant || isSaving || isUnassigningVariant}
+                loading={isUnassigningVariant}
                 title={canUnassignVariant ? "将当前头像移出立绘组" : "当前头像未绑定立绘组"}
               >
-                {isUnassigningVariant && <span className="loading loading-spinner loading-xs" aria-hidden="true" />}
                 <span>{isUnassigningVariant ? "移出中" : "移出立绘组"}</span>
               </Button>
             )}
 
-            <select
-              className="
-                select select-sm select-bordered h-8 min-h-8 max-w-[14rem]
-                rounded-md bg-base-100/70 pr-8 text-sm text-base-content/85
-                disabled:text-base-content/50
-              "
+            <SelectInput
+              density="compact"
+              className="h-8 min-h-8 max-w-[14rem] bg-base-100/70 pr-8 text-sm text-base-content/85 disabled:text-base-content/50"
               value={String(currentVariantId ?? UNGROUPED_VARIANT_VALUE)}
               onChange={(event) => {
                 const value = event.target.value;
@@ -835,11 +840,12 @@ export function AvatarSettingsTab({
                   </option>
                 );
               })}
-            </select>
+            </SelectInput>
 
             {isSaving && (
               <span
-                className="loading loading-spinner loading-xs shrink-0"
+                className="size-4 shrink-0 animate-spin rounded-full border-2 border-base-content/20 border-t-base-content/70"
+                role="status"
                 aria-label="保存中"
               />
             )}

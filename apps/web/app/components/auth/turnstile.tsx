@@ -12,6 +12,7 @@ type TurnstileWidgetHandle = {
     container: HTMLElement,
     options: {
       "sitekey": string;
+      "action"?: string;
       "theme"?: "auto" | "light" | "dark";
       "callback"?: (token: string) => void;
       "error-callback"?: () => void;
@@ -78,9 +79,10 @@ type TurnstileWidgetProps = {
   token: string;
   onTokenChange: (token: string) => void;
   resetKey: number;
+  action: "login" | "register" | "forgot_password";
 }
 
-export function TurnstileWidget({ token, onTokenChange, resetKey }: TurnstileWidgetProps) {
+export function TurnstileWidget({ token, onTokenChange, resetKey, action }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | number | null>(null);
   const siteKey = useMemo(() => getTurnstileSiteKey(), []);
@@ -105,6 +107,7 @@ export function TurnstileWidget({ token, onTokenChange, resetKey }: TurnstileWid
 
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         "sitekey": siteKey,
+        "action": action,
         "theme": "auto",
         "callback": nextToken => onTokenChange(nextToken),
         "error-callback": () => onTokenChange(""),
@@ -121,7 +124,7 @@ export function TurnstileWidget({ token, onTokenChange, resetKey }: TurnstileWid
         widgetIdRef.current = null;
       }
     };
-  }, [onTokenChange, resetKey, siteKey]);
+  }, [action, onTokenChange, resetKey, siteKey]);
 
   useEffect(() => {
     if (!token && widgetIdRef.current !== null && window.turnstile) {

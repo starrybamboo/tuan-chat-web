@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
+import type { ApiResultDirectBadgeSummaryResponse } from '../models/ApiResultDirectBadgeSummaryResponse';
 import type { ApiResultListMessageDirectResponse } from '../models/ApiResultListMessageDirectResponse';
 import type { ApiResultMessageDirectResponse } from '../models/ApiResultMessageDirectResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
@@ -36,7 +37,7 @@ export class MessageDirectControllerService {
      * @returns ApiResultMessageDirectResponse OK
      * @throws ApiError
      */
-    public sendMessage(
+    public sendMessage1(
         requestBody: MessageDirectSendRequest,
     ): CancelablePromise<ApiResultMessageDirectResponse> {
         return this.httpRequest.request({
@@ -77,6 +78,18 @@ export class MessageDirectControllerService {
             url: '/message/direct/inbox',
             body: requestBody,
             mediaType: 'application/json',
+        });
+    }
+    /**
+     * 获取私聊入口角标摘要
+     * 一次返回私聊未读消息数和待处理好友申请数
+     * @returns ApiResultDirectBadgeSummaryResponse OK
+     * @throws ApiError
+     */
+    public getBadgeSummary(): CancelablePromise<ApiResultDirectBadgeSummaryResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/message/direct/badge-summary',
         });
     }
 }

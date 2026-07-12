@@ -121,6 +121,103 @@ describe("useChatMessageSubmit", () => {
     useChatComposerStore.getState().reset();
   });
 
+  it("戳一戳发送使用固定关系字段并在成功后通知模板写入", async () => {
+    useChatInputUiStore.setState({
+      plainText: "自定义戳一戳正文",
+      textWithoutMentions: "自定义戳一戳正文",
+      mentionedRoles: [],
+    });
+    const roomUiStoreApi = createRoomUiStore();
+    const setInputText = createSetInputTextMock();
+    const onPokeMessageSent = vi.fn();
+    const sendMessageWithInsert = vi.fn(async () => createMessage(16));
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor: vi.fn(),
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      onPokeMessageSent,
+      pokeTarget: {
+        targetRoleId: 9,
+        targetRoleName: "接受者",
+      },
+      setInputText,
+      roomUiStoreApi,
+    });
+
+    await handleMessageSubmit();
+
+    expect(sendMessageWithInsert).toHaveBeenCalledWith({
+      roomId: 1,
+      roleId: 3,
+      avatarId: 7,
+      content: "自定义戳一戳正文",
+      messageType: MessageType.POKE,
+      extra: {
+        poke: {
+          targetRoleId: 9,
+        },
+      },
+    });
+    expect(onPokeMessageSent).toHaveBeenCalledWith("自定义戳一戳正文");
+    expect(setInputText).not.toHaveBeenCalled();
+    expect(mocks.buildMessageDraftUploadResultFromComposerSnapshotMock).not.toHaveBeenCalled();
+  });
+
+  it("戳一戳发送失败时保留当前正文并跳过模板写入", async () => {
+    useChatInputUiStore.setState({
+      plainText: "失败后保留",
+      textWithoutMentions: "失败后保留",
+      mentionedRoles: [],
+    });
+    const roomUiStoreApi = createRoomUiStore();
+    const setInputText = createSetInputTextMock();
+    const onPokeMessageSent = vi.fn();
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      sendMessageWithInsert: vi.fn(async () => null),
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor: vi.fn(),
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      onPokeMessageSent,
+      pokeTarget: {
+        targetRoleId: 9,
+        targetRoleName: "接受者",
+      },
+      setInputText,
+      roomUiStoreApi,
+    });
+
+    await handleMessageSubmit();
+
+    expect(onPokeMessageSent).not.toHaveBeenCalled();
+    expect(useChatInputUiStore.getState().plainText).toBe("失败后保留");
+    expect(setInputText).not.toHaveBeenCalled();
+  });
+
   it("批量发送失败时保留当前草稿和回复态", async () => {
     mocks.buildMessageDraftUploadResultFromComposerSnapshotMock.mockResolvedValue([
       {

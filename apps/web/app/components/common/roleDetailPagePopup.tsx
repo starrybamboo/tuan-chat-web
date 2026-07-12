@@ -1,3 +1,4 @@
+import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { use, useEffect, useMemo, useState } from "react";
 import { appToast } from "@/components/common/appToast/appToast";
 
@@ -6,7 +7,10 @@ import type { Role } from "@/components/Role/types";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
+import { Button } from "@/components/common/Button";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { Skeleton } from "@/components/common/StatusPrimitives";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import CharacterDetail from "@/components/Role/CharacterDetail";
 import { resolveRoleRuleSelection, shouldPersistRoleRuleSelection } from "@/utils/roleRuleSelection";
@@ -14,6 +18,19 @@ import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
 
 import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery, useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
+
+function RoleDetailBackButton({ onClose }: { onClose: () => void }) {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      icon={<ArrowLeftIcon className="size-4" aria-hidden="true" />}
+      onClick={onClose}
+    >
+      返回
+    </Button>
+  );
+}
 
 function toRoleViewModel(roleId: number, raw: any): Role {
   return {
@@ -143,10 +160,11 @@ export function RoleDetailPagePopup({
     return (
       <div className="bg-base-100 w-full">
         <div className="p-6">
-          <div className="skeleton h-6 w-40 mb-4" />
-          <div className="skeleton h-4 w-64 mb-2" />
-          <div className="skeleton h-4 w-52 mb-6" />
-          <div className="skeleton h-40 w-full" />
+          <RoleDetailBackButton onClose={onClose} />
+          <Skeleton className="h-6 w-40 mb-4" />
+          <Skeleton className="h-4 w-64 mb-2" />
+          <Skeleton className="h-4 w-52 mb-6" />
+          <Skeleton className="h-40 w-full" />
         </div>
       </div>
     );
@@ -155,8 +173,11 @@ export function RoleDetailPagePopup({
   if (isRoleMissing) {
     return (
       <div className="bg-base-100 flex flex-col gap-3 w-240 max-w-[90vw]">
-        <div className="card card-compact border border-base-200 shadow-sm">
-          <div className="card-body gap-3">
+        <div className="px-2 pt-2">
+          <RoleDetailBackButton onClose={onClose} />
+        </div>
+        <div className={surfaceClassName({ level: "content", className: "border-base-200 p-4 shadow-sm" })}>
+          <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
                 <div className="text-lg font-semibold truncate">
@@ -169,17 +190,15 @@ export function RoleDetailPagePopup({
                 </div>
               </div>
               {canKick && (
-                <button
-                  type="button"
-                  className="
-                    btn btn-error btn-xs
-                    sm:btn-sm
-                  "
+                <Button
+                  variant="error"
+                  size="xs"
+                  className="sm:h-8 sm:min-h-8 sm:px-3"
                   onClick={() => setIsKickConfirmOpen(true)}
                   aria-label={`踢出角色 ID ${roleId}（${roomDisplayName}）`}
                 >
                   踢出角色
-                </button>
+                </Button>
               )}
             </div>
             <div className="text-sm text-base-content/70">
@@ -208,6 +227,9 @@ export function RoleDetailPagePopup({
 
   return (
     <div className="bg-base-100 flex flex-col gap-3 w-240 max-w-[90vw]">
+      <div className="px-2 pt-2">
+        <RoleDetailBackButton onClose={onClose} />
+      </div>
       <CharacterDetail
         role={role}
         onSave={() => {}}

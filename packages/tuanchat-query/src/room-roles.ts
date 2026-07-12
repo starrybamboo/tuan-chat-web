@@ -5,6 +5,8 @@ import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { resolveSelectableRoomRoles } from "@tuanchat/domain/room-identity";
 
+import { bindCancelablePromiseToSignal } from "./cancelable";
+
 type RoomRoleClient = Pick<TuanChat, "roomRoleController" | "roleController" | "avatarController">;
 
 export function getRoomBaseRolesQueryKey(roomId: number | null | undefined) {
@@ -13,6 +15,10 @@ export function getRoomBaseRolesQueryKey(roomId: number | null | undefined) {
 
 export function getRoomNpcRolesQueryKey(roomId: number | null | undefined) {
   return ["roomNpcRole", roomId ?? null] as const;
+}
+
+export function getRoomAllRolesQueryKey(roomId: number | null | undefined) {
+  return ["roomRoles", roomId ?? null] as const;
 }
 
 export function getUserRolesByTypesQueryKey(userId: number | null | undefined, types: readonly number[]) {
@@ -24,12 +30,13 @@ export function getRoleAvatarsQueryKey(roleId: number | null | undefined) {
 }
 
 export async function fetchUserRolesByTypes(client: RoomRoleClient, userId: number, types: readonly number[]): Promise<UserRole[]> {
-  const lists = await Promise.all(Array.from(new Set(types)).map(async (type) => {
-    const res = await client.roleController.getUserRolesByType(userId, type);
-    return res.data ?? [];
-  }));
+  const res = await client.roleController.getUserRoles(userId);
+  const requestedTypes = new Set(types);
   const byId = new Map<number, UserRole>();
-  for (const role of lists.flat()) {
+  for (const role of res.data ?? []) {
+    if (typeof role.type !== "number" || !requestedTypes.has(role.type)) {
+      continue;
+    }
     if (typeof role.roleId === "number") {
       byId.set(role.roleId, role);
     }
@@ -58,20 +65,26 @@ export function useRoomRolesQuery(
 ) {
   return useQuery({
     enabled: (options.enabled ?? true) && typeof roomId === "number" && roomId > 0,
-    queryFn: async () => {
-      const [baseRes, npcRes] = await Promise.all([
-        client.roomRoleController.roomRole(roomId!),
-        client.roomRoleController.roomNpcRole(roomId!),
-      ]);
-      return {
-        allRoles: [...(baseRes.data ?? []), ...(npcRes.data ?? [])],
-        baseRoles: baseRes.data ?? [],
-        npcRoles: npcRes.data ?? [],
-      };
+    queryFn: async ({ signal }) => {
+      return fetchRoomRoleGroups(client, roomId!, signal);
     },
-    queryKey: ["roomRoles", roomId ?? null],
+    queryKey: getRoomAllRolesQueryKey(roomId),
     staleTime: options.staleTime ?? 60_000,
   });
+}
+
+export async function fetchRoomRoleGroups(
+  client: RoomRoleClient,
+  roomId: number,
+  signal?: AbortSignal,
+) {
+  const request = client.roomRoleController.roomAllRole(roomId);
+  const result = signal ? await bindCancelablePromiseToSignal(request, signal) : await request;
+  return {
+    allRoles: result.data?.allRoles ?? [],
+    baseRoles: result.data?.baseRoles ?? [],
+    npcRoles: result.data?.npcRoles ?? [],
+  };
 }
 
 function assertRoomRoleMutationSuccess(result: { success?: boolean; errMsg?: string } | null | undefined, fallbackMessage: string) {

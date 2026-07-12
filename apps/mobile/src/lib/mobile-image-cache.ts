@@ -76,6 +76,20 @@ function getCacheFileExtension(url: string): string {
   return ".img";
 }
 
+function hashExternalImageUrl(url: string): string {
+  let forwardHash = 0x811C9DC5;
+  let reverseHash = 0x811C9DC5;
+
+  for (let index = 0; index < url.length; index += 1) {
+    forwardHash = Math.imul(forwardHash ^ url.charCodeAt(index), 0x01000193);
+    reverseHash = Math.imul(reverseHash ^ url.charCodeAt(url.length - index - 1), 0x01000193);
+  }
+
+  return [forwardHash, reverseHash]
+    .map(hash => (hash >>> 0).toString(16).padStart(8, "0"))
+    .join("");
+}
+
 function getCacheFileName(url: string): string {
   return `${getCacheKey(url)}${getCacheFileExtension(url)}`;
 }
@@ -105,7 +119,8 @@ export function getCacheKey(url: string): string {
   if (fileId != null) {
     return `${fileId}_${getQualityFromUrl(url)}`;
   }
-  return url;
+  // 外部 URL 可能包含路径和查询串，固定长度键可直接作为各平台的安全文件名。
+  return `external_${hashExternalImageUrl(url)}`;
 }
 
 function normalizeCacheKey(url: string): string {

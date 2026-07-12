@@ -1,7 +1,9 @@
 export type ChatSidebarActiveTone = "default" | "collapsed";
 
-export function getChatSidebarActiveButtonClass(tone: ChatSidebarActiveTone): string {
-  return tone === "collapsed"
-    ? "text-warning"
-    : "border-info/40 text-info";
+/** 返回空间侧栏当前按钮与选中条一致的语义色。 */
+export function getChatSidebarActiveTextClassName(tone: ChatSidebarActiveTone) {
+  return tone === "collapsed" ? "text-warning" : "text-info";
 }
+
+export const chatSidebarFocusClassName
+  = "focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/60 focus-visible:ring-offset-2 focus-visible:ring-offset-base-200";

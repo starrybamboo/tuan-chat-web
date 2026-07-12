@@ -4,6 +4,9 @@ import { ArrowRightIcon } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 
+import { Button } from "@/components/common/Button";
+import { FormField, TextInput } from "@/components/common/FormField";
+import { IconButton } from "@/components/common/IconButton";
 import { LockKeyhole, LockKeyholeOpen } from "@/icons";
 
 type LoginFormProps = {
@@ -14,6 +17,14 @@ type LoginFormProps = {
   handleSubmit: (e: React.FormEvent) => void;
   isLoading: boolean;
   turnstile?: ReactNode;
+}
+
+function loginSectionMotionProps(delay: number) {
+  return {
+    initial: { opacity: 0, y: 8 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.25, delay },
+  };
 }
 
 export function LoginForm({
@@ -38,105 +49,82 @@ export function LoginForm({
     setIsPasswordVisible(false);
   }, []);
 
-  const inputClassName = `
-    input input-bordered w-full bg-base-200 text-base-content
-    placeholder:text-base-content/55 transition-colors
-    focus:border-info focus:outline-none focus:ring-2 focus:ring-info/20
-    dark:bg-base-300
-  `;
-
   return (
     <form onSubmit={handleSubmit} autoComplete="on" className="space-y-4" aria-busy={isLoading}>
       <motion.div
-        className="space-y-2"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25, delay: 0.08 }}
+        {...loginSectionMotionProps(0.08)}
       >
-        <label className="text-xs font-medium uppercase tracking-[0.08em] text-base-content/55" htmlFor={accountInputId}>
-          用户名 / 用户 ID
-        </label>
-        <input
-          id={accountInputId}
-          type="text"
-          name={accountInputName}
-          autoComplete={accountAutocomplete}
-          autoCapitalize="none"
-          spellCheck={false}
-          placeholder="请输入用户名或用户 ID"
-          className={inputClassName}
-          value={username}
-          onChange={e => setUsername(e.target.value)}
-        />
+        <FormField id={accountInputId} label="用户名 / 用户 ID">
+          {controlProps => (
+            <TextInput
+              {...controlProps}
+              type="text"
+              name={accountInputName}
+              autoComplete={accountAutocomplete}
+              autoCapitalize="none"
+              spellCheck={false}
+              placeholder="请输入用户名或用户 ID"
+              surface="muted"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+            />
+          )}
+        </FormField>
       </motion.div>
 
       <motion.div
-        className="space-y-2"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25, delay: 0.14 }}
+        {...loginSectionMotionProps(0.14)}
       >
-        <label className="text-xs font-medium uppercase tracking-[0.08em] text-base-content/55" htmlFor={passwordInputId}>
-          密码
-        </label>
-        <div className="relative">
-          <input
-            id={passwordInputId}
-            type={isPasswordVisible ? "text" : "password"}
-            name={passwordInputName}
-            autoComplete={passwordAutocomplete}
-            placeholder="请输入密码"
-            className={`${inputClassName} pr-12`}
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-          />
-          <button
-            type="button"
-            aria-label={isPasswordVisible ? "隐藏密码" : "显示密码"}
-            aria-pressed={isPasswordVisible}
-            className="
-              btn btn-ghost btn-sm btn-square absolute right-1 top-1/2
-              -translate-y-1/2 text-base-content/60
-              hover:bg-base-200 hover:text-base-content
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/20
-            "
-            onClick={() => setIsPasswordVisible(visible => !visible)}
-          >
-            {isPasswordVisible
-              ? <LockKeyholeOpen className="size-4" />
-              : <LockKeyhole className="size-4" />}
-          </button>
-        </div>
+        <FormField id={passwordInputId} label="密码" required>
+          {controlProps => (
+            <div className="relative">
+              <TextInput
+                {...controlProps}
+                type={isPasswordVisible ? "text" : "password"}
+                name={passwordInputName}
+                autoComplete={passwordAutocomplete}
+                placeholder="请输入密码"
+                surface="muted"
+                className="pr-12"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+              />
+              <IconButton
+                label={isPasswordVisible ? "隐藏密码" : "显示密码"}
+                aria-pressed={isPasswordVisible}
+                size="sm"
+                shape="square"
+                className="
+                  absolute right-1 top-1/2 -translate-y-1/2 text-base-content/60
+                  hover:bg-base-200 hover:text-base-content
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/20
+                "
+                onClick={() => setIsPasswordVisible(visible => !visible)}
+                icon={isPasswordVisible
+                  ? <LockKeyholeOpen className="size-4" />
+                  : <LockKeyhole className="size-4" />}
+              />
+            </div>
+          )}
+        </FormField>
       </motion.div>
 
       <motion.div
         className="space-y-3 pt-2"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25, delay: 0.2 }}
+        {...loginSectionMotionProps(0.2)}
       >
         {turnstile}
-        <button
+        <Button
           type="submit"
-          aria-busy={isLoading}
-          className="btn btn-primary w-full gap-2 shadow-sm hover:brightness-110"
+          variant="primary"
+          loading={isLoading}
+          icon={<ArrowRightIcon className="size-4" weight="regular" />}
+          className="w-full gap-2 shadow-sm hover:brightness-110"
           disabled={isLoading}
         >
-          {isLoading
-            ? (
-                <>
-                  <span className="loading loading-spinner loading-sm" />
-                  登录中...
-                </>
-              )
-            : (
-                <>
-                  <ArrowRightIcon className="size-4" weight="regular" />
-                  登录
-                </>
-              )}
-        </button>
+          {isLoading ? "登录中..." : "登录"}
+        </Button>
       </motion.div>
     </form>
   );

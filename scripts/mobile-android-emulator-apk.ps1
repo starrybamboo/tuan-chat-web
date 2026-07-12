@@ -28,7 +28,8 @@ if (-not (Test-Path $releaseScript)) {
 }
 
 $releaseArgs = @{
-    Variant = $variantName
+    Variant         = $variantName
+    UseLocalBackend = $true
 }
 
 if ($AllArchitectures) {

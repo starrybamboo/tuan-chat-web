@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 
 import { ChevronRightIcon, DiceFiveIcon, GearOutline, MicrophoneIcon } from "@/icons";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
+import { Divider, Skeleton } from "@/components/common/StatusPrimitives";
 
 import type { CharacterDetailLeftPanelProps } from "./CharacterDetailLeftPanel";
 
@@ -143,14 +145,9 @@ export default function CharacterDetailLeftPanelHorizontal({
   ];
 
   return (
-    <div className="
-      card-sm
-      md:card-xl
-      bg-base-100 shadow-xs rounded-xl
-      md:border-2 md:border-base-content/10
-    ">
+    <div className={surfaceClassName({ level: "content", className: "shadow-xs md:border-2 md:border-base-content/10" })}>
       <div className="
-        card-body p-4
+        p-4
         md:h-64
       ">
         <div className="md:hidden">
@@ -176,11 +173,7 @@ export default function CharacterDetailLeftPanelHorizontal({
               {isQueryLoading
                 ? (
                     <div className="flex flex-col items-center gap-3">
-                      <div className="
-                        skeleton size-28
-                        sm:size-32
-                        rounded-xl
-                      "></div>
+                      <Skeleton className="size-28 rounded-xl sm:size-32" />
                     </div>
                   )
                 : (
@@ -283,7 +276,7 @@ export default function CharacterDetailLeftPanelHorizontal({
             </button>
           </div>
 
-          <div className="divider my-3" />
+          <Divider className="my-3" />
 
           <RoleBasicInfoEditor
             localRole={localRole}
@@ -307,10 +300,7 @@ export default function CharacterDetailLeftPanelHorizontal({
             {isQueryLoading
               ? (
                   <div className="flex min-h-0 items-center justify-center p-4">
-                    <div className="
-                      skeleton aspect-square w-44 rounded-xl ring
-                      ring-info/20 ring-offset-2 ring-offset-base-100
-                    "></div>
+                    <Skeleton className="aspect-square w-44 rounded-xl ring ring-info/20 ring-offset-2 ring-offset-base-100" />
                   </div>
                 )
               : (

@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
-
 import type { GeneratedImageItem } from "@/components/aiImage/types";
 
-const PREVIEW_IMAGE_DIALOG_TRANSITION_MS = 180;
+import { DialogFrame } from "@/components/common/DialogFrame";
+import { MediaImage } from "@/components/common/mediaImage";
 
 type PreviewImageDialogProps = {
   isOpen: boolean;
@@ -15,79 +14,27 @@ export function PreviewImageDialog({
   selectedPreviewResult,
   onClose,
 }: PreviewImageDialogProps) {
-  const [shouldRender, setShouldRender] = useState(isOpen);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      queueMicrotask(() => setShouldRender(true));
-      const raf = window.requestAnimationFrame(() => {
-        setIsVisible(true);
-      });
-      return () => window.cancelAnimationFrame(raf);
-    }
-
-    queueMicrotask(() => setIsVisible(false));
-    const timer = window.setTimeout(() => {
-      setShouldRender(false);
-    }, PREVIEW_IMAGE_DIALOG_TRANSITION_MS);
-    return () => window.clearTimeout(timer);
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen)
-      return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.isComposing)
-        return;
-      if (event.key === "Escape")
-        onClose();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
-
-  if (!shouldRender || !selectedPreviewResult)
+  if (!selectedPreviewResult)
     return null;
 
   return (
-    <div
-      className={`
-        fixed inset-0 z-50 flex items-center justify-center bg-base-200/75
-        backdrop-blur-[2px] transition-opacity duration-200 ease-out
-        ${
-        isVisible ? "opacity-100" : "pointer-events-none opacity-0"
-      }
-      `}
-      onClick={(event) => {
-        if (event.target === event.currentTarget)
-          onClose();
-      }}
-      role="dialog"
-      aria-modal="true"
-      aria-label="预览图片"
+    <DialogFrame
+      open={isOpen}
+      mode="inline"
+      onClose={onClose}
+      ariaLabel="预览图片"
+      closeButtonLabel="关闭图片预览"
+      rootClassName="z-50 bg-base-200/75 backdrop-blur-[2px]"
+      panelClassName="bg-transparent p-0 shadow-none"
     >
-      <div
-        className={`
-          transform-gpu transition-all duration-200 ease-out
-          ${
-          isVisible ? "translate-y-0 scale-100 opacity-100" : `
-            translate-y-2 scale-[0.985] opacity-0
-          `
-        }
-        `}
-      >
-        <img
-          src={selectedPreviewResult.dataUrl}
-          alt="preview-expanded"
-          className="
-            max-h-[92vh] max-w-[94vw] rounded-2xl object-contain
-            shadow-xl
-          "
-        />
-      </div>
-    </div>
+      <MediaImage
+        src={selectedPreviewResult.dataUrl}
+        alt="preview-expanded"
+        className="
+          max-h-[92vh] max-w-[94vw] rounded-2xl object-contain
+          shadow-xl
+        "
+      />
+    </DialogFrame>
   );
 }

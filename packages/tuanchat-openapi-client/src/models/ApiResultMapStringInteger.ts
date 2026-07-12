@@ -23,3 +23,4 @@ export type ApiResultMapStringInteger = {
      */
     data?: Record<string, number>;
 };
+

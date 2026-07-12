@@ -210,3 +210,11 @@
 .te-animated {
   display: inline-block;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .te-animated,
+  [style*="animation: te-"],
+  [style*="animation:te-"] {
+    animation: none !important;
+  }
+}

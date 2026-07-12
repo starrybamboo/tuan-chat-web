@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import { useQueries } from "@tanstack/react-query";
 
 import type { MessageDirectRecallRequest, MessageDirectResponse } from "api";
 import {
   getDirectInboxQueryKey,
+  getDirectBadgeSummaryQueryKey,
+  useDirectBadgeSummaryQuery,
   useDirectInboxMessagesQuery,
   useRecallDirectMessageMutation,
   useSendDirectMessageMutation,
@@ -12,7 +13,6 @@ import {
 import { getUserInfoQueryKey, USER_INFO_STALE_TIME_MS } from "@tuanchat/query/users";
 
 import { tuanchat } from "../instance";
-import { createUniqueQuerySlots, mapUniqueQueryResults } from "./querySlots";
 
 function wrapDirectMessagesData(messages: MessageDirectResponse[] | undefined) {
   return messages ? { success: true, data: messages } : undefined;
@@ -31,6 +31,13 @@ export function useGetInboxMessagePageQuery(enabled = true, currentUserId?: numb
     ...query,
     data: wrapDirectMessagesData(query.data),
   };
+}
+
+export function useGetDirectBadgeSummaryQuery(enabled = true, currentUserId?: number | null) {
+  return useDirectBadgeSummaryQuery(tuanchat, currentUserId, {
+    enabled,
+    staleTime: 30_000,
+  });
 }
 
 /**
@@ -90,23 +97,6 @@ export function useUpdateReadPositionMutation() {
 /**
  * 获取所有好友的用户信息。
  */
-export function useGetFriendsUserInfoQuery(friends: (number | undefined)[]) {
-  const querySlots = createUniqueQuerySlots(
-    friends,
-    (friendId, index) => typeof friendId === "number" && friendId > 0 ? String(friendId) : `invalid:${index}`,
-  );
-  const results = useQueries({
-    queries: querySlots.queryItems.map(({ item: friendId, originalIndex }) => ({
-      queryKey: typeof friendId === "number" && friendId > 0
-        ? getUserInfoQueryKey(friendId)
-        : ["getUserInfo", "invalid", originalIndex],
-      queryFn: () => tuanchat.userController.getUserInfo(friendId || -1),
-      staleTime: USER_INFO_STALE_TIME_MS,
-      enabled: typeof friendId === "number" && friendId > 0,
-    })),
-  });
-  return mapUniqueQueryResults(results, querySlots.resultIndexes);
-}
-
 export { getDirectInboxQueryKey };
+export { getDirectBadgeSummaryQueryKey };
 export type { MessageDirectRecallRequest };

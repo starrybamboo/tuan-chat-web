@@ -5,7 +5,12 @@ import { useRouter } from "@tanstack/react-router";
 import { useDebounce } from "ahooks";
 import { Suspense, useCallback, useDeferredValue, useEffect, useState } from "react";
 
+import { Button, buttonClassName } from "@/components/common/Button";
+import { ControlGroup } from "@/components/common/ControlGroup";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
 import { ImeAwareSearchInput } from "@/components/common/imeAwareSearchInput";
+import { StateView } from "@/components/common/StateView";
+import { Badge, LoadingIndicator } from "@/components/common/StatusPrimitives";
 import { useRulePageSuspenseQuery } from "api/hooks/ruleQueryHooks";
 
 type RulesListProps = {
@@ -100,25 +105,22 @@ export default function RulesSection({
           md:flex-none
         ">
           <ImeAwareSearchInput
+            density={large ? "default" : "compact"}
             type="text"
             autoComplete="off"
             aria-label="搜索规则"
             placeholder="搜索规则..."
             value={keyword}
             onValueChange={handleSearchInput}
-            className={`
-              input input-bordered input-sm w-full
-              md:w-64
-              pl-8 pr-4
-              ${large ? `md:input-md` : ""}
-            `}
+            className="w-full pl-8 pr-4 md:w-64"
           />
           {isSearching
             ? (
-                <span className="
-                  absolute left-2.5 top-1/2 -translate-y-1/2 loading
-                  loading-spinner loading-xs text-base-content/50
-                " />
+                <LoadingIndicator
+                  size="compact"
+                  label="正在搜索规则"
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/50"
+                />
               )
             : (
                 <svg
@@ -139,42 +141,39 @@ export default function RulesSection({
                 </svg>
               )}
         </div>
-        <div className="join shrink-0">
-          <button
-            type="button"
+        <ControlGroup className="shrink-0" aria-label="规则分页">
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setPageNum(Math.max(pageNum - 1, 1))}
             disabled={pageNum === 1}
             aria-label="上一页"
             title={pageNum === 1 ? "已经是第一页" : "上一页"}
-            className="
-              join-item btn btn-ghost btn-sm
-              disabled:opacity-50
-            "
+            className="disabled:opacity-50"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M15 18l-6-6 6-6" />
             </svg>
-          </button>
-          <div className="
-            join-item btn btn-ghost btn-sm font-normal pointer-events-none
-            text-xs
-          ">{pageNum}</div>
-          <button
-            type="button"
+          </Button>
+          <div className={buttonClassName({
+            variant: "ghost",
+            size: "sm",
+            className: "font-normal pointer-events-none text-xs",
+          })}>{pageNum}</div>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setPageNum(pageNum + 1)}
             disabled={isLastPage ?? (rulesCount < pageSize)}
             aria-label="下一页"
             title={(isLastPage ?? rulesCount < pageSize) ? "已经是最后一页" : "下一页"}
-            className="
-              join-item btn btn-ghost btn-sm
-              disabled:opacity-50
-            "
+            className="disabled:opacity-50"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M9 6l6 6-6 6" />
             </svg>
-          </button>
-        </div>
+          </Button>
+        </ControlGroup>
       </div>
     )
   );
@@ -190,31 +189,24 @@ export default function RulesSection({
   if (large) {
     return (
       <div className="space-y-6">
-        <div className="
-          card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10
-        ">
-          <div className="card-body">
+        <div className={surfaceClassName({ level: "content", className: "border-2 border-base-content/10 p-6 shadow-xs" })}>
+          <div>
             <div className="flex justify-between">
-              <h3 className="card-title flex items-center gap-2">⚙️ 选择规则系统</h3>
-              <button
-                type="button"
-                className="btn btn-sm btn-primary"
+              <h3 className="flex items-center gap-2 text-component-title font-medium">⚙️ 选择规则系统</h3>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => router.history.push("/role?type=rule&mode=entry")}
               >
                 <Plus className="size-4" weight="regular" />
                 自定义规则
-              </button>
+              </Button>
             </div>
             <div className="mt-4 space-y-4">
               {searchBar}
               <Suspense
                 fallback={(
-                  <div className="
-                    flex items-center gap-2 text-sm text-base-content/60 py-2
-                  ">
-                    <span className="loading loading-spinner loading-sm" />
-                    正在加载规则列表…
-                  </div>
+                  <StateView loading title="正在加载规则列表…" className="py-2" />
                 )}
               >
                 <RulesList
@@ -269,12 +261,7 @@ export default function RulesSection({
       {!controlsInHeader && searchBar}
       <Suspense
         fallback={(
-          <div className="
-            flex items-center gap-2 text-sm text-base-content/60 py-2
-          ">
-            <span className="loading loading-spinner loading-sm" />
-            正在加载规则列表…
-          </div>
+          <StateView loading title="正在加载规则列表…" className="py-2" />
         )}
       >
         <RulesList
@@ -342,9 +329,8 @@ function RulesList({
           {rules.map(rule => (
             <div
               key={rule.ruleId}
-              className={`
-                card cursor-pointer transition-all bg-base-100 shadow-xs
-                rounded-2xl border border-base-content/10
+              className={surfaceClassName({ level: "content", className: `
+                cursor-pointer transition-all shadow-xs
                 ${currentRuleId === rule.ruleId
                 ? "border-info"
                 : `
@@ -352,7 +338,7 @@ function RulesList({
                   hover:border-base-400 hover:bg-base-200/60
                 `
               }
-              `}
+              ` })}
               role="button"
               tabIndex={0}
               aria-label={`选择规则：${rule.ruleName}`}
@@ -365,7 +351,7 @@ function RulesList({
               }}
             >
               <div className="
-                card-body p-5
+                p-5
                 md:p-6
                 min-h-32
               ">
@@ -381,10 +367,7 @@ function RulesList({
                     <p className="text-sm text-base-content/70 line-clamp-2">{rule.ruleDescription}</p>
                   </div>
                   {currentRuleId === rule.ruleId && (
-                    <div className="
-                      badge badge-ghost badge-sm
-                      md:badge-md
-                    ">已选择</div>
+                    <Badge appearance="ghost" density="default">已选择</Badge>
                   )}
                 </div>
               </div>
@@ -410,10 +393,12 @@ function RulesList({
           : "grid grid-cols-2 gap-2 max-h-96 overflow-y-auto"}
       >
         {rules.map(rule => (
-          <div
+          <button
             key={rule.ruleId}
+            type="button"
             className={dense
               ? `
+                w-full text-left
                 p-2
                 md:p-2.5
                 rounded-md bg-base-100
@@ -425,6 +410,7 @@ function RulesList({
               }
               `
               : `
+                w-full text-left
                 p-3 rounded-lg bg-base-100
                 hover:bg-base-200
                 transition-colors cursor-pointer border-2
@@ -434,6 +420,7 @@ function RulesList({
               }
               `}
             onClick={() => onRuleChange(rule.ruleId || 0)}
+            aria-pressed={currentRuleId === rule.ruleId}
           >
             {showRuleId && (
               <p className={`
@@ -449,7 +436,7 @@ function RulesList({
               text-base-content/60 line-clamp-2
               ${dense ? `text-[11px]` : `text-xs`}
             `}>{rule.ruleDescription}</p>
-          </div>
+          </button>
         ))}
         {/* 添加占位项以保持项目宫格的固定高度 */}
         {Array.from({ length: Math.max(0, pageSize - rules.length) }, (_, index) => `compact-placeholder-${rules.length}-${index}`).map(placeholderId => (

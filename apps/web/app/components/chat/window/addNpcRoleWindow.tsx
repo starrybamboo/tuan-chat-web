@@ -1,13 +1,21 @@
 import { use, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
+import { surfaceClassName } from "@/components/common/DesignLanguage";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import { AddRingLight } from "@/icons";
 
 import { useGetRoomNpcRoleQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetSpaceRepositoryRoleQuery } from "../../../../api/hooks/spaceRepositoryHooks";
 import CreateNpcRoleWindow from "./createNpcRoleWindow";
+
+const NPC_ROLE_CARD_CLASS_NAME = surfaceClassName({
+  level: "content",
+  className: "cursor-pointer shadow transition-shadow hover:shadow-lg motion-reduce:transition-none",
+});
 
 export function AddNpcRoleWindow({
   handleAddRole,
@@ -46,17 +54,22 @@ export function AddNpcRoleWindow({
         导入NPC
       </p>
 
-      <div className="bg-base-100 rounded-box p-6">
+      <div className="bg-base-100 rounded-md p-6">
         {availableSpaceRoles.length === 0 && (
           <div className="text-center font-bold py-5">暂无NPC可导入</div>
         )}
         <div className="flex flex-wrap gap-3 justify-center">
-          {availableSpaceRoles.map(role => (
-            <div className="
-              card shadow
-              hover:shadow-lg
-              transition-shadow cursor-pointer
-            " key={role.roleId}>
+          <AnimatePresence initial={false} mode="popLayout">
+            {availableSpaceRoles.map((role, index) => (
+              <motion.div
+                className={NPC_ROLE_CARD_CLASS_NAME}
+                key={role.roleId}
+                {...structuralListItemMotionProps({
+                  index,
+                  staggerDelay: 0.01,
+                  maxDelay: 0.08,
+                })}
+              >
               <button
                 type="button"
                 className="flex flex-col items-center p-3"
@@ -73,15 +86,12 @@ export function AddNpcRoleWindow({
                 />
                 <span className="text-center block">{role.roleName}</span>
               </button>
-            </div>
-          ))}
+              </motion.div>
+            ))}
+          </AnimatePresence>
           <button
             type="button"
-            className="
-              card shadow
-              hover:shadow-lg
-              transition-shadow cursor-pointer
-            "
+            className={NPC_ROLE_CARD_CLASS_NAME}
             onClick={() => setIsCreatingNpc(true)}
           >
             <div className="flex flex-col items-center p-3">

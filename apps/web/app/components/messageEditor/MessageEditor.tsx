@@ -12,6 +12,7 @@ import { patchRemoteRoomMessageStream } from "@/components/chat/infra/doc/docume
 import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
 import { parseImportedChatText } from "@/components/chat/utils/importChatText";
 import { useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
+import { MediaImage } from "@/components/common/mediaImage";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import {
   readImageDimensions,
@@ -3050,7 +3051,7 @@ export default function MessageEditor({
                   h-40 w-full shrink-0 overflow-hidden border-b border-base-300
                   bg-base-200
                 ">
-                  <img className="h-full w-full object-cover" src={resolvedCoverUrl} alt={resolvedTitle} />
+                  <MediaImage className="h-full w-full object-cover" src={resolvedCoverUrl} alt={resolvedTitle} />
                 </div>
               )
             : null}

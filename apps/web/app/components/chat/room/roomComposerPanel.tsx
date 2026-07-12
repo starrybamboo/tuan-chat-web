@@ -3,6 +3,7 @@ import React from "react";
 import type { AtMentionHandle } from "@/components/atMentionController";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import type { CommandInlineCompletion } from "@/components/chat/input/commandInlineCompletion";
+import type { WebPokeComposerTarget } from "@/components/chat/room/useWebPokeComposer";
 
 import AtMentionController from "@/components/atMentionController";
 import { CHAT_COMPOSER_RESIZE_EVENT } from "@/components/chat/chatFrameEvents";
@@ -18,7 +19,10 @@ import { openMessageAnnotationPicker } from "@/components/chat/message/annotatio
 import ChatAttachmentsPreviewFromStore from "@/components/chat/message/chatAttachmentsPreviewFromStore";
 import RepliedMessage from "@/components/chat/message/preview/repliedMessage";
 import RoomComposerHeader from "@/components/chat/room/roomComposerHeader";
-import { shouldCancelInsertModeWithEscape } from "@/components/chat/room/roomComposerInsertMode";
+import {
+  getComposerInputModeClass,
+  shouldCancelComposerModeWithEscape,
+} from "@/components/chat/room/roomComposerInsertMode";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
@@ -44,6 +48,8 @@ type RoomComposerPanelProps = {
   ruleId: number;
 
   handleMessageSubmit: () => Promise<void> | void;
+  pokeTarget?: WebPokeComposerTarget | null;
+  onCancelPoke: () => void;
 
   currentChatStatus: any;
   onChangeChatStatus: (status: any) => void;
@@ -101,6 +107,8 @@ function RoomComposerPanelImpl({
   commandInlineCompletion,
   ruleId,
   handleMessageSubmit,
+  pokeTarget,
+  onCancelPoke,
   currentChatStatus,
   onChangeChatStatus,
   isSpectator,
@@ -308,15 +316,19 @@ function RoomComposerPanelImpl({
   const insertAfterMessageId = useRoomUiStore(state => state.insertAfterMessageId);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
   React.useEffect(() => {
-    if (!insertAfterMessageId || typeof window === "undefined") {
+    if ((!insertAfterMessageId && !pokeTarget) || typeof window === "undefined") {
       return;
     }
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (!shouldCancelInsertModeWithEscape(event)) {
+      if (!shouldCancelComposerModeWithEscape(event)) {
         return;
       }
       event.preventDefault();
+      if (pokeTarget) {
+        onCancelPoke();
+        return;
+      }
       setInsertAfterMessageId(undefined);
     };
 
@@ -324,7 +336,7 @@ function RoomComposerPanelImpl({
     return () => {
       window.removeEventListener("keydown", handleEscape, true);
     };
-  }, [insertAfterMessageId, setInsertAfterMessageId]);
+  }, [insertAfterMessageId, onCancelPoke, pokeTarget, setInsertAfterMessageId]);
 
   const inputDisabled = (isSpaceArchived && !isKP) || (noRole && !isKP && !notMember);
   const placeholderText = React.useMemo(() => {
@@ -348,6 +360,10 @@ function RoomComposerPanelImpl({
     }
     return "输入消息…（Shift+Enter 换行）";
   }, [curAvatarId, insertAfterMessageId, isKP, isSpaceArchived, noRole, notMember]);
+  const composerInputModeClass = getComposerInputModeClass({
+    isInsertMode: Boolean(insertAfterMessageId),
+    isPokeMode: Boolean(pokeTarget),
+  });
   React.useEffect(() => {
     let isActive = true;
     const key = `${roomId}:${curRoleId}`;
@@ -413,6 +429,8 @@ function RoomComposerPanelImpl({
     handleMessageSubmit,
     isInsertMode: Boolean(insertAfterMessageId),
     onCancelInsertMode: () => setInsertAfterMessageId(undefined),
+    isPokeMode: Boolean(pokeTarget),
+    onCancelPokeMode: onCancelPoke,
     currentChatStatus,
     onChangeChatStatus,
     isSpectator,
@@ -453,6 +471,7 @@ function RoomComposerPanelImpl({
     onClearBackground,
     onClearFigure,
     onOpenFullMessageDiff,
+    onCancelPoke,
     onSendEffect,
     onStopBgmForAll,
     setInsertAfterMessageId,
@@ -600,7 +619,7 @@ function RoomComposerPanelImpl({
           placeholder={placeholderText}
           className={`
             min-h-10
-            ${insertAfterMessageId ? "chatInputTextarea--insert-mode" : ""}
+            ${composerInputModeClass}
             ${screenSize === "sm" ? "max-h-[30dvh]" : `max-h-[20dvh]`}
             overflow-y-auto min-w-0 flex-1
           `}
@@ -644,14 +663,16 @@ function RoomComposerPanelImpl({
         relative flex-1 flex flex-col min-w-0 gap-2
         ${screenSize === "sm" ? `p-1.5` : `p-2`}
       `}>
-        <CommandPanelFromStore
-          handleSelectCommand={handleSelectCommand}
-          ruleId={ruleId}
-          className="
-            absolute bottom-full w-full bg-base-200 rounded-md overflow-hidden
-            z-10
-          "
-        />
+        {!pokeTarget && (
+          <CommandPanelFromStore
+            handleSelectCommand={handleSelectCommand}
+            ruleId={ruleId}
+            className="
+              absolute bottom-full w-full bg-base-200 rounded-md overflow-hidden
+              z-10
+            "
+          />
+        )}
 
         <div
           className="relative flex flex-col gap-2 rounded-md"

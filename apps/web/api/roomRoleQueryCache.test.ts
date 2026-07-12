@@ -9,6 +9,7 @@ import {
   reconcileAddRoomRoleQueryCache,
   rollbackAddRoomRoleQueryCache,
   roomNpcRoleQueryKey,
+  roomAllRoleQueryKey,
   roomRoleQueryKey,
 } from "./roomRoleQueryCache";
 
@@ -57,5 +58,6 @@ describe("roomRoleQueryCache", () => {
     expect(queryClient.getQueryData<any>(roomRoleQueryKey(8))?.data.map((item: UserRole) => item.roleId)).toEqual([21]);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: roomRoleQueryKey(8) });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: roomNpcRoleQueryKey(8) });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: roomAllRoleQueryKey(8) });
   });
 });

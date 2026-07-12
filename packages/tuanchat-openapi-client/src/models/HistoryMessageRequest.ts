@@ -19,3 +19,4 @@ export type HistoryMessageRequest = {
      */
     commitId?: number;
 };
+

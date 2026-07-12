@@ -1,12 +1,19 @@
-import type { QueryClient, QueryKey } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import type { ApiResultPageBaseRespFriendReqResponse } from "@tuanchat/openapi-client/models/ApiResultPageBaseRespFriendReqResponse";
+import type { OptimisticQueryTransaction } from "@tuanchat/query/optimistic-cache";
+
+import {
+  beginOptimisticQueryTransaction,
+  optimisticQueryPatch,
+  rollbackOptimisticQueryTransaction,
+} from "@tuanchat/query/optimistic-cache";
 
 export const FRIEND_LIST_QUERY_KEY = ["friendList"] as const;
 export const FRIEND_REQUEST_PAGE_QUERY_KEY = ["friendRequestPage"] as const;
 export const FRIEND_CHECK_QUERY_KEY = ["friendCheck"] as const;
 
 type FriendRequestPageData = ApiResultPageBaseRespFriendReqResponse | undefined;
-type FriendRequestPageSnapshot = Array<[QueryKey, FriendRequestPageData]>;
+type FriendRequestPageSnapshot = OptimisticQueryTransaction;
 
 function removeFriendRequestFromPageData(
   current: FriendRequestPageData,
@@ -34,30 +41,20 @@ export async function optimisticRemoveFriendRequestFromPageCaches(
   queryClient: QueryClient,
   friendReqId: number,
 ): Promise<FriendRequestPageSnapshot> {
-  await queryClient.cancelQueries({ queryKey: FRIEND_REQUEST_PAGE_QUERY_KEY });
-  const previousData = queryClient.getQueriesData<FriendRequestPageData>({
-    queryKey: FRIEND_REQUEST_PAGE_QUERY_KEY,
-  });
-
-  queryClient.setQueriesData<FriendRequestPageData>(
-    { queryKey: FRIEND_REQUEST_PAGE_QUERY_KEY },
-    current => removeFriendRequestFromPageData(current, friendReqId),
-  );
-
-  return previousData;
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<FriendRequestPageData>({
+      queryKey: FRIEND_REQUEST_PAGE_QUERY_KEY,
+      exact: false,
+      update: current => removeFriendRequestFromPageData(current, friendReqId),
+    }),
+  ]);
 }
 
 export function rollbackFriendRequestPageCaches(
   queryClient: QueryClient,
   snapshot?: FriendRequestPageSnapshot,
 ): void {
-  if (!snapshot) {
-    return;
-  }
-
-  for (const [queryKey, data] of snapshot) {
-    queryClient.setQueryData(queryKey, data);
-  }
+  rollbackOptimisticQueryTransaction(queryClient, snapshot);
 }
 
 export function reconcileFriendRequestPageCaches(

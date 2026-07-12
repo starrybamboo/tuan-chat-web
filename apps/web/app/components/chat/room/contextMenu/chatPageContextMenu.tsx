@@ -7,6 +7,7 @@ import type { RoomSettingTab } from "@/components/chat/chatPage.types";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { canManageMemberPermissions } from "@/components/chat/utils/memberPermissions";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { MenuItem, MenuSurface } from "@/components/common/MenuPopover";
 import { useDissolveRoomMutation, useGetRoomInfoQuery } from "api/hooks/chatQueryHooks";
 
 import { useSubscribeRoomMutation, useUnsubscribeRoomMutation } from "../../../../../api/hooks/messageSessionQueryHooks";
@@ -78,7 +79,6 @@ export default function ChatPageContextMenu({
   const canInvitePlayer = canManageMemberPermissions(spaceContext?.memberType);
 
   const activeDissolveRoomId = dissolveTargetRoomId;
-  const menuButtonClassName = "flex w-full items-center gap-2.5 text-left";
   const handleOpenRoomSetting = (tab?: RoomSettingTab) => {
     onOpenRoomSetting?.(contextMenu?.roomId ?? -1, tab);
     onClose();
@@ -92,67 +92,60 @@ export default function ChatPageContextMenu({
           className="fixed bg-base-100 shadow-lg rounded-md z-9999"
           style={{ top: contextMenu.y, left: contextMenu.x }}
         >
-          <ul className="menu p-2 w-50">
-            <li className="relative group">
-              <button
-                type="button"
-                className={menuButtonClassName}
+          <MenuSurface as="ul" ariaLabel="聊天区域操作" className="w-50 p-2">
+            <li role="none">
+              <MenuItem
+                icon={<InfoIcon className="size-4 shrink-0" weight="regular" />}
                 onClick={() => {
                   handleOpenRoomSetting();
                 }}
               >
-                <InfoIcon className="size-4 shrink-0" weight="regular" />
                 <span>房间资料</span>
-              </button>
+              </MenuItem>
             </li>
 
-            <li className="relative group">
-              <button
-                type="button"
-                className={menuButtonClassName}
+            <li role="none">
+              <MenuItem
+                icon={<UsersIcon className="size-4 shrink-0" weight="regular" />}
                 onClick={() => {
                   handleOpenRoomSetting("member");
                 }}
               >
-                <UsersIcon className="size-4 shrink-0" weight="regular" />
                 <span>房间成员</span>
-              </button>
+              </MenuItem>
             </li>
 
-            <li className="relative group">
-              <button
-                type="button"
-                className={menuButtonClassName}
+            <li role="none">
+              <MenuItem
+                icon={<AddressBookIcon className="size-4 shrink-0" weight="regular" />}
                 onClick={() => {
                   handleOpenRoomSetting("role");
                 }}
               >
-                <AddressBookIcon className="size-4 shrink-0" weight="regular" />
                 <span>房间角色</span>
-              </button>
+              </MenuItem>
             </li>
 
             {/* --- Invite Player Menu --- */}
             {canInvitePlayer && (
-              <li className="relative group">
-                <button
-                  type="button"
-                  className={menuButtonClassName}
+              <li role="none">
+                <MenuItem
+                  icon={<UserPlusIcon className="size-4 shrink-0" weight="regular" />}
                   onClick={() => {
                     onInvitePlayer?.(contextMenu.roomId);
                     onClose();
                   }}
                 >
-                  <UserPlusIcon className="size-4 shrink-0" weight="regular" />
                   <span>邀请玩家</span>
-                </button>
+                </MenuItem>
               </li>
             )}
             {/* --- Notification Settings Menu --- */}
-            <li className="relative group">
-              <button
-                type="button"
-                className={menuButtonClassName}
+            <li role="none">
+              <MenuItem
+                icon={isSubscribed
+                  ? <BellSlashIcon className="size-4 shrink-0" weight="regular" />
+                  : <BellIcon className="size-4 shrink-0" weight="regular" />}
                 onClick={() => {
                   if (isSubscribed) {
                     unsubscribeRoomMutation.mutate(contextMenu.roomId);
@@ -163,21 +156,15 @@ export default function ChatPageContextMenu({
                   onClose();
                 }}
               >
-                {isSubscribed
-                  ? <BellSlashIcon className="size-4 shrink-0" weight="regular" />
-                  : <BellIcon className="size-4 shrink-0" weight="regular" />}
                 <span>{isSubscribed ? "关闭消息提醒" : "开启消息提醒"}</span>
-              </button>
+              </MenuItem>
             </li>
 
             {canDissolveRoom && (
-              <li className="relative group text-error">
-                <button
-                  type="button"
-                  className={`
-                    ${menuButtonClassName}
-                    text-error
-                  `}
+              <li role="none">
+                <MenuItem
+                  tone="danger"
+                  icon={<TrashIcon className="size-4 shrink-0" weight="regular" />}
                   aria-label={`解散房间 ${displayRoomLabel}，将移除房间内所有成员与内容访问`}
                   onClick={() => {
                     setDissolveTargetRoomId(contextMenu.roomId);
@@ -185,12 +172,11 @@ export default function ChatPageContextMenu({
                     onClose();
                   }}
                 >
-                  <TrashIcon className="size-4 shrink-0" weight="regular" />
                   <span>解散房间</span>
-                </button>
+                </MenuItem>
               </li>
             )}
-          </ul>
+          </MenuSurface>
         </div>
       )}
 

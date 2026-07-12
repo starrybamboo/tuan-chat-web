@@ -70,7 +70,7 @@ export function useEscapeToClose<T extends HTMLElement>({
           tagName: layer.tagName,
           hasOpenAttribute: layer.hasAttribute("open"),
           isRegistered: layer.dataset.modalLayer === "true",
-          hidden: layer.hidden,
+          hidden: layer.hidden || layer.getAttribute("hidden") === "until-found",
           ariaHidden: layer.getAttribute("aria-hidden"),
         }));
       const topLayer = layers.at(-1) ?? null;

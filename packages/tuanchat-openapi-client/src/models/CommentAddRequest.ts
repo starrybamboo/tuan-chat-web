@@ -28,3 +28,4 @@ export type CommentAddRequest = {
     content: string;
     topLevelComment?: boolean;
 };
+

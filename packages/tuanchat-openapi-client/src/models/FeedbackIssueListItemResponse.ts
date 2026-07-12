@@ -39,6 +39,9 @@ export type FeedbackIssueListItemResponse = {
      * 当前用户是否可管理
      */
     canManage?: boolean;
+    /**
+     * 作者
+     */
     author?: FeedbackIssueAuthorResponse;
     /**
      * 创建时间
@@ -49,3 +52,4 @@ export type FeedbackIssueListItemResponse = {
      */
     updateTime?: string;
 };
+
