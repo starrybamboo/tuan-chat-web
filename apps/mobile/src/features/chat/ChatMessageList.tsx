@@ -27,7 +27,7 @@ import type { MessageDropPlacement } from "./messageDragDrop";
 import type { ChatMessageListItem } from "./messageListModel";
 
 import { collectChatAvatarThumbUrls, collectChatImageThumbUrls, selectChatMessagePrefetchWindow } from "./chat-avatar-prefetch";
-import { collectUnresolvedOocUserIds, collectUnresolvedRoleAvatarIds } from "./chat-avatar-resolution";
+import { buildDeferredChatMetadataRequest, isMessageAvatarCoveredByMetadataRequest } from "./chat-avatar-resolution";
 import { buildRoomRolesById, resolveMessageAvatarFileId, resolveMessageAvatarId } from "./chat-avatar-utils";
 import { ChatMessageItem } from "./ChatMessageItem";
 import { ChatNewMessagesPill } from "./ChatNewMessagesPill";
@@ -68,8 +68,6 @@ const MESSAGE_INITIAL_RENDER_COUNT = 10;
 const MESSAGE_RENDER_BATCH_SIZE = 8;
 const MESSAGE_SCROLL_TO_BOTTOM_ANIMATION_DISTANCE = 600;
 const MESSAGE_WINDOW_SIZE = 7;
-const DEFERRED_METADATA_QUERY_LIMIT = 6;
-
 function getReplyAuthorName(msg: Message, roomRolesById: ReadonlyMap<number, UserRole>): string {
   return getMobileMessageAuthorLabel(msg, roomRolesById, {
     unknownRoleLabel: typeof msg.userId === "number" && msg.userId > 0 ? `用户 #${msg.userId}` : "未知角色",
@@ -214,11 +212,6 @@ function ChatMessageListInner({
     [messageListModel.visibleChatMessages],
   );
 
-  const roleAvatarIds = useMemo(
-    () => collectUnresolvedRoleAvatarIds(prefetchCandidateMessages, roomRolesById).slice(0, DEFERRED_METADATA_QUERY_LIMIT),
-    [prefetchCandidateMessages, roomRolesById],
-  );
-
   const roomMemberAvatarFileIdByUserId = useMemo(() => {
     const map = new Map<number, number>();
     roomMembers.forEach((member) => {
@@ -230,14 +223,19 @@ function ChatMessageListInner({
     });
     return map;
   }, [roomMembers]);
-  const oocUserIds = useMemo(
-    () => collectUnresolvedOocUserIds(prefetchCandidateMessages)
-      .filter(userId => !roomMemberAvatarFileIdByUserId.has(userId))
-      .slice(0, DEFERRED_METADATA_QUERY_LIMIT),
-    [prefetchCandidateMessages, roomMemberAvatarFileIdByUserId],
+  const knownOocAvatarUserIds = useMemo(
+    () => new Set(roomMemberAvatarFileIdByUserId.keys()),
+    [roomMemberAvatarFileIdByUserId],
   );
+  const metadataRequest = useMemo(
+    () => buildDeferredChatMetadataRequest(prefetchCandidateMessages, roomRolesById, knownOocAvatarUserIds),
+    [knownOocAvatarUserIds, prefetchCandidateMessages, roomRolesById],
+  );
+  const roleAvatarIds = metadataRequest.avatarIds;
+  const oocUserIds = metadataRequest.userIds;
+  const metadataAvatarIdSet = useMemo(() => new Set(roleAvatarIds), [roleAvatarIds]);
+  const metadataUserIdSet = useMemo(() => new Set(oocUserIds), [oocUserIds]);
   const queryClient = useQueryClient();
-  const metadataRequest = useMemo(() => ({ avatarIds: roleAvatarIds, userIds: oocUserIds }), [oocUserIds, roleAvatarIds]);
   const metadataQuery = useQuery({
     enabled: allowDeferredMetadataQueries && (roleAvatarIds.length > 0 || oocUserIds.length > 0),
     queryFn: () => loadClientMetadataBatch(mobileApiClient, metadataRequest),
@@ -546,12 +544,21 @@ function ChatMessageListInner({
     const replyMsg = replyId ? messageListModel.messageMap.get(replyId) : undefined;
     const replyPreviewText = getReplyPreviewText(messageListModel.messageMap, replyId);
     const replyAuthorName = replyMsg ? getReplyAuthorName(replyMsg, roomRolesById) : null;
-    const avatarUrl = resolveChatMessageAvatarUrl(
+    const resolvedAvatarUrl = resolveChatMessageAvatarUrl(
       item.message,
       roomRolesById,
       roleAvatarFileIdByAvatarId,
       userAvatarFileIdByUserId,
     );
+    const metadataBatchOwnsAvatar = isMessageAvatarCoveredByMetadataRequest(
+      item.message,
+      roomRolesById,
+      metadataAvatarIdSet,
+      metadataUserIdSet,
+    );
+    // 当前批次负责的头像等待聚合结果，窗口外消息保留单项缓存兜底。
+    const avatarUrl = resolvedAvatarUrl
+      ?? (metadataBatchOwnsAvatar && !metadataQuery.isError ? null : undefined);
     return (
       <View
         collapsable={false}
@@ -597,7 +604,7 @@ function ChatMessageListInner({
         </Animated.View>
       </View>
     );
-  }, [allowDeferredMetadataQueries, currentRoleId, dragTranslationY, draggingMessageId, dropTarget, handleCancelDragMessage, handleDragMessage, handleDropMessage, handleLongPressMessage, isCommandRequestConsumed, isSpaceOwner, messageListModel.invertedData, messageListModel.messageMap, multiSelectMode, multiSelectedIds, noRole, onExecuteCommandRequest, onPokeAvatar, onToggleMultiSelect, roleAvatarFileIdByAvatarId, roomRolesById, selectedAnchorId, theme.accent, userAvatarFileIdByUserId]);
+  }, [allowDeferredMetadataQueries, currentRoleId, dragTranslationY, draggingMessageId, dropTarget, handleCancelDragMessage, handleDragMessage, handleDropMessage, handleLongPressMessage, isCommandRequestConsumed, isSpaceOwner, messageListModel.invertedData, messageListModel.messageMap, metadataAvatarIdSet, metadataQuery.isError, metadataUserIdSet, multiSelectMode, multiSelectedIds, noRole, onExecuteCommandRequest, onPokeAvatar, onToggleMultiSelect, roleAvatarFileIdByAvatarId, roomRolesById, selectedAnchorId, theme.accent, userAvatarFileIdByUserId]);
 
   const keyExtractor = useCallback((item: ChatMessageListItem, index: number) => getMessageListItemKey(item.message, index), []);
 

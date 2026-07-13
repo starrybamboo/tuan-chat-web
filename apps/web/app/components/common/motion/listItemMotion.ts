@@ -38,6 +38,7 @@ type StructuralListItemMotionOptions = {
   index?: number;
   staggerDelay?: number;
   maxDelay?: number;
+  layout?: MotionProps["layout"];
 };
 
 export function structuralListItemMotionProps(
@@ -47,10 +48,11 @@ export function structuralListItemMotionProps(
     index = 0,
     staggerDelay = 0,
     maxDelay = motionDuration.fast,
+    layout = true,
   } = options;
 
   return {
-    layout: true,
+    layout,
     initial: { opacity: 0, y: 6, scale: 0.985 },
     animate: { opacity: 1, y: 0, scale: 1 },
     exit: { opacity: 0, y: -4, scale: 0.98 },

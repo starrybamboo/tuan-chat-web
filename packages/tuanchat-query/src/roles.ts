@@ -7,6 +7,8 @@ import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { invalidateRoleMetadataBatchQueries } from "./metadata";
+
 type RoleClient = Pick<TuanChat, "avatarController" | "roleController">;
 
 export function getMyRolesQueryKey() {
@@ -28,6 +30,7 @@ export function getDeletedUserRolesPageQueryKey(params: RolePageQueryRequest) {
 }
 
 function invalidateRoleListQueries(queryClient: ReturnType<typeof useQueryClient>) {
+  invalidateRoleMetadataBatchQueries(queryClient);
   queryClient.invalidateQueries({ queryKey: getMyRolesQueryKey() });
   queryClient.invalidateQueries({ queryKey: ["getUserRoles"] });
   queryClient.invalidateQueries({ queryKey: ["getUserRolesByType"] });
@@ -157,6 +160,7 @@ export function useCreateAvatarMutation(client: RoleClient) {
     mutationFn: (request: RoleAvatar) => client.avatarController.setRoleAvatar(request as any),
     mutationKey: ["createAvatar"],
     onSuccess: (_result, request) => {
+      invalidateRoleMetadataBatchQueries(queryClient);
       if (typeof request.roleId === "number") {
         queryClient.invalidateQueries({ queryKey: getRoleAvatarListQueryKey(request.roleId) });
       }
@@ -170,6 +174,7 @@ export function useUpdateAvatarMutation(client: RoleClient) {
     mutationFn: (request: RoleAvatar) => client.avatarController.updateRoleAvatar(request),
     mutationKey: ["updateAvatar"],
     onSuccess: (_result, request) => {
+      invalidateRoleMetadataBatchQueries(queryClient);
       if (typeof request.roleId === "number") {
         queryClient.invalidateQueries({ queryKey: getRoleAvatarListQueryKey(request.roleId) });
       }
@@ -184,6 +189,7 @@ export function useDeleteAvatarMutation(client: RoleClient) {
       client.avatarController.deleteRoleAvatar(avatarId),
     mutationKey: ["deleteAvatar"],
     onSuccess: (_result, { roleId }) => {
+      invalidateRoleMetadataBatchQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: getRoleAvatarListQueryKey(roleId) });
     },
   });

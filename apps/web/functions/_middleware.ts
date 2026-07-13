@@ -1,4 +1,12 @@
 type PagesEnv = {
+  TUANCHAT_ANALYTICS_FINGERPRINT_SALT?: string;
+  TUANCHAT_PRODUCT_ANALYTICS?: {
+    writeDataPoint: (dataPoint: {
+      indexes: string[];
+      blobs: string[];
+      doubles: number[];
+    }) => void;
+  };
   TUANCHAT_API_ORIGIN?: string;
   TUANCHAT_MEDIA_ORIGIN?: string;
   TUANCHAT_API_HOST?: string;
@@ -42,6 +50,18 @@ const MEDIA_PREFIXES = [
 ];
 
 const WEBGAL_ASSET_PROXY_PATH = "/webgal-asset-proxy";
+const PRODUCT_ANALYTICS_EVENT_PATHS = {
+  "/_analytics/login-page-view": "login_page_view",
+  "/_analytics/login-easter-egg-discovered": "login_easter_egg_discovered",
+} as const;
+const PRODUCT_ANALYTICS_HOST_ENVIRONMENT = {
+  "tuan.chat": "production",
+  "www.tuan.chat": "production",
+  "test.tuan.chat": "test",
+} as const;
+const LOGIN_EASTER_EGG_DISCOVERY_CLICK_COUNT = 4;
+
+type ProductAnalyticsEvent = (typeof PRODUCT_ANALYTICS_EVENT_PATHS)[keyof typeof PRODUCT_ANALYTICS_EVENT_PATHS];
 
 function normalizeOrigin(value: string | undefined, fallback: string): string {
   const raw = String(value || fallback).trim().replace(/\/+$/, "");
@@ -225,8 +245,91 @@ async function handleWebgalAssetProxyRequest(request: Request, requestUrl: URL):
   });
 }
 
+function resolveProductAnalyticsEvent(pathname: string): ProductAnalyticsEvent | null {
+  return PRODUCT_ANALYTICS_EVENT_PATHS[pathname as keyof typeof PRODUCT_ANALYTICS_EVENT_PATHS] ?? null;
+}
+
+function bytesToHex(bytes: ArrayBuffer): string {
+  return Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function createAnonymousVisitorHash(request: Request, salt: string): Promise<string | null> {
+  const visitorIp = request.headers.get("cf-connecting-ip")?.trim();
+  if (!visitorIp) {
+    return null;
+  }
+
+  const userAgent = request.headers.get("user-agent")?.trim() || "unknown";
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(salt),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(`${visitorIp}\n${userAgent}`),
+  );
+  return bytesToHex(signature);
+}
+
+async function handleProductAnalyticsRequest(
+  request: Request,
+  requestUrl: URL,
+  env: PagesEnv,
+  event: ProductAnalyticsEvent,
+): Promise<Response> {
+  if (request.method.toUpperCase() !== "POST") {
+    return new Response("Method Not Allowed", {
+      status: 405,
+      headers: { allow: "POST" },
+    });
+  }
+
+  const hostname = requestUrl.hostname.toLowerCase() as keyof typeof PRODUCT_ANALYTICS_HOST_ENVIRONMENT;
+  const environment = PRODUCT_ANALYTICS_HOST_ENVIRONMENT[hostname];
+  if (!environment) {
+    return new Response("Not Found", { status: 404 });
+  }
+
+  const requestOrigin = request.headers.get("origin");
+  if (requestOrigin && requestOrigin !== requestUrl.origin) {
+    return new Response("Forbidden", { status: 403 });
+  }
+
+  const analytics = env.TUANCHAT_PRODUCT_ANALYTICS;
+  const fingerprintSalt = env.TUANCHAT_ANALYTICS_FINGERPRINT_SALT?.trim();
+  if (!analytics || !fingerprintSalt) {
+    return new Response("Analytics unavailable", { status: 503 });
+  }
+
+  const visitorHash = await createAnonymousVisitorHash(request, fingerprintSalt);
+  if (!visitorHash) {
+    return new Response(null, { status: 204 });
+  }
+
+  analytics.writeDataPoint({
+    indexes: [visitorHash],
+    blobs: [event, environment, hostname, "/login", "v1"],
+    doubles: [event === "login_easter_egg_discovered" ? LOGIN_EASTER_EGG_DISCOVERY_CLICK_COUNT : 0],
+  });
+
+  return new Response(null, {
+    status: 204,
+    headers: { "cache-control": "no-store" },
+  });
+}
+
 export async function onRequest(context: PagesContext): Promise<Response> {
   const url = new URL(context.request.url);
+
+  const productAnalyticsEvent = resolveProductAnalyticsEvent(url.pathname);
+  if (productAnalyticsEvent) {
+    return handleProductAnalyticsRequest(context.request, url, context.env, productAnalyticsEvent);
+  }
 
   if (url.pathname === WEBGAL_ASSET_PROXY_PATH) {
     return handleWebgalAssetProxyRequest(context.request, url);

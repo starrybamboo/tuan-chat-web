@@ -8,7 +8,7 @@ import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHook
 import { useEffect, useMemo, useState } from "react";
 
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import { surfaceClassName } from "@/components/common/DesignLanguage";
+import { selectionClassName, surfaceClassName } from "@/components/common/DesignLanguage";
 import { formControlShellClassName, TextInput } from "@/components/common/FormField";
 import { Skeleton } from "@/components/common/StatusPrimitives";
 import { IconButton } from "@/components/common/IconButton";
@@ -21,6 +21,8 @@ import { useGlobalContext } from "../../globalContextProvider";
 import { useRoleUiStore } from "../stores/roleUiStore";
 import { useRoleTrashCount } from "../useRoleListModel";
 import { RoleListItem, RoleListItemSkeleton } from "./RoleListItem";
+
+const currentNavigationItemClassName = selectionClassName({ level: "strong" });
 
 type SidebarProps = {
   roles: Role[];
@@ -492,19 +494,14 @@ export function Sidebar({
                       return (
                         <div
                           key={`my-${currentRuleId}`}
-                          className={`
-                            block rounded-lg px-1
-                            ${
-                            isRuleActive ? "bg-info/10 text-info" : ""
-                          }
-                          `}
+                          className="block rounded-lg px-1"
                         >
                           <div
                             className={`
                               flex items-center gap-3 p-3 rounded-lg
                               cursor-pointer group transition-all duration-150
                               ${
-                              isRuleActive ? "bg-base-100" : "hover:bg-base-100"
+                              isRuleActive ? currentNavigationItemClassName : "hover:bg-base-100"
                             }
                             `}
                           >
@@ -517,6 +514,7 @@ export function Sidebar({
                                 router.history.push(`/role?type=rule&mode=edit&ruleId=${currentRuleId}`);
                                 onNavigate?.();
                               }}
+                              aria-current={isRuleActive ? "page" : undefined}
                               aria-label={`编辑规则 ${rule.ruleName || "未命名规则"}，${(rule.ruleDescription || "暂无描述").trim() || "暂无描述"}`}
                               title={`${rule.ruleName || "未命名规则"} · ${(rule.ruleDescription || "暂无描述").trim() || "暂无描述"}`}
                             >
@@ -689,14 +687,7 @@ export function Sidebar({
                           return (
                             <div
                               key={role.id}
-                              className={`
-                                rounded-lg px-1
-                                ${
-                                (selectedRoleId === role.id && !isSelectionMode) ? `
-                                  bg-info/10 text-info
-                                ` : ""
-                              }
-                              `}
+                              className="rounded-lg px-1"
                             >
                               <RoleListItem
                                 role={role}
@@ -906,14 +897,7 @@ export function Sidebar({
                           return (
                             <div
                               key={role.id}
-                              className={`
-                                rounded-lg px-1
-                                ${
-                                (selectedRoleId === role.id && !isSelectionMode) ? `
-                                  bg-info/10 text-info
-                                ` : ""
-                              }
-                              `}
+                              className="rounded-lg px-1"
                             >
                               <RoleListItem
                                 role={role}

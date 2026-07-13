@@ -18,11 +18,11 @@ import type { RoleConfigTabKey } from "./configTabMeta";
 
 import CopywritingEditor from "../Editors/CopywritingEditor";
 import Section from "../Editors/Section";
-import { ROLE_CONFIG_TAB_ITEMS } from "./configTabMeta";
 import { ConfigurationSection } from "./ConfigurationSection";
 import NumericalEditorSmall from "./NumericalEditorSmall";
 import PerformanceEditor from "./PerformanceEditor";
 import PerformanceEditorSmall from "./PerformanceEditorSmall";
+import { RoleConfigTabs } from "./RoleConfigTabs";
 
 const COPYWRITING_AUTOSAVE_DELAY_MS = 800;
 
@@ -451,7 +451,6 @@ export default function ExpansionModule({
 
   const hasQuickTools = Boolean(onOpenStImportModal || onOpenAIGenerateModal);
   const hasDesktopQuickTools = hasQuickTools && !isSmall;
-  const desktopConfigButtonClass = "md:h-10 md:min-h-10 md:px-4 md:text-sm md:font-medium";
   const desktopQuickToolButtonClass = `
     h-10 min-h-10 rounded-lg border border-base-content/10
     bg-base-100/70 px-4 text-sm font-medium text-base-content/80 shadow-none
@@ -467,40 +466,13 @@ export default function ExpansionModule({
           rounded-lg
           ${isSmall ? `w-full` : ""}
         `}>
-          <div
-            className={`
-            flex min-w-0 flex-1 flex-nowrap gap-1
-            md:flex-nowrap md:justify-start md:gap-3
-            ${isSmall ? "" : ""}
-          `}
-            aria-label="角色配置"
-            role="tablist"
-          >
-            {ROLE_CONFIG_TAB_ITEMS.map(({ key, label, shortLabel, Icon }) => (
-              <Button
-                key={key}
-                type="button"
-                variant={activeTab === key ? "outline" : "ghost"}
-                size={isSmall ? "sm" : "md"}
-                aria-selected={activeTab === key}
-                role="tab"
-                className={`
-                  h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap
-                  rounded-lg
-                  ${activeTab === key ? "border-info/45 text-info hover:border-info/70 hover:bg-info/10" : ""}
-                  ${isSmall ? "" : desktopConfigButtonClass}
-                `}
-                onClick={() => setActiveTab(key)}
-              >
-                <Icon className="size-4 shrink-0" weight="regular" aria-hidden="true" />
-                <span className="md:hidden">{shortLabel}</span>
-                <span className="
-                  hidden
-                  md:inline
-                ">{label}</span>
-              </Button>
-            ))}
-          </div>
+          <RoleConfigTabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            density="compact"
+            className="min-w-0 flex-1 flex-nowrap overflow-x-auto"
+            tabClassName="h-10 min-h-10 flex-none whitespace-nowrap"
+          />
           {hasDesktopQuickTools && (
             <div className="
               hidden shrink-0 items-center gap-2

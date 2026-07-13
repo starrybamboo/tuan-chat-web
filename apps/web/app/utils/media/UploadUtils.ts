@@ -21,6 +21,7 @@ export type MediaUploadScene = 1 | 2 | 3 | 4;
 export type UploadUtilsMediaFileOptions = {
   scene?: MediaUploadScene;
   signal?: AbortSignal;
+  completeAfterPrimaryQuality?: boolean;
 };
 
 /**
@@ -427,7 +428,9 @@ export class UploadUtils {
     scene: MediaUploadScene = 1,
     quality: MediaQuality = "medium",
   ): Promise<UploadedMediaAssetResult> {
-    const uploaded = await uploadRawMediaFile(file, { scene });
+    const uploaded = await uploadRawMediaFile(file, scene === 3 && file.type.startsWith("image/")
+      ? { scene, completeAfterPrimaryQuality: true }
+      : { scene });
     const sceneQuality = scene === 1
       ? (uploaded.mediaType === "image" ? "medium" : "low")
       : "original";

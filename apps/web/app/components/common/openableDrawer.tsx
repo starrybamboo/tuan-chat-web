@@ -257,6 +257,7 @@ export function OpenAbleDrawer({
   const renderedWidth = clamp(width, bounds.min, bounds.max);
 
   const handlePointerDown = useHorizontalResizeDrag<HTMLDivElement>({
+    capturePointer: false,
     getStartSize: () => width,
     onResizeStart: () => {
       setIsResizing(true);

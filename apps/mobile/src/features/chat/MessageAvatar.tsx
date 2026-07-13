@@ -89,7 +89,7 @@ export const MessageAvatar = memo(({
         mobileApiClient.avatarController.getRoleAvatar(resolvedAvatarId),
         signal,
       );
-      return response.data ?? null;
+      return response;
     },
     queryKey: ["getRoleAvatar", resolvedAvatarId] as const,
     staleTime: 24 * 60 * 60_000,
@@ -98,7 +98,7 @@ export const MessageAvatar = memo(({
     && shouldFetchMissingAvatar
     && !hasProvidedAvatarUrl
     && resolvedAvatarFileId == null
-    && !roleAvatarQuery.data?.avatarFileId
+    && !roleAvatarQuery.data?.data?.avatarFileId
     && typeof userId === "number"
     && userId > 0;
   const userInfoQuery = useQuery({
@@ -110,7 +110,7 @@ export const MessageAvatar = memo(({
         mobileApiClient.userController.getUserInfo(userId),
         signal,
       );
-      return response.data ?? null;
+      return response;
     },
     queryKey: getUserInfoQueryKey(userId ?? -1),
     staleTime: USER_INFO_STALE_TIME_MS,
@@ -119,7 +119,7 @@ export const MessageAvatar = memo(({
     ? avatarUrl
     : resolvedAvatarFileId
       ? avatarThumbUrl(resolvedAvatarFileId)
-      : avatarThumbUrl(roleAvatarQuery.data?.avatarFileId ?? userInfoQuery.data?.avatarFileId);
+      : avatarThumbUrl(roleAvatarQuery.data?.data?.avatarFileId ?? userInfoQuery.data?.data?.avatarFileId);
   const borderRadius = size / 2;
 
   if (resolvedAvatarUrl) {

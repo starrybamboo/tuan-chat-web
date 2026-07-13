@@ -89,9 +89,14 @@ export function TransformControl({
 
   return (
     <div className={`
-      w-full p-4 bg-base-200 rounded-lg space-y-3
+      w-full space-y-3 rounded-md bg-base-200 p-4
       ${disabled ? `opacity-50 pointer-events-none` : ""}
     `}>
+      <div>
+        <h4 className="text-sm font-medium text-base-content/85">舞台显示</h4>
+        <p className="mt-0.5 text-xs text-base-content/50">调整裁剪后立绘在预览舞台中的位置与大小</p>
+      </div>
+
       <div className="flex items-center justify-between gap-3">
         <label htmlFor={anchorSelectorId} className="text-xs w-16 shrink-0">中心点:</label>
         <ControlGroup id={anchorSelectorId} className="flex-1" aria-label="预览中心点">
@@ -115,7 +120,7 @@ export function TransformControl({
 
       {/* Scale控制 - 调整范围和步长，提供更精细的控制 */}
       <div className="flex items-center gap-3">
-        <label htmlFor={scaleInputId} className="text-xs w-16 shrink-0">缩放:</label>
+        <label htmlFor={scaleInputId} className="w-16 shrink-0 text-xs">舞台缩放:</label>
         <RangeInput
           id={scaleInputId}
           density="compact"
@@ -326,7 +331,7 @@ export function TransformControl({
           onClick={handleReset}
           disabled={disabled}
         >
-          重置Transform
+          重置舞台
         </Button>
         <Button
           variant="outline"

@@ -10,8 +10,8 @@ import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceS
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { IconButton } from "@/components/common/IconButton";
-import PortalTooltip from "@/components/common/portalTooltip";
 import { MenuItem, MenuSurface } from "@/components/common/MenuPopover";
+import PortalTooltip from "@/components/common/portalTooltip";
 import {
   ArticleIcon,
   BaselineArrowBackIosNew,
@@ -332,7 +332,6 @@ function RoomHeaderBarImpl({
                         <ArticleIcon className="size-6" />
                         </button>
                       </PortalTooltip>
-                      <ToolbarDivider />
                       <PortalTooltip label={`${chatBubbleStyleLabel}，${chatBubbleStyleToggleLabel}`} placement="bottom">
                         <button
                           type="button"

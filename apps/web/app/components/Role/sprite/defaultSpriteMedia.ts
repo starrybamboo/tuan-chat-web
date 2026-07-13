@@ -100,6 +100,7 @@ export async function uploadOriginAndDefaultSpriteMedia(
   const origin = await upload(payload, {
     ...options,
     completeAfterPrimaryQuality: true,
+    deferPrimaryCompletion: true,
   });
 
   return {

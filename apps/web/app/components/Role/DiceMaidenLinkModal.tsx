@@ -1,15 +1,26 @@
+import { CheckIcon } from "@phosphor-icons/react";
 import { useGetRoleQuery, useGetUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/common/Button";
 import { DialogFrame } from "@/components/common/DialogFrame";
-import { surfaceClassName } from "@/components/common/DesignLanguage";
+import { selectionClassName, surfaceClassName } from "@/components/common/DesignLanguage";
 import { FieldDescription, FieldError, FieldLabel, TextInput } from "@/components/common/FormField";
 import { StateView } from "@/components/common/StateView";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
+import { Tabs } from "@/components/common/Tabs";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 
 import type { UserRole } from "../../../api";
+
+const selectedRoleClassName = selectionClassName({
+  level: "strong",
+  className: "border-transparent",
+});
+const inputModeOptions = [
+  { value: "select", label: "选择骰娘" },
+  { value: "manual", label: "手动输入 ID" },
+] as const;
 
 type DiceMaidenLinkModalProps = {
   isOpen: boolean;
@@ -33,40 +44,35 @@ function DiceMaidenRoleItem({
   return (
     <button
       type="button"
-      className={surfaceClassName({ level: "content", className: `w-full cursor-pointer text-left transition-all duration-200 ${
-        isSelected
-          ? "bg-info/20 border-2 border-info"
-          : "bg-base-200 hover:bg-base-300"
-      }` })}
+      className={`
+        w-full cursor-pointer rounded-md border p-4 text-left
+        transition-colors duration-150 motion-reduce:transition-none
+        ${isSelected
+          ? selectedRoleClassName
+          : surfaceClassName({ level: "content", className: "hover:bg-base-200" })}
+      `}
       onClick={onSelect}
       aria-pressed={isSelected}
     >
-      <div className="p-4">
-        <div className="flex items-center gap-3">
-          {/* 骰娘头像 */}
-          <div className="rounded-full ring ring-info ring-offset-base-100 ring-offset-2">
-            <RoleAvatarByRole
-              role={role}
-              width={12}
-              isRounded={true}
-              stopToastWindow={true}
-              alt={role.roleName || "骰娘"}
-            />
-          </div>
-          <div className="flex-1">
-            <h4 className="font-semibold">{role.roleName || "未命名骰娘"}</h4>
-            <p className="text-sm text-base-content/60 truncate">
-              ID:
-              {" "}
-              {role.roleId}
-            </p>
-          </div>
-          {isSelected && (
-            <svg className="w-5 h-5 text-info" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
-          )}
+      <div className="flex items-center gap-3">
+        <div className="shrink-0">
+          <RoleAvatarByRole
+            role={role}
+            width={12}
+            isRounded={true}
+            stopToastWindow={true}
+            alt={role.roleName || "骰娘"}
+          />
         </div>
+        <div className="min-w-0 flex-1">
+          <h4 className="truncate font-semibold">{role.roleName || "未命名骰娘"}</h4>
+          <p className="truncate text-sm text-base-content/60">
+            ID:
+            {" "}
+            {role.roleId}
+          </p>
+        </div>
+        {isSelected && <CheckIcon className="size-5 shrink-0 text-info" weight="bold" aria-hidden="true" />}
       </div>
     </button>
   );
@@ -83,30 +89,26 @@ function ManualRolePreview({ roleId }: { roleId: number }) {
     return null;
 
   return (
-    <div className={surfaceClassName({ level: "content", className: "border-2 border-info bg-info/10" })}>
-      <div className="p-4">
-        <div className="flex items-center gap-3">
-          <div className="rounded-full ring ring-info ring-offset-base-100 ring-offset-2">
-            <RoleAvatarByRole
-              role={role}
-              width={12}
-              isRounded={true}
-              stopToastWindow={true}
-              alt={role.roleName || "骰娘"}
-            />
-          </div>
-          <div className="flex-1">
-            <h4 className="font-semibold">{role.roleName || "未命名骰娘"}</h4>
-            <p className="text-sm text-base-content/60 truncate">
-              ID:
-              {" "}
-              {role.roleId}
-            </p>
-          </div>
-          <svg className="w-5 h-5 text-info" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-          </svg>
+    <div className={selectionClassName({ level: "strong", className: "rounded-md p-4" })}>
+      <div className="flex items-center gap-3">
+        <div className="shrink-0">
+          <RoleAvatarByRole
+            role={role}
+            width={12}
+            isRounded={true}
+            stopToastWindow={true}
+            alt={role.roleName || "骰娘"}
+          />
         </div>
+        <div className="min-w-0 flex-1">
+          <h4 className="truncate font-semibold">{role.roleName || "未命名骰娘"}</h4>
+          <p className="truncate text-sm text-base-content/60">
+            ID:
+            {" "}
+            {role.roleId}
+          </p>
+        </div>
+        <CheckIcon className="size-5 shrink-0 text-info" weight="bold" aria-hidden="true" />
       </div>
     </div>
   );
@@ -134,7 +136,7 @@ export default function DiceMaidenLinkModal({
 
   const [selectedId, setSelectedId] = useState<number | undefined>(currentDicerRoleId);
   const [manualInput, setManualInput] = useState<string>("");
-  const [inputMode, setInputMode] = useState<"select" | "manual">("select");
+  const [inputMode, setInputMode] = useState<(typeof inputModeOptions)[number]["value"]>("select");
 
   // 手动输入的ID转换
   const manualInputId = useMemo(() => {
@@ -203,25 +205,14 @@ export default function DiceMaidenLinkModal({
             <h3 className="text-xl font-semibold">关联骰娘角色</h3>
           </div>
 
-          {/* 选择模式切换 */}
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant={inputMode === "select" ? "outline" : "ghost"}
-              className={`flex-1 ${inputMode === "select" ? "border-info/45 text-info hover:border-info/70 hover:bg-info/10" : ""}`}
-              onClick={() => setInputMode("select")}
-            >
-              选择骰娘
-            </Button>
-            <Button
-              size="sm"
-              variant={inputMode === "manual" ? "outline" : "ghost"}
-              className={`flex-1 ${inputMode === "manual" ? "border-info/45 text-info hover:border-info/70 hover:bg-info/10" : ""}`}
-              onClick={() => setInputMode("manual")}
-            >
-              手动输入ID
-            </Button>
-          </div>
+          <Tabs
+            value={inputMode}
+            options={inputModeOptions}
+            onValueChange={setInputMode}
+            ariaLabel="骰娘关联方式"
+            className="w-full"
+            tabClassName="flex-1"
+          />
         </div>
 
         {/* 内容区域 - 可滚动，固定高度 */}

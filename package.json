@@ -52,6 +52,8 @@
     "test": "pnpm --filter @tuanchat/web run test",
     "test:watch": "pnpm --filter @tuanchat/web run test:watch",
     "test:coverage": "pnpm --filter @tuanchat/web run test:coverage",
+    "analytics:login-easter-egg": "node ./scripts/query-login-easter-egg-analytics.mjs",
+    "cloudflare:analytics:configure": "node ./scripts/configure-cloudflare-product-analytics.mjs",
     "optimize:ai-style-images": "pnpm --filter @tuanchat/web run optimize:ai-style-images",
     "backfill:list-avatar": "node ./scripts/backfill-space-avatar-compression.mjs",
     "backfill:space-avatar": "node ./scripts/backfill-space-avatar-compression.mjs",

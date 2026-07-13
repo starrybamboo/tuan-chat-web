@@ -16,6 +16,8 @@ describe("invalidateRoleCreateQueries", () => {
 
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["getUserRolesByType"] });
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["getUserRolesByTypes"] });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["clientMetadataBatch"] });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["roleAvatarListsBatch"] });
   });
 
   it("创建空间角色后会失效空间角色相关缓存", () => {
@@ -50,5 +52,7 @@ describe("invalidateUpdatedRoleQueries", () => {
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["roomRole"] });
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["roomRoles"] });
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["roomNpcRole"] });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["clientMetadataBatch"] });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["roleAvatarListsBatch"] });
   });
 });

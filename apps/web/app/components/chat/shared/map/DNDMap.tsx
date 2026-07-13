@@ -958,8 +958,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
       <div className="
         w-full h-full flex items-center justify-center bg-base-200
       ">
-        <div className="text-center space-y-2">
-          <p className="text-sm">请上传地图</p>
+        <div className="text-center">
           <ImgUploader setImg={file => handleUploadMap(file)}>
             <Button variant="primary">上传地图</Button>
           </ImgUploader>

@@ -6,6 +6,7 @@ import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { bindCancelablePromiseToSignal } from "./cancelable";
+import { invalidateClientMetadataBatchQueries } from "./metadata";
 
 export type UserQueryOptions = {
   enabled?: boolean;
@@ -98,6 +99,7 @@ export function useUpdateUserInfoMutation(client: UserClient) {
     mutationFn: (request: UserUpdateInfoRequest) => client.userController.updateUserInfo(request),
     mutationKey: ["updateUserInfo"],
     onSuccess: () => {
+      invalidateClientMetadataBatchQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: ["getUserInfo"] });
       queryClient.invalidateQueries({ queryKey: ["getUserProfileInfo"] });
       queryClient.invalidateQueries({ queryKey: getMyUserInfoQueryKey() });

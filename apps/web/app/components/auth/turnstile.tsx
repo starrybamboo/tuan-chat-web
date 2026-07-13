@@ -38,7 +38,9 @@ function getTurnstileSiteKey() {
 }
 
 export function hasTurnstileSiteKey() {
-  return Boolean(getTurnstileSiteKey());
+  // 临时停用登录、注册和账号找回流程的人机验证，恢复时改回站点密钥判断。
+  return false;
+  // return Boolean(getTurnstileSiteKey());
 }
 
 function loadTurnstileScript() {

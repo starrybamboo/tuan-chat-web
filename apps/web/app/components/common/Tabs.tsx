@@ -4,6 +4,13 @@ import { useId } from "react";
 
 import type { InterfaceDensity } from "@/components/common/DesignLanguage";
 
+import { selectionClassName } from "@/components/common/DesignLanguage";
+
+const selectedTabClassName = selectionClassName({
+  level: "strong",
+  className: "hover:bg-info/20",
+});
+
 export type TabOption<Value extends string> = {
   value: Value;
   label: ReactNode;
@@ -46,6 +53,7 @@ export type TabsProps<Value extends string> = {
   ariaLabel: string;
   density?: InterfaceDensity;
   className?: string;
+  tabClassName?: string;
 };
 
 /** 统一页签的选中态、两档密度、ARIA 与方向键行为。 */
@@ -56,6 +64,7 @@ export function Tabs<Value extends string>({
   ariaLabel,
   density = "compact",
   className = "",
+  tabClassName = "",
 }: TabsProps<Value>) {
   const idPrefix = useId();
 
@@ -92,7 +101,12 @@ export function Tabs<Value extends string>({
           aria-controls={option.controls}
           tabIndex={value === option.value ? 0 : -1}
           disabled={option.disabled}
-          className={`tc-tab ${density === "default" ? "min-h-control-default px-4" : ""}`}
+          className={`
+            tc-tab
+            ${density === "default" ? "min-h-control-default px-4" : ""}
+            ${value === option.value ? selectedTabClassName : ""}
+            ${tabClassName}
+          `}
           onClick={() => onValueChange(option.value)}
           onKeyDown={handleKeyDown}
         >

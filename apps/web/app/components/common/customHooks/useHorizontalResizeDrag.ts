@@ -5,6 +5,7 @@ import { useCallback, useRef } from "react";
 type UseHorizontalResizeDragParams = {
   enabled?: boolean;
   cursor?: string;
+  capturePointer?: boolean;
   getStartSize: () => number | null;
   resolveNextSize: (params: {
     startSize: number;
@@ -19,6 +20,7 @@ type UseHorizontalResizeDragParams = {
 export function useHorizontalResizeDrag<Element extends HTMLElement>({
   enabled = true,
   cursor = "col-resize",
+  capturePointer = true,
   getStartSize,
   resolveNextSize,
   onResizeStart,
@@ -65,11 +67,13 @@ export function useHorizontalResizeDrag<Element extends HTMLElement>({
     ownerDocument.body.style.cursor = cursor;
     ownerDocument.body.style.userSelect = "none";
 
-    try {
-      captureTarget.setPointerCapture(pointerId);
-    }
-    catch {
-      // 部分嵌入式 WebView 不支持 pointer capture，仍可依赖全局 pointermove。
+    if (capturePointer) {
+      try {
+        captureTarget.setPointerCapture(pointerId);
+      }
+      catch {
+        // 部分嵌入式 WebView 不支持 pointer capture，仍可依赖全局 pointermove。
+      }
     }
 
     const finishDrag = () => {
@@ -84,11 +88,13 @@ export function useHorizontalResizeDrag<Element extends HTMLElement>({
         onResize(finalSize);
       }
       onResizeEnd?.();
-      try {
-        captureTarget.releasePointerCapture(pointerId);
-      }
-      catch {
-        // ignore
+      if (capturePointer) {
+        try {
+          captureTarget.releasePointerCapture(pointerId);
+        }
+        catch {
+          // ignore
+        }
       }
       ownerDocument.body.style.cursor = previousCursor;
       ownerDocument.body.style.userSelect = previousUserSelect;
@@ -118,5 +124,5 @@ export function useHorizontalResizeDrag<Element extends HTMLElement>({
     ownerDocument.addEventListener("pointermove", handlePointerMove);
     ownerDocument.addEventListener("pointerup", finishDrag);
     ownerDocument.addEventListener("pointercancel", finishDrag);
-  }, [cursor, enabled, flushPendingResize, getStartSize, onResize, onResizeEnd, onResizeStart, resolveNextSize]);
+  }, [capturePointer, cursor, enabled, flushPendingResize, getStartSize, onResize, onResizeEnd, onResizeStart, resolveNextSize]);
 }

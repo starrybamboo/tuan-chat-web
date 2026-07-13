@@ -1,16 +1,16 @@
 import type { MouseEvent } from "react";
 
-import { ArrowLeftIcon, CaretDownIcon, CaretRightIcon, FolderOpenIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, CaretDownIcon, CaretRightIcon, CheckIcon, FolderOpenIcon } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 
-import { MediaImage } from "@/components/common/mediaImage";
 import { Button, buttonClassName } from "@/components/common/Button";
 import { IconButton } from "@/components/common/IconButton";
+import { MediaImage } from "@/components/common/mediaImage";
 import { CollapsibleMotion } from "@/components/common/motion/CollapsibleMotion";
-import { CountBadge } from "@/components/common/StatusPrimitives";
 import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { CountBadge } from "@/components/common/StatusPrimitives";
 import { getEffectiveAvatarThumbUrl, getEffectiveAvatarUrl } from "@/components/Role/sprite/utils";
 import { AddRoleIcon, ExpandCornersIcon, EyedropperIcon, NarratorIcon } from "@/icons";
 
@@ -132,9 +132,9 @@ export function ExpressionAvatarPanel({
   const avatarSize = isMobileFullscreen ? 18 : 21;
   const avatarItemClassName = isAvatarFullscreen
     ? (isMobileFullscreen
-        ? "w-18 h-18 overflow-hidden cursor-pointer leading-none"
-        : "size-[5.75rem] rounded-lg bg-base-100/90 ring-1 ring-base-200/70 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer flex items-center justify-center p-1")
-    : "size-[5.75rem] rounded-lg transition-all hover:bg-base-200 cursor-pointer flex items-center justify-center p-1";
+        ? "relative isolate w-18 h-18 overflow-hidden rounded-lg cursor-pointer leading-none"
+        : "relative isolate size-[5.75rem] overflow-hidden rounded-lg bg-base-100/90 ring-1 ring-base-200/70 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer flex items-center justify-center p-1")
+    : "relative isolate size-[5.75rem] overflow-hidden rounded-lg transition-all hover:bg-base-200 cursor-pointer flex items-center justify-center p-1";
   const shouldShowAvatarPanelTitle = isAvatarFullscreen || isAvatarVariantGroupView;
   const avatarPanelTitle = isAvatarVariantGroupView
     ? `${narratorTitle}【${activeAvatarVariantGroup?.label ?? "立绘组"}】`
@@ -413,7 +413,7 @@ export function ExpressionAvatarPanel({
                                     }}
                                     className={`
                                       ${avatarItemClassName}
-                                      ${isSelectedAvatar ? "bg-info/10 ring-2 ring-info/45" : ""}
+                                      ${isSelectedAvatar ? "bg-info/10" : ""}
                                     `}
                                     key={avatar.avatarId ?? `${section.variantId}-${group.category}-${avatarIndex}`}
                                     title="点击选择头像"
@@ -433,6 +433,16 @@ export function ExpressionAvatarPanel({
                                       imageLoading="lazy"
                                       imageDecoding="async"
                                     />
+                                    {isSelectedAvatar && (
+                                      <span
+                                        className="pointer-events-none absolute inset-0 z-20 rounded-lg border-2 border-info/90 ring-1 ring-inset ring-info/35"
+                                        aria-hidden="true"
+                                      >
+                                        <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-info text-info-content shadow-sm">
+                                          <CheckIcon className="size-3" weight="bold" />
+                                        </span>
+                                      </span>
+                                    )}
                                   </button>
                                 );
                                 })}

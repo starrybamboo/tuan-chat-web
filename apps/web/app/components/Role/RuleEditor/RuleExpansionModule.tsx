@@ -5,10 +5,9 @@ import { useCallback, useState } from "react";
 
 import type { RoleConfigTabKey } from "../rules/configTabMeta";
 
-import { Button } from "@/components/common/Button";
 import { CountBadge } from "@/components/common/StatusPrimitives";
 import Section from "../Editors/Section";
-import { ROLE_CONFIG_TAB_ITEMS } from "../rules/configTabMeta";
+import { RoleConfigTabs } from "../rules/RoleConfigTabs";
 import { RuleConfigurationSection } from "./RuleConfigurationSection";
 import RulePerformanceEditor from "./RulePerformanceEditor";
 
@@ -71,33 +70,14 @@ export default function RuleExpansionModule({
 
   return (
     <div className="space-y-4">
-      {/* 顶部 Tab 按钮条，依据角色类型条件渲染 */}
-      <div className="
-        flex gap-1
-        md:gap-2
-        rounded-lg
-      ">
-        <>
-          {ROLE_CONFIG_TAB_ITEMS.map(({ key, label, shortLabel, Icon }) => (
-            <Button
-              key={key}
-              variant={activeTab === key ? "outline" : "ghost"}
-              size="md"
-              className={`inline-flex items-center gap-1.5 rounded-lg ${activeTab === key ? "border-info/45 text-info hover:border-info/70 hover:bg-info/10" : ""}`}
-              onClick={() => setActiveTab(key)}
-            >
-              <Icon className="size-4 shrink-0" weight="regular" aria-hidden="true" />
-              <span className="md:hidden">{shortLabel}</span>
-              <span className="
-                hidden
-                md:inline
-              ">{label}</span>
-            </Button>
-          ))}
-        </>
-      </div>
+      <RoleConfigTabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="w-full overflow-x-auto md:w-fit"
+        tabClassName="flex-1 md:flex-none"
+      />
 
-      <div className={activeTab === "basic" ? "block" : "hidden"} aria-hidden={activeTab !== "basic"}>
+      <div id="rule-config-basic-panel" role="tabpanel" className={activeTab === "basic" ? "block" : "hidden"} aria-hidden={activeTab !== "basic"}>
         <RuleConfigurationSection
           customLabel="基础属性"
           configKey="basic"
@@ -110,7 +90,7 @@ export default function RuleExpansionModule({
         />
       </div>
 
-      <div className={activeTab === "ability" ? "block" : "hidden"} aria-hidden={activeTab !== "ability"}>
+      <div id="rule-config-ability-panel" role="tabpanel" className={activeTab === "ability" ? "block" : "hidden"} aria-hidden={activeTab !== "ability"}>
         <RuleConfigurationSection
           customLabel="能力"
           configKey="ability"
@@ -123,7 +103,7 @@ export default function RuleExpansionModule({
         />
       </div>
 
-      <div className={activeTab === "skill" ? "block" : "hidden"} aria-hidden={activeTab !== "skill"}>
+      <div id="rule-config-skill-panel" role="tabpanel" className={activeTab === "skill" ? "block" : "hidden"} aria-hidden={activeTab !== "skill"}>
         <RuleConfigurationSection
           customLabel="技能"
           configKey="skill"
@@ -136,7 +116,7 @@ export default function RuleExpansionModule({
         />
       </div>
 
-      <div className={activeTab === "act" ? "block" : "hidden"} aria-hidden={activeTab !== "act"}>
+      <div id="rule-config-act-panel" role="tabpanel" className={activeTab === "act" ? "block" : "hidden"} aria-hidden={activeTab !== "act"}>
         <Section
           className="
             rounded-2xl

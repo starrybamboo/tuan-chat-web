@@ -36,6 +36,8 @@ const LazyTanStackRouterDevtoolsPanel = import.meta.env.DEV
       return { default: module.TanStackRouterDevtoolsPanel };
     })
   : null;
+const LAST_CHAT_PATH_SESSION_KEY = "tuanchat:last-chat-path:v2";
+const DEFAULT_CHAT_PATH = "/chat/private";
 const MotionLink = motion.create(Link);
 const topNavMotionVariants = {
   rest: { scale: 1, y: 0 },
@@ -43,6 +45,25 @@ const topNavMotionVariants = {
   tap: { scale: 0.95, y: 0 },
 } as const;
 const topNavMotionTransition = { type: "spring", stiffness: 560, damping: 30, mass: 0.5 } as const;
+
+function isChatPath(pathname: string) {
+  return pathname === "/chat" || pathname.startsWith("/chat/");
+}
+
+function readLastChatPath() {
+  if (typeof window === "undefined") {
+    return DEFAULT_CHAT_PATH;
+  }
+  try {
+    const storedPath = window.sessionStorage.getItem(LAST_CHAT_PATH_SESSION_KEY);
+    return storedPath && isChatPath(storedPath.split(/[?#]/, 1)[0] ?? "")
+      ? storedPath
+      : DEFAULT_CHAT_PATH;
+  }
+  catch {
+    return DEFAULT_CHAT_PATH;
+  }
+}
 
 function TopNavMotionLink({
   to,
@@ -108,11 +129,31 @@ function TopNavMotionLink({
 }
 
 export default function Topbar() {
+  const location = useLocation();
   const queryClient = useQueryClient(); // 使用 hook 获取 QueryClient 实例
   const [isBugQqOpen, setIsBugQqOpen] = useState(false);
   const [isRouterDevtoolsOpen, setIsRouterDevtoolsOpen] = useState(false);
   const [bugReportExportStatus, setBugReportExportStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const userDropdownRef = useRef<HTMLDivElement>(null);
+  const lastChatPathRef = useRef<string | null>(null);
+
+  if (lastChatPathRef.current === null) {
+    lastChatPathRef.current = readLastChatPath();
+  }
+
+  useLayoutEffect(() => {
+    if (!isChatPath(location.pathname)) {
+      return;
+    }
+    const currentChatPath = `${location.pathname}${location.searchStr}${location.hash}`;
+    lastChatPathRef.current = currentChatPath;
+    try {
+      window.sessionStorage.setItem(LAST_CHAT_PATH_SESSION_KEY, currentChatPath);
+    }
+    catch {
+      // 某些受限环境禁用 sessionStorage，内存中的最近路径仍然有效。
+    }
+  }, [location.hash, location.pathname, location.searchStr]);
 
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -220,7 +261,7 @@ export default function Topbar() {
   }, [exportBugReportLog]);
 
   const navItems = [
-    { to: "/chat/discover/material", label: "聊天", icon: RoomChatIcon, activePathPrefix: "/chat" },
+    { to: lastChatPathRef.current ?? DEFAULT_CHAT_PATH, label: "聊天", icon: RoomChatIcon, activePathPrefix: "/chat" },
     { to: "/role", label: "角色", icon: IdentificationCardIcon },
     ...(canUseAiImage ? [{ to: "/ai-image", label: "AI生图", icon: PaintBrushBroadIcon }] : []),
     ...(canUseFeedback ? [{ to: "/feedback", label: "反馈", icon: CheckCircleIcon }] : []),

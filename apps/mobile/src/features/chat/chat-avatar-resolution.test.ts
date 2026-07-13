@@ -5,7 +5,12 @@ import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { describe, expect, it } from "vitest";
 
 import { selectChatMessagePrefetchWindow } from "./chat-avatar-prefetch";
-import { collectUnresolvedOocUserIds, collectUnresolvedRoleAvatarIds } from "./chat-avatar-resolution";
+import {
+  buildDeferredChatMetadataRequest,
+  collectUnresolvedOocUserIds,
+  collectUnresolvedRoleAvatarIds,
+  isMessageAvatarCoveredByMetadataRequest,
+} from "./chat-avatar-resolution";
 import { buildRoomRolesById } from "./chat-avatar-utils";
 
 function message(overrides: Partial<Message>): Message {
@@ -42,5 +47,52 @@ describe("chat-avatar-resolution", () => {
 
     expect(collectUnresolvedRoleAvatarIds(recentMessages, new Map())).toEqual([8]);
     expect(collectUnresolvedOocUserIds(recentMessages)).toEqual([12]);
+  });
+
+  it("批量请求会包含窗口内超过六个缺失头像和用户", () => {
+    const roleMessages = Array.from({ length: 8 }, (_, index) => message({
+      avatarId: index + 1,
+      messageId: index + 1,
+      roleId: index + 1,
+    }));
+    const oocMessages = Array.from({ length: 8 }, (_, index) => message({
+      content: `(用户 ${index + 1})`,
+      messageId: index + 20,
+      userId: index + 11,
+    }));
+
+    const request = buildDeferredChatMetadataRequest(
+      [...roleMessages, ...oocMessages],
+      new Map(),
+      new Set([11]),
+    );
+
+    expect(request.avatarIds).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(request.userIds).toEqual([12, 13, 14, 15, 16, 17, 18]);
+  });
+
+  it("只让当前批量请求负责已纳入的消息头像", () => {
+    const roleMessage = message({ avatarId: 8, messageId: 1, roleId: 8 });
+    const oldRoleMessage = message({ avatarId: 9, messageId: 2, roleId: 9 });
+    const oocMessage = message({ content: "(场外)", messageId: 3, userId: 12 });
+
+    expect(isMessageAvatarCoveredByMetadataRequest(
+      roleMessage,
+      new Map(),
+      new Set([8]),
+      new Set([12]),
+    )).toBe(true);
+    expect(isMessageAvatarCoveredByMetadataRequest(
+      oldRoleMessage,
+      new Map(),
+      new Set([8]),
+      new Set([12]),
+    )).toBe(false);
+    expect(isMessageAvatarCoveredByMetadataRequest(
+      oocMessage,
+      new Map(),
+      new Set([8]),
+      new Set([12]),
+    )).toBe(true);
   });
 });

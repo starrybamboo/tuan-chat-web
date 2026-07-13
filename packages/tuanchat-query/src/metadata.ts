@@ -5,6 +5,9 @@ import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 type MetadataClient = Pick<TuanChat, "avatarController" | "clientMetadataController">;
+type MetadataBatchQueryInvalidator = {
+  invalidateQueries: (filters: { queryKey: readonly unknown[] }) => unknown;
+};
 
 export const CLIENT_METADATA_STALE_TIME_MS = 600_000;
 export const ROLE_AVATAR_LIST_STALE_TIME_MS = 86_400_000;
@@ -29,6 +32,19 @@ function chunkIds(ids: readonly number[], offset: number) {
 export function clientMetadataBatchQueryKey(request: ClientMetadataBatchRequest, client?: MetadataClient) {
   const normalized = normalizeMetadataRequest(request);
   return ["clientMetadataBatch", normalized.roleIds, normalized.userIds, normalized.avatarIds, client] as const;
+}
+
+export function invalidateClientMetadataBatchQueries(queryClient: MetadataBatchQueryInvalidator) {
+  void queryClient.invalidateQueries({ queryKey: ["clientMetadataBatch"] });
+}
+
+export function invalidateRoleAvatarListsBatchQueries(queryClient: MetadataBatchQueryInvalidator) {
+  void queryClient.invalidateQueries({ queryKey: ["roleAvatarListsBatch"] });
+}
+
+export function invalidateRoleMetadataBatchQueries(queryClient: MetadataBatchQueryInvalidator) {
+  invalidateClientMetadataBatchQueries(queryClient);
+  invalidateRoleAvatarListsBatchQueries(queryClient);
 }
 
 export function seedClientMetadataCaches(queryClient: QueryClient, metadata: ClientMetadataBatchResponse) {

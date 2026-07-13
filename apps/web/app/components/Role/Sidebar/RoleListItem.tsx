@@ -1,8 +1,12 @@
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { selectionClassName } from "@/components/common/DesignLanguage";
 import { IconButton } from "@/components/common/IconButton";
 import { Skeleton } from "@/components/common/StatusPrimitives";
 
 import type { Role } from "../types";
+
+const currentNavigationItemClassName = selectionClassName({ level: "strong" });
+const selectedCheckboxClassName = selectionClassName({ level: "solid", className: "border-info" });
 
 // 1. 从 Props 接口中移除 onSelect
 type RoleListItemProps = {
@@ -25,8 +29,9 @@ export function RoleListItem({
     <div
       className={`
         flex items-center gap-3 p-3 rounded-lg cursor-pointer group
+        transition-colors duration-150 motion-reduce:transition-none
         ${
-        isSelected ? "bg-base-100" : "hover:bg-base-100"
+        isSelected && !isSelectionMode ? currentNavigationItemClassName : "hover:bg-base-100"
       }
       `}
     >
@@ -59,7 +64,7 @@ export function RoleListItem({
               <div className={`
                 flex items-center justify-center size-4 rounded-full border-2
                 transition-all duration-200
-                ${isSelected ? `bg-info border-info` : `
+                ${isSelected ? selectedCheckboxClassName : `
                   border-base-content/30
                   hover:border-info
                 `}

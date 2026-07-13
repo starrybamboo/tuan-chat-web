@@ -5,6 +5,7 @@ import {
   deleteRoleAvatarsWithSuccessGuard,
   deleteRoleAvatarWithSuccessGuard,
   fetchRoleAvatarWithCache,
+  getUserRolesQueryOptions,
   roleAvatarQueryKey,
   seedRoleAvatarQueryCaches,
   userRolesByTypesQueryKey,
@@ -108,5 +109,13 @@ describe("role avatar cache helpers", () => {
   it("userRolesByTypesQueryKey 不再复用全量 getUserRoles 缓存 key", () => {
     expect(userRolesByTypesQueryKey(7, [1, 0, 1, Number.NaN])).toEqual(["getUserRolesByTypes", 7, 0, 1]);
     expect(userRolesByTypesQueryKey(7, [0, 1])).not.toEqual(["getUserRoles", 7]);
+  });
+
+  it("角色页查询使用独立缓存 key 并保持列表响应形状", () => {
+    const options = getUserRolesQueryOptions(7);
+    const roles = [{ roleId: 11, type: 1 }];
+
+    expect(options.queryKey).toEqual(["getUserRolesByTypes", 7, 0, 1]);
+    expect(options.select(roles)).toEqual({ success: true, data: roles });
   });
 });

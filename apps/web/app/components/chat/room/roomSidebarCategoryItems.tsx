@@ -92,7 +92,7 @@ export default function RoomSidebarCategoryItems({
               return null;
 
             return (
-              <motion.div key={nodeId} className="relative" {...structuralListItemMotionProps()}>
+              <motion.div key={nodeId} className="relative" {...structuralListItemMotionProps({ layout: "position" })}>
                 {showInsertBefore && (
                   <RoomSidebarInsertLine className="top-0 -translate-y-1/2" />
                 )}
@@ -123,7 +123,7 @@ export default function RoomSidebarCategoryItems({
           }
 
           return (
-            <motion.div key={nodeId} className="relative" {...structuralListItemMotionProps()}>
+            <motion.div key={nodeId} className="relative" {...structuralListItemMotionProps({ layout: "position" })}>
               {showInsertBefore && (
                 <RoomSidebarInsertLine className="top-0 -translate-y-1/2" />
               )}

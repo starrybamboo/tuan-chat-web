@@ -26,7 +26,9 @@ import {
   useDeleteRoleAvatarVariantMutation,
   useGetDeletedRoleAvatarsQuery,
   useRestoreRoleAvatarMutation,
+  useDeleteRoleAvatarMutation,
   useRoleAvatarVariantsQuery,
+  useReserveRoleAvatarMutation,
   useSetDefaultRoleAvatarMutation,
   useUpdateRoleAvatarMutation,
   useUpdateRoleAvatarVariantMutation,
@@ -38,6 +40,7 @@ import { Drawer } from "vaul";
 import { appToast } from "@/components/common/appToast/appToast";
 import { Button } from "@/components/common/Button";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { selectionClassName } from "@/components/common/DesignLanguage";
 import { DialogActions, DialogFrame } from "@/components/common/DialogFrame";
 import { IconButton } from "@/components/common/IconButton";
 import { MediaImage } from "@/components/common/mediaImage";
@@ -49,6 +52,7 @@ import { isMobileScreen } from "@/utils/getScreenSize";
 import { canvasPreview, canvasToBlob } from "@/utils/imgCropper";
 import { normalizeImageFileOrNull } from "@/utils/media/mediaMime";
 import { imageOriginalUrlFromUrl } from "@/utils/media/mediaUrl";
+import { calculateFileSha256 } from "@/utils/media/mediaUpload";
 
 import type { AvatarUploadFilesContext } from "../RoleInfoCard/AvatarUploadCropper";
 import type { Role } from "../types";
@@ -63,7 +67,7 @@ import {
   isOriginImageCompatibleWithVariantConfig,
 } from "./avatarCropContext";
 import { resolveAvatarUploadName } from "./avatarUploadName";
-import { uploadOriginAndDefaultSpriteMedia } from "./defaultSpriteMedia";
+import { type DefaultSpriteMediaUploadResult, uploadOriginAndDefaultSpriteMedia } from "./defaultSpriteMedia";
 import { useAvatarDeletion } from "./hooks/useAvatarDeletion";
 import {
   AvatarCalibrationPreviewPanel,
@@ -98,6 +102,11 @@ const AVATAR_FOLDER_STACK_CARD_CLASS_NAMES = [
   "left-[18%] bottom-[8%] z-[3] rotate-[6deg] opacity-90 scale-[0.84]",
   "left-1/2 top-1/2 z-[4] -translate-x-1/2 -translate-y-1/2 rotate-[-1deg] opacity-100 scale-100",
 ] as const;
+const selectedVariantFolderClassName = selectionClassName({
+  level: "strong",
+  className: "border-info shadow-lg",
+});
+const selectedVariantFolderLabelClassName = selectionClassName({ level: "tone" });
 
 type PendingVariantInitialization = {
   name: string;
@@ -115,6 +124,7 @@ type OptimisticUploadAvatar = RoleAvatar & {
   localOriginUrl: string;
   localSpriteUrl: string;
   optimisticUploadKey: string;
+  optimisticUploadPending: boolean;
 }
 
 type PendingVariantRemovalConfirm =
@@ -928,6 +938,8 @@ export function SpriteSettingsPopup({
 
   // ========== 上传和删除功能 ==========
   const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
+  const { mutateAsync: reserveRoleAvatar } = useReserveRoleAvatarMutation();
+  const { mutateAsync: deleteRoleAvatar } = useDeleteRoleAvatarMutation(role?.id);
   const removeOptimisticUploadAvatar = useCallback((uploadKey: string) => {
     setOptimisticUploadAvatars((prev) => {
       const removed = prev.find(item => item.optimisticUploadKey === uploadKey);
@@ -941,6 +953,7 @@ export function SpriteSettingsPopup({
   const updateOptimisticUploadAvatar = useCallback((
     uploadKey: string,
     uploadedAvatar: RoleAvatar,
+    options: { complete?: boolean } = {},
   ) => {
     setOptimisticUploadAvatars(prev => prev.map((avatar) => {
       if (avatar.optimisticUploadKey !== uploadKey) {
@@ -955,6 +968,7 @@ export function SpriteSettingsPopup({
         localOriginUrl: avatar.localOriginUrl,
         localSpriteUrl: avatar.localSpriteUrl,
         optimisticUploadKey: avatar.optimisticUploadKey,
+        optimisticUploadPending: options.complete ? false : avatar.optimisticUploadPending,
       };
     }));
   }, []);
@@ -989,6 +1003,7 @@ export function SpriteSettingsPopup({
         localOriginUrl: optimisticAvatar.localOriginUrl,
         localSpriteUrl: options.clearSpriteUrl ? "" : optimisticAvatar.localSpriteUrl,
         optimisticUploadKey: optimisticAvatar.optimisticUploadKey,
+        optimisticUploadPending: optimisticAvatar.optimisticUploadPending,
       };
     }));
   }, []);
@@ -1014,6 +1029,7 @@ export function SpriteSettingsPopup({
       localOriginUrl,
       localSpriteUrl: localOriginUrl,
       optimisticUploadKey: uploadKey,
+      optimisticUploadPending: true,
       spriteTransform: toSpriteTransformPayload({
         positionX: 0,
         positionY: 0,
@@ -1090,19 +1106,65 @@ export function SpriteSettingsPopup({
     let completedCount = 0;
     let successCount = 0;
     let failedCount = 0;
+    const mediaUploadPromisesByHash = new Map<string, Promise<DefaultSpriteMediaUploadResult>>();
+    const getDefaultSpriteMedia = async (file: File) => {
+      const fileHash = await calculateFileSha256(file);
+      const cacheKey = `${fileHash}:${file.size}:${file.type}`;
+      const cachedPromise = mediaUploadPromisesByHash.get(cacheKey);
+      if (cachedPromise) {
+        return cachedPromise;
+      }
+
+      const uploadPromise = uploadOriginAndDefaultSpriteMedia(file, { scene: 3 });
+      mediaUploadPromisesByHash.set(cacheKey, uploadPromise);
+      uploadPromise.catch(() => {
+        if (mediaUploadPromisesByHash.get(cacheKey) === uploadPromise) {
+          mediaUploadPromisesByHash.delete(cacheKey);
+        }
+      });
+      return uploadPromise;
+    };
 
     try {
       appToast.loading(`正在导入原图：0/${imageFiles.length}`, { id: toastId });
-      await runWithConcurrencyLimit(imageFiles, 4, async (file, index) => {
-        const optimisticAvatar = optimisticAvatars[index];
-        try {
-          const defaultSpriteMedia = await uploadOriginAndDefaultSpriteMedia(file, { scene: 3 });
+    await runWithConcurrencyLimit(imageFiles, 4, async (file, index) => {
+      const optimisticAvatar = optimisticAvatars[index];
+      let reservedAvatarId: number | undefined;
+      try {
+          const mediaOutcome = getDefaultSpriteMedia(file).then(
+            value => ({ status: "fulfilled" as const, value }),
+            reason => ({ status: "rejected" as const, reason }),
+          );
+          const reserveRes = await reserveRoleAvatar({
+            roleId: role.id,
+            ...(context.uploadDefaults?.category ? { category: context.uploadDefaults.category } : {}),
+            ...(context.uploadDefaults?.variantId ? { variantId: context.uploadDefaults.variantId } : {}),
+          });
+          reservedAvatarId = normalizeVariantId(reserveRes.data);
+          if (!reserveRes.success || !reservedAvatarId) {
+            throw new Error(reserveRes.errMsg || "头像记录创建失败");
+          }
+          if (optimisticAvatar) {
+            updateOptimisticUploadAvatar(optimisticAvatar.optimisticUploadKey, {
+              roleId: role.id,
+              avatarId: reservedAvatarId,
+            } as RoleAvatar);
+          }
+
+          const mediaResult = await mediaOutcome;
+          if (mediaResult.status === "rejected") {
+            throw mediaResult.reason;
+          }
+          const defaultSpriteMedia = mediaResult.value;
+          await defaultSpriteMedia.origin.ensurePrimaryCompletion?.();
           const uploadRes = await uploadAvatar({
+            avatarId: reservedAvatarId,
             roleId: role.id,
             avatarFileId: defaultSpriteMedia.origin.fileId,
             originFileId: defaultSpriteMedia.origin.fileId,
             spriteFileId: defaultSpriteMedia.sprite.fileId,
             spriteCropContext: defaultSpriteMedia.spriteCropContext,
+            variantId: context.uploadDefaults?.variantId,
             avatarName: resolveAvatarUploadName(file.name),
             autoApply: false,
             autoNameFirst: true,
@@ -1129,13 +1191,21 @@ export function SpriteSettingsPopup({
               roleId: uploadedAvatar.roleId ?? role.id,
               avatarId,
               ...(context.uploadDefaults?.category ? { category: context.uploadDefaults.category } : {}),
-            } as RoleAvatar);
+            } as RoleAvatar, { complete: true });
           }
           enterUploadedAvatarWorkflow([avatarId], context);
           successCount += 1;
         }
         catch (error) {
           failedCount += 1;
+          if (reservedAvatarId) {
+            try {
+              await deleteRoleAvatar(reservedAvatarId);
+            }
+            catch (cleanupError) {
+              console.error("清理未完成头像记录失败:", cleanupError);
+            }
+          }
           if (optimisticAvatar) {
             removeOptimisticUploadAvatar(optimisticAvatar.optimisticUploadKey);
           }
@@ -1175,7 +1245,9 @@ export function SpriteSettingsPopup({
     removeOptimisticUploadAvatar,
     role?.id,
     updateOptimisticUploadAvatar,
+    deleteRoleAvatar,
     updateRoleAvatarMutation,
+    reserveRoleAvatar,
     uploadAvatar,
   ]);
 
@@ -1194,6 +1266,7 @@ export function SpriteSettingsPopup({
     appToast.loading("正在替换头像源图...", { id: toastId });
     try {
       const defaultSpriteMedia = await uploadOriginAndDefaultSpriteMedia(imageFile, { scene: 3 });
+      await defaultSpriteMedia.origin.ensurePrimaryCompletion?.();
       const updateRes = await updateRoleAvatarMutation.mutateAsync({
         ...avatar,
         roleId,
@@ -2513,12 +2586,12 @@ export function SpriteSettingsPopup({
                 type="button"
                 className={`
                   group/avatar-folder relative aspect-square w-full overflow-hidden rounded-xl border
-                  bg-base-200/70 shadow-sm transition-[border-color,box-shadow,background-color,transform]
-                  hover:-translate-y-0.5 hover:bg-base-300/70 hover:shadow-md
+                  shadow-sm transition-[border-color,box-shadow,background-color,transform]
+                  hover:-translate-y-0.5 hover:shadow-md
                   motion-reduce:transition-none motion-reduce:hover:translate-y-0
                   ${isSelected
-                    ? "border-warning shadow-lg ring-2 ring-inset ring-warning/30"
-                    : "border-base-300/80 hover:border-info/50"}
+                    ? selectedVariantFolderClassName
+                    : "border-base-300/80 bg-base-200/70 hover:border-info/50 hover:bg-base-300/70"}
                   ${isDropTarget ? "border-info bg-info/10 ring-2 ring-info/40" : ""}
                 `}
                 title={isSelected
@@ -2630,7 +2703,7 @@ export function SpriteSettingsPopup({
                 className={`
                   mt-1 block w-full truncate text-center text-xs transition-colors
                   ${isSelected
-                    ? "text-warning"
+                    ? selectedVariantFolderLabelClassName
                     : "text-base-content/70 hover:text-base-content"}
                 `}
                 title={isSelected

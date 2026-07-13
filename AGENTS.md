@@ -10,10 +10,12 @@
 ## 任务完成要求
 
 - 在任务被视为完成前，必须根据本轮实际修改范围运行对应验收命令，并在答复中说明结果。
-- 不要随意运行全量测试；开发或修复功能后，优先运行受影响模块、文件或功能域的定向测试，并说明覆盖范围。
-- 修改 Web / Electron / 根应用代码（含 `app`、`api`、`electron`、根构建配置）时，优先运行相关 Vitest 目标、相关 lint/typecheck 命令或更小范围验收；只有改动触及共享基础逻辑、构建配置、跨模块契约，或用户明确要求完整验收时，才运行 `pnpm test`、`pnpm lint`、`pnpm typecheck` 全量组合。
-- 修改移动端代码（`apps/mobile`）时，优先运行受影响范围的 mobile lint/typecheck/test；如改动影响共享业务逻辑或测试覆盖范围，还需补充对应 Vitest 目标，必要时再扩大到 `pnpm test`。
-- 修改共享包（`packages` 下非生成代码）时，运行受影响包相关测试；若共享逻辑会影响 Web 或移动端调用方，还需补充对应端的 lint/typecheck/test 命令。
+- 测试验收遵循根 `D:\A_collection\AGENTS.md` 的“先定向、后扩大”规则；工具或技能提供的全量命令遵循同一范围判断。
+- 修改 Web / Electron / 根应用代码（含 `app`、`api`、`electron`、根构建配置）时，先运行相关 Vitest 目标、相关 lint/typecheck 命令或更小范围验收；共享基础逻辑、构建配置、跨模块契约、发布流程或用户明确要求完整验收时，再运行 `pnpm test`、`pnpm lint`、`pnpm typecheck` 全量组合。
+- 修改移动端代码（`apps/mobile`）时，先运行受影响范围的 mobile lint/typecheck/test；改动影响共享业务逻辑或测试覆盖范围时，再补充对应 Vitest 目标并按影响面扩大。
+- 修改共享包（`packages` 下非生成代码）时，先运行受影响包相关测试；共享逻辑影响 Web 或移动端调用方时，再补充对应端的定向 lint/typecheck/test。
+- 新增或修改测试时，先运行新增测试及直接相关测试；测试文件的变更本身不触发 `pnpm test` 全量执行。
+- 单个测试命令超过 2 分钟仍无结果时，停止等待并记录状态，改用更小范围命令；完整验收需要用户明确授权。
 - 仅修改文档、说明或不会影响运行时的配置时，运行与文件类型对应的轻量验收命令；文本文件至少运行编码或格式相关检查。
 - 如果对应验收命令因既有无关问题失败，必须在答复中明确失败命令、失败位置，以及是否与本轮修改相关。
 - 常用入口以根 `package.json` 为准：Web 可用 `pnpm dev` / `pnpm web:dev`、`pnpm lint:web`、`pnpm typecheck:web`、`pnpm test`；移动端可用 `pnpm mobile:start`、`pnpm lint:mobile`、`pnpm typecheck:mobile`；Electron 可用 `pnpm electron:dev`、`pnpm electron:build`。

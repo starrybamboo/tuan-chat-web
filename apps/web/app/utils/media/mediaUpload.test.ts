@@ -106,6 +106,7 @@ describe("mediaUpload", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -245,7 +246,7 @@ describe("mediaUpload", () => {
     }));
   });
 
-  it("原图优先图片生成只同步处理 original，并将 low 和 medium 派生延后", async () => {
+  it("原图优先图片生成只同步处理 original，并将 low、medium 和 high 派生延后", async () => {
     const file = new File([new Uint8Array(1024)], "role.png", { type: "image/png" });
     compressImageMock.mockImplementation(async (_file: File, profile: { maxSizeKB?: number }) => {
       const bytes = profile.maxSizeKB === 3072 ? 900 * 1024 : 1024;
@@ -258,11 +259,49 @@ describe("mediaUpload", () => {
     expect(result.filesByQuality.original?.name).toBe("derived-3072.webp");
     expect(result.filesByQuality.low).toBeUndefined();
     expect(result.filesByQuality.medium).toBeUndefined();
-    expect(result.metadata.uploadedQualities).toEqual(["original", "low", "medium"]);
+    expect(result.filesByQuality.high).toBeUndefined();
+    expect(result.metadata.uploadedQualities).toEqual(["original", "low", "medium", "high"]);
 
     const low = await result.deferredFilesByQuality?.low?.();
     expect(low?.name).toBe("derived-40.webp");
-    expect(compressImageMock).toHaveBeenCalledTimes(2);
+    const high = await result.deferredFilesByQuality?.high?.();
+    expect(high?.name).toBe("derived-800.webp");
+    expect(compressImageMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("角色图片 uploadMediaFile 开启原图优先时不会同步生成派生文件", async () => {
+    const file = new File([new Uint8Array(1024)], "role.png", { type: "image/png" });
+    compressImageMock.mockImplementation(async (_file: File, profile: { maxSizeKB?: number }) => {
+      if (profile.maxSizeKB !== 3072) {
+        throw new Error("派生文件不应在主流程生成");
+      }
+      return new File([new Uint8Array(900 * 1024)], "derived-original.webp", { type: "image/webp" });
+    });
+    prepareUploadMock.mockResolvedValueOnce({
+      success: true,
+      data: {
+        fileId: 41,
+        mediaType: "image",
+        uploadRequired: true,
+        sessionId: 98,
+        uploadTargets: {
+          original: { uploadUrl: "https://oss.example.com/original" },
+        },
+      },
+    });
+    completeUploadMock.mockResolvedValueOnce({ success: true });
+
+    const result = await uploadMediaFile(file, {
+      scene: 3,
+      completeAfterPrimaryQuality: true,
+    });
+
+    expect(result.fileId).toBe(41);
+    expect(compressImageMock).toHaveBeenCalledTimes(1);
+    expect(completeUploadMock).toHaveBeenCalledWith(98, expect.objectContaining({
+      availableQualities: ["original"],
+      pendingQualities: [],
+    }));
   });
 
   it("派生 target 首次失败后会按 target 重试并在成功后标记为可用", async () => {
@@ -311,6 +350,11 @@ describe("mediaUpload", () => {
   });
 
   it("可在 original 上传完成后立即 complete，并在后台生成和上传派生 target", async () => {
+    vi.stubGlobal("requestIdleCallback", vi.fn((callback: IdleRequestCallback) => {
+      callback({ didTimeout: false, timeRemaining: () => 50 });
+      return 1;
+    }));
+    vi.stubGlobal("cancelIdleCallback", vi.fn());
     const original = new File(["original"], "original.webp", { type: "image/webp" });
     const low = new File(["low"], "low.webp", { type: "image/webp" });
     let resolveLow!: (file: File) => void;
@@ -359,7 +403,7 @@ describe("mediaUpload", () => {
       degraded: true,
     }));
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
-    expect(lowFactory).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(lowFactory).toHaveBeenCalledTimes(1));
 
     resolveLow(low);
     await vi.waitFor(() => {
@@ -372,6 +416,157 @@ describe("mediaUpload", () => {
       failedQualities: [],
       degraded: false,
     }));
+  });
+
+  it("后台派生质量按 low、medium、high 全局串行上传，单档失败后继续后续质量", async () => {
+    vi.stubGlobal("requestIdleCallback", vi.fn((callback: IdleRequestCallback) => {
+      callback({ didTimeout: false, timeRemaining: () => 50 });
+      return 1;
+    }));
+    vi.stubGlobal("cancelIdleCallback", vi.fn());
+    const original = new File(["original"], "original.webp", { type: "image/webp" });
+    const low = new File(["low"], "low.webp", { type: "image/webp" });
+    const medium = new File(["medium"], "medium.webp", { type: "image/webp" });
+    const high = new File(["high"], "high.webp", { type: "image/webp" });
+    let resolveLowUpload!: (response: Response) => void;
+    let resolveHighUpload!: (response: Response) => void;
+    const uploadOrder: string[] = [];
+    prepareUploadMock.mockResolvedValueOnce({
+      success: true,
+      data: {
+        fileId: 48,
+        mediaType: "image",
+        uploadRequired: true,
+        sessionId: 105,
+        uploadTargets: {
+          original: { uploadUrl: "https://oss.example.com/original" },
+          high: { uploadUrl: "https://oss.example.com/high" },
+          medium: { uploadUrl: "https://oss.example.com/medium" },
+          low: { uploadUrl: "https://oss.example.com/low" },
+        },
+      },
+    });
+    completeUploadMock.mockResolvedValue({ success: true });
+    vi.mocked(globalThis.fetch).mockImplementation(async (url) => {
+      const quality = String(url).split("/").at(-1)!;
+      uploadOrder.push(quality);
+      if (quality === "low") {
+        return await new Promise<Response>((resolve) => {
+          resolveLowUpload = resolve;
+        });
+      }
+      if (quality === "medium") {
+        return { ok: false, status: 400 } as Response;
+      }
+      if (quality === "high") {
+        return await new Promise<Response>((resolve) => {
+          resolveHighUpload = resolve;
+        });
+      }
+      return { ok: true, status: 200 } as Response;
+    });
+
+    const result = await uploadGeneratedMediaFiles({
+      original,
+      mediaType: "image",
+      hasNovelAiMetadata: false,
+      metadata: {},
+      filesByQuality: { original, low, medium, high },
+    }, {
+      completeAfterPrimaryQuality: true,
+      retryPolicy: { baseDelayMs: 0, jitter: false, maxAttempts: 1 },
+    });
+
+    expect(result.pendingQualities).toEqual(["low", "medium", "high"]);
+    await vi.waitFor(() => expect(uploadOrder).toEqual(["original", "low"]));
+
+    resolveLowUpload({ ok: true, status: 200 } as Response);
+    await vi.waitFor(() => expect(uploadOrder).toEqual(["original", "low", "medium", "high"]));
+    expect(completeUploadMock).toHaveBeenCalledTimes(1);
+
+    resolveHighUpload({ ok: true, status: 200 } as Response);
+    await vi.waitFor(() => expect(completeUploadMock).toHaveBeenCalledTimes(2));
+    expect(completeUploadMock).toHaveBeenNthCalledWith(2, 105, expect.objectContaining({
+      availableQualities: ["original", "low", "high"],
+      pendingQualities: [],
+      failedQualities: ["medium"],
+      degraded: true,
+      failedTargets: [expect.objectContaining({ quality: "medium", retryable: false })],
+    }));
+  });
+
+  it("浏览器缺少 idle callback 时等待短延迟再启动后台派生上传", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("requestIdleCallback", undefined);
+    const original = new File(["original"], "original.webp", { type: "image/webp" });
+    const low = new File(["low"], "low.webp", { type: "image/webp" });
+    prepareUploadMock.mockResolvedValueOnce({
+      success: true,
+      data: {
+        fileId: 49,
+        mediaType: "image",
+        uploadRequired: true,
+        sessionId: 106,
+        uploadTargets: {
+          original: { uploadUrl: "https://oss.example.com/original" },
+          low: { uploadUrl: "https://oss.example.com/low" },
+        },
+      },
+    });
+    completeUploadMock.mockResolvedValue({ success: true });
+
+    await uploadGeneratedMediaFiles({
+      original,
+      mediaType: "image",
+      hasNovelAiMetadata: false,
+      metadata: {},
+      filesByQuality: { original, low },
+    }, { completeAfterPrimaryQuality: true });
+
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(199);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    await vi.waitFor(() => expect(completeUploadMock).toHaveBeenCalledTimes(2));
+  });
+
+  it("idle callback 长时间未触发时会在最大等待时间启动后台派生上传", async () => {
+    vi.useFakeTimers();
+    const requestIdleCallback = vi.fn(() => 17);
+    vi.stubGlobal("requestIdleCallback", requestIdleCallback);
+    vi.stubGlobal("cancelIdleCallback", vi.fn());
+    const original = new File(["original"], "original.webp", { type: "image/webp" });
+    const low = new File(["low"], "low.webp", { type: "image/webp" });
+    prepareUploadMock.mockResolvedValueOnce({
+      success: true,
+      data: {
+        fileId: 50,
+        mediaType: "image",
+        uploadRequired: true,
+        sessionId: 107,
+        uploadTargets: {
+          original: { uploadUrl: "https://oss.example.com/original" },
+          low: { uploadUrl: "https://oss.example.com/low" },
+        },
+      },
+    });
+    completeUploadMock.mockResolvedValue({ success: true });
+
+    await uploadGeneratedMediaFiles({
+      original,
+      mediaType: "image",
+      hasNovelAiMetadata: false,
+      metadata: {},
+      filesByQuality: { original, low },
+    }, { completeAfterPrimaryQuality: true });
+
+    expect(requestIdleCallback).toHaveBeenCalledWith(expect.any(Function), { timeout: 1500 });
+    await vi.advanceTimersByTimeAsync(1499);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    await vi.waitFor(() => expect(completeUploadMock).toHaveBeenCalledTimes(2));
   });
 
   it("派生 target 重试耗尽后会降级完成并上报 pending quality", async () => {

@@ -17,31 +17,6 @@ type MediaUploadTarget = {
   uploadHeaders?: OssUploadHeaders;
 };
 
-type MediaPrepareUploadResponse = {
-  uploadRequired?: boolean;
-  fileId?: number;
-  mediaType?: MediaType;
-  status?: string;
-  sessionId?: number;
-  uploadTargets?: Record<string, MediaUploadTarget>;
-};
-
-type MediaCompleteUploadResponse = {
-  fileId?: number;
-  mediaType?: MediaType;
-  status?: string;
-  availableQualities?: string[];
-  pendingQualities?: string[];
-  failedQualities?: string[];
-  degraded?: boolean;
-};
-
-type ApiResult<T> = {
-  success?: boolean;
-  errMsg?: string;
-  data?: T;
-};
-
 export type GeneratedMediaUploadFiles = {
   original: File;
   mediaType: MediaType;
@@ -55,6 +30,7 @@ export type UploadedMediaFile = {
   fileId: number;
   mediaType: MediaType;
   uploadRequired: boolean;
+  ensurePrimaryCompletion?: () => Promise<void>;
   availableQualities?: string[];
   pendingQualities?: string[];
   failedQualities?: string[];
@@ -64,6 +40,7 @@ export type UploadedMediaFile = {
 
 export type UploadMediaFileOptions = {
   completeAfterPrimaryQuality?: boolean;
+  deferPrimaryCompletion?: boolean;
   retryPolicy?: Partial<UploadTargetRetryPolicy>;
   scene?: number;
   signal?: AbortSignal;
@@ -113,6 +90,10 @@ const DEFAULT_UPLOAD_TARGET_RETRY_POLICY: UploadTargetRetryPolicy = {
   maxDelayMs: 3000,
   jitter: true,
 };
+const DERIVATIVE_UPLOAD_IDLE_DELAY_MS = 200;
+const DERIVATIVE_UPLOAD_MAX_WAIT_MS = 1500;
+const DERIVATIVE_UPLOAD_QUALITY_ORDER = ["low", "medium", "high"] as const;
+let derivativeUploadQueue: Promise<void> = Promise.resolve();
 type ImageMediaProfile = (typeof MEDIA_COMPRESSION_PROFILES.image)[keyof typeof MEDIA_COMPRESSION_PROFILES.image];
 type RasterizeImageWorkerResponse = {
   blob?: Blob;
@@ -469,6 +450,9 @@ export async function generateOriginalFirstImageUploadFiles(file: File, _scene?:
   if (original.size > MEDIA_COMPRESSION_PROFILES.image.medium.maxSizeKB * 1024) {
     deferredFilesByQuality.medium = async () => await buildImageVariantFile(original, "medium", MEDIA_COMPRESSION_PROFILES.image.medium);
   }
+  if (original.size > MEDIA_COMPRESSION_PROFILES.image.high.maxSizeKB * 1024) {
+    deferredFilesByQuality.high = async () => await buildImageVariantFile(original, "high", MEDIA_COMPRESSION_PROFILES.image.high);
+  }
   const uploadedQualities = ["original", ...Object.keys(deferredFilesByQuality)];
 
   return {
@@ -648,7 +632,7 @@ export async function uploadGeneratedMediaFiles(payload: GeneratedMediaUploadFil
   if (!prepared.uploadRequired) {
     return {
       fileId: prepared.fileId!,
-      mediaType: prepared.mediaType!,
+      mediaType: payload.mediaType,
       uploadRequired: false,
       degraded: false,
     };
@@ -674,7 +658,9 @@ export async function uploadGeneratedMediaFiles(payload: GeneratedMediaUploadFil
   availableQualities.push(primaryQuality);
 
   if (options.completeAfterPrimaryQuality) {
-    const derivativeEntries = targetEntries.filter(([quality]) => quality !== primaryQuality);
+    const derivativeEntries = sortDerivativeUploadEntries(
+      targetEntries.filter(([quality]) => quality !== primaryQuality),
+    );
     const derivativeQualities = derivativeEntries.map(([quality]) => quality);
     const primaryCompleteRequest: MediaCompleteUploadRequest = {
       availableQualities,
@@ -683,6 +669,37 @@ export async function uploadGeneratedMediaFiles(payload: GeneratedMediaUploadFil
       degraded: derivativeQualities.length > 0,
       failedTargets: [],
     };
+    let primaryCompletionPromise: Promise<void> | undefined;
+    const ensurePrimaryCompletion = options.deferPrimaryCompletion
+      ? () => {
+          primaryCompletionPromise ??= completeMediaUpload(prepared.sessionId!, primaryCompleteRequest, options.signal)
+            .then(() => undefined);
+          return primaryCompletionPromise;
+        }
+      : undefined;
+    if (ensurePrimaryCompletion) {
+      uploadDerivativeTargetsInBackground({
+        availableQualities: [...availableQualities],
+        completeSessionId: prepared.sessionId,
+        entries: derivativeEntries,
+        payload,
+        retryPolicy,
+        ensurePrimaryCompletion,
+      });
+
+      return {
+        fileId: prepared.fileId!,
+        mediaType: payload.mediaType,
+        uploadRequired: true,
+        ensurePrimaryCompletion,
+        availableQualities: primaryCompleteRequest.availableQualities,
+        pendingQualities: primaryCompleteRequest.pendingQualities,
+        failedQualities: [],
+        degraded: primaryCompleteRequest.degraded,
+        failedTargets: [],
+      };
+    }
+
     const completeResponse = await completeMediaUpload(prepared.sessionId, primaryCompleteRequest, options.signal);
     uploadDerivativeTargetsInBackground({
       availableQualities: [...availableQualities],
@@ -694,7 +711,7 @@ export async function uploadGeneratedMediaFiles(payload: GeneratedMediaUploadFil
 
     return {
       fileId: prepared.fileId!,
-      mediaType: prepared.mediaType!,
+      mediaType: payload.mediaType,
       uploadRequired: true,
       availableQualities: completeResponse.availableQualities ?? primaryCompleteRequest.availableQualities,
       pendingQualities: completeResponse.pendingQualities ?? primaryCompleteRequest.pendingQualities,
@@ -743,7 +760,7 @@ export async function uploadGeneratedMediaFiles(payload: GeneratedMediaUploadFil
 
   return {
     fileId: prepared.fileId!,
-    mediaType: prepared.mediaType!,
+    mediaType: payload.mediaType,
     uploadRequired: true,
     availableQualities: completeResponse.availableQualities ?? availableQualities,
     pendingQualities: completeResponse.pendingQualities ?? pendingQualities,
@@ -759,41 +776,47 @@ function uploadDerivativeTargetsInBackground({
   entries,
   payload,
   retryPolicy,
+  ensurePrimaryCompletion,
 }: {
   availableQualities: string[];
   completeSessionId: number;
   entries: Array<[string, MediaUploadTarget]>;
   payload: GeneratedMediaUploadFiles;
   retryPolicy: UploadTargetRetryPolicy;
+  ensurePrimaryCompletion?: () => Promise<void>;
 }) {
   if (entries.length === 0) {
     return;
   }
 
   void (async () => {
-    const derivativeResults = await Promise.all(entries.map(async ([quality, target]) => {
-      try {
-        return await uploadDerivativeTarget({
-          file: await resolveDerivativeUploadFile(payload, quality as MediaQuality),
-          quality,
-          retryPolicy,
-          target,
-        });
-      }
-      catch (error) {
-        const uploadError = normalizeUploadTargetError(error);
-        return {
-          status: "failed" as const,
-          quality,
-          failedTarget: {
+    const derivativeResults: Awaited<ReturnType<typeof uploadDerivativeTarget>>[] = [];
+    for (const [quality, target] of sortDerivativeUploadEntries(entries)) {
+      const result = await enqueueDerivativeUploadTask(async () => {
+        try {
+          return await uploadDerivativeTarget({
+            file: await resolveDerivativeUploadFile(payload, quality as MediaQuality),
             quality,
-            error: uploadError.message,
-            retryable: uploadError.retryable,
-            credentialExpired: uploadError.credentialExpired || undefined,
-          },
-        };
-      }
-    }));
+            retryPolicy,
+            target,
+          });
+        }
+        catch (error) {
+          const uploadError = normalizeUploadTargetError(error);
+          return {
+            status: "failed" as const,
+            quality,
+            failedTarget: {
+              quality,
+              error: uploadError.message,
+              retryable: uploadError.retryable,
+              credentialExpired: uploadError.credentialExpired || undefined,
+            },
+          };
+        }
+      });
+      derivativeResults.push(result);
+    }
     const nextAvailableQualities = [...availableQualities];
     const pendingQualities: string[] = [];
     const failedQualities: string[] = [];
@@ -816,6 +839,7 @@ function uploadDerivativeTargetsInBackground({
       }
     }
 
+    await ensurePrimaryCompletion?.();
     await completeMediaUpload(completeSessionId, {
       availableQualities: nextAvailableQualities,
       pendingQualities,
@@ -825,6 +849,51 @@ function uploadDerivativeTargetsInBackground({
     });
   })().catch((error) => {
     console.warn("[媒体上传] 派生文件后台上传失败", error);
+  });
+}
+
+function sortDerivativeUploadEntries(entries: Array<[string, MediaUploadTarget]>) {
+  const qualityPriority = new Map<string, number>(
+    DERIVATIVE_UPLOAD_QUALITY_ORDER.map((quality, index) => [quality, index]),
+  );
+  return entries.toSorted(([leftQuality], [rightQuality]) =>
+    (qualityPriority.get(leftQuality) ?? Number.MAX_SAFE_INTEGER)
+    - (qualityPriority.get(rightQuality) ?? Number.MAX_SAFE_INTEGER));
+}
+
+function enqueueDerivativeUploadTask<T>(task: () => Promise<T>): Promise<T> {
+  const result = derivativeUploadQueue.then(async () => {
+    await waitForLowPriorityUploadTurn();
+    return await task();
+  });
+  derivativeUploadQueue = result.then(() => undefined, () => undefined);
+  return result;
+}
+
+async function waitForLowPriorityUploadTurn(): Promise<void> {
+  if (typeof globalThis.requestIdleCallback !== "function") {
+    await new Promise<void>(resolve => setTimeout(resolve, DERIVATIVE_UPLOAD_IDLE_DELAY_MS));
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    let settled = false;
+    let idleCallbackId: number | undefined;
+    const finish = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(maxWaitTimer);
+      if (idleCallbackId !== undefined && typeof globalThis.cancelIdleCallback === "function") {
+        globalThis.cancelIdleCallback(idleCallbackId);
+      }
+      resolve();
+    };
+    const maxWaitTimer = setTimeout(finish, DERIVATIVE_UPLOAD_MAX_WAIT_MS);
+    idleCallbackId = globalThis.requestIdleCallback(finish, {
+      timeout: DERIVATIVE_UPLOAD_MAX_WAIT_MS,
+    });
   });
 }
 
@@ -1023,20 +1092,15 @@ function isAbortError(error: unknown): boolean {
 
 async function prepareMediaUpload(payload: GeneratedMediaUploadFiles, options: UploadMediaFileOptions = {}) {
   throwIfUploadAborted(options.signal);
-  const result = await tuanchat.request.request<ApiResult<MediaPrepareUploadResponse>>({
-    method: "POST",
-    url: "/media/prepare-upload",
-    body: {
-      fileName: payload.original.name,
-      scene: options.scene,
-      sha256: await calculateFileSha256(payload.original),
-      sizeBytes: payload.original.size,
-      mimeType: normalizeMimeType(payload.original.type) || "application/octet-stream",
-      contentType: normalizeMimeType(payload.original.type) || "application/octet-stream",
-      hasNovelAiMetadata: payload.hasNovelAiMetadata,
-      metadata: payload.metadata,
-    },
-    mediaType: "application/json",
+  const result = await tuanchat.mediaController.prepareUpload({
+    fileName: payload.original.name,
+    scene: options.scene,
+    sha256: await calculateFileSha256(payload.original),
+    sizeBytes: payload.original.size,
+    mimeType: normalizeMimeType(payload.original.type) || "application/octet-stream",
+    contentType: normalizeMimeType(payload.original.type) || "application/octet-stream",
+    hasNovelAiMetadata: payload.hasNovelAiMetadata,
+    metadata: payload.metadata,
   });
   throwIfUploadAborted(options.signal);
   if (!result.success || !result.data?.fileId || !result.data.mediaType) {
@@ -1047,12 +1111,7 @@ async function prepareMediaUpload(payload: GeneratedMediaUploadFiles, options: U
 
 async function completeMediaUpload(sessionId: number, request: MediaCompleteUploadRequest, signal?: AbortSignal) {
   throwIfUploadAborted(signal);
-  const result = await tuanchat.request.request<ApiResult<MediaCompleteUploadResponse>>({
-    method: "POST",
-    url: `/media/upload-sessions/${sessionId}/complete`,
-    body: request,
-    mediaType: "application/json",
-  });
+  const result = await tuanchat.mediaController.completeUpload(sessionId, request);
   throwIfUploadAborted(signal);
   if (!result.success) {
     throw new Error(result.errMsg || "完成媒体上传失败");
@@ -1062,7 +1121,9 @@ async function completeMediaUpload(sessionId: number, request: MediaCompleteUplo
 
 export async function uploadMediaFile(file: File, options: UploadMediaFileOptions = {}): Promise<UploadedMediaFile> {
   throwIfUploadAborted(options.signal);
-  const payload = await generateMediaUploadFiles(file, options.scene);
+  const payload = options.completeAfterPrimaryQuality && inferMediaType(file) === "image"
+    ? await generateOriginalFirstImageUploadFiles(file, options.scene)
+    : await generateMediaUploadFiles(file, options.scene);
   throwIfUploadAborted(options.signal);
   return await uploadGeneratedMediaFiles(payload, options);
 }

@@ -1,8 +1,10 @@
 import { createFileRoute, useLocation, useRouter } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 import { LoginBrandIntro } from "@/components/auth/LoginBrandIntro";
 import { LoginPageAuthPanel } from "@/components/auth/LoginModal";
 import { normalizeAuthRedirectPath } from "@/utils/auth/redirect";
+import { reportLoginEasterEggAnalytics } from "@/utils/loginEasterEggAnalytics";
 import { createSeoMeta } from "@/utils/seo";
 
 export function meta() {
@@ -27,6 +29,10 @@ function LoginPage() {
   const searchParams = new URLSearchParams(location.searchStr);
   const redirect = normalizeAuthRedirectPath(searchParams.get("redirect"));
   const isMobileAuth = searchParams.get("from") === "mobile";
+
+  useEffect(() => {
+    void reportLoginEasterEggAnalytics("login_page_view");
+  }, []);
 
   return (
     <main className="h-[100dvh] min-h-screen overflow-y-auto bg-base-200 px-4 py-10 text-base-content sm:px-6">

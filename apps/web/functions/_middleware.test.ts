@@ -4,9 +4,12 @@ import { onRequest } from "./_middleware";
 
 type FetchHandler = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
-function createContext(request: Request) {
+function createContext(
+  request: Request,
+  env: Parameters<typeof onRequest>[0]["env"] = {},
+) {
   return {
-    env: {},
+    env,
     next: vi.fn(async () => new Response("next", { status: 200 })),
     request,
   };
@@ -91,5 +94,65 @@ describe("cloudflare Pages middleware", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[0]![0]).toBe(sourceUrl);
     expect(fetchMock.mock.calls[1]![0]).toBe("https://origin.tuan.chat/media/v1/files/584/30584/image/medium.webp");
+  });
+
+  it("登录页事件会写入匿名独立访客指标", async () => {
+    const writeDataPoint = vi.fn();
+    const env = {
+      TUANCHAT_ANALYTICS_FINGERPRINT_SALT: "test-fingerprint-salt",
+      TUANCHAT_PRODUCT_ANALYTICS: { writeDataPoint },
+    };
+    const headers = {
+      "cf-connecting-ip": "203.0.113.8",
+      "origin": "https://tuan.chat",
+      "user-agent": "vitest-browser",
+    };
+
+    const pageViewResponse = await onRequest(createContext(new Request(
+      "https://tuan.chat/_analytics/login-page-view",
+      { method: "POST", headers },
+    ), env));
+    const discoveryResponse = await onRequest(createContext(new Request(
+      "https://tuan.chat/_analytics/login-easter-egg-discovered",
+      { method: "POST", headers },
+    ), env));
+
+    expect(pageViewResponse.status).toBe(204);
+    expect(discoveryResponse.status).toBe(204);
+    expect(writeDataPoint).toHaveBeenCalledTimes(2);
+    const pageViewPoint = writeDataPoint.mock.calls[0]![0];
+    const discoveryPoint = writeDataPoint.mock.calls[1]![0];
+    expect(pageViewPoint.indexes[0]).toHaveLength(64);
+    expect(discoveryPoint.indexes[0]).toBe(pageViewPoint.indexes[0]);
+    expect(pageViewPoint.blobs).toEqual(["login_page_view", "production", "tuan.chat", "/login", "v1"]);
+    expect(discoveryPoint.blobs).toEqual([
+      "login_easter_egg_discovered",
+      "production",
+      "tuan.chat",
+      "/login",
+      "v1",
+    ]);
+    expect(discoveryPoint.doubles).toEqual([4]);
+  });
+
+  it("登录页事件拒绝跨站请求", async () => {
+    const writeDataPoint = vi.fn();
+    const response = await onRequest(createContext(new Request(
+      "https://tuan.chat/_analytics/login-page-view",
+      {
+        method: "POST",
+        headers: {
+          "cf-connecting-ip": "203.0.113.8",
+          "origin": "https://evil.example",
+          "user-agent": "vitest-browser",
+        },
+      },
+    ), {
+      TUANCHAT_ANALYTICS_FINGERPRINT_SALT: "test-fingerprint-salt",
+      TUANCHAT_PRODUCT_ANALYTICS: { writeDataPoint },
+    }));
+
+    expect(response.status).toBe(403);
+    expect(writeDataPoint).not.toHaveBeenCalled();
   });
 });

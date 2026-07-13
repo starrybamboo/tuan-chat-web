@@ -1,8 +1,11 @@
+import { invalidateRoleMetadataBatchQueries } from "@tuanchat/query/metadata";
+
 type QueryInvalidator = {
   invalidateQueries: (options: { queryKey: readonly unknown[] }) => unknown;
 };
 
 export function invalidateUserRoleListQueries(queryClient: QueryInvalidator) {
+  invalidateRoleMetadataBatchQueries(queryClient);
   queryClient.invalidateQueries({ queryKey: ["getUserRolesByType"] });
   queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
   queryClient.invalidateQueries({ queryKey: ["getRole"] });

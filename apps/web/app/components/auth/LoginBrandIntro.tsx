@@ -1,9 +1,12 @@
 import { AnimatePresence, motion, useAnimationControls, useReducedMotion } from "motion/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
+
+import { reportLoginEasterEggAnalytics } from "@/utils/loginEasterEggAnalytics";
 
 const TITLE_CHARACTERS = ["团", "剧", "共", "创"] as const;
 const SUBTITLE_DELAY_SECONDS = 0.86;
 const TRAILING_ALIGNMENT_PUNCTUATION = /([！!]+)$/;
+const EASTER_EGG_DISCOVERY_CLICK_COUNT = 4;
 
 // 立绘图片。只保留开心状态，避免出现无语或生气表情。
 const BRAND_IMAGE = {
@@ -66,6 +69,7 @@ export function LoginBrandIntro() {
   const reduceMotion = useReducedMotion();
   const clickControls = useAnimationControls();
   const [clickCount, setClickCount] = useState(0);
+  const clickCountRef = useRef(0);
 
   const beat = resolveStoryBeat(clickCount);
   const subtitle = beat.line;
@@ -74,7 +78,13 @@ export function LoginBrandIntro() {
 
   const handleClick = () => {
     // 故事单向推进，走到她「走了」即结束，不再重新召唤。
-    setClickCount(current => Math.min(current + 1, STORY_LAST_AT));
+    const nextClickCount = Math.min(clickCountRef.current + 1, STORY_LAST_AT);
+    clickCountRef.current = nextClickCount;
+    setClickCount(nextClickCount);
+
+    if (nextClickCount === EASTER_EGG_DISCOVERY_CLICK_COUNT) {
+      void reportLoginEasterEggAnalytics("login_easter_egg_discovered");
+    }
 
     if (reduceMotion) {
       return;

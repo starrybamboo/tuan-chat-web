@@ -216,6 +216,24 @@ describe("uploadUtils media service adapter", () => {
     });
   });
 
+  it("角色图片入口启用原图优先上传，让派生质量进入后台队列", async () => {
+    const utils = new UploadUtils();
+    const file = new File([new Uint8Array([1, 2, 3, 4])], "role.png", { type: "image/png" });
+    const uploadMediaFileMock = uploadMediaFile as ReturnType<typeof vi.fn>;
+    uploadMediaFileMock.mockResolvedValueOnce({
+      fileId: 51,
+      mediaType: "image",
+      uploadRequired: true,
+    });
+
+    await utils.uploadImageAsset(file, 3);
+
+    expect(uploadMediaFileMock).toHaveBeenCalledWith(file, {
+      scene: 3,
+      completeAfterPrimaryQuality: true,
+    });
+  });
+
   it("图片上传通过媒体服务返回可用中档位地址", async () => {
     const utils = new UploadUtils();
     const file = new File([new Uint8Array([1, 2, 3, 4])], "same.png", { type: "image/png" });
