@@ -478,7 +478,7 @@ function ForwardWindow({
               清空
             </Button>
             <Button
-              variant="info"
+              variant="primary"
               size="sm"
               className="min-w-32"
               loading={isForwarding}

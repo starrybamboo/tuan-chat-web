@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 
 import { useEffect, useMemo, useState } from "react";
-import { Animated, Dimensions, Modal, PanResponder, Pressable, StyleSheet, View } from "react-native";
+import { Animated, Modal, PanResponder, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Radius, Spacing } from "@/constants/theme";
@@ -37,10 +37,6 @@ const styles = StyleSheet.create({
   },
 });
 
-function getScreenHeight() {
-  return Dimensions.get("window").height;
-}
-
 export type BottomSheetModalProps = {
   backgroundColor: string;
   children: ReactNode;
@@ -51,12 +47,12 @@ export type BottomSheetModalProps = {
   visible: boolean;
 };
 
-function resolveMaxHeight(maxHeight: number | `${number}%`): number {
+export function resolveBottomSheetMaxHeight(maxHeight: number | `${number}%`, windowHeight: number): number {
   if (typeof maxHeight === "number") {
     return maxHeight;
   }
   const percent = Number.parseFloat(maxHeight);
-  return (percent / 100) * getScreenHeight();
+  return (percent / 100) * windowHeight;
 }
 
 export function BottomSheetModal({
@@ -69,10 +65,11 @@ export function BottomSheetModal({
   visible,
 }: BottomSheetModalProps) {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const [modalVisible, setModalVisible] = useState(visible);
   const [backdropOpacity] = useState(() => new Animated.Value(0));
-  const [sheetTranslateY] = useState(() => new Animated.Value(getScreenHeight()));
-  const resolvedMaxHeight = resolveMaxHeight(maxHeight);
+  const [sheetTranslateY] = useState(() => new Animated.Value(windowHeight));
+  const resolvedMaxHeight = resolveBottomSheetMaxHeight(maxHeight, windowHeight);
 
   const panResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -103,7 +100,7 @@ export function BottomSheetModal({
       queueMicrotask(() => setModalVisible(true));
       backdropOpacity.stopAnimation();
       sheetTranslateY.stopAnimation();
-      sheetTranslateY.setValue(getScreenHeight());
+      sheetTranslateY.setValue(windowHeight);
 
       Animated.parallel([
         Animated.timing(backdropOpacity, {
@@ -136,7 +133,7 @@ export function BottomSheetModal({
       }),
       Animated.timing(sheetTranslateY, {
         duration: EXIT_SHEET_DURATION_MS,
-        toValue: getScreenHeight(),
+        toValue: windowHeight,
         useNativeDriver: true,
       }),
     ]).start(({ finished }) => {
@@ -144,7 +141,7 @@ export function BottomSheetModal({
         setModalVisible(false);
       }
     });
-  }, [backdropOpacity, modalVisible, sheetTranslateY, visible]);
+  }, [backdropOpacity, modalVisible, sheetTranslateY, visible, windowHeight]);
 
   if (!modalVisible) {
     return null;

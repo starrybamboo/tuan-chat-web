@@ -51,7 +51,7 @@ export function createLoginEasterEggAnalyticsReporter(
         credentials: "same-origin",
         keepalive: true,
       });
-      return response.ok;
+      return response.status === 204;
     }
     catch {
       return false;

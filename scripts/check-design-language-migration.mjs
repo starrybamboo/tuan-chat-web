@@ -20,19 +20,6 @@ const allowedIntrinsicFiles = new Set([
 ]);
 
 const allowedLegacyClassLabels = new Map([
-  ["apps/web/app/components/common/Button.tsx", new Set(["旧 Button class"])],
-  ["apps/web/app/components/common/Avatar.tsx", new Set(["旧 Avatar class"])],
-  ["apps/web/app/components/common/DialogFrame.tsx", new Set(["旧 Modal class"])],
-  [
-    "apps/web/app/components/common/FormField.tsx",
-    new Set([
-      "旧 Checkbox class",
-      "旧 Radio class",
-      "旧 Toggle class",
-      "旧 Range class",
-      "旧 FileInput class",
-    ]),
-  ],
   ["apps/web/app/components/common/MediaFrame.tsx", new Set(["绕过 UploadDropZone 原语"])],
   [
     "apps/web/app/components/common/MenuPopover.tsx",
@@ -42,7 +29,6 @@ const allowedLegacyClassLabels = new Map([
   [
     "apps/web/app/components/common/StatusPrimitives.tsx",
     new Set([
-      "旧 Progress class",
       "绕过 Badge 原语",
       "绕过 Skeleton 原语",
       "绕过 Divider 原语",

@@ -203,7 +203,7 @@ export default function NewFriendsPanel() {
                           onChange={e => setVerifyMsg(e.target.value)}
                         />
                         <Button
-                          variant="info"
+                          variant="primary"
                           size="xs"
                           disabled={
                             sendFriendRequestMutation.isPending
@@ -307,7 +307,7 @@ export default function NewFriendsPanel() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
-                          variant="info"
+                          variant="primary"
                           size="xs"
                           disabled={acceptFriendRequestMutation.isPending || !req.id}
                           onClick={() => req.id && acceptFriendRequestMutation.mutate({ friendReqId: req.id })}

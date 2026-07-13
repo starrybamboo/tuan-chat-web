@@ -351,6 +351,24 @@ export function Divider({
   );
 }
 
+const PROGRESS_TONE_CLASS: Record<Exclude<StatusTone, "neutral">, string> = {
+  info: "text-info",
+  success: "text-success",
+  warning: "text-warning",
+  error: "text-error",
+};
+
+/** 生成进度条的统一语义色与项目原语类。 */
+export function progressBarClassName({
+  tone = "info",
+  className = "",
+}: {
+  tone?: Exclude<StatusTone, "neutral">;
+  className?: string;
+} = {}) {
+  return ["tc-progress", PROGRESS_TONE_CLASS[tone], className].filter(Boolean).join(" ");
+}
+
 /** 统一确定进度与不确定进度，并提供可访问标签。 */
 export function ProgressBar({
   value,
@@ -365,16 +383,9 @@ export function ProgressBar({
   tone?: Exclude<StatusTone, "neutral">;
   className?: string;
 }) {
-  const toneClass = {
-    info: "progress-info",
-    success: "progress-success",
-    warning: "progress-warning",
-    error: "progress-error",
-  }[tone];
-
   return (
     <progress
-      className={`progress tc-progress ${toneClass} ${className}`}
+      className={progressBarClassName({ tone, className })}
       value={value}
       max={max}
       aria-label={label}

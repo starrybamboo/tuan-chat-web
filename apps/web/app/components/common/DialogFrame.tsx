@@ -47,8 +47,9 @@ export function dialogLayerClassName(mode: DialogFrameMode, rootClassName = "") 
   const hasCustomLayerPosition = /(?:^|\s)(?:absolute|fixed|sticky)(?:\s|$)/.test(rootClassName);
 
   return [
-    "modal",
-    mode === "inline" ? "modal-open" : "",
+    "tc-dialog-root",
+    `tc-dialog-${mode}`,
+    mode === "inline" ? "tc-dialog-open" : "",
     hasCustomLayerPosition ? "" : "tc-dialog-layer",
     rootClassName,
   ].filter(Boolean).join(" ");
@@ -56,7 +57,7 @@ export function dialogLayerClassName(mode: DialogFrameMode, rootClassName = "") 
 
 /**
  * 统一弹窗外壳：集中处理遮罩、Esc、aria 与动效。
- * `native` 保留原生 dialog 能力，`inline` 适配 Portal/历史 daisyUI 弹窗。
+ * `native` 保留原生 dialog 能力，`inline` 适配 Portal 弹窗。
  */
 export function DialogFrame({
   open,
@@ -174,7 +175,7 @@ export function DialogFrame({
           {open && panel}
         </AnimatePresence>
         {closeOnOverlayClick && (
-          <form method="dialog" className="modal-backdrop">
+          <form method="dialog" className="tc-dialog-backdrop">
             <button type="submit" aria-label={closeButtonLabel}>close</button>
           </form>
         )}
@@ -197,7 +198,7 @@ export function DialogFrame({
           {closeOnOverlayClick && (
             <button
               type="button"
-              className="modal-backdrop"
+              className="tc-dialog-backdrop"
               onClick={onClose}
               aria-label={closeButtonLabel}
             />

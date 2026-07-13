@@ -166,7 +166,8 @@ export default function ChatMessageSearchPage({
                   </Text>
                   <div className="flex items-center gap-1">
                     <Button
-                      variant={order === "newest" ? "info" : "ghost"}
+                      variant="ghost"
+                      aria-pressed={order === "newest"}
                       size="xs"
                       className="gap-1"
                       aria-pressed={order === "newest"}
@@ -176,7 +177,8 @@ export default function ChatMessageSearchPage({
                       最新
                     </Button>
                     <Button
-                      variant={order === "oldest" ? "info" : "ghost"}
+                      variant="ghost"
+                      aria-pressed={order === "oldest"}
                       size="xs"
                       className="gap-1"
                       aria-pressed={order === "oldest"}

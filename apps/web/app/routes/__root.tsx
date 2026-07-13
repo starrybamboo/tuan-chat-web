@@ -1,5 +1,5 @@
-import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { WarningCircleIcon } from "@phosphor-icons/react";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { createRootRoute, HeadContent, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   AnimatePresence,
@@ -118,7 +118,7 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
 const isTestBuild = import.meta.env.MODE === "test";
 const isDevBuild = import.meta.env.DEV;
 const shouldEnableReactScan
-  = typeof window !== "undefined" && import.meta.env.VITE_ENABLE_REACT_SCAN === "true";
+  = typeof window !== "undefined" && (isDevBuild || isTestBuild);
 if (shouldEnableReactScan) {
   void import("react-scan")
     .then(({ scan }) => {

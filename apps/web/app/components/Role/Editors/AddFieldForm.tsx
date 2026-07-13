@@ -219,7 +219,7 @@ export default function AddFieldForm({
     : isSubmitError
       ? "error"
       : canAdd || isSubmitting
-        ? "info"
+        ? "primary"
         : "ghost";
   const tileSubmitButtonStateClassName = isSubmitSaved
     ? "shadow-sm shadow-success/20"

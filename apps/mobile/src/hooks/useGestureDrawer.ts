@@ -1,4 +1,5 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
+import { useWindowDimensions } from "react-native";
 import { Gesture } from "react-native-gesture-handler";
 import {
   cancelAnimation,
@@ -8,7 +9,7 @@ import {
 } from "react-native-reanimated";
 
 import { clamp, snapPoint, SPRING_CONFIG } from "@/lib/animations";
-import { RIGHT_DRAWER_WIDTH } from "@/lib/layout-constants";
+import { resolveRightDrawerWidth } from "@/lib/layout-constants";
 
 import {
   getGestureDrawerAxisConfig,
@@ -17,10 +18,12 @@ import {
 } from "./useGestureDrawerConfig";
 
 export function useGestureDrawer() {
+  const { width: windowWidth } = useWindowDimensions();
+  const rightDrawerWidth = resolveRightDrawerWidth(windowWidth);
   const translateX = useSharedValue(0);
   const context = useSharedValue(0);
   const axisConfig = getGestureDrawerAxisConfig();
-  const snapPoints = getRightDrawerSnapPoints(RIGHT_DRAWER_WIDTH);
+  const snapPoints = getRightDrawerSnapPoints(rightDrawerWidth);
 
   const panGesture = Gesture.Pan()
     .activeOffsetX(axisConfig.activeOffsetX)
@@ -29,7 +32,7 @@ export function useGestureDrawer() {
       context.set(translateX.get());
     })
     .onUpdate((e) => {
-      const range = getRightDrawerClampRange(RIGHT_DRAWER_WIDTH);
+      const range = getRightDrawerClampRange(rightDrawerWidth);
       translateX.set(clamp(
         context.get() + e.translationX,
         range.min,
@@ -47,25 +50,29 @@ export function useGestureDrawer() {
   }, [translateX]);
 
   const open = useCallback(() => {
-    translateX.set(withSpring(-RIGHT_DRAWER_WIDTH, SPRING_CONFIG));
-  }, [translateX]);
+    translateX.set(withSpring(-rightDrawerWidth, SPRING_CONFIG));
+  }, [rightDrawerWidth, translateX]);
 
   const closeImmediately = useCallback(() => {
     cancelAnimation(translateX);
     translateX.set(0);
   }, [translateX]);
 
+  useEffect(() => {
+    closeImmediately();
+  }, [closeImmediately, rightDrawerWidth]);
+
   const centerStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.get() }],
   }));
 
   const rightDrawerStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.get() + RIGHT_DRAWER_WIDTH }],
-  }));
+    transform: [{ translateX: translateX.get() + rightDrawerWidth }],
+  }), [rightDrawerWidth]);
 
   const overlayStyle = useAnimatedStyle(() => ({
-    opacity: Math.abs(translateX.get()) / RIGHT_DRAWER_WIDTH * 0.5,
-  }));
+    opacity: Math.abs(translateX.get()) / rightDrawerWidth * 0.5,
+  }), [rightDrawerWidth]);
 
   return {
     panGesture,
@@ -76,5 +83,6 @@ export function useGestureDrawer() {
     centerStyle,
     rightDrawerStyle,
     overlayStyle,
+    rightDrawerWidth,
   };
 }

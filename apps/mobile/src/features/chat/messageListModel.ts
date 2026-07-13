@@ -96,6 +96,10 @@ export function getVisibleMessageListSignature(messages: readonly ChatMessageLis
   }).join("|");
 }
 
+export function getInvertedMessageIndex(messages: readonly ChatMessageListItem[], messageId: number): number {
+  return messages.findIndex(item => item.message.messageId === messageId);
+}
+
 export function buildVisibleMessageMap(messages: readonly ChatMessageListItem[]): Map<number, Message> {
   const map = new Map<number, Message>();
   for (const item of messages) {

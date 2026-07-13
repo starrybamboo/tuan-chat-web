@@ -138,7 +138,7 @@ export default function MessageInput({ userId, currentContactUserId, replyMessag
             )}
             label="发送消息"
             tooltip="发送消息"
-            variant="info"
+            variant="primary"
             size="sm"
             shape="circle"
             onClick={handleSendMessage}
@@ -217,7 +217,7 @@ export default function MessageInput({ userId, currentContactUserId, replyMessag
           />
 
           <Button
-            variant="info"
+            variant="primary"
             size="sm"
             className="min-h-8 h-8 shrink-0"
             onClick={handleSendMessage}

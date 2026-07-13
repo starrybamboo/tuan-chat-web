@@ -249,7 +249,8 @@ export default function NumericalEditorSmall({
                 {entries.map(([key, value]) => (
                   <Button
                     key={key}
-                    variant={editingKey === key ? "info" : "outline"}
+                    variant="outline"
+                    aria-pressed={editingKey === key}
                     size="xs"
                     onClick={() => setEditingKey(prevKey => (prevKey === key ? null : key))}
                     className="min-h-5 rounded-full px-2 text-xs"

@@ -216,15 +216,15 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(funct
 export type ChoiceControlKind = "checkbox" | "radio" | "switch";
 
 const CHOICE_KIND_CLASS: Record<ChoiceControlKind, string> = {
-  checkbox: "checkbox checkbox-info rounded-sm",
-  radio: "radio radio-info",
-  switch: "toggle toggle-info",
+  checkbox: "tc-choice-control tc-checkbox",
+  radio: "tc-choice-control tc-radio",
+  switch: "tc-choice-control tc-switch",
 };
 
 const CHOICE_DENSITY_CLASS: Record<ChoiceControlKind, Record<InterfaceDensity, string>> = {
-  checkbox: { compact: "checkbox-sm", default: "checkbox-md" },
-  radio: { compact: "radio-sm", default: "radio-md" },
-  switch: { compact: "toggle-sm", default: "toggle-md" },
+  checkbox: { compact: "tc-choice-compact", default: "tc-choice-default" },
+  radio: { compact: "tc-choice-compact", default: "tc-choice-default" },
+  switch: { compact: "tc-choice-compact", default: "tc-choice-default" },
 };
 
 /** 生成复选框、单选框和开关的统一尺寸与状态类。 */
@@ -240,8 +240,6 @@ export function choiceControlClassName({
   return [
     CHOICE_KIND_CLASS[kind],
     CHOICE_DENSITY_CLASS[kind][density],
-    "shrink-0 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-info/20",
-    "disabled:cursor-not-allowed disabled:opacity-45",
     className ?? "",
   ].filter(Boolean).join(" ");
 }
@@ -255,12 +253,14 @@ export const Checkbox = forwardRef<HTMLInputElement, ChoiceControlProps>(functio
   { density = "default", className, ...rest },
   ref,
 ) {
+  const controlClasses = choiceControlClassName({ kind: "checkbox", density, className });
+
   return (
     <input
       {...rest}
       ref={ref}
       type="checkbox"
-      className={choiceControlClassName({ kind: "checkbox", density, className })}
+      className={controlClasses}
     />
   );
 });
@@ -270,12 +270,14 @@ export const Radio = forwardRef<HTMLInputElement, ChoiceControlProps>(function R
   { density = "default", className, ...rest },
   ref,
 ) {
+  const controlClasses = choiceControlClassName({ kind: "radio", density, className });
+
   return (
     <input
       {...rest}
       ref={ref}
       type="radio"
-      className={choiceControlClassName({ kind: "radio", density, className })}
+      className={controlClasses}
     />
   );
 });
@@ -300,6 +302,21 @@ export type RangeInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "size"
   density?: InterfaceDensity;
 };
 
+/** 生成滑杆的统一尺寸与状态类。 */
+export function rangeInputClassName({
+  density = "default",
+  className,
+}: {
+  density?: InterfaceDensity;
+  className?: string;
+} = {}) {
+  return [
+    "tc-range",
+    density === "compact" ? "tc-range-compact" : "tc-range-default",
+    className ?? "",
+  ].filter(Boolean).join(" ");
+}
+
 /** 统一滑杆的尺寸、焦点、进度色和禁用状态。 */
 export const RangeInput = forwardRef<HTMLInputElement, RangeInputProps>(function RangeInput(
   { density = "default", className, ...rest },
@@ -310,12 +327,7 @@ export const RangeInput = forwardRef<HTMLInputElement, RangeInputProps>(function
       {...rest}
       ref={ref}
       type="range"
-      className={[
-        "range range-info w-full focus:outline-none focus:ring-2 focus:ring-info/20",
-        "disabled:cursor-not-allowed disabled:opacity-45",
-        density === "compact" ? "range-xs" : "range-sm",
-        className ?? "",
-      ].filter(Boolean).join(" ")}
+      className={rangeInputClassName({ density, className })}
     />
   );
 });
@@ -323,6 +335,21 @@ export const RangeInput = forwardRef<HTMLInputElement, RangeInputProps>(function
 export type FileInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "size" | "type"> & {
   density?: InterfaceDensity;
 };
+
+/** 生成文件选择器的统一尺寸与状态类。 */
+export function fileInputClassName({
+  density = "default",
+  className,
+}: {
+  density?: InterfaceDensity;
+  className?: string;
+} = {}) {
+  return [
+    "tc-file-input",
+    density === "compact" ? "tc-file-input-compact" : "tc-file-input-default",
+    className ?? "",
+  ].filter(Boolean).join(" ");
+}
 
 /** 统一原生文件选择器；上传拖放界面优先通过 UploadDropZone 组合本组件。 */
 export const FileInput = forwardRef<HTMLInputElement, FileInputProps>(function FileInput(
@@ -334,11 +361,7 @@ export const FileInput = forwardRef<HTMLInputElement, FileInputProps>(function F
       {...rest}
       ref={ref}
       type="file"
-      className={[
-        "file-input file-input-bordered w-full rounded-md focus:outline-none focus:ring-2 focus:ring-info/20",
-        density === "compact" ? "file-input-sm min-h-control-compact" : "min-h-control-default",
-        className ?? "",
-      ].filter(Boolean).join(" ")}
+      className={fileInputClassName({ density, className })}
     />
   );
 });

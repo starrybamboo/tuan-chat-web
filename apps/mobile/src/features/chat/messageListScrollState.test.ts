@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   isWithinBottomThreshold,
+  resolveMessageScrollFallbackOffset,
   resolveBottomThresholdTransition,
   resolveVisibleMessageAppendAction,
   shouldAutoScrollOnContentSizeChange,
@@ -78,5 +79,11 @@ describe("messageListScrollState", () => {
       hasPendingScrollToBottom: false,
       isAtBottom: false,
     })).toBe(false);
+  });
+
+  it("按平均行高计算未测量消息的滚动回退位置", () => {
+    expect(resolveMessageScrollFallbackOffset(5, 48)).toBe(240);
+    expect(resolveMessageScrollFallbackOffset(0, 48)).toBe(0);
+    expect(resolveMessageScrollFallbackOffset(5, 0)).toBe(0);
   });
 });

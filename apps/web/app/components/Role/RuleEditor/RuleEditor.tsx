@@ -653,7 +653,7 @@ export default function RuleEditor({
                   <div className="flex shrink-0 items-center gap-1.5">
                     <PortalTooltip label="从已有规则导入并覆盖当前编辑" placement="bottom">
                       <Button
-                        variant="info"
+                        variant="primary"
                         size="md"
                         className="rounded-lg px-4"
                         onClick={() => setIsCloneModalOpen(true)}

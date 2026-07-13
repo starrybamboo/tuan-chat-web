@@ -100,8 +100,12 @@ export function DisplayChatBubble({
 
     const resizeCanvas = () => {
       const { destW, destH } = getDestSize();
-      canvas.width = destW * dpr;
-      canvas.height = destH * dpr;
+      const nextWidth = Math.max(1, Math.round(destW * dpr));
+      const nextHeight = Math.max(1, Math.round(destH * dpr));
+      if (canvas.width !== nextWidth || canvas.height !== nextHeight) {
+        canvas.width = nextWidth;
+        canvas.height = nextHeight;
+      }
       canvas.style.width = `${destW}px`;
       canvas.style.height = `${destH}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -118,24 +122,23 @@ export function DisplayChatBubble({
         return;
 
       try {
-        const sdpr = window.devicePixelRatio || 1;
-        const sw = sourceCanvas.width / sdpr;
-        const sh = sourceCanvas.height / sdpr;
+        const sourceWidth = sourceCanvas.width;
+        const sourceHeight = sourceCanvas.height;
 
         const { destW, destH } = getDestSize();
-        const scale = Math.max(destW / sw, destH / sh);
+        const scale = Math.max(destW / sourceWidth, destH / sourceHeight);
         const srcW = destW / scale;
         const srcH = destH / scale;
-        const sx = Math.max(0, (sw - srcW) / 2) * sdpr;
-        const sy = Math.max(0, (sh - srcH) / 2) * sdpr;
+        const sx = Math.max(0, (sourceWidth - srcW) / 2);
+        const sy = Math.max(0, (sourceHeight - srcH) / 2);
 
         ctx.clearRect(0, 0, destW, destH);
         ctx.drawImage(
           sourceCanvas,
           sx,
           sy,
-          srcW * sdpr,
-          srcH * sdpr,
+          srcW,
+          srcH,
           0,
           0,
           destW,
@@ -221,7 +224,12 @@ export function DisplayChatBubble({
         img.onerror = null;
       }
     };
-  }, [avatarCanvasRef, renderKey]);
+  }, [avatarCanvasRef]);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => redrawRef.current?.());
+    return () => cancelAnimationFrame(frame);
+  }, [renderKey]);
 
   useEffect(() => {
   // 有 source canvas 时，不走 URL 绘制

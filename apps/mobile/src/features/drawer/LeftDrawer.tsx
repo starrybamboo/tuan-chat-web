@@ -101,6 +101,12 @@ const styles = StyleSheet.create({
     height: 44,
     paddingHorizontal: Spacing.lg,
   },
+  sidebarHeaderAction: {
+    alignItems: "center",
+    height: 36,
+    justifyContent: "center",
+    width: 36,
+  },
   roomList: { flex: 1 },
   roomListContent: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.lg },
   sectionHeader: {
@@ -666,7 +672,7 @@ function LeftDrawerInner({
       return (
         <Pressable onPress={onCreateRoom} style={[styles.createRoomButton, { borderColor: theme.accent }]}>
           <Plus size={16} color={theme.accent} />
-          <ThemedText style={{ fontSize: 12, color: theme.accent }}>创建房间</ThemedText>
+          <ThemedText style={{ fontSize: 12, color: theme.accent }}>新建频道</ThemedText>
         </Pressable>
       );
     }
@@ -747,6 +753,18 @@ function LeftDrawerInner({
             <ThemedText numberOfLines={1} type="heading" style={{ flex: 1 }}>
               {currentSpace?.name ?? "选择空间"}
             </ThemedText>
+            {onCreateRoom
+              ? (
+                  <Pressable
+                    accessibilityLabel="新建频道"
+                    accessibilityRole="button"
+                    onPress={onCreateRoom}
+                    style={styles.sidebarHeaderAction}
+                  >
+                    <Plus size={20} color={theme.accent} />
+                  </Pressable>
+                )
+              : null}
           </View>
 
           <FlatList

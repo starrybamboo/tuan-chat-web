@@ -477,7 +477,7 @@ function CharacterDetailInner({
                   anchorClassName="md:hidden"
                 >
                   <Button
-                    variant="info"
+                    variant="primary"
                     size="md"
                     onClick={() => setIsDicerConfigJsonModalOpen(true)}
                     className="rounded-lg px-4"

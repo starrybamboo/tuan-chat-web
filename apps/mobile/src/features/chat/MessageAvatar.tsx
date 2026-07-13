@@ -121,20 +121,24 @@ export const MessageAvatar = memo(({
       ? avatarThumbUrl(resolvedAvatarFileId)
       : avatarThumbUrl(roleAvatarQuery.data?.data?.avatarFileId ?? userInfoQuery.data?.data?.avatarFileId);
   const borderRadius = size / 2;
-
-  if (resolvedAvatarUrl) {
-    return (
-      <CachedImage
-        uri={resolvedAvatarUrl}
-        contentFit="cover"
-        style={{ borderRadius, height: size, width: size }}
-      />
-    );
-  }
-
-  return (
+  const fallbackAvatar = (
     <View style={{ alignItems: "center", backgroundColor: getAvatarColor(userId ?? undefined), borderRadius, height: size, justifyContent: "center", width: size }}>
       <ThemedText style={styles.avatarText}>{getAvatarInitial(displayName ?? "")}</ThemedText>
     </View>
   );
+
+  if (resolvedAvatarUrl) {
+    return (
+      <View style={{ borderRadius, height: size, overflow: "hidden", width: size }}>
+        {fallbackAvatar}
+        <CachedImage
+          uri={resolvedAvatarUrl}
+          contentFit="cover"
+          style={[StyleSheet.absoluteFillObject, { borderRadius }]}
+        />
+      </View>
+    );
+  }
+
+  return fallbackAvatar;
 });

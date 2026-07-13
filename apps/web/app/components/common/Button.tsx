@@ -5,47 +5,41 @@ import { forwardRef } from "react";
 import { LoadingIndicator } from "@/components/common/StatusPrimitives";
 
 /**
- * 统一按钮组件：在 daisyUI `btn` 之上的轻封装。
- * 新代码请使用本组件，替代散写的 `className="btn ..."`。
+ * 统一按钮组件：颜色、密度、形状与交互状态全部由项目 `tc-button` 设计语言维护。
+ * 新代码请使用本组件，避免在业务组件中散写按钮视觉样式。
  */
 export type ButtonVariant =
   | "primary"
-  | "secondary"
   | "ghost"
   | "error"
   | "warning"
   | "success"
-  | "info"
-  | "neutral"
   | "outline"
   | "errorOutline";
 export type ButtonSize = "xs" | "sm" | "md" | "lg";
 export type ButtonShape = "default" | "square" | "circle";
 
 const VARIANT_CLASS: Record<ButtonVariant, string> = {
-  primary: "btn-primary",
-  secondary: "btn-outline",
-  ghost: "btn-ghost",
-  error: "btn-error",
-  warning: "btn-warning",
-  success: "btn-success",
-  info: "btn-info",
-  neutral: "btn-neutral",
-  outline: "btn-outline",
-  errorOutline: "btn-outline btn-error",
+  primary: "tc-button-primary",
+  ghost: "tc-button-ghost",
+  error: "tc-button-error",
+  warning: "tc-button-warning",
+  success: "tc-button-success",
+  outline: "tc-button-outline",
+  errorOutline: "tc-button-error-outline",
 };
 
 const SIZE_CLASS: Record<ButtonSize, string> = {
-  xs: "btn-xs",
-  sm: "btn-sm",
-  md: "",
-  lg: "btn-lg",
+  xs: "tc-button-compact",
+  sm: "tc-button-compact",
+  md: "tc-button-default",
+  lg: "tc-button-default",
 };
 
 const SHAPE_CLASS: Record<ButtonShape, string> = {
   default: "",
-  square: "btn-square",
-  circle: "btn-circle",
+  square: "tc-button-square",
+  circle: "tc-button-circle",
 };
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -71,8 +65,7 @@ export function buttonClassName({
   className?: string;
 }) {
   return [
-    "btn",
-    "disabled:border-transparent disabled:text-base-content/25 disabled:shadow-none",
+    "tc-button",
     VARIANT_CLASS[variant],
     SIZE_CLASS[size],
     SHAPE_CLASS[shape],

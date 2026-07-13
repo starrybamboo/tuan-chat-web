@@ -1,12 +1,15 @@
-import { Dimensions } from "react-native";
-
 export { COMPOSER_MAX_HEIGHT, COMPOSER_MIN_HEIGHT } from "./composer-layout-constants";
 export { DRAWER_EDGE_SWIPE_ZONE_WIDTH } from "./drawer-constants";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const RIGHT_DRAWER_MAX_WIDTH = 300;
+const RIGHT_DRAWER_WIDTH_RATIO = 0.8;
 
-export const LEFT_DRAWER_WIDTH = SCREEN_WIDTH;
-export const RIGHT_DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.8, 300);
+export function resolveRightDrawerWidth(windowWidth: number) {
+  if (!Number.isFinite(windowWidth) || windowWidth <= 0) {
+    return RIGHT_DRAWER_MAX_WIDTH;
+  }
+  return Math.min(windowWidth * RIGHT_DRAWER_WIDTH_RATIO, RIGHT_DRAWER_MAX_WIDTH);
+}
 
 export const SPACE_RAIL_WIDTH = 56;
 

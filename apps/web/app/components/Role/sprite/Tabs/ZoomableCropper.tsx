@@ -2,7 +2,7 @@ import type { Coordinates } from "react-advanced-cropper";
 
 import { ArrowCounterClockwiseIcon, MinusIcon, PlusIcon } from "@phosphor-icons/react";
 import { useReducedMotion } from "motion/react";
-import { useCallback, useEffect, useId, useRef, useState, type WheelEvent as ReactWheelEvent } from "react";
+import { memo, useCallback, useEffect, useId, useRef, useState, type WheelEvent as ReactWheelEvent } from "react";
 import { Cropper, ImageRestriction, type CropperRef } from "react-advanced-cropper";
 
 import { RangeInput } from "@/components/common/FormField";
@@ -18,19 +18,21 @@ type ZoomableCropperProps = {
   disabled?: boolean;
   className?: string;
   onAreaChange: ZoomableCropAreaChange;
+  onAreaChangeEnd?: () => void;
   onImageReady: (image: HTMLImageElement) => void;
 };
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 
-export function ZoomableCropper({
+function ZoomableCropperComponent({
   image,
   aspect,
   initialCoordinates,
   disabled = false,
   className = "",
   onAreaChange,
+  onAreaChangeEnd,
   onImageReady,
 }: ZoomableCropperProps) {
   const cropperRef = useRef<CropperRef>(null);
@@ -101,6 +103,10 @@ export function ZoomableCropper({
     }
   }, [emitAreaChange, initializeCropper]);
 
+  const handleInteractionEnd = useCallback(() => {
+    onAreaChangeEnd?.();
+  }, [onAreaChangeEnd]);
+
   useEffect(() => {
     let attempts = 0;
     const timer = window.setInterval(() => {
@@ -168,7 +174,7 @@ export function ZoomableCropper({
           crossOrigin="anonymous"
           disabled={disabled}
           transitions={!shouldReduceMotion}
-          imageRestriction={ImageRestriction.fillArea}
+          imageRestriction={ImageRestriction.fitArea}
           backgroundWrapperProps={{
             scaleImage: { touch: true, wheel: false },
             moveImage: { touch: true, mouse: true },
@@ -188,6 +194,7 @@ export function ZoomableCropper({
           }}
           onReady={handleReady}
           onChange={emitAreaChange}
+          onInteractionEnd={handleInteractionEnd}
         />
       </div>
 
@@ -247,3 +254,5 @@ export function ZoomableCropper({
     </div>
   );
 }
+
+export const ZoomableCropper = memo(ZoomableCropperComponent);

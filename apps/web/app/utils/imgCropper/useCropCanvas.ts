@@ -1,8 +1,9 @@
 import type { RefObject } from "react";
 import type { PixelCrop } from "react-image-crop";
 
+import { useEffect, useRef } from "react";
+
 import { canvasPreview } from "./canvasPreview";
-import { useDebounceEffect } from "./useDebounceEffect";
 
 type UseCropCanvasOptions = {
   /** 图片元素引用 */
@@ -13,52 +14,68 @@ type UseCropCanvasOptions = {
   completedCrop: PixelCrop | undefined;
   /** 防抖延迟，默认 100ms */
   debounceMs?: number;
+  /** 首张图片是否立即绘制 */
+  immediateFirstRender?: boolean;
+  /** 预览最大边长 */
+  maxPreviewSize?: number;
   /** 是否启用头像 URL 更新（用于实时预览） */
   enableAvatarUrlUpdate?: boolean;
+  /** Canvas 绘制完成回调，无需等待图片编码 */
+  onCanvasUpdate?: () => void;
   /** 头像 URL 更新回调 */
   onAvatarUrlUpdate?: (dataUrl: string) => void;
-  /** 额外依赖项 */
-  extraDeps?: unknown[];
 };
 
 /**
  * 裁剪 Canvas 防抖更新 Hook
- * 封装了 useDebounceEffect + canvasPreview + 可选的头像 URL 更新逻辑
+ * 负责取消过期绘制，只提交最后一次裁剪预览。
  */
 export function useCropCanvas({
   imgRef,
   previewCanvasRef,
   completedCrop,
   debounceMs = 100,
+  immediateFirstRender = false,
+  maxPreviewSize,
   enableAvatarUrlUpdate = false,
+  onCanvasUpdate,
   onAvatarUrlUpdate,
-  extraDeps = [],
 }: UseCropCanvasOptions): void {
-  useDebounceEffect(
-    async () => {
-      if (
-        completedCrop?.width
-        && completedCrop?.height
-        && imgRef.current
-        && previewCanvasRef.current
-      ) {
+  const lastRenderedImageSrcRef = useRef("");
+  const renderSequenceRef = useRef(0);
+  const imageSrc = imgRef.current?.currentSrc || imgRef.current?.src || "";
+
+  useEffect(() => {
+    const image = imgRef.current;
+    const canvas = previewCanvasRef.current;
+    if (!completedCrop?.width || !completedCrop.height || !image || !canvas) {
+      return;
+    }
+
+    const renderSequence = ++renderSequenceRef.current;
+    const waitTime = immediateFirstRender && imageSrc !== lastRenderedImageSrcRef.current
+      ? 0
+      : debounceMs;
+    const timer = window.setTimeout(() => {
+      void (async () => {
         await canvasPreview(
-          imgRef.current,
-          previewCanvasRef.current,
+          image,
+          canvas,
           completedCrop,
           1,
           0,
-          { previewMode: true }, // 启用预览模式以提升性能
+          { previewMode: true, maxPreviewSize },
         );
+        if (renderSequence !== renderSequenceRef.current) {
+          return;
+        }
+        lastRenderedImageSrcRef.current = image.currentSrc || image.src;
+        onCanvasUpdate?.();
 
-        // 如果启用头像 URL 更新，使用 toBlob 异步生成（比 toDataURL 更高效）
         if (enableAvatarUrlUpdate && onAvatarUrlUpdate) {
-          const canvas = previewCanvasRef.current;
-          // 使用 toBlob + createObjectURL 替代 toDataURL，性能更好
           canvas.toBlob(
             (blob) => {
-              if (blob) {
-                // 注意：需要在适当时机 revoke 这个 URL，但对于预览用途可以忽略
+              if (blob && renderSequence === renderSequenceRef.current) {
                 const url = URL.createObjectURL(blob);
                 onAvatarUrlUpdate(url);
               }
@@ -66,9 +83,23 @@ export function useCropCanvas({
             "image/png",
           );
         }
-      }
-    },
+      })();
+    }, waitTime);
+
+    return () => {
+      window.clearTimeout(timer);
+      renderSequenceRef.current += 1;
+    };
+  }, [
+    completedCrop,
     debounceMs,
-    [completedCrop, enableAvatarUrlUpdate, ...extraDeps],
-  );
+    enableAvatarUrlUpdate,
+    imageSrc,
+    immediateFirstRender,
+    imgRef,
+    maxPreviewSize,
+    onAvatarUrlUpdate,
+    onCanvasUpdate,
+    previewCanvasRef,
+  ]);
 }

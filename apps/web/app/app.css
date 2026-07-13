@@ -9,6 +9,7 @@
 @source "../api/**/*.tsx";
 @plugin "../../node_modules/daisyui/index.js" {
   themes: false;
+  exclude: button, avatar, modal, checkbox, radio, toggle, range, fileinput, progress, join, menu;
 }
 @plugin "../../node_modules/daisyui/theme/index.js" {
   name: "light";
@@ -23,6 +24,8 @@
   --border: 1px;
   --depth: 0;
   --noise: 0;
+  --color-primary: var(--color-info);
+  --color-primary-content: var(--color-info-content);
 }
 
 @plugin "../../node_modules/daisyui/theme/index.js" {
@@ -38,6 +41,8 @@
   --border: 1px;
   --depth: 0;
   --noise: 0;
+  --color-primary: var(--color-info);
+  --color-primary-content: var(--color-info-content);
 }
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
@@ -185,7 +190,7 @@
   }
 
   :where(input[type="checkbox"], input[type="radio"], input[type="range"]) {
-    accent-color: var(--color-info);
+    accent-color: currentColor;
   }
 
   :where(button, a[href], input, textarea, select, summary, [role="button"], [role="tab"], [role="menuitem"]):focus-visible {
@@ -289,68 +294,394 @@
     @apply inline-flex items-center justify-center rounded-full border border-base-300 bg-base-200 text-xs font-medium text-base-content/70;
   }
 
+  .tc-avatar {
+    @apply relative inline-flex shrink-0 align-middle;
+  }
+
+  .tc-avatar > div {
+    aspect-ratio: 1 / 1;
+  }
+
   .tc-progress {
-    @apply h-1.5 w-full overflow-hidden rounded-full bg-base-content/10 text-info;
-    accent-color: var(--color-info);
+    position: relative;
+    width: 100%;
+    height: 0.375rem;
+    appearance: none;
+    overflow: hidden;
+    border: 0;
+    border-radius: 9999px;
+    background: color-mix(in oklab, currentColor 14%, transparent);
+    color: var(--color-info);
+    accent-color: currentColor;
+  }
+
+  .tc-progress::-webkit-progress-bar {
+    border-radius: 9999px;
+    background: transparent;
+  }
+
+  .tc-progress::-webkit-progress-value {
+    border-radius: 9999px;
+    background: currentColor;
+  }
+
+  .tc-progress::-moz-progress-bar {
+    border-radius: 9999px;
+    background: currentColor;
+  }
+
+  .tc-progress:indeterminate {
+    background-image: repeating-linear-gradient(
+      90deg,
+      currentColor -1%,
+      currentColor 12%,
+      transparent 12%,
+      transparent 88%
+    );
+    background-position-x: 15%;
+    background-size: 200% 100%;
+    animation: tc-progress-indeterminate 5s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tc-progress:indeterminate {
+      animation: none;
+    }
+  }
+
+  @keyframes tc-progress-indeterminate {
+    50% {
+      background-position-x: -115%;
+    }
   }
 
   .tc-overlay {
     background: var(--tc-overlay);
   }
 
-  .progress {
-    @apply h-1.5 rounded-full bg-base-content/10;
+  .tc-choice-control {
+    --tc-choice-size: var(--spacing-icon-default);
+    position: relative;
+    display: inline-grid;
+    width: var(--tc-choice-size);
+    height: var(--tc-choice-size);
+    flex-shrink: 0;
+    cursor: pointer;
+    appearance: none;
+    place-content: center;
+    vertical-align: middle;
+    border: 1px solid color-mix(in oklab, var(--color-base-content) 25%, transparent);
+    background: var(--color-base-100);
+    transition-property: background-color, border-color, box-shadow, transform;
+    transition-duration: var(--duration-fast);
+    transition-timing-function: ease-out;
   }
 
-  :where(.checkbox, .radio, .toggle, .range):focus-visible {
+  .tc-choice-compact {
+    --tc-choice-size: var(--spacing-icon-compact);
+  }
+
+  .tc-choice-default {
+    --tc-choice-size: var(--spacing-icon-default);
+  }
+
+  .tc-choice-control:focus-visible,
+  .tc-range:focus-visible,
+  .tc-file-input:focus-visible {
     outline: 2px solid var(--tc-focus-ring);
     outline-offset: 2px;
   }
 
+  .tc-choice-control:disabled,
+  .tc-range:disabled,
+  .tc-file-input:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  .tc-checkbox {
+    border-radius: var(--radius-sm);
+  }
+
+  .tc-checkbox::before {
+    content: "";
+    width: calc(var(--tc-choice-size) * 0.28);
+    height: calc(var(--tc-choice-size) * 0.52);
+    border: solid var(--color-info-content);
+    border-width: 0 2px 2px 0;
+    transform: translateY(-8%) rotate(45deg) scale(0);
+    transform-origin: center;
+    transition: transform var(--duration-fast) ease-out;
+  }
+
+  .tc-checkbox:checked,
+  .tc-checkbox:indeterminate {
+    border-color: var(--color-info);
+    background: var(--color-info);
+  }
+
+  .tc-checkbox:checked::before {
+    transform: translateY(-8%) rotate(45deg) scale(1);
+  }
+
+  .tc-checkbox:indeterminate::before {
+    width: calc(var(--tc-choice-size) * 0.55);
+    height: 2px;
+    border: 0;
+    background: var(--color-info-content);
+    transform: none;
+  }
+
+  .tc-radio {
+    border-radius: 9999px;
+  }
+
+  .tc-radio::before {
+    content: "";
+    width: calc(var(--tc-choice-size) * 0.5);
+    height: calc(var(--tc-choice-size) * 0.5);
+    border-radius: 9999px;
+    background: var(--color-info);
+    transform: scale(0);
+    transition: transform var(--duration-fast) ease-out;
+  }
+
+  .tc-radio:checked {
+    border-color: var(--color-info);
+  }
+
+  .tc-radio:checked::before {
+    transform: scale(1);
+  }
+
+  .tc-switch {
+    width: calc(var(--tc-choice-size) * 1.75);
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--color-base-content) 15%, transparent);
+  }
+
+  .tc-switch::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 1px;
+    top: 50%;
+    width: calc(var(--tc-choice-size) - 4px);
+    height: calc(var(--tc-choice-size) - 4px);
+    border-radius: 9999px;
+    background: var(--color-base-100);
+    box-shadow: var(--shadow-sm);
+    transform: translate(0, -50%);
+    transition-property: background-color, transform;
+    transition-duration: var(--duration-base);
+    transition-timing-function: ease-out;
+  }
+
+  .tc-switch:checked {
+    border-color: var(--color-info);
+    background: var(--color-info);
+  }
+
+  .tc-switch:checked::before {
+    background: var(--color-info-content);
+    transform: translate(calc(var(--tc-choice-size) * 0.75), -50%);
+  }
+
+  .tc-range {
+    --tc-range-thumb-size: var(--spacing-icon-default);
+    --tc-range-track-size: 0.375rem;
+    width: 100%;
+    height: var(--tc-range-thumb-size);
+    cursor: pointer;
+    appearance: none;
+    overflow: hidden;
+    border: 0;
+    border-radius: 9999px;
+    background: transparent;
+    color: var(--color-info);
+    vertical-align: middle;
+  }
+
+  .tc-range-compact {
+    --tc-range-thumb-size: var(--spacing-icon-compact);
+  }
+
+  .tc-range-default {
+    --tc-range-thumb-size: var(--spacing-icon-default);
+  }
+
+  .tc-range::-webkit-slider-runnable-track {
+    width: 100%;
+    height: var(--tc-range-track-size);
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--color-base-content) 12%, transparent);
+  }
+
+  .tc-range::-webkit-slider-thumb {
+    width: var(--tc-range-thumb-size);
+    height: var(--tc-range-thumb-size);
+    margin-top: calc((var(--tc-range-track-size) - var(--tc-range-thumb-size)) / 2);
+    appearance: none;
+    border: 3px solid currentColor;
+    border-radius: 9999px;
+    background: var(--color-base-100);
+    box-shadow: calc(-100vw - var(--tc-range-thumb-size) / 2) 0 0 100vw currentColor;
+  }
+
+  .tc-range::-moz-range-track {
+    width: 100%;
+    height: var(--tc-range-track-size);
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--color-base-content) 12%, transparent);
+  }
+
+  .tc-range::-moz-range-progress {
+    height: var(--tc-range-track-size);
+    border-radius: 9999px;
+    background: currentColor;
+  }
+
+  .tc-range::-moz-range-thumb {
+    width: var(--tc-range-thumb-size);
+    height: var(--tc-range-thumb-size);
+    border: 3px solid currentColor;
+    border-radius: 9999px;
+    background: var(--color-base-100);
+  }
+
+  .tc-file-input {
+    width: 100%;
+    cursor: pointer;
+    appearance: none;
+    overflow: hidden;
+    border: 1px solid var(--color-base-300);
+    border-radius: var(--radius-field);
+    background: var(--color-base-100);
+    color: var(--color-base-content);
+    padding-inline-end: 0.75rem;
+    font-size: 0.875rem;
+    transition-property: background-color, border-color, box-shadow;
+    transition-duration: var(--duration-fast);
+    transition-timing-function: ease-out;
+  }
+
+  .tc-file-input-compact {
+    height: var(--spacing-control-compact);
+  }
+
+  .tc-file-input-default {
+    height: var(--spacing-control-default);
+  }
+
+  .tc-file-input::file-selector-button {
+    height: 100%;
+    margin-inline-end: 1rem;
+    cursor: pointer;
+    border: 0;
+    border-inline-end: 1px solid var(--color-base-300);
+    background: var(--color-base-200);
+    color: var(--color-base-content);
+    padding-inline: 1rem;
+    font: inherit;
+    font-weight: 600;
+    transition: background-color var(--duration-fast) ease-out;
+  }
+
+  .tc-file-input:hover:not(:disabled) {
+    border-color: color-mix(in oklab, var(--color-base-content) 30%, transparent);
+  }
+
+  .tc-file-input:hover:not(:disabled)::file-selector-button {
+    background: var(--color-base-300);
+  }
+
+  .tc-file-input:disabled::file-selector-button {
+    cursor: not-allowed;
+  }
+
+  /* 项目按钮唯一视觉入口：DaisyUI 只继续服务其他历史组件。 */
+  .tc-button {
+    @apply inline-flex shrink-0 cursor-pointer select-none flex-nowrap items-center justify-center gap-1.5;
+    @apply rounded-md border px-4 text-sm font-semibold transition-colors duration-200 ease-out;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/20;
+    @apply disabled:pointer-events-none disabled:border-transparent disabled:bg-base-content/10;
+    @apply disabled:text-base-content/25 disabled:shadow-none;
+  }
+
+  .tc-button-primary {
+    @apply border-primary bg-primary text-primary-content hover:border-primary/90 hover:bg-primary/90;
+    @apply active:border-primary/80 active:bg-primary/80 focus-visible:ring-primary/20;
+  }
+
+  .tc-button-outline {
+    @apply border-base-300 bg-transparent text-base-content hover:border-base-content/25 hover:bg-base-200;
+    @apply active:bg-base-300;
+  }
+
+  .tc-button-ghost {
+    @apply border-transparent bg-transparent text-base-content hover:bg-base-200 active:bg-base-300;
+  }
+
+  .tc-button-warning {
+    @apply border-warning bg-warning text-warning-content hover:border-warning/90 hover:bg-warning/90;
+    @apply active:border-warning/80 active:bg-warning/80 focus-visible:ring-warning/25;
+  }
+
+  .tc-button-success {
+    @apply border-success bg-success text-success-content hover:border-success/90 hover:bg-success/90;
+    @apply active:border-success/80 active:bg-success/80 focus-visible:ring-success/25;
+  }
+
+  .tc-button-error {
+    @apply border-error bg-error text-error-content hover:border-error/90 hover:bg-error/90;
+    @apply active:border-error/80 active:bg-error/80 focus-visible:ring-error/25;
+  }
+
+  .tc-button-error-outline {
+    @apply border-error bg-transparent text-error hover:bg-error/10 active:bg-error/20;
+    @apply focus-visible:ring-error/25;
+  }
+
   /* 将历史 xs/sm/md/lg 视觉尺寸归并为 compact/default 两档。 */
-  .btn:not(.btn-xs):not(.btn-sm) {
+  .tc-button-default {
     min-height: var(--spacing-control-default);
     height: var(--spacing-control-default);
   }
 
-  .btn:is(.btn-xs, .btn-sm) {
+  .tc-button-compact {
     min-height: var(--spacing-control-compact);
     height: var(--spacing-control-compact);
+    @apply px-3 text-xs;
   }
 
-  .btn:is(.btn-circle, .btn-square):not(.btn-xs):not(.btn-sm) {
+  .tc-button:is(.tc-button-circle, .tc-button-square).tc-button-default {
     min-width: var(--spacing-hit-default);
     width: var(--spacing-hit-default);
     height: var(--spacing-hit-default);
+    padding-inline: 0;
   }
 
-  .btn:is(.btn-circle, .btn-square):is(.btn-xs, .btn-sm) {
+  .tc-button:is(.tc-button-circle, .tc-button-square).tc-button-compact {
     min-width: var(--spacing-hit-compact);
     width: var(--spacing-hit-compact);
     height: var(--spacing-hit-compact);
+    padding-inline: 0;
   }
 
-  .btn:is(.btn-circle, .btn-square):not(.btn-xs):not(.btn-sm) :where(svg) {
+  .tc-button-circle {
+    @apply rounded-full;
+  }
+
+  .tc-button.tc-button-default :where(svg) {
     width: var(--spacing-icon-default);
     height: var(--spacing-icon-default);
   }
 
-  .btn:is(.btn-circle, .btn-square):is(.btn-xs, .btn-sm) :where(svg) {
+  .tc-button.tc-button-compact :where(svg) {
     width: var(--spacing-icon-compact);
     height: var(--spacing-icon-compact);
   }
 
-  :where(.checkbox, .radio):not(.checkbox-xs):not(.checkbox-sm):not(.radio-xs):not(.radio-sm) {
-    width: var(--spacing-icon-default);
-    height: var(--spacing-icon-default);
-  }
-
-  :where(.checkbox, .radio):is(.checkbox-xs, .checkbox-sm, .radio-xs, .radio-sm) {
-    width: var(--spacing-icon-compact);
-    height: var(--spacing-icon-compact);
-  }
-
-  :where(.btn, [role="button"])[aria-pressed="true"] {
+  :where(.tc-button, [role="button"])[aria-pressed="true"] {
     @apply border-info/30 bg-info/10 text-info;
   }
 
@@ -358,15 +689,13 @@
     @apply rounded-md border border-base-300 bg-base-100 text-base-content shadow-xl;
   }
 
-  dialog::backdrop,
-  .modal-backdrop {
+  dialog.tc-dialog-native::backdrop {
     background: var(--tc-overlay);
   }
 
-  /* 默认弹窗始终以视口为基准居中，局部弹层通过 rootClassName 自行定位。 */
-  .tc-dialog-layer {
-    position: fixed !important;
-    inset: 0 !important;
+  .tc-dialog-root {
+    pointer-events: none;
+    visibility: hidden;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -378,14 +707,52 @@
     padding: 1rem;
     overflow-y: auto;
     overscroll-behavior: contain;
+    background: transparent;
+    color: inherit;
+    z-index: 999;
   }
 
-  .tc-dialog-layer > .modal-backdrop {
+  .tc-dialog-root[open],
+  .tc-dialog-root.tc-dialog-open {
+    pointer-events: auto;
+    visibility: visible;
+  }
+
+  .tc-dialog-inline.tc-dialog-open {
+    background: var(--tc-overlay);
+  }
+
+  .tc-dialog-root > [role="document"] {
+    z-index: 1;
+  }
+
+  .tc-dialog-backdrop {
     position: absolute;
     inset: 0;
-    z-index: -1;
+    z-index: 0;
+    display: block;
     width: 100%;
     height: 100%;
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    color: transparent;
+    padding: 0;
+  }
+
+  .tc-dialog-backdrop > button {
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    color: transparent;
+  }
+
+  /* 默认弹窗始终以视口为基准居中，局部弹层通过 rootClassName 自行定位。 */
+  .tc-dialog-layer {
+    position: fixed !important;
+    inset: 0 !important;
   }
 }
 

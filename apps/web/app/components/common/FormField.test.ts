@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { choiceControlClassName, formControlClassName, formControlShellClassName } from "./FormField";
+import {
+  choiceControlClassName,
+  fileInputClassName,
+  formControlClassName,
+  formControlShellClassName,
+  rangeInputClassName,
+} from "./FormField";
 
 describe("formControlClassName", () => {
   it("默认使用统一的中等尺寸、内容表面和蓝色焦点态", () => {
@@ -35,9 +41,16 @@ describe("formControlClassName", () => {
 
   it("复选、单选与开关共享两档密度和蓝色状态语义", () => {
     expect(choiceControlClassName({ kind: "checkbox", density: "compact" }))
-      .toContain("checkbox checkbox-info rounded-sm checkbox-sm");
-    expect(choiceControlClassName({ kind: "radio" })).toContain("radio radio-info radio-md");
-    expect(choiceControlClassName({ kind: "switch" })).toContain("toggle toggle-info toggle-md");
+      .toContain("tc-choice-control tc-checkbox tc-choice-compact");
+    expect(choiceControlClassName({ kind: "radio" })).toContain("tc-radio tc-choice-default");
+    expect(choiceControlClassName({ kind: "switch" })).toContain("tc-switch tc-choice-default");
+  });
+
+  it("滑杆和文件选择器使用项目原语与两档密度", () => {
+    expect(rangeInputClassName({ density: "compact" })).toBe("tc-range tc-range-compact");
+    expect(rangeInputClassName()).toBe("tc-range tc-range-default");
+    expect(fileInputClassName({ density: "compact" })).toBe("tc-file-input tc-file-input-compact");
+    expect(fileInputClassName()).toBe("tc-file-input tc-file-input-default");
   });
 
   it("复合输入使用统一外壳并让内部输入保持透明", () => {

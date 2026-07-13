@@ -44,7 +44,7 @@ export default function useChatFrameMessageClick({
     }
 
     const target = e.target as HTMLElement;
-    const isButtonClick = target.closest("button") || target.closest("[role=\"button\"]") || target.closest(".btn");
+    const isButtonClick = target.closest("button") || target.closest("[role=\"button\"]");
     const isModifierPressed = e.ctrlKey || e.metaKey;
 
     if (e.shiftKey) {

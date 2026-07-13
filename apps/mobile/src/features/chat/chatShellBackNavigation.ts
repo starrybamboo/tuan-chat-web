@@ -8,6 +8,7 @@ export type ChatShellBackNavigationAction
     | "close-create-space"
     | "close-expression-picker"
     | "close-map-sheet"
+    | "close-member-invite"
     | "close-profile-sheet"
     | "close-right-drawer"
     | "close-role-switch"
@@ -23,6 +24,7 @@ export type ChatShellBackNavigationState = {
   expressionPickerVisible: boolean;
   isRoutePage: boolean;
   mapSheetVisible: boolean;
+  memberInviteVisible: boolean;
   profileSheetOpen: boolean;
   rightDrawerOpen: boolean;
   roleSwitchVisible: boolean;
@@ -47,6 +49,9 @@ export function resolveChatShellBackNavigationAction(
   }
   if (state.mapSheetVisible) {
     return "close-map-sheet";
+  }
+  if (state.memberInviteVisible) {
+    return "close-member-invite";
   }
   if (state.createRoomVisible) {
     return "close-create-room";

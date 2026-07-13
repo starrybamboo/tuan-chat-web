@@ -113,7 +113,7 @@ describe("role avatar cache helpers", () => {
 
   it("角色页查询使用独立缓存 key 并保持列表响应形状", () => {
     const options = getUserRolesQueryOptions(7);
-    const roles = [{ roleId: 11, type: 1 }];
+    const roles = [{ roleId: 11, userId: 7, type: 1 }];
 
     expect(options.queryKey).toEqual(["getUserRolesByTypes", 7, 0, 1]);
     expect(options.select(roles)).toEqual({ success: true, data: roles });

@@ -77,6 +77,7 @@ import {
   hasHostMemberType,
   mergeRoomMembersWithSpaceMembers,
 } from "@/features/members/memberUtils";
+import { MemberInviteSheet } from "@/features/members/MemberInviteSheet";
 import { useRoomMembersQuery } from "@/features/members/useRoomMembersQuery";
 import { useSpaceMembersQuery } from "@/features/members/useSpaceMembersQuery";
 import { DEFAULT_MOBILE_CHAT_STATUS_LABELS, sendMobileChatStatus, useMobileChatStatus, useMobileChatStatusEntries } from "@/features/messages/mobileChatStatus";
@@ -116,7 +117,7 @@ import { shouldDrawerOverlayCaptureTouches } from "@/hooks/useGestureDrawerConfi
 import { mobileApiClient } from "@/lib/api";
 import * as Clipboard from "@/lib/clipboard";
 import { confirmAction } from "@/lib/confirm";
-import { DRAWER_EDGE_SWIPE_ZONE_WIDTH, RIGHT_DRAWER_WIDTH } from "@/lib/layout-constants";
+import { DRAWER_EDGE_SWIPE_ZONE_WIDTH } from "@/lib/layout-constants";
 
 import type { StShowCardModel } from "../../components/common/dicer/cmdExe/stShowCard";
 import type { ChatComposerShortcutAction } from "./ChatComposer";
@@ -223,7 +224,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 0,
     top: 0,
-    width: RIGHT_DRAWER_WIDTH,
   },
   overlay: {
     backgroundColor: "#000",
@@ -289,6 +289,7 @@ export default function ChatShell() {
     centerStyle,
     rightDrawerStyle,
     overlayStyle,
+    rightDrawerWidth,
     translateX,
   } = useGestureDrawer();
 
@@ -366,6 +367,7 @@ export default function ChatShell() {
   const deferredDmCloseTaskRef = useRef<ReturnType<typeof InteractionManager.runAfterInteractions> | null>(null);
   const [expressionPickerVisible, setExpressionPickerVisible] = useState(false);
   const [mapSheetVisible, setMapSheetVisible] = useState(false);
+  const [memberInviteVisible, setMemberInviteVisible] = useState(false);
   const [createSpaceVisible, setCreateSpaceVisible] = useState(false);
   const [createRoomVisible, setCreateRoomVisible] = useState(false);
   const [profileSheetState, setProfileSheetState] = useState<ProfileSheetState | null>(null);
@@ -471,6 +473,7 @@ export default function ChatShell() {
   const currentSpaceMember = useMemo(() => findCurrentMember(spaceMembers, currentUserId), [currentUserId, spaceMembers]);
   const currentRoomMember = useMemo(() => findCurrentMember(roomMembers, currentUserId), [currentUserId, roomMembers]);
   const isSpaceOwner = hasHostMemberType(currentSpaceMember?.memberType);
+  const canInviteRoomMembers = canManageMemberPermissions(currentSpaceMember?.memberType);
   const isSpectator = !currentRoomMember && !isSpaceOwner;
   const myChatStatus = useMobileChatStatus(selectedRoomId, currentUserId);
   const roomChatStatusEntries = useMobileChatStatusEntries(selectedRoomId);
@@ -1106,6 +1109,7 @@ export default function ChatShell() {
       expressionPickerVisible,
       isRoutePage,
       mapSheetVisible,
+      memberInviteVisible,
       profileSheetOpen: profileSheetState !== null,
       rightDrawerOpen: isOverlayInteractive,
       roleSwitchVisible,
@@ -1140,6 +1144,9 @@ export default function ChatShell() {
       case "close-map-sheet":
         setMapSheetVisible(false);
         return true;
+      case "close-member-invite":
+        setMemberInviteVisible(false);
+        return true;
       case "close-profile-sheet":
         setProfileSheetState(null);
         return true;
@@ -1169,6 +1176,7 @@ export default function ChatShell() {
     isOverlayInteractive,
     isRoutePage,
     mapSheetVisible,
+    memberInviteVisible,
     profileSheetState,
     roleSwitchVisible,
     searchPageVisible,
@@ -1753,6 +1761,10 @@ export default function ChatShell() {
     setCreateRoomVisible(true);
   }, []);
 
+  const handleOpenMemberInvite = useCallback(() => {
+    setMemberInviteVisible(true);
+  }, []);
+
   const handleLeftDrawerRefresh = useCallback(() => {
     void handleRefreshWorkspace();
   }, [handleRefreshWorkspace]);
@@ -1923,6 +1935,10 @@ export default function ChatShell() {
     setCreateRoomVisible(false);
   }, []);
 
+  const handleCloseMemberInvite = useCallback(() => {
+    setMemberInviteVisible(false);
+  }, []);
+
   const handleCreateRoomCreated = useCallback((room: Parameters<NonNullable<ComponentProps<typeof CreateRoomSheet>["onCreated"]>>[0]) => {
     if (!selectedSpaceId) {
       return;
@@ -2026,6 +2042,7 @@ export default function ChatShell() {
                               <ChatHeader
                                 roomName={selectedRoom?.name ?? null}
                                 onBackToRoutePage={handleBackToRoutePage}
+                                onInviteMembers={canInviteRoomMembers ? handleOpenMemberInvite : undefined}
                                 onSearch={handleOpenSearch}
                                 unreadCount={currentRoomUnreadCount}
                               />
@@ -2169,7 +2186,7 @@ export default function ChatShell() {
                     </Animated.View>
                   </Animated.View>
 
-                  <Animated.View style={[styles.rightDrawer, rightDrawerStyle]}>
+                  <Animated.View style={[styles.rightDrawer, { width: rightDrawerWidth }, rightDrawerStyle]}>
                     {shouldRenderRightDrawer && currentContactId
                       ? (
                           <DmContactDrawer
@@ -2310,6 +2327,19 @@ export default function ChatShell() {
               onCreated={handleCreateRoomCreated}
               spaceId={selectedSpaceId}
               visible={createRoomVisible}
+            />
+          )
+        : null}
+      {selectedSpaceId && selectedRoomId && memberInviteVisible
+        ? (
+            <MemberInviteSheet
+              currentUserId={currentUserId}
+              onClose={handleCloseMemberInvite}
+              roomId={selectedRoomId}
+              roomMembers={roomMembers}
+              spaceId={selectedSpaceId}
+              spaceMembers={spaceMembers}
+              visible
             />
           )
         : null}

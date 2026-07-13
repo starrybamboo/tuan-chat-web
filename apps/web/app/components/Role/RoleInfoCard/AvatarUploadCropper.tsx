@@ -8,6 +8,8 @@ import { DialogActions, DialogFrame } from "@/components/common/DialogFrame";
 import { FileInput, Radio, SelectInput, TextInput } from "@/components/common/FormField";
 import { normalizeImageFileOrNull } from "@/utils/media/mediaMime";
 
+import { dispatchAvatarUploadTask } from "./avatarUploadDispatch";
+
 export type UploadVariantTarget =
   | { mode: "none" }
   | { mode: "existing"; variantId: number; variantGroup?: RoleAvatarVariant }
@@ -92,26 +94,22 @@ export function CharacterCopper({
     variantId: "",
     name: "立绘组 1",
   }));
-  const [isSubmittingFiles, setIsSubmittingFiles] = useState(false);
 
-  const beginUploadFlow = useCallback(async (files: File[], target: UploadVariantTarget) => {
+  const beginUploadFlow = useCallback((files: File[], target: UploadVariantTarget) => {
     if (files.length === 0) {
       return;
     }
-    setIsSubmittingFiles(true);
-    try {
-      await Promise.resolve(onFilesSelected(files, {
+    // 上传任务提交给父级乐观工作流后立即释放入口，允许用户继续追加图片。
+    dispatchAvatarUploadTask(
+      () => onFilesSelected(files, {
         target,
         batchKey: createUploadBatchKey(),
-      }));
-    }
-    catch (error) {
-      console.error("上传入口处理失败:", error);
-      appToast.error(error instanceof Error ? error.message : "上传入口处理失败");
-    }
-    finally {
-      setIsSubmittingFiles(false);
-    }
+      }),
+      (error) => {
+        console.error("上传入口处理失败:", error);
+        appToast.error(error instanceof Error ? error.message : "上传入口处理失败");
+      },
+    );
   }, [onFilesSelected]);
 
   const openVariantTargetDialog = useCallback((files: File[]) => {
@@ -226,18 +224,12 @@ export function CharacterCopper({
       <div
         className={triggerClassName || ""}
         role="button"
-        tabIndex={isSubmittingFiles ? -1 : 0}
+        tabIndex={0}
         aria-label="上传头像"
-        aria-busy={isSubmittingFiles}
         onClick={() => {
-          if (!isSubmittingFiles) {
-            fileInputRef.current?.click();
-          }
+          fileInputRef.current?.click();
         }}
         onKeyDown={(event) => {
-          if (isSubmittingFiles) {
-            return;
-          }
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
             fileInputRef.current?.click();
@@ -355,10 +347,8 @@ export function CharacterCopper({
                 type="button"
                 variant="primary"
                 onClick={handleConfirmVariantTarget}
-                disabled={isSubmittingFiles}
-                aria-busy={isSubmittingFiles}
               >
-                {isSubmittingFiles ? "正在准备头像校正..." : "继续校正"}
+                继续校正
               </Button>
             </DialogActions>
       </DialogFrame>

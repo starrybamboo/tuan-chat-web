@@ -13,6 +13,7 @@ const BASE_STATE: ChatShellBackNavigationState = {
   expressionPickerVisible: false,
   isRoutePage: true,
   mapSheetVisible: false,
+  memberInviteVisible: false,
   profileSheetOpen: false,
   rightDrawerOpen: false,
   roleSwitchVisible: false,
@@ -35,6 +36,12 @@ describe("chatShellBackNavigation", () => {
       searchPageVisible: true,
       isRoutePage: false,
     })).toBe("close-right-drawer");
+
+    expect(resolveChatShellBackNavigationAction({
+      ...BASE_STATE,
+      memberInviteVisible: true,
+      isRoutePage: false,
+    })).toBe("close-member-invite");
   });
 
   it("搜索页先关闭搜索，不直接退出房间", () => {

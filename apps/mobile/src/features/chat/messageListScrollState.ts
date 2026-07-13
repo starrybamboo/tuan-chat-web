@@ -44,3 +44,10 @@ export function shouldAutoScrollOnContentSizeChange(params: {
 }): boolean {
   return params.hasPendingScrollToBottom;
 }
+
+export function resolveMessageScrollFallbackOffset(index: number, averageItemLength: number): number {
+  if (!Number.isFinite(index) || !Number.isFinite(averageItemLength) || index <= 0 || averageItemLength <= 0) {
+    return 0;
+  }
+  return Math.max(0, Math.floor(index * averageItemLength));
+}

@@ -44,7 +44,7 @@ const clampNumber = (value: number, min: number, max: number) => Math.min(max, M
  * Transform控制组件
  * 提供缩放、位置、透明度、旋转等控制功能
  */
-export function TransformControl({
+function TransformControlComponent({
   transform,
   setTransform,
   anchorPosition,
@@ -94,7 +94,6 @@ export function TransformControl({
     `}>
       <div>
         <h4 className="text-sm font-medium text-base-content/85">舞台显示</h4>
-        <p className="mt-0.5 text-xs text-base-content/50">调整裁剪后立绘在预览舞台中的位置与大小</p>
       </div>
 
       <div className="flex items-center justify-between gap-3">
@@ -105,10 +104,13 @@ export function TransformControl({
               key={position}
               type="button"
               className={buttonClassName({
-                variant: anchorPosition === position ? "info" : "outline",
+                variant: "outline",
                 size: "xs",
-                className: "flex-1",
+                className: anchorPosition === position
+                  ? "flex-1 !border-info !bg-info !text-info-content shadow-sm"
+                  : "flex-1",
               })}
+              aria-pressed={anchorPosition === position}
               onClick={() => setAnchorPosition(position)}
               disabled={disabled}
             >
@@ -134,6 +136,7 @@ export function TransformControl({
         />
         <DoubleClickEditableText
           value={transform.scale}
+          trigger="click"
           disabled={disabled}
           className="w-12"
           displayClassName="block text-xs text-right"
@@ -175,6 +178,7 @@ export function TransformControl({
         />
         <DoubleClickEditableText
           value={transform.positionX}
+          trigger="click"
           disabled={disabled}
           className="w-12"
           displayClassName="block text-xs text-right"
@@ -216,6 +220,7 @@ export function TransformControl({
         />
         <DoubleClickEditableText
           value={transform.positionY}
+          trigger="click"
           disabled={disabled}
           className="w-12"
           displayClassName="block text-xs text-right"
@@ -257,6 +262,7 @@ export function TransformControl({
         />
         <DoubleClickEditableText
           value={transform.alpha}
+          trigger="click"
           disabled={disabled}
           className="w-12"
           displayClassName="block text-xs text-right"
@@ -298,6 +304,7 @@ export function TransformControl({
         />
         <DoubleClickEditableText
           value={transform.rotation}
+          trigger="click"
           disabled={disabled}
           className="w-12"
           displayClassName="block text-xs text-right"
@@ -345,3 +352,5 @@ export function TransformControl({
     </div>
   );
 }
+
+export const TransformControl = React.memo(TransformControlComponent);

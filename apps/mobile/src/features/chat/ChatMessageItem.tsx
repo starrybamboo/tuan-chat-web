@@ -176,6 +176,7 @@ type ChatMessageItemProps = {
   onDropMessage?: (payload: { message: Message; pageY: number }) => void;
   onLongPress: (payload: { message: Message; pageX: number; pageY: number }) => void;
   onPokeAvatar?: (message: Message) => void;
+  onPressReply?: (messageId: number) => void;
   onToggleMultiSelect?: (message: Message) => void;
   replyAuthorName?: string | null;
   replyPreviewText?: string | null;
@@ -200,6 +201,7 @@ export const ChatMessageItem = memo(({
   onDropMessage,
   onLongPress,
   onPokeAvatar,
+  onPressReply,
   onToggleMultiSelect,
   replyAuthorName,
   replyPreviewText,
@@ -214,6 +216,11 @@ export const ChatMessageItem = memo(({
   const displayName = getDisplayRoleName(message, roomRolesById);
   const shouldRenderTextPreview = shouldRenderMobileMessageTextPreview(message.messageType);
   const canViewHiddenDiceReply = isSpaceOwner || (currentRoleId > 0 && currentRoleId === message.roleId);
+  const handleReplyPress = useCallback(() => {
+    if (typeof message.replyMessageId === "number") {
+      onPressReply?.(message.replyMessageId);
+    }
+  }, [message.replyMessageId, onPressReply]);
   const longPressActiveRef = useRef(false);
   const hasDraggedAfterLongPressRef = useRef(false);
   const lastLongPressPointRef = useRef<{ pageX: number; pageY: number } | null>(null);
@@ -503,7 +510,13 @@ export const ChatMessageItem = memo(({
             : null}
           {replyPreviewText
             ? (
-                <View style={[styles.replyPreview, { borderLeftColor: theme.accent, backgroundColor: theme.accentMuted }]}>
+                <Pressable
+                  accessibilityHint="跳转到被回复的消息"
+                  accessibilityLabel={`回复 ${replyAuthorName ?? "未知成员"}：${replyPreviewText}`}
+                  accessibilityRole="button"
+                  onPress={handleReplyPress}
+                  style={[styles.replyPreview, { borderLeftColor: theme.accent, backgroundColor: theme.accentMuted }]}
+                >
                   <ThemedText style={{ fontSize: 12, color: theme.textSecondary }} numberOfLines={1}>
                     回复
                     {" "}
@@ -512,7 +525,7 @@ export const ChatMessageItem = memo(({
                     {" "}
                     {replyPreviewText}
                   </ThemedText>
-                </View>
+                </Pressable>
               )
             : null}
           {shouldRenderTextPreview

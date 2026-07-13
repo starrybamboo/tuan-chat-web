@@ -7,7 +7,8 @@ import type { RoomRolesById } from "./chat-avatar-utils";
 
 import { avatarThumbUrl, mediaFileUrl } from "../../lib/media-url";
 import { resolveInternalMessageMediaFileId } from "../messages/messageMediaSource";
-import { resolveMessageAvatarFileId } from "./chat-avatar-utils";
+import { resolveMessageAvatarFileId, resolveMessageAvatarId } from "./chat-avatar-utils";
+import { isOutOfCharacterMessage } from "./messageAuthorLabel";
 
 export const CHAT_MESSAGE_PREFETCH_WINDOW_SIZE = 40;
 
@@ -42,6 +43,38 @@ export function collectChatAvatarThumbUrls(messages: readonly Message[], roomRol
   }
 
   return urls;
+}
+
+export function collectResolvedChatAvatarThumbUrls(
+  messages: readonly Message[],
+  roomRolesById: RoomRolesById,
+  roleAvatarFileIdByAvatarId: ReadonlyMap<number, number>,
+  userAvatarFileIdByUserId: ReadonlyMap<number, number>,
+) {
+  const avatarFileIds = new Set<number>();
+
+  for (const message of messages) {
+    if (isOutOfCharacterMessage(message)) {
+      const userAvatarFileId = userAvatarFileIdByUserId.get(message.userId);
+      if (userAvatarFileId != null) {
+        avatarFileIds.add(userAvatarFileId);
+      }
+      continue;
+    }
+    if (resolveMessageAvatarFileId(message, roomRolesById) != null) {
+      continue;
+    }
+    const avatarId = resolveMessageAvatarId(message, roomRolesById);
+    const avatarFileId = avatarId == null ? undefined : roleAvatarFileIdByAvatarId.get(avatarId);
+    if (avatarFileId != null) {
+      avatarFileIds.add(avatarFileId);
+    }
+  }
+
+  return [...avatarFileIds].flatMap((fileId) => {
+    const url = avatarThumbUrl(fileId);
+    return url ? [url] : [];
+  });
 }
 
 /**

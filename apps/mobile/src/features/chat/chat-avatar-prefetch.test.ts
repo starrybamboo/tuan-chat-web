@@ -4,7 +4,12 @@ import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { describe, expect, it } from "vitest";
 
-import { collectChatAvatarThumbUrls, collectChatImageThumbUrls, selectChatMessagePrefetchWindow } from "./chat-avatar-prefetch";
+import {
+  collectChatAvatarThumbUrls,
+  collectChatImageThumbUrls,
+  collectResolvedChatAvatarThumbUrls,
+  selectChatMessagePrefetchWindow,
+} from "./chat-avatar-prefetch";
 import { buildRoomRolesById } from "./chat-avatar-utils";
 
 function createMessage(avatarFileId?: number | null, roleId?: number | null, imageFileId?: number | null): Message {
@@ -53,6 +58,26 @@ describe("collectChatAvatarThumbUrls", () => {
       ], roomRolesById),
     ).toEqual([
       "https://media.tuan.chat/media/v1/files/021/21/image/low.webp",
+    ]);
+  });
+
+  it("会预取元数据补拉出的角色头像和 OOC 用户头像", () => {
+    const roomRolesById = buildRoomRolesById([
+      { avatarId: 21, roleId: 8 } as UserRole,
+    ]);
+    const messages = [
+      { ...createMessage(null, 8), avatarId: 21, content: "角色发言", userId: 11 } as Message,
+      { ...createMessage(), content: "(场外发言)", userId: 12 } as Message,
+    ];
+
+    expect(collectResolvedChatAvatarThumbUrls(
+      messages,
+      roomRolesById,
+      new Map([[21, 41]]),
+      new Map([[12, 51]]),
+    )).toEqual([
+      "https://media.tuan.chat/media/v1/files/041/41/image/low.webp",
+      "https://media.tuan.chat/media/v1/files/051/51/image/low.webp",
     ]);
   });
 

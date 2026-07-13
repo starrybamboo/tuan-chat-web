@@ -26,8 +26,16 @@ import type { MessageActionMenuAnchor } from "./messageActionMenuLayout";
 import type { MessageDropPlacement } from "./messageDragDrop";
 import type { ChatMessageListItem } from "./messageListModel";
 
-import { collectChatAvatarThumbUrls, collectChatImageThumbUrls, selectChatMessagePrefetchWindow } from "./chat-avatar-prefetch";
-import { buildDeferredChatMetadataRequest, isMessageAvatarCoveredByMetadataRequest } from "./chat-avatar-resolution";
+import {
+  collectChatAvatarThumbUrls,
+  collectChatImageThumbUrls,
+  collectResolvedChatAvatarThumbUrls,
+  selectChatMessagePrefetchWindow,
+} from "./chat-avatar-prefetch";
+import {
+  buildDeferredChatMetadataRequest,
+  isMessageAvatarCoveredByMetadataRequest,
+} from "./chat-avatar-resolution";
 import { buildRoomRolesById, resolveMessageAvatarFileId, resolveMessageAvatarId } from "./chat-avatar-utils";
 import { ChatMessageItem } from "./ChatMessageItem";
 import { ChatNewMessagesPill } from "./ChatNewMessagesPill";
@@ -35,11 +43,12 @@ import { getMobileMessageAuthorLabel, isOutOfCharacterMessage } from "./messageA
 import { resolveMessageDropTarget } from "./messageDragDrop";
 import {
   buildChatMessageListModel,
+  getInvertedMessageIndex,
   getMessageListItemKey,
   getVisibleMessageListSignature,
   getReplyPreviewText,
 } from "./messageListModel";
-import { resolveBottomThresholdTransition, resolveVisibleMessageAppendAction, shouldAutoScrollOnContentSizeChange } from "./messageListScrollState";
+import { resolveBottomThresholdTransition, resolveMessageScrollFallbackOffset, resolveVisibleMessageAppendAction, shouldAutoScrollOnContentSizeChange } from "./messageListScrollState";
 import { shouldGroupWithPrevious } from "./mobileMessageGrouping";
 
 const styles = StyleSheet.create({
@@ -67,6 +76,9 @@ const MESSAGE_LIST_MAINTAIN_VISIBLE_POSITION = { minIndexForVisible: 0 };
 const MESSAGE_INITIAL_RENDER_COUNT = 10;
 const MESSAGE_RENDER_BATCH_SIZE = 8;
 const MESSAGE_SCROLL_TO_BOTTOM_ANIMATION_DISTANCE = 600;
+const MESSAGE_SCROLL_TO_INDEX_RETRY_DELAY_MS = 80;
+const MESSAGE_SCROLL_TO_INDEX_RETRY_LIMIT = 2;
+const MESSAGE_JUMP_HIGHLIGHT_DURATION_MS = 1600;
 const MESSAGE_WINDOW_SIZE = 7;
 function getReplyAuthorName(msg: Message, roomRolesById: ReadonlyMap<number, UserRole>): string {
   return getMobileMessageAuthorLabel(msg, roomRolesById, {
@@ -187,6 +199,11 @@ function ChatMessageListInner({
   const didInitializeMessageTrackingRef = useRef(false);
   const scrollToBottomTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollToBottomTaskRef = useRef<ReturnType<typeof InteractionManager.runAfterInteractions> | null>(null);
+  const scrollToMessageRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const jumpHighlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingScrollToMessageIndexRef = useRef<number | null>(null);
+  const scrollToMessageRetryCountRef = useRef(0);
+  const [jumpTargetMessageId, setJumpTargetMessageId] = useState<number | null>(null);
   const rowLayoutsRef = useRef(new Map<number, { height: number; pageY: number }>());
   const rowRefsRef = useRef(new Map<number, View>());
   const rowMeasureVersionRef = useRef(0);
@@ -266,10 +283,16 @@ function ChatMessageListInner({
     return map;
   }, [metadataQuery.data?.users, roomMemberAvatarFileIdByUserId]);
 
-  const avatarThumbUrls = useMemo(
-    () => collectChatAvatarThumbUrls(prefetchCandidateMessages, roomRolesById),
-    [prefetchCandidateMessages, roomRolesById],
-  );
+  const resolvedAvatarThumbUrls = useMemo(() => collectResolvedChatAvatarThumbUrls(
+    prefetchCandidateMessages,
+    roomRolesById,
+    roleAvatarFileIdByAvatarId,
+    userAvatarFileIdByUserId,
+  ), [prefetchCandidateMessages, roleAvatarFileIdByAvatarId, roomRolesById, userAvatarFileIdByUserId]);
+  const avatarThumbUrls = useMemo(() => [
+    ...collectChatAvatarThumbUrls(prefetchCandidateMessages, roomRolesById),
+    ...resolvedAvatarThumbUrls,
+  ], [prefetchCandidateMessages, resolvedAvatarThumbUrls, roomRolesById]);
   const messageImageThumbUrls = useMemo(
     () => collectChatImageThumbUrls(prefetchCandidateMessages),
     [prefetchCandidateMessages],
@@ -349,6 +372,12 @@ function ChatMessageListInner({
   useEffect(() => {
     return () => {
       cancelScheduledScrollToBottom();
+      if (scrollToMessageRetryTimerRef.current) {
+        clearTimeout(scrollToMessageRetryTimerRef.current);
+      }
+      if (jumpHighlightTimerRef.current) {
+        clearTimeout(jumpHighlightTimerRef.current);
+      }
       rowMeasureVersionRef.current += 1;
     };
   }, [cancelScheduledScrollToBottom]);
@@ -413,6 +442,54 @@ function ChatMessageListInner({
     setIsAtBottom(true);
     setNewMessageCount(0);
   }, [cancelScheduledScrollToBottom]);
+
+  const scrollToMessageIndex = useCallback((index: number, animated: boolean) => {
+    flatListRef.current?.scrollToIndex({
+      animated,
+      index,
+      viewPosition: 0.5,
+    });
+  }, []);
+
+  const handlePressReply = useCallback((messageId: number) => {
+    const targetIndex = getInvertedMessageIndex(messageListModel.invertedData, messageId);
+    if (targetIndex < 0) {
+      return;
+    }
+    if (scrollToMessageRetryTimerRef.current) {
+      clearTimeout(scrollToMessageRetryTimerRef.current);
+      scrollToMessageRetryTimerRef.current = null;
+    }
+    if (jumpHighlightTimerRef.current) {
+      clearTimeout(jumpHighlightTimerRef.current);
+    }
+    pendingScrollToMessageIndexRef.current = targetIndex;
+    scrollToMessageRetryCountRef.current = 0;
+    setJumpTargetMessageId(messageId);
+    scrollToMessageIndex(targetIndex, true);
+    jumpHighlightTimerRef.current = setTimeout(() => {
+      setJumpTargetMessageId(current => current === messageId ? null : current);
+      jumpHighlightTimerRef.current = null;
+    }, MESSAGE_JUMP_HIGHLIGHT_DURATION_MS);
+  }, [messageListModel.invertedData, scrollToMessageIndex]);
+
+  const handleScrollToIndexFailed = useCallback((info: { averageItemLength: number; index: number }) => {
+    if (pendingScrollToMessageIndexRef.current !== info.index) {
+      return;
+    }
+    flatListRef.current?.scrollToOffset({
+      animated: false,
+      offset: resolveMessageScrollFallbackOffset(info.index, info.averageItemLength),
+    });
+    if (scrollToMessageRetryCountRef.current >= MESSAGE_SCROLL_TO_INDEX_RETRY_LIMIT) {
+      return;
+    }
+    scrollToMessageRetryCountRef.current += 1;
+    scrollToMessageRetryTimerRef.current = setTimeout(() => {
+      scrollToMessageRetryTimerRef.current = null;
+      scrollToMessageIndex(info.index, true);
+    }, MESSAGE_SCROLL_TO_INDEX_RETRY_DELAY_MS);
+  }, [scrollToMessageIndex]);
 
   const measureMountedRowLayouts = useCallback((onComplete: () => void) => {
     const entries = [...rowRefsRef.current.entries()];
@@ -583,7 +660,7 @@ function ChatMessageListInner({
             isCommandRequestConsumed={isCommandRequestConsumed}
             isGrouped={isGrouped}
             isMultiSelected={item.message.messageId != null && multiSelectedIds?.has(item.message.messageId)}
-            isSelectedAnchor={selectedAnchorId === item.message.messageId}
+            isSelectedAnchor={selectedAnchorId === item.message.messageId || jumpTargetMessageId === item.message.messageId}
             isSpaceOwner={isSpaceOwner}
             message={item.message}
             multiSelectMode={multiSelectMode}
@@ -594,6 +671,7 @@ function ChatMessageListInner({
             onExecuteCommandRequest={onExecuteCommandRequest}
             onLongPress={handleLongPressMessage}
             onPokeAvatar={onPokeAvatar}
+            onPressReply={handlePressReply}
             onToggleMultiSelect={onToggleMultiSelect}
             replyAuthorName={replyAuthorName}
             replyPreviewText={replyPreviewText}
@@ -604,7 +682,7 @@ function ChatMessageListInner({
         </Animated.View>
       </View>
     );
-  }, [allowDeferredMetadataQueries, currentRoleId, dragTranslationY, draggingMessageId, dropTarget, handleCancelDragMessage, handleDragMessage, handleDropMessage, handleLongPressMessage, isCommandRequestConsumed, isSpaceOwner, messageListModel.invertedData, messageListModel.messageMap, metadataAvatarIdSet, metadataQuery.isError, metadataUserIdSet, multiSelectMode, multiSelectedIds, noRole, onExecuteCommandRequest, onPokeAvatar, onToggleMultiSelect, roleAvatarFileIdByAvatarId, roomRolesById, selectedAnchorId, theme.accent, userAvatarFileIdByUserId]);
+  }, [allowDeferredMetadataQueries, currentRoleId, dragTranslationY, draggingMessageId, dropTarget, handleCancelDragMessage, handleDragMessage, handleDropMessage, handleLongPressMessage, handlePressReply, isCommandRequestConsumed, isSpaceOwner, jumpTargetMessageId, messageListModel.invertedData, messageListModel.messageMap, metadataAvatarIdSet, metadataQuery.isError, metadataUserIdSet, multiSelectMode, multiSelectedIds, noRole, onExecuteCommandRequest, onPokeAvatar, onToggleMultiSelect, roleAvatarFileIdByAvatarId, roomRolesById, selectedAnchorId, theme.accent, userAvatarFileIdByUserId]);
 
   const keyExtractor = useCallback((item: ChatMessageListItem, index: number) => getMessageListItemKey(item.message, index), []);
 
@@ -658,10 +736,11 @@ function ChatMessageListInner({
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
-        extraData={visibleMessageSignature}
+        extraData={`${visibleMessageSignature}:${jumpTargetMessageId ?? ""}`}
         onContentSizeChange={handleContentSizeChange}
         onScroll={handleScroll}
         onScrollBeginDrag={handleScrollBeginDrag}
+        onScrollToIndexFailed={handleScrollToIndexFailed}
         scrollEnabled={draggingMessageId === null}
         scrollEventThrottle={16}
         initialNumToRender={MESSAGE_INITIAL_RENDER_COUNT}

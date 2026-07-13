@@ -134,7 +134,7 @@ function AiImagePage() {
 
         .ai-image-shell :where(
           .card,
-          .btn,
+          .tc-button,
           .collapse,
           .badge,
           .join,
@@ -166,7 +166,7 @@ function AiImagePage() {
         .ai-image-shell :where(
           .rounded-full,
           [class*="rounded-full"],
-          .btn-circle
+          .tc-button-circle
         ) {
           border-radius: 9999px !important;
         }

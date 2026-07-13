@@ -26,6 +26,12 @@ type UseCropPreviewOptions = {
   mode: CropMode | (() => CropMode);
   /** 防抖延迟，默认 100ms */
   debounceMs?: number;
+  /** 首张图片是否立即绘制 */
+  immediateFirstPreview?: boolean;
+  /** 预览最大边长 */
+  previewMaxSize?: number;
+  /** 是否生成预览 URL */
+  enablePreviewUrlUpdate?: boolean;
   /** 自定义初始裁剪区域（可选） */
   initialCrop?: (args: {
     width: number;
@@ -42,6 +48,8 @@ type UseCropPreviewOptions = {
   deferInitialPreviewDraw?: boolean;
   /** 预览更新回调（每次 canvas 更新时调用） */
   onPreviewUpdate?: (dataUrl: string) => void;
+  /** Canvas 绘制完成回调，无需等待图片编码 */
+  onCanvasUpdate?: () => void;
   /** 图片加载后的扩展逻辑（在默认处理之后调用） */
   onImageLoadExtend?: (e: React.SyntheticEvent<HTMLImageElement>, context: ImageLoadContext) => void;
   /** 外部传入的图片 ref（可选，不传则内部创建） */
@@ -93,9 +101,13 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
   const {
     mode,
     debounceMs = 100,
+    immediateFirstPreview = false,
+    previewMaxSize,
+    enablePreviewUrlUpdate = true,
     initialCrop,
     deferInitialPreviewDraw = false,
     onPreviewUpdate,
+    onCanvasUpdate,
     onImageLoadExtend,
     imgRef: externalImgRef,
     previewCanvasRef: externalCanvasRef,
@@ -167,17 +179,22 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
     const drawInitialPreview = () => {
       // 立即绘制初始预览
       if (imgRef.current && previewCanvasRef.current) {
-        canvasPreview(imgRef.current, previewCanvasRef.current, pixelCrop, 1, 0, { previewMode: true });
-        // 使用 toBlob 异步生成预览 URL（比 toDataURL 更高效）
-        previewCanvasRef.current.toBlob(
-          (blob) => {
-            if (blob) {
-              const url = URL.createObjectURL(blob);
-              handlePreviewUpdate(url);
-            }
-          },
-          "image/png",
-        );
+        canvasPreview(imgRef.current, previewCanvasRef.current, pixelCrop, 1, 0, {
+          previewMode: true,
+          maxPreviewSize: previewMaxSize,
+        });
+        onCanvasUpdate?.();
+        if (enablePreviewUrlUpdate) {
+          previewCanvasRef.current.toBlob(
+            (blob) => {
+              if (blob) {
+                const url = URL.createObjectURL(blob);
+                handlePreviewUpdate(url);
+              }
+            },
+            "image/png",
+          );
+        }
       }
     };
 
@@ -195,7 +212,7 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
     else {
       drawInitialPreview();
     }
-  }, [getMode, initialCrop, imgRef, previewCanvasRef, handlePreviewUpdate, onImageLoadExtend, deferInitialPreviewDraw]);
+  }, [getMode, initialCrop, imgRef, previewCanvasRef, handlePreviewUpdate, onImageLoadExtend, deferInitialPreviewDraw, enablePreviewUrlUpdate, onCanvasUpdate, previewMaxSize]);
 
   // 裁剪区域变化（拖拽过程中）
   const onCropChange = useCallback((_: Crop, percentCrop: Crop) => {
@@ -251,7 +268,10 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
     previewCanvasRef,
     completedCrop,
     debounceMs,
-    enableAvatarUrlUpdate: true,
+    immediateFirstRender: immediateFirstPreview,
+    maxPreviewSize: previewMaxSize,
+    enableAvatarUrlUpdate: enablePreviewUrlUpdate,
+    onCanvasUpdate,
     onAvatarUrlUpdate: handlePreviewUpdate,
   });
 

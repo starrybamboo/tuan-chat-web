@@ -5,19 +5,16 @@ import {
   CaretDownIcon,
   CheckCircleIcon,
   ChecksIcon,
-  CropIcon,
   FolderOpenIcon,
   GearIcon,
   ImageIcon,
   PlusIcon,
   TrashIcon,
   UserCircleIcon,
-  UserFocusIcon,
   WarningCircleIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { FieldGroup, FieldLabel, TextInput } from "@/components/common/FormField";
 import {
   useApplyCropAvatarMutation,
   useApplyCropMutation,
@@ -40,8 +37,9 @@ import { Drawer } from "vaul";
 import { appToast } from "@/components/common/appToast/appToast";
 import { Button } from "@/components/common/Button";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import { selectionClassName } from "@/components/common/DesignLanguage";
+import { selectionClassName, surfaceClassName, textClassName } from "@/components/common/DesignLanguage";
 import { DialogActions, DialogFrame } from "@/components/common/DialogFrame";
+import { FieldGroup, FieldLabel, TextInput } from "@/components/common/FormField";
 import { IconButton } from "@/components/common/IconButton";
 import { MediaImage } from "@/components/common/mediaImage";
 import { DropdownMenu, MenuItem } from "@/components/common/MenuPopover";
@@ -51,12 +49,13 @@ import { ensureRoleAvatarDefaultMedia } from "@/components/Role/RoleCreation/hoo
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { canvasPreview, canvasToBlob } from "@/utils/imgCropper";
 import { normalizeImageFileOrNull } from "@/utils/media/mediaMime";
-import { imageOriginalUrlFromUrl } from "@/utils/media/mediaUrl";
 import { calculateFileSha256 } from "@/utils/media/mediaUpload";
+import { imageOriginalUrlFromUrl } from "@/utils/media/mediaUrl";
 
 import type { AvatarUploadFilesContext } from "../RoleInfoCard/AvatarUploadCropper";
 import type { Role } from "../types";
-import type { BatchSpriteCropApplyResult, VariantInitializationCropResult } from "./Tabs/SpriteCropper";
+import type { BatchSpriteCropApplyResult, PendingSpriteCropSubmission, VariantInitializationCropResult } from "./Tabs/SpriteCropper";
+import type { WaitForAvatarUpload } from "./Tabs/spriteCropperUploadFlow";
 
 import {
   canReuseAvatarMediaForVariantConfig,
@@ -67,6 +66,7 @@ import {
   isOriginImageCompatibleWithVariantConfig,
 } from "./avatarCropContext";
 import { resolveAvatarUploadName } from "./avatarUploadName";
+import { enqueueAvatarUploadWorkflow, removeAvatarUploadWorkflow } from "./avatarUploadWorkflowQueue";
 import { type DefaultSpriteMediaUploadResult, uploadOriginAndDefaultSpriteMedia } from "./defaultSpriteMedia";
 import { useAvatarDeletion } from "./hooks/useAvatarDeletion";
 import {
@@ -75,6 +75,7 @@ import {
   buildAvatarCalibrationWorkflowProgress,
 } from "./Tabs/AvatarSettingsTab";
 import { SpriteCropper } from "./Tabs/SpriteCropper";
+import { getCropSubmitTaskKey, SpriteCropSubmissionCoordinator } from "./Tabs/spriteCropperUploadFlow";
 import { SpriteListGrid } from "./Tabs/SpriteListGrid";
 import {
 
@@ -125,6 +126,34 @@ type OptimisticUploadAvatar = RoleAvatar & {
   localSpriteUrl: string;
   optimisticUploadKey: string;
   optimisticUploadPending: boolean;
+}
+
+type OptimisticAvatarUploadCompletion = {
+  promise: Promise<RoleAvatar>;
+  resolve: (avatar: RoleAvatar) => void;
+  reject: (error: unknown) => void;
+}
+
+type LocalSpriteCropOverride = {
+  localSpriteUrl: string;
+  spriteCropContext?: RoleAvatar["spriteCropContext"];
+  spriteTransform?: RoleAvatar["spriteTransform"];
+};
+
+function createOptimisticAvatarUploadCompletion(): OptimisticAvatarUploadCompletion {
+  let resolve!: (avatar: RoleAvatar) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<RoleAvatar>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  // 等待者会在最终提交阶段接收错误；这里提前挂载处理器，避免用户尚未点击提交时产生未处理拒绝。
+  void promise.catch(() => undefined);
+  return { promise, resolve, reject };
+}
+
+function getOptimisticUploadKey(avatar: RoleAvatar | undefined) {
+  return (avatar as (RoleAvatar & { optimisticUploadKey?: string }) | undefined)?.optimisticUploadKey;
 }
 
 type PendingVariantRemovalConfirm =
@@ -469,13 +498,22 @@ export function SpriteSettingsPopup({
   const [variantFilter, setVariantFilter] = useState<string>(UNGROUPED_VARIANT_KEY);
   const [selectedVariantKey, setSelectedVariantKey] = useState<string | null>(null);
   const [pendingVariantInitialization, setPendingVariantInitialization] = useState<PendingVariantInitialization | null>(null);
-  const [pendingUploadAvatarWorkflow, setPendingUploadAvatarWorkflow] = useState<PendingUploadAvatarWorkflow | null>(null);
+  const [pendingUploadAvatarWorkflows, setPendingUploadAvatarWorkflows] = useState<PendingUploadAvatarWorkflow[]>([]);
+  const pendingUploadAvatarWorkflow = pendingUploadAvatarWorkflows[0] ?? null;
   const [pendingUploadSpriteCalibration, setPendingUploadSpriteCalibration] = useState<PendingUploadAvatarWorkflow | null>(null);
   const [variantNameDialogOpen, setVariantNameDialogOpen] = useState(false);
   const [variantNameDraft, setVariantNameDraft] = useState("");
   const [variantCreationIndices, setVariantCreationIndices] = useState<number[]>([]);
   const [pendingVariantSpriteCalibrationIndices, setPendingVariantSpriteCalibrationIndices] = useState<number[] | null>(null);
   const [optimisticUploadAvatars, setOptimisticUploadAvatars] = useState<OptimisticUploadAvatar[]>([]);
+  const optimisticAvatarUploadCompletionsRef = useRef(new Map<string, OptimisticAvatarUploadCompletion>());
+  const defaultSpriteMediaUploadsRef = useRef(new Map<string, Promise<DefaultSpriteMediaUploadResult>>());
+  const spriteCropSubmissionCoordinatorRef = useRef(new SpriteCropSubmissionCoordinator());
+  const localSpriteCropOverridesRef = useRef(new Map<string, LocalSpriteCropOverride>());
+  const [localSpriteCropOverrides, setLocalSpriteCropOverrides] = useState<Map<string, LocalSpriteCropOverride>>(
+    () => new Map(),
+  );
+  const nextOptimisticAvatarIdRef = useRef(-1);
   const [batchVariantCreationPrompt, setBatchVariantCreationPrompt] = useState<{
     indices: number[];
     successCount: number;
@@ -492,13 +530,26 @@ export function SpriteSettingsPopup({
         .filter((avatarId): avatarId is number => avatarId != null),
     )
   ), [optimisticUploadAvatars]);
-  const spritesAvatars = useMemo(
+  const baseSpritesAvatars = useMemo(
     () => [
       ...optimisticUploadAvatars,
       ...remoteSpritesAvatars.filter(avatar => !optimisticAvatarIds.has(normalizeVariantId(avatar.avatarId) ?? 0)),
     ],
     [optimisticAvatarIds, optimisticUploadAvatars, remoteSpritesAvatars],
   );
+  const spritesAvatars = useMemo(() => baseSpritesAvatars.map((avatar) => {
+    const taskKey = getCropSubmitTaskKey(avatar);
+    const override = taskKey ? localSpriteCropOverrides.get(taskKey) : undefined;
+    if (!override) {
+      return avatar;
+    }
+    return {
+      ...avatar,
+      localSpriteUrl: override.localSpriteUrl,
+      ...(override.spriteCropContext ? { spriteCropContext: override.spriteCropContext } : {}),
+      ...(override.spriteTransform ? { spriteTransform: override.spriteTransform } : {}),
+    } as RoleAvatar;
+  }), [baseSpritesAvatars, localSpriteCropOverrides]);
 
   // ========== 内部共享的立绘索引 ==========
   // 使用外部传入的 currentSpriteIndex 作为初始值
@@ -940,6 +991,23 @@ export function SpriteSettingsPopup({
   const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
   const { mutateAsync: reserveRoleAvatar } = useReserveRoleAvatarMutation();
   const { mutateAsync: deleteRoleAvatar } = useDeleteRoleAvatarMutation(role?.id);
+  const getDefaultSpriteMedia = useCallback(async (file: File) => {
+    const fileHash = await calculateFileSha256(file);
+    const cacheKey = `${fileHash}:${file.size}:${file.type}`;
+    const cachedPromise = defaultSpriteMediaUploadsRef.current.get(cacheKey);
+    if (cachedPromise) {
+      return cachedPromise;
+    }
+
+    const uploadPromise = uploadOriginAndDefaultSpriteMedia(file, { scene: 3 });
+    defaultSpriteMediaUploadsRef.current.set(cacheKey, uploadPromise);
+    uploadPromise.catch(() => {
+      if (defaultSpriteMediaUploadsRef.current.get(cacheKey) === uploadPromise) {
+        defaultSpriteMediaUploadsRef.current.delete(cacheKey);
+      }
+    });
+    return uploadPromise;
+  }, []);
   const removeOptimisticUploadAvatar = useCallback((uploadKey: string) => {
     setOptimisticUploadAvatars((prev) => {
       const removed = prev.find(item => item.optimisticUploadKey === uploadKey);
@@ -978,19 +1046,25 @@ export function SpriteSettingsPopup({
     options: { clearAvatarUrl?: boolean; clearSpriteUrl?: boolean } = {},
   ) => {
     const avatarById = new Map<number, RoleAvatar>();
+    const avatarByUploadKey = new Map<string, RoleAvatar>();
     avatars.forEach((avatar) => {
       const avatarId = normalizeVariantId(avatar.avatarId);
       if (avatarId) {
         avatarById.set(avatarId, avatar);
       }
+      const uploadKey = getOptimisticUploadKey(avatar);
+      if (uploadKey) {
+        avatarByUploadKey.set(uploadKey, avatar);
+      }
     });
-    if (avatarById.size === 0) {
+    if (avatarById.size === 0 && avatarByUploadKey.size === 0) {
       return;
     }
 
     setOptimisticUploadAvatars(prev => prev.map((optimisticAvatar) => {
       const avatarId = normalizeVariantId(optimisticAvatar.avatarId);
-      const nextAvatar = avatarId ? avatarById.get(avatarId) : undefined;
+      const nextAvatar = (avatarId ? avatarById.get(avatarId) : undefined)
+        ?? avatarByUploadKey.get(optimisticAvatar.optimisticUploadKey);
       if (!nextAvatar) {
         return optimisticAvatar;
       }
@@ -1008,6 +1082,85 @@ export function SpriteSettingsPopup({
     }));
   }, []);
 
+  const upsertLocalSpriteCropOverride = useCallback((
+    taskKey: string,
+    override: LocalSpriteCropOverride,
+  ) => {
+    const previous = localSpriteCropOverridesRef.current.get(taskKey);
+    if (previous && previous.localSpriteUrl !== override.localSpriteUrl) {
+      URL.revokeObjectURL(previous.localSpriteUrl);
+    }
+    const next = new Map(localSpriteCropOverridesRef.current);
+    next.set(taskKey, override);
+    localSpriteCropOverridesRef.current = next;
+    setLocalSpriteCropOverrides(next);
+  }, []);
+
+  const removeLocalSpriteCropOverrides = useCallback((avatars: RoleAvatar[]) => {
+    const next = new Map(localSpriteCropOverridesRef.current);
+    let changed = false;
+    avatars.forEach((avatar) => {
+      const taskKey = getCropSubmitTaskKey(avatar);
+      if (!taskKey) {
+        return;
+      }
+      const previous = next.get(taskKey);
+      if (!previous) {
+        return;
+      }
+      URL.revokeObjectURL(previous.localSpriteUrl);
+      next.delete(taskKey);
+      spriteCropSubmissionCoordinatorRef.current.remove(avatar);
+      changed = true;
+    });
+    if (changed) {
+      localSpriteCropOverridesRef.current = next;
+      setLocalSpriteCropOverrides(next);
+    }
+  }, []);
+
+  const registerPendingSpriteCropSubmissions = useCallback((
+    submissions: PendingSpriteCropSubmission[],
+  ) => {
+    submissions.forEach((pendingSubmission) => {
+      const taskKey = getCropSubmitTaskKey(pendingSubmission.avatar);
+      if (!taskKey) {
+        URL.revokeObjectURL(pendingSubmission.localSpriteUrl);
+        return;
+      }
+
+      const submission = spriteCropSubmissionCoordinatorRef.current.enqueue(
+        pendingSubmission.avatar,
+        pendingSubmission.submit,
+      );
+      upsertLocalSpriteCropOverride(taskKey, {
+        localSpriteUrl: pendingSubmission.localSpriteUrl,
+        spriteCropContext: pendingSubmission.spriteCropContext,
+        spriteTransform: pendingSubmission.spriteTransform,
+      });
+
+      void submission.then((uploadedAvatar) => {
+        if (!spriteCropSubmissionCoordinatorRef.current.isCurrent(pendingSubmission.avatar, submission)) {
+          return;
+        }
+        patchOptimisticUploadAvatars([uploadedAvatar], { clearSpriteUrl: true });
+        const currentOverride = localSpriteCropOverridesRef.current.get(taskKey);
+        if (currentOverride) {
+          upsertLocalSpriteCropOverride(taskKey, {
+            ...currentOverride,
+            spriteCropContext: uploadedAvatar.spriteCropContext ?? currentOverride.spriteCropContext,
+            spriteTransform: uploadedAvatar.spriteTransform ?? currentOverride.spriteTransform,
+          });
+        }
+      }).catch((error) => {
+        if (spriteCropSubmissionCoordinatorRef.current.isCurrent(pendingSubmission.avatar, submission)) {
+          console.error("后台保存立绘失败:", error);
+          appToast.error(error instanceof Error ? error.message : "后台保存立绘失败，请重新应用裁剪");
+        }
+      });
+    });
+  }, [patchOptimisticUploadAvatars, upsertLocalSpriteCropOverride]);
+
   const createOptimisticUploadAvatar = useCallback((
     file: File,
     index: number,
@@ -1018,10 +1171,13 @@ export function SpriteSettingsPopup({
     }
 
     const uploadKey = `avatar-upload-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`;
+    const optimisticAvatarId = nextOptimisticAvatarIdRef.current;
+    nextOptimisticAvatarIdRef.current -= 1;
+    optimisticAvatarUploadCompletionsRef.current.set(uploadKey, createOptimisticAvatarUploadCompletion());
     const localOriginUrl = URL.createObjectURL(file);
     return {
       roleId: role.id,
-      avatarId: -Date.now() - index - 1,
+      avatarId: optimisticAvatarId,
       avatarTitle: { label: resolveAvatarUploadName(file.name) ?? file.name },
       ...(context.uploadDefaults?.category ? { category: context.uploadDefaults.category } : {}),
       ...(context.uploadDefaults?.variantId ? { variantId: context.uploadDefaults.variantId } : {}),
@@ -1040,6 +1196,28 @@ export function SpriteSettingsPopup({
     };
   }, [role?.id]);
 
+  const waitForAvatarUpload = useCallback<WaitForAvatarUpload>(async (avatar) => {
+    const optimisticAvatar = avatar as Partial<OptimisticUploadAvatar>;
+    const uploadKey = optimisticAvatar.optimisticUploadKey;
+    if (!uploadKey) {
+      return avatar;
+    }
+
+    const completion = optimisticAvatarUploadCompletionsRef.current.get(uploadKey);
+    if (!completion) {
+      if (optimisticAvatar.optimisticUploadPending) {
+        throw new Error("图片上传任务已中断，请重新选择图片");
+      }
+      return avatar;
+    }
+    return completion.promise;
+  }, []);
+
+  const waitForAvatarCropSubmit = useCallback<WaitForAvatarUpload>(
+    avatar => spriteCropSubmissionCoordinatorRef.current.resolve(avatar, waitForAvatarUpload),
+    [waitForAvatarUpload],
+  );
+
   const enterOptimisticUploadWorkflow = useCallback((
     avatars: OptimisticUploadAvatar[],
   ) => {
@@ -1048,18 +1226,23 @@ export function SpriteSettingsPopup({
     }
 
     setOptimisticUploadAvatars(prev => [...avatars, ...prev]);
+    if (pendingUploadSpriteCalibration || pendingVariantInitialization) {
+      // 新批次插入列表头部时同步平移索引，保持当前 variant 校正流程不被打断。
+      setSelectedIndices(prev => new Set(Array.from(prev, index => index + avatars.length)));
+      setInternalIndex(prev => prev + avatars.length);
+      appToast.info("新图片已加入后台上传队列");
+      return;
+    }
     setVariantFilter(UNGROUPED_VARIANT_KEY);
     setSelectedIndices(new Set(avatars.map((_, index) => index)));
     setIsMultiSelectMode(avatars.length > 1);
     setInternalIndex(0);
-    setPendingUploadAvatarWorkflow(null);
-    setPendingUploadSpriteCalibration(null);
     setActiveTab("cropper");
     if (isMobile) {
       setIsMobileControlDrawerOpen(false);
     }
     appToast.info("已进入裁剪流程，图片会在后台继续上传");
-  }, [isMobile]);
+  }, [isMobile, pendingUploadSpriteCalibration, pendingVariantInitialization]);
 
   const enterUploadedAvatarWorkflow = useCallback((
     avatarIds: number[],
@@ -1069,17 +1252,12 @@ export function SpriteSettingsPopup({
       return;
     }
 
-    setPendingUploadAvatarWorkflow({
+    setPendingUploadAvatarWorkflows(prev => enqueueAvatarUploadWorkflow(prev, {
       avatarIds,
       target: context.target,
       batchKey: context.batchKey,
-    });
-    setVariantFilter(UNGROUPED_VARIANT_KEY);
-    setActiveTab("cropper");
-    if (isMobile) {
-      setIsMobileControlDrawerOpen(false);
-    }
-  }, [isMobile]);
+    }));
+  }, []);
 
   const handleAvatarUploadFilesSelected = useCallback(async (
     files: File[],
@@ -1103,32 +1281,18 @@ export function SpriteSettingsPopup({
       .map((file, index) => createOptimisticUploadAvatar(file, index, context))
       .filter((avatar): avatar is OptimisticUploadAvatar => Boolean(avatar));
     enterOptimisticUploadWorkflow(optimisticAvatars);
+    const uploadCompletions = optimisticAvatars.map(avatar => (
+      optimisticAvatarUploadCompletionsRef.current.get(avatar.optimisticUploadKey)
+    ));
     let completedCount = 0;
     let successCount = 0;
     let failedCount = 0;
-    const mediaUploadPromisesByHash = new Map<string, Promise<DefaultSpriteMediaUploadResult>>();
-    const getDefaultSpriteMedia = async (file: File) => {
-      const fileHash = await calculateFileSha256(file);
-      const cacheKey = `${fileHash}:${file.size}:${file.type}`;
-      const cachedPromise = mediaUploadPromisesByHash.get(cacheKey);
-      if (cachedPromise) {
-        return cachedPromise;
-      }
-
-      const uploadPromise = uploadOriginAndDefaultSpriteMedia(file, { scene: 3 });
-      mediaUploadPromisesByHash.set(cacheKey, uploadPromise);
-      uploadPromise.catch(() => {
-        if (mediaUploadPromisesByHash.get(cacheKey) === uploadPromise) {
-          mediaUploadPromisesByHash.delete(cacheKey);
-        }
-      });
-      return uploadPromise;
-    };
 
     try {
       appToast.loading(`正在导入原图：0/${imageFiles.length}`, { id: toastId });
     await runWithConcurrencyLimit(imageFiles, 4, async (file, index) => {
       const optimisticAvatar = optimisticAvatars[index];
+      const uploadCompletion = uploadCompletions[index];
       let reservedAvatarId: number | undefined;
       try {
           const mediaOutcome = getDefaultSpriteMedia(file).then(
@@ -1140,7 +1304,7 @@ export function SpriteSettingsPopup({
             ...(context.uploadDefaults?.category ? { category: context.uploadDefaults.category } : {}),
             ...(context.uploadDefaults?.variantId ? { variantId: context.uploadDefaults.variantId } : {}),
           });
-          reservedAvatarId = normalizeVariantId(reserveRes.data);
+          reservedAvatarId = normalizeVariantId(reserveRes.data) ?? undefined;
           if (!reserveRes.success || !reservedAvatarId) {
             throw new Error(reserveRes.errMsg || "头像记录创建失败");
           }
@@ -1184,6 +1348,15 @@ export function SpriteSettingsPopup({
             } as RoleAvatar);
           }
 
+          const completedAvatar: RoleAvatar = {
+            ...optimisticAvatar,
+            ...uploadedAvatar,
+            roleId: uploadedAvatar.roleId ?? role.id,
+            avatarId,
+            ...(context.uploadDefaults?.category ? { category: context.uploadDefaults.category } : {}),
+            optimisticUploadPending: false,
+          } as RoleAvatar;
+
           createdAvatarIdsByIndex[index] = avatarId;
           if (optimisticAvatar) {
             updateOptimisticUploadAvatar(optimisticAvatar.optimisticUploadKey, {
@@ -1193,11 +1366,12 @@ export function SpriteSettingsPopup({
               ...(context.uploadDefaults?.category ? { category: context.uploadDefaults.category } : {}),
             } as RoleAvatar, { complete: true });
           }
-          enterUploadedAvatarWorkflow([avatarId], context);
+          uploadCompletion?.resolve(completedAvatar);
           successCount += 1;
         }
         catch (error) {
           failedCount += 1;
+          uploadCompletion?.reject(error);
           if (reservedAvatarId) {
             try {
               await deleteRoleAvatar(reservedAvatarId);
@@ -1208,6 +1382,7 @@ export function SpriteSettingsPopup({
           }
           if (optimisticAvatar) {
             removeOptimisticUploadAvatar(optimisticAvatar.optimisticUploadKey);
+            removeLocalSpriteCropOverrides([optimisticAvatar]);
           }
           console.error("上传原图失败:", file.name, error);
         }
@@ -1226,7 +1401,9 @@ export function SpriteSettingsPopup({
         return;
       }
 
-      enterUploadedAvatarWorkflow(createdAvatarIds, context);
+      if (context.target.mode !== "none") {
+        enterUploadedAvatarWorkflow(createdAvatarIds, context);
+      }
       appToast.success(
         failedCount > 0
           ? `部分导入完成：成功 ${successCount}/${imageFiles.length}，继续校正成功项`
@@ -1242,7 +1419,9 @@ export function SpriteSettingsPopup({
     createOptimisticUploadAvatar,
     enterUploadedAvatarWorkflow,
     enterOptimisticUploadWorkflow,
+    getDefaultSpriteMedia,
     removeOptimisticUploadAvatar,
+    removeLocalSpriteCropOverrides,
     role?.id,
     updateOptimisticUploadAvatar,
     deleteRoleAvatar,
@@ -1299,7 +1478,6 @@ export function SpriteSettingsPopup({
         setSelectedIndices(new Set());
       }
       setIsMultiSelectMode(false);
-      setPendingUploadAvatarWorkflow(null);
       setPendingUploadSpriteCalibration(null);
       setPendingVariantInitialization(null);
       setActiveTab("cropper");
@@ -1566,17 +1744,30 @@ export function SpriteSettingsPopup({
     if (!isOpen) {
       setIsMobileControlDrawerOpen(false);
       setPendingVariantInitialization(null);
-      setPendingUploadAvatarWorkflow(null);
+      setPendingUploadAvatarWorkflows([]);
       setPendingUploadSpriteCalibration(null);
       setOptimisticUploadAvatars((prev) => {
         prev.forEach(item => URL.revokeObjectURL(item.localOriginUrl));
         return [];
       });
+      optimisticAvatarUploadCompletionsRef.current.clear();
+      defaultSpriteMediaUploadsRef.current.clear();
+      localSpriteCropOverridesRef.current.forEach(item => URL.revokeObjectURL(item.localSpriteUrl));
+      localSpriteCropOverridesRef.current = new Map();
+      setLocalSpriteCropOverrides(new Map());
+      spriteCropSubmissionCoordinatorRef.current.clear();
+      nextOptimisticAvatarIdRef.current = -1;
       setPendingVariantSpriteCalibrationIndices(null);
       setBatchVariantCreationPrompt(null);
       setSelectedVariantKey(null);
     }
   }, [isOpen]);
+
+  useEffect(() => () => {
+    localSpriteCropOverridesRef.current.forEach(item => URL.revokeObjectURL(item.localSpriteUrl));
+    localSpriteCropOverridesRef.current.clear();
+    spriteCropSubmissionCoordinatorRef.current.clear();
+  }, []);
 
   const handleTabChange = useCallback((tab: SettingsTab) => {
     if (tab !== "avatarCropper") {
@@ -1887,16 +2078,32 @@ export function SpriteSettingsPopup({
     if (result.successCount <= 0) {
       return;
     }
-    patchOptimisticUploadAvatars(result.avatars, { clearSpriteUrl: true });
+    const pendingSpriteSubmissions = result.pendingSpriteSubmissions ?? [];
+    if (pendingSpriteSubmissions.length > 0) {
+      registerPendingSpriteCropSubmissions(pendingSpriteSubmissions);
+    }
+    else {
+      patchOptimisticUploadAvatars(result.avatars, { clearSpriteUrl: true });
+    }
     const updatedAvatarIds = new Set(
       result.avatars
-        .map(avatar => avatar.avatarId)
-        .filter((avatarId): avatarId is number => typeof avatarId === "number"),
+        .map(avatar => normalizeVariantId(avatar.avatarId))
+        .filter((avatarId): avatarId is number => avatarId != null),
     );
+    const currentFlowAvatarIds = new Set([
+      ...effectiveSelectedAvatarItems
+        .map(({ avatar }) => normalizeVariantId(avatar.avatarId))
+        .filter((avatarId): avatarId is number => avatarId != null),
+      ...[normalizeVariantId(currentAvatar?.avatarId)].filter((avatarId): avatarId is number => avatarId != null),
+    ]);
+    if (currentFlowAvatarIds.size > 0 && !Array.from(updatedAvatarIds).some(avatarId => currentFlowAvatarIds.has(avatarId))) {
+      return;
+    }
     const updatedIndices = spritesAvatars
-      .map((avatar, index) => (
-        avatar.avatarId && updatedAvatarIds.has(avatar.avatarId) ? index : -1
-      ))
+      .map((avatar, index) => {
+        const avatarId = normalizeVariantId(avatar.avatarId);
+        return avatarId != null && updatedAvatarIds.has(avatarId) ? index : -1;
+      })
       .filter(index => index >= 0);
     const fallbackIndices = effectiveSelectedAvatarItems.length > 0
       ? effectiveSelectedAvatarItems.map(item => item.index)
@@ -1919,7 +2126,9 @@ export function SpriteSettingsPopup({
       if (isMobile) {
         setIsMobileControlDrawerOpen(false);
       }
-      appToast.info("立绘校正完成，请继续头像校正");
+      appToast.info(pendingSpriteSubmissions.length > 0
+        ? "立绘已本地应用，后台保存中，请继续头像校正"
+        : "立绘校正完成，请继续头像校正");
     };
     if (pendingUploadSpriteCalibration) {
       const successfulUploadIds = pendingUploadSpriteCalibration.avatarIds
@@ -1997,6 +2206,7 @@ export function SpriteSettingsPopup({
     patchOptimisticUploadAvatars,
     pendingUploadSpriteCalibration,
     pendingVariantSpriteCalibrationIndices,
+    registerPendingSpriteCropSubmissions,
     spritesAvatars,
     variantGroups.length,
   ]);
@@ -2005,18 +2215,30 @@ export function SpriteSettingsPopup({
     if (result.successCount <= 0) {
       return;
     }
-    patchOptimisticUploadAvatars(result.avatars, { clearAvatarUrl: true });
+    removeLocalSpriteCropOverrides(result.avatars);
+    patchOptimisticUploadAvatars(result.avatars, { clearAvatarUrl: true, clearSpriteUrl: true });
     const updatedAvatarIds = new Set(
       result.avatars
-        .map(avatar => avatar.avatarId)
-        .filter((avatarId): avatarId is number => typeof avatarId === "number"),
+        .map(avatar => normalizeVariantId(avatar.avatarId))
+        .filter((avatarId): avatarId is number => avatarId != null),
     );
-    const nextIndex = spritesAvatars.findIndex(avatar => (
-      avatar.avatarId && updatedAvatarIds.has(avatar.avatarId)
-    ));
+    const currentFlowAvatarIds = new Set([
+      ...effectiveSelectedAvatarItems
+        .map(({ avatar }) => normalizeVariantId(avatar.avatarId))
+        .filter((avatarId): avatarId is number => avatarId != null),
+      ...[normalizeVariantId(currentAvatar?.avatarId)].filter((avatarId): avatarId is number => avatarId != null),
+    ]);
+    if (currentFlowAvatarIds.size > 0 && !Array.from(updatedAvatarIds).some(avatarId => currentFlowAvatarIds.has(avatarId))) {
+      return;
+    }
+    const nextIndex = spritesAvatars.findIndex((avatar) => {
+      const avatarId = normalizeVariantId(avatar.avatarId);
+      return avatarId != null && updatedAvatarIds.has(avatarId);
+    });
     if (nextIndex >= 0) {
       setInternalIndex(nextIndex);
     }
+    setPendingUploadSpriteCalibration(null);
     setPendingVariantInitialization(null);
     setActiveTab("setting");
     if (!isVariantBatchSelection) {
@@ -2029,7 +2251,7 @@ export function SpriteSettingsPopup({
     appToast.success(result.totalCount > 1
       ? `头像校正完成：成功 ${result.successCount}/${result.totalCount}`
       : "头像校正完成");
-  }, [isMobile, isVariantBatchSelection, patchOptimisticUploadAvatars, spritesAvatars]);
+  }, [currentAvatar, effectiveSelectedAvatarItems, isMobile, isVariantBatchSelection, patchOptimisticUploadAvatars, removeLocalSpriteCropOverrides, spritesAvatars]);
 
   const handleCancelBatchVariantCreation = useCallback(() => {
     setBatchVariantCreationPrompt(null);
@@ -2370,7 +2592,11 @@ export function SpriteSettingsPopup({
   ]);
 
   useEffect(() => {
-    if (!pendingUploadAvatarWorkflow) {
+    if (
+      !pendingUploadAvatarWorkflow
+      || pendingUploadSpriteCalibration
+      || pendingVariantInitialization
+    ) {
       return;
     }
 
@@ -2387,14 +2613,20 @@ export function SpriteSettingsPopup({
       return;
     }
 
+    const isCropFlowActive = activeTab === "cropper" || activeTab === "avatarCropper";
     const uploadedIndices = uploadedItems.map(item => item.index);
-    const firstIndex = uploadedIndices[0];
-    if (firstIndex !== undefined) {
-      setInternalIndex(firstIndex);
+    if (!isCropFlowActive) {
+      const firstIndex = uploadedIndices[0];
+      if (firstIndex !== undefined) {
+        setInternalIndex(firstIndex);
+      }
+      setSelectedIndices(new Set(uploadedIndices));
+      setIsMultiSelectMode(uploadedIndices.length > 1);
+      setVariantFilter(UNGROUPED_VARIANT_KEY);
     }
-    setSelectedIndices(new Set(uploadedIndices));
-    setIsMultiSelectMode(uploadedIndices.length > 1);
-    setPendingUploadAvatarWorkflow(null);
+    setPendingUploadAvatarWorkflows(prev => (
+      removeAvatarUploadWorkflow(prev, pendingUploadAvatarWorkflow.batchKey)
+    ));
 
     const { target } = pendingUploadAvatarWorkflow;
     if (target.mode === "existing" && target.variantGroup?.compositionConfig) {
@@ -2406,16 +2638,20 @@ export function SpriteSettingsPopup({
     }
 
     setPendingUploadSpriteCalibration(pendingUploadAvatarWorkflow);
-    setVariantFilter(UNGROUPED_VARIANT_KEY);
-    setActiveTab("cropper");
-    if (isMobile) {
-      setIsMobileControlDrawerOpen(false);
+    if (!isCropFlowActive) {
+      setActiveTab("cropper");
+      if (isMobile) {
+        setIsMobileControlDrawerOpen(false);
+      }
+      appToast.info("先完成立绘校正，完成后继续头像校正");
     }
-    appToast.info("先完成立绘校正，完成后继续头像校正");
   }, [
+    activeTab,
     assignAvatarItemsToVariant,
     isMobile,
     pendingUploadAvatarWorkflow,
+    pendingUploadSpriteCalibration,
+    pendingVariantInitialization,
     spritesAvatars,
   ]);
 
@@ -2920,7 +3156,7 @@ export function SpriteSettingsPopup({
       {/* 头像列表标题栏 */}
       <div className="shrink-0 border-b border-base-300 bg-base-200/50">
         <div className="
-          flex items-center justify-between gap-2 p-3
+          flex items-center justify-between gap-2.5 p-2.5
         ">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             {isVariantGroupView && (
@@ -2934,9 +3170,21 @@ export function SpriteSettingsPopup({
                 icon={<ArrowLeftIcon className="size-4" aria-hidden="true" />}
               />
             )}
-            <h3 className="min-w-0 truncate text-lg font-semibold" title={avatarListTitle}>
-              {avatarListTitle}
-            </h3>
+            <span className="
+              flex size-10 shrink-0 items-center justify-center rounded-md
+              bg-base-300/40 text-base-content/55
+            ">
+              <ImageIcon className="size-5" aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <h3 className="min-w-0 truncate text-sm font-semibold" title={avatarListTitle}>
+                {avatarListTitle}
+              </h3>
+              <span className="block truncate text-[11px] text-base-content/50">
+                {visibleCount}
+                个头像
+              </span>
+            </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             {isMultiSelectMode && (
@@ -3126,27 +3374,35 @@ export function SpriteSettingsPopup({
     </div>
   );
 
-  const cropperReturnBar = activeTab === "cropper" || activeTab === "avatarCropper"
+  const cropperBackButton = activeTab === "cropper" || activeTab === "avatarCropper"
     ? (
-        <div className="
-          flex shrink-0 items-center justify-between gap-3 rounded-md border
-          border-base-300 bg-base-100/70 px-3 py-2
-        ">
-          <div className="flex min-w-0 items-center gap-2 text-sm">
-            {activeTab === "cropper"
-              ? <CropIcon className="size-4 shrink-0 text-info" aria-hidden="true" />
-              : <UserFocusIcon className="size-4 shrink-0 text-info" aria-hidden="true" />}
-            <span className="min-w-0 truncate font-medium">{activeTabLabel}</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 min-h-8 gap-1.5 rounded-md px-2.5"
-            onClick={() => handleTabChange("setting")}
-          >
-            <ArrowLeftIcon className="size-4" aria-hidden="true" />
-            <span>返回头像设置</span>
-          </Button>
+        <IconButton
+          size="sm"
+          shape="square"
+          className="shrink-0"
+          onClick={() => handleTabChange("setting")}
+          label="返回头像设置"
+          tooltip="返回头像设置"
+          tooltipPlacement="right"
+          icon={<ArrowLeftIcon className="size-icon-compact" aria-hidden="true" />}
+        />
+      )
+    : null;
+
+  const emptyCropperToolbar = cropperBackButton
+    ? (
+        <div className={surfaceClassName({
+          level: "content",
+          className: "mb-2 flex shrink-0 items-center gap-2 p-1.5",
+        })}>
+          {cropperBackButton}
+          <span className={textClassName({
+            variant: "componentTitle",
+            wrap: "truncate",
+            className: "min-w-0",
+          })}>
+            {activeTabLabel}
+          </span>
         </div>
       )
     : null;
@@ -3227,7 +3483,6 @@ export function SpriteSettingsPopup({
                 {currentSpriteUrl
                   ? (
                       <div className="flex h-full min-h-0 flex-col gap-2">
-                        {cropperReturnBar}
                         {pendingUploadSpriteCalibration && (
                           <div className="
                             flex shrink-0 items-center justify-between gap-3
@@ -3286,7 +3541,8 @@ export function SpriteSettingsPopup({
                             roleAvatars={spriteCropperAvatars}
                             initialSpriteIndex={spriteCropperInitialIndex}
                             characterName={characterName}
-                            onClose={onClose}
+                            waitForAvatarUpload={waitForAvatarUpload}
+                            toolbarStart={cropperBackButton}
                             cropMode="sprite"
                             onSpriteIndexChange={handleSpriteCropperIndexChange}
                             selectedIndices={effectiveSpriteCropperSelectedIndices}
@@ -3303,7 +3559,7 @@ export function SpriteSettingsPopup({
                     )
                   : (
                       <div className="flex h-full min-h-0 flex-col gap-2">
-                        {cropperReturnBar}
+                        {emptyCropperToolbar}
                         <div className="
                           flex flex-1 flex-col items-center justify-center
                           text-base-content/70
@@ -3322,7 +3578,6 @@ export function SpriteSettingsPopup({
                 {currentAvatarCropSourceUrl
                   ? (
                       <div className="flex h-full min-h-0 flex-col gap-2">
-                        {cropperReturnBar}
                         {pendingVariantInitialization && (
                           <div className="
                             flex shrink-0 items-center justify-between gap-3
@@ -3353,7 +3608,9 @@ export function SpriteSettingsPopup({
                             roleAvatars={avatarCropperAvatars}
                             initialSpriteIndex={avatarCropperInitialIndex}
                             characterName={characterName}
-                            onClose={onClose}
+                            waitForAvatarUpload={waitForAvatarUpload}
+                            waitForAvatarCropSubmit={waitForAvatarCropSubmit}
+                            toolbarStart={cropperBackButton}
                             cropMode="avatar"
                             onSpriteIndexChange={handleAvatarCropperIndexChange}
                             selectedIndices={effectiveAvatarCropperSelectedIndices}
@@ -3377,7 +3634,7 @@ export function SpriteSettingsPopup({
                     )
                   : (
                       <div className="flex h-full min-h-0 flex-col gap-2">
-                        {cropperReturnBar}
+                        {emptyCropperToolbar}
                         <div className="
                           flex flex-1 flex-col items-center justify-center
                           text-base-content/70

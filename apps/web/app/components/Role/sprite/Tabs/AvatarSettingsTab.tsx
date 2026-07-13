@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { appToast } from "@/components/common/appToast/appToast";
 
-import { UserCircle } from "@phosphor-icons/react";
+import { FolderOpenIcon, ImageSquareIcon, UserCircle } from "@phosphor-icons/react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { RoleAvatar, RoleAvatarVariant } from "api";
@@ -9,6 +9,7 @@ import type { RoleAvatar, RoleAvatarVariant } from "api";
 import { Button } from "@/components/common/Button";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { SelectInput } from "@/components/common/FormField";
+import { MediaImage } from "@/components/common/mediaImage";
 import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
 import { canvasPreview, createFullImageCrop } from "@/utils/imgCropper";
@@ -444,6 +445,26 @@ function ChatAvatarPreview({ characterName, imageUrl }: PreviewProps) {
   );
 }
 
+function AvatarContextThumbnail({ imageUrl, label }: { imageUrl: string; label: string }) {
+  return (
+    <div className="
+      flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md
+      bg-base-300/50 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]
+    ">
+      {imageUrl
+        ? (
+            <MediaImage
+              src={imageUrl}
+              alt={label}
+              className="size-full object-cover"
+              loadTransition
+            />
+          )
+        : <ImageSquareIcon className="size-5 text-base-content/45" aria-hidden="true" />}
+    </div>
+  );
+}
+
 /**
  * 单头像与立绘组设置共用的预览规范；组模式只在外层增加组级操作。
  */
@@ -729,77 +750,86 @@ export function AvatarSettingsTab({
     <div className="mx-auto flex h-full w-full max-w-7xl flex-col">
       {currentAvatar && (
         <div className="
-          mb-3 flex w-full shrink-0 flex-wrap items-center gap-2 border-b
-          border-base-300/70 pb-3
+          mx-3 mb-3 flex w-[calc(100%-1.5rem)] max-w-[43rem] shrink-0
+          flex-wrap items-center gap-2 rounded-md border border-base-300/70
+          bg-base-200/35 p-2 shadow-sm
         ">
           <div className="
-            flex min-w-0 flex-1 flex-wrap items-center gap-2
+            flex min-w-0 flex-1 items-center gap-2.5 sm:min-w-[13rem]
           ">
-            <DoubleClickEditableText
-              value={editingName}
-              disabled={isSaving}
-              trigger="click"
-              className="min-w-0 max-w-full"
-              displayClassName="
-                block min-w-0 max-w-[22rem] truncate rounded-md px-1 py-1
-                text-base font-semibold text-base-content cursor-text
-                hover:bg-base-200/70
-              "
-              inputClassName="
-                h-8 min-h-8 w-[min(22rem,60vw)] px-1 text-base font-semibold
-              "
-              inputDensity="compact"
-              inputAppearance="bare"
-              placeholder={fallbackAvatarTitle}
-              invalidBehavior="revert"
-              validate={nextValue => (nextValue.trim().length ? null : "头像名称不能为空")}
-              onCommit={(nextValue) => {
-                const nextName = nextValue.trim() || fallbackAvatarTitle;
-                setEditingName(nextName);
-                void saveAvatarSettings(nextName, editingCategory);
-              }}
-              displayProps={{
-                role: "button",
-                tabIndex: 0,
-                title: "点击修改头像名称",
-                "aria-label": "点击修改头像名称",
-              }}
+            <AvatarContextThumbnail
+              imageUrl={avatarDisplayUrl}
+              label={editingName || fallbackAvatarTitle}
             />
+            <div className="min-w-0 flex-1">
+              <DoubleClickEditableText
+                value={editingName}
+                disabled={isSaving}
+                trigger="click"
+                className="min-w-0 max-w-full"
+                displayClassName="
+                  block min-w-0 max-w-[22rem] truncate rounded-md px-1 py-0.5
+                  text-sm font-semibold text-base-content cursor-text
+                  hover:bg-base-200/70
+                "
+                inputClassName="
+                  h-7 min-h-7 w-[min(22rem,60vw)] px-1 text-sm font-semibold
+                "
+                inputDensity="compact"
+                inputAppearance="bare"
+                placeholder={fallbackAvatarTitle}
+                invalidBehavior="revert"
+                validate={nextValue => (nextValue.trim().length ? null : "头像名称不能为空")}
+                onCommit={(nextValue) => {
+                  const nextName = nextValue.trim() || fallbackAvatarTitle;
+                  setEditingName(nextName);
+                  void saveAvatarSettings(nextName, editingCategory);
+                }}
+                displayProps={{
+                  role: "button",
+                  tabIndex: 0,
+                  title: "点击修改头像名称",
+                  "aria-label": "点击修改头像名称",
+                }}
+              />
 
-            <DoubleClickEditableText
-              value={editingCategory}
-              disabled={isSaving}
-              trigger="click"
-              className="shrink-0"
-              displayClassName="
-                inline-flex max-w-[9rem] truncate rounded-md bg-base-200/60
-                px-2 py-1 text-xs font-medium text-base-content/70 cursor-text
-                hover:bg-base-200 hover:text-base-content
-              "
-              inputClassName="
-                h-7 min-h-7 w-28 px-2 text-xs
-              "
-              inputDensity="compact"
-              inputAppearance="bare"
-              placeholder={DEFAULT_CATEGORY}
-              invalidBehavior="revert"
-              validate={nextValue => (nextValue.trim().length ? null : "分类不能为空")}
-              onCommit={(nextValue) => {
-                const nextCategory = nextValue.trim() || DEFAULT_CATEGORY;
-                setEditingCategory(nextCategory);
-                void saveAvatarSettings(editingName, nextCategory);
-              }}
-              displayProps={{
-                role: "button",
-                tabIndex: 0,
-                title: "点击修改分类",
-                "aria-label": "点击修改分类",
-              }}
-            />
+              <DoubleClickEditableText
+                value={editingCategory}
+                disabled={isSaving}
+                trigger="click"
+                className="shrink-0"
+                displayClassName="
+                  inline-flex max-w-[9rem] truncate rounded-md bg-base-100/60
+                  px-1 py-0.5 text-[11px] font-medium text-base-content/60 cursor-text
+                  hover:bg-base-200 hover:text-base-content
+                "
+                inputClassName="
+                  h-6 min-h-6 w-28 px-1 text-xs
+                "
+                inputDensity="compact"
+                inputAppearance="bare"
+                placeholder={DEFAULT_CATEGORY}
+                invalidBehavior="revert"
+                validate={nextValue => (nextValue.trim().length ? null : "分类不能为空")}
+                onCommit={(nextValue) => {
+                  const nextCategory = nextValue.trim() || DEFAULT_CATEGORY;
+                  setEditingCategory(nextCategory);
+                  void saveAvatarSettings(editingName, nextCategory);
+                }}
+                displayProps={{
+                  role: "button",
+                  tabIndex: 0,
+                  title: "点击修改分类",
+                  "aria-label": "点击修改分类",
+                }}
+              />
+            </div>
           </div>
 
           <div className="
-            ml-auto flex min-w-0 shrink-0 items-center gap-2
+            flex w-full min-w-0 shrink-0 items-center gap-1.5 rounded-md
+            border border-base-300/70 bg-base-100/70 px-1.5 py-1
+            sm:ml-auto sm:w-auto
           ">
             {showUnassignVariantAction && (
               <Button
@@ -815,9 +845,14 @@ export function AvatarSettingsTab({
               </Button>
             )}
 
+            <FolderOpenIcon className="size-4 shrink-0 text-base-content/50" aria-hidden="true" />
+            <span className="hidden shrink-0 text-[11px] font-medium text-base-content/55 sm:inline">
+              立绘组
+            </span>
             <SelectInput
               density="compact"
-              className="h-8 min-h-8 max-w-[14rem] bg-base-100/70 pr-8 text-sm text-base-content/85 disabled:text-base-content/50"
+              appearance="bare"
+              className="h-7 min-h-7 min-w-0 flex-1 px-1.5 py-1 pr-7 text-xs font-medium text-base-content/85 sm:w-36 sm:flex-none disabled:text-base-content/50"
               value={String(currentVariantId ?? UNGROUPED_VARIANT_VALUE)}
               onChange={(event) => {
                 const value = event.target.value;

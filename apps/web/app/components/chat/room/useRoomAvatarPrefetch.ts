@@ -1,8 +1,12 @@
 import type { QueryClient } from "@tanstack/react-query";
 
 import { fetchClientMetadataBatchWithCache } from "@tuanchat/query/metadata";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
+import {
+  prefetchImageAssetUrl,
+  type ImageAssetPrefetchRuntime,
+} from "@/utils/media/imageAssetPrefetch";
 import { imageLowUrl } from "@/utils/media/mediaUrl";
 import { scheduleNonCriticalTask } from "@/utils/scheduleNonCriticalTask";
 
@@ -25,6 +29,8 @@ type RoomAvatarPrefetchMessage = Pick<ChatMessageResponse, "message">;
 type BrowserConnectionLike = {
   saveData?: boolean;
   effectiveType?: string;
+  addEventListener?: (type: "change", listener: () => void) => void;
+  removeEventListener?: (type: "change", listener: () => void) => void;
 };
 
 type BrowserNavigatorLike = {
@@ -33,12 +39,13 @@ type BrowserNavigatorLike = {
 
 type RoomAvatarPrefetchRuntime = {
   document?: Pick<Document, "visibilityState">;
-  Image?: typeof Image;
   navigator?: BrowserNavigatorLike;
   now?: () => number;
-};
+} & ImageAssetPrefetchRuntime;
 
-type PrefetchAvatarImageUrl = (url: string, runtime?: RoomAvatarPrefetchRuntime) => Promise<void>;
+type PrefetchImageAssetUrl = (url: string, runtime?: ImageAssetPrefetchRuntime) => Promise<boolean | void>;
+
+export type ResolveRoomAvatarAssetUrls = (avatar: RoomAvatarPrefetchRole) => readonly (string | null | undefined)[];
 
 export type RoomAvatarPrefetchOptions = {
   queryClient: QueryClient;
@@ -47,7 +54,8 @@ export type RoomAvatarPrefetchOptions = {
   interactionVersion?: number;
   enabled?: boolean;
   runtime?: RoomAvatarPrefetchRuntime;
-  prefetchAvatarImageUrl?: PrefetchAvatarImageUrl;
+  prefetchImageAssetUrl?: PrefetchImageAssetUrl;
+  resolveAvatarAssetUrls?: ResolveRoomAvatarAssetUrls;
 };
 
 function getPositiveId(value: unknown): number | null {
@@ -57,6 +65,37 @@ function getPositiveId(value: unknown): number | null {
 function getMessagePosition(message: RoomAvatarPrefetchMessage): number {
   const position = message.message?.position;
   return typeof position === "number" && Number.isFinite(position) ? position : Number.NEGATIVE_INFINITY;
+}
+
+function resolveDefaultRoomAvatarAssetUrls(avatar: RoomAvatarPrefetchRole): string[] {
+  const avatarThumbUrl = imageLowUrl(avatar.avatarFileId);
+  return avatarThumbUrl ? [avatarThumbUrl] : [];
+}
+
+export function collectRoomAvatarPrefetchAssetUrls(params: {
+  messages: readonly RoomAvatarPrefetchMessage[];
+  roles?: readonly RoomAvatarPrefetchRole[];
+  resolveAvatarAssetUrls?: ResolveRoomAvatarAssetUrls;
+}): string[] {
+  const resolveAssetUrls = params.resolveAvatarAssetUrls ?? resolveDefaultRoomAvatarAssetUrls;
+  const urls = new Set<string>();
+  const addAvatarUrls = (avatar: RoomAvatarPrefetchRole | null | undefined) => {
+    if (getPositiveId(avatar?.avatarFileId) == null) {
+      return;
+    }
+    for (const url of resolveAssetUrls(avatar ?? {})) {
+      const normalizedUrl = url?.trim();
+      if (normalizedUrl) {
+        urls.add(normalizedUrl);
+      }
+    }
+  };
+
+  [...params.messages]
+    .sort((left, right) => getMessagePosition(right) - getMessagePosition(left))
+    .forEach(message => addAvatarUrls(message.message));
+  (params.roles ?? []).forEach(addAvatarUrls);
+  return [...urls];
 }
 
 export function collectRoomAvatarPrefetchIds(params: {
@@ -115,43 +154,31 @@ export function shouldPrefetchRoomAvatars(runtime: RoomAvatarPrefetchRuntime = {
   return effectiveType !== "slow-2g" && effectiveType !== "2g";
 }
 
-export async function prefetchAvatarImageUrl(url: string, runtime: RoomAvatarPrefetchRuntime = {}): Promise<void> {
-  const normalizedUrl = url.trim();
-  const ImageCtor = runtime.Image ?? (typeof Image === "undefined" ? undefined : Image);
-  if (!normalizedUrl || !ImageCtor) {
-    return;
-  }
-
-  await new Promise<void>((resolve) => {
-    const image = new ImageCtor();
-    image.decoding = "async";
-    image.onload = () => resolve();
-    image.onerror = () => resolve();
-    image.src = normalizedUrl;
-  });
-}
-
 export async function prefetchRoomAvatarBatch(params: {
   queryClient: QueryClient;
   avatarIds: readonly number[];
   runtime?: RoomAvatarPrefetchRuntime;
-  prefetchAvatarImageUrl?: PrefetchAvatarImageUrl;
-}): Promise<void> {
-  const prefetchImage = params.prefetchAvatarImageUrl ?? prefetchAvatarImageUrl;
+  prefetchImageAssetUrl?: PrefetchImageAssetUrl;
+  resolveAvatarAssetUrls?: ResolveRoomAvatarAssetUrls;
+}): Promise<boolean> {
+  const prefetchImage = params.prefetchImageAssetUrl ?? prefetchImageAssetUrl;
+  const resolveAssetUrls = params.resolveAvatarAssetUrls ?? resolveDefaultRoomAvatarAssetUrls;
   if (!shouldPrefetchRoomAvatars(params.runtime)) {
-    return;
+    return false;
   }
 
   const metadata = await fetchClientMetadataBatchWithCache(params.queryClient, tuanchat, {
     avatarIds: [...params.avatarIds],
   });
+  let allAssetsPrefetched = true;
   await Promise.all(Object.values(metadata.avatars ?? {}).map(async (avatar) => {
-    const avatarFileId = avatar.avatarFileId;
-    const avatarThumbUrl = imageLowUrl(avatarFileId);
-    if (avatarThumbUrl) {
-      await prefetchImage(avatarThumbUrl, params.runtime);
+    const assetUrls = resolveAssetUrls(avatar).filter((url): url is string => Boolean(url?.trim()));
+    const results = await Promise.all(assetUrls.map(url => prefetchImage(url, params.runtime)));
+    if (results.some(result => result === false)) {
+      allAssetsPrefetched = false;
     }
   }));
+  return allAssetsPrefetched;
 }
 
 export default function useRoomAvatarPrefetch({
@@ -161,14 +188,42 @@ export default function useRoomAvatarPrefetch({
   interactionVersion = 0,
   enabled = true,
   runtime,
-  prefetchAvatarImageUrl,
+  prefetchImageAssetUrl: prefetchImageAssetUrlOverride,
+  resolveAvatarAssetUrls,
 }: RoomAvatarPrefetchOptions): void {
+  const [prefetchEnvironmentVersion, setPrefetchEnvironmentVersion] = useState(0);
   const lastInteractionAtRef = useRef(0);
   const latestAvatarIdsRef = useRef<number[]>([]);
+  const latestAssetUrlsRef = useRef<string[]>([]);
   const prefetchedAvatarIdsRef = useRef<Set<number>>(new Set());
+  const prefetchedAssetUrlsRef = useRef<Set<string>>(new Set());
 
   const avatarIds = useMemo(() => collectRoomAvatarPrefetchIds({ messages, roles }), [messages, roles]);
+  const assetUrls = useMemo(() => collectRoomAvatarPrefetchAssetUrls({
+    messages,
+    roles,
+    resolveAvatarAssetUrls,
+  }), [messages, resolveAvatarAssetUrls, roles]);
   latestAvatarIdsRef.current = avatarIds;
+  latestAssetUrlsRef.current = assetUrls;
+
+  useEffect(() => {
+    const notifyEnvironmentChange = () => setPrefetchEnvironmentVersion(version => version + 1);
+    const documentLike = typeof document === "undefined" ? null : document;
+    const windowLike = typeof window === "undefined" ? null : window;
+    const navigatorLike = typeof navigator === "undefined" ? undefined : (navigator as BrowserNavigatorLike);
+    const connection = navigatorLike?.connection;
+
+    documentLike?.addEventListener("visibilitychange", notifyEnvironmentChange);
+    windowLike?.addEventListener("online", notifyEnvironmentChange);
+    connection?.addEventListener?.("change", notifyEnvironmentChange);
+
+    return () => {
+      documentLike?.removeEventListener("visibilitychange", notifyEnvironmentChange);
+      windowLike?.removeEventListener("online", notifyEnvironmentChange);
+      connection?.removeEventListener?.("change", notifyEnvironmentChange);
+    };
+  }, []);
 
   useEffect(() => {
     const now = runtime?.now ?? Date.now;
@@ -176,7 +231,7 @@ export default function useRoomAvatarPrefetch({
   }, [interactionVersion, runtime]);
 
   useEffect(() => {
-    if (!enabled || avatarIds.length === 0) {
+    if (!enabled || (avatarIds.length === 0 && assetUrls.length === 0)) {
       return;
     }
 
@@ -187,37 +242,63 @@ export default function useRoomAvatarPrefetch({
       cancelCurrentTask = scheduleNonCriticalTask(() => {
         const now = runtime?.now ?? Date.now;
         const quietForMs = now() - lastInteractionAtRef.current;
-        if (cancelled || quietForMs < ROOM_AVATAR_PREFETCH_RECENT_INTERACTION_QUIET_MS) {
+        if (cancelled) {
+          return;
+        }
+        if (quietForMs < ROOM_AVATAR_PREFETCH_RECENT_INTERACTION_QUIET_MS) {
+          queueNextBatch();
+          return;
+        }
+        if (!shouldPrefetchRoomAvatars(runtime)) {
           return;
         }
 
         const prefetchedAvatarIds = prefetchedAvatarIdsRef.current;
+        const prefetchedAssetUrls = prefetchedAssetUrlsRef.current;
+        const nextAssetUrls = latestAssetUrlsRef.current
+          .filter(url => !prefetchedAssetUrls.has(url))
+          .slice(0, ROOM_AVATAR_PREFETCH_BATCH_SIZE);
         const nextBatch = latestAvatarIdsRef.current
           .filter(avatarId => !prefetchedAvatarIds.has(avatarId))
-          .slice(0, ROOM_AVATAR_PREFETCH_BATCH_SIZE);
+          .slice(0, ROOM_AVATAR_PREFETCH_BATCH_SIZE - nextAssetUrls.length);
 
-        if (nextBatch.length === 0) {
+        if (nextBatch.length === 0 && nextAssetUrls.length === 0) {
           return;
         }
 
-        for (const avatarId of nextBatch) {
-          prefetchedAvatarIds.add(avatarId);
-        }
+        let batchCompleted = false;
+        const prefetchImage = prefetchImageAssetUrlOverride ?? prefetchImageAssetUrl;
+        const directAssetsPromise = Promise.all(
+          nextAssetUrls.map(url => prefetchImage(url, runtime)),
+        ).then(results => results.every(result => result !== false));
+        const metadataAssetsPromise = nextBatch.length > 0
+          ? prefetchRoomAvatarBatch({
+              queryClient,
+              avatarIds: nextBatch,
+              runtime,
+              prefetchImageAssetUrl: prefetchImageAssetUrlOverride,
+              resolveAvatarAssetUrls,
+            })
+          : Promise.resolve(true);
 
-        void prefetchRoomAvatarBatch({
-          queryClient,
-          avatarIds: nextBatch,
-          runtime,
-          prefetchAvatarImageUrl,
-        })
-          .catch((error) => {
-            for (const avatarId of nextBatch) {
-              prefetchedAvatarIds.delete(avatarId);
+        void Promise.all([directAssetsPromise, metadataAssetsPromise])
+          .then(([directAssetsCompleted, metadataAssetsCompleted]) => {
+            if (cancelled || !directAssetsCompleted || !metadataAssetsCompleted) {
+              return;
             }
+            for (const avatarId of nextBatch) {
+              prefetchedAvatarIds.add(avatarId);
+            }
+            for (const url of nextAssetUrls) {
+              prefetchedAssetUrls.add(url);
+            }
+            batchCompleted = true;
+          })
+          .catch((error) => {
             console.warn("[RoomAvatarPrefetch] 头像预取失败", error);
           })
           .finally(() => {
-            if (!cancelled) {
+            if (!cancelled && batchCompleted) {
               queueNextBatch();
             }
           });
@@ -233,5 +314,5 @@ export default function useRoomAvatarPrefetch({
       cancelled = true;
       cancelCurrentTask();
     };
-  }, [avatarIds, enabled, prefetchAvatarImageUrl, queryClient, runtime]);
+  }, [assetUrls, avatarIds, enabled, prefetchEnvironmentVersion, prefetchImageAssetUrlOverride, queryClient, resolveAvatarAssetUrls, runtime]);
 }

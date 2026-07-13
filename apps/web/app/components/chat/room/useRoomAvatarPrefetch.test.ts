@@ -1,8 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { QueryClient } from "@tanstack/react-query";
+import { describe, expect, it } from "vitest";
 
 import {
+  collectRoomAvatarPrefetchAssetUrls,
   collectRoomAvatarPrefetchIds,
-  prefetchAvatarImageUrl,
+  prefetchRoomAvatarBatch,
   shouldPrefetchRoomAvatars,
 } from "./useRoomAvatarPrefetch";
 
@@ -24,6 +26,19 @@ function message(avatarId?: number | null, position = avatarId ?? 0, avatarFileI
 }
 
 describe("collectRoomAvatarPrefetchIds", () => {
+  it("收集消息和角色已携带文件 ID 的头像素材 URL", () => {
+    const urls = collectRoomAvatarPrefetchAssetUrls({
+      messages: [message(1, 20, 101), message(2, 10, 102)],
+      roles: [{ avatarId: 3, avatarFileId: 103 }, { avatarId: 4 }],
+    });
+
+    expect(urls).toEqual([
+      "https://media.tuan.chat/media/v1/files/101/101/image/low.webp",
+      "https://media.tuan.chat/media/v1/files/102/102/image/low.webp",
+      "https://media.tuan.chat/media/v1/files/103/103/image/low.webp",
+    ]);
+  });
+
   it("按全房间消息和角色去重收集正数头像 ID", () => {
     const ids = collectRoomAvatarPrefetchIds({
       messages: [message(1), message(2), message(1), message(0), message(undefined)],
@@ -85,36 +100,12 @@ describe("shouldPrefetchRoomAvatars", () => {
     expect(shouldPrefetchRoomAvatars({ navigator: { connection: { effectiveType: "2g" } } })).toBe(false);
     expect(shouldPrefetchRoomAvatars({ navigator: { connection: { effectiveType: "slow-2g" } } })).toBe(false);
   });
-});
 
-describe("prefetchAvatarImageUrl", () => {
-  it("使用 Image 预加载头像 URL，并吞掉加载失败", async () => {
-    const requestedUrls: string[] = [];
-
-    class MockImage {
-      decoding = "";
-      onload: (() => void) | null = null;
-      onerror: (() => void) | null = null;
-      private _src = "";
-
-      set src(value: string) {
-        this._src = value;
-        requestedUrls.push(value);
-        queueMicrotask(() => this.onerror?.());
-      }
-
-      get src() {
-        return this._src;
-      }
-    }
-
-    await expect(prefetchAvatarImageUrl(" /avatar.webp ", { Image: MockImage as never })).resolves.toBeUndefined();
-
-    expect(requestedUrls).toEqual(["/avatar.webp"]);
-  });
-
-  it("没有 Image 构造器时安全跳过", async () => {
-    await expect(prefetchAvatarImageUrl("/avatar.webp", { Image: undefined })).resolves.toBeUndefined();
-    expect(vi.isMockFunction(globalThis.Image)).toBe(false);
+  it("环境暂时不允许预取时返回未完成状态", async () => {
+    await expect(prefetchRoomAvatarBatch({
+      avatarIds: [1],
+      queryClient: new QueryClient(),
+      runtime: { document: { visibilityState: "hidden" } },
+    })).resolves.toBe(false);
   });
 });

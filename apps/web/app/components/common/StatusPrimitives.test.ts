@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { badgeClassName, countBadgeClassName } from "./StatusPrimitives";
+import { badgeClassName, countBadgeClassName, progressBarClassName } from "./StatusPrimitives";
 
 describe("badgeClassName", () => {
   it("按语义色和密度生成状态标记", () => {
@@ -25,5 +25,11 @@ describe("badgeClassName", () => {
       .toContain("bg-transparent");
     expect(badgeClassName({ appearance: "ghost" }))
       .toContain("border-transparent bg-transparent");
+  });
+
+  it("进度条使用项目原语和稳定状态色", () => {
+    expect(progressBarClassName({ tone: "success" })).toBe("tc-progress text-success");
+    expect(progressBarClassName({ tone: "warning", className: "h-2" }))
+      .toBe("tc-progress text-warning h-2");
   });
 });

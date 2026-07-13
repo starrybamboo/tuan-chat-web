@@ -65,7 +65,7 @@ export function Avatar({
   children,
 }: AvatarProps) {
   return (
-    <div className={`avatar group/avatar ${size === "full" ? "h-full w-full" : ""} ${className ?? ""}`}>
+    <div className={`tc-avatar group/avatar ${size === "full" ? "h-full w-full" : ""} ${className ?? ""}`}>
       <div
         className={`
           ${AVATAR_SIZE_CLASS[size]}

@@ -862,17 +862,21 @@ function sortDerivativeUploadEntries(entries: Array<[string, MediaUploadTarget]>
 }
 
 function enqueueDerivativeUploadTask<T>(task: () => Promise<T>): Promise<T> {
+  const deadline = Date.now() + DERIVATIVE_UPLOAD_MAX_WAIT_MS;
   const result = derivativeUploadQueue.then(async () => {
-    await waitForLowPriorityUploadTurn();
+    await waitForLowPriorityUploadTurn(Math.max(0, deadline - Date.now()));
     return await task();
   });
   derivativeUploadQueue = result.then(() => undefined, () => undefined);
   return result;
 }
 
-async function waitForLowPriorityUploadTurn(): Promise<void> {
+async function waitForLowPriorityUploadTurn(maxWaitMs: number): Promise<void> {
+  if (maxWaitMs <= 0) {
+    return;
+  }
   if (typeof globalThis.requestIdleCallback !== "function") {
-    await new Promise<void>(resolve => setTimeout(resolve, DERIVATIVE_UPLOAD_IDLE_DELAY_MS));
+    await new Promise<void>(resolve => setTimeout(resolve, Math.min(DERIVATIVE_UPLOAD_IDLE_DELAY_MS, maxWaitMs)));
     return;
   }
 
@@ -890,9 +894,9 @@ async function waitForLowPriorityUploadTurn(): Promise<void> {
       }
       resolve();
     };
-    const maxWaitTimer = setTimeout(finish, DERIVATIVE_UPLOAD_MAX_WAIT_MS);
+    const maxWaitTimer = setTimeout(finish, maxWaitMs);
     idleCallbackId = globalThis.requestIdleCallback(finish, {
-      timeout: DERIVATIVE_UPLOAD_MAX_WAIT_MS,
+      timeout: maxWaitMs,
     });
   });
 }

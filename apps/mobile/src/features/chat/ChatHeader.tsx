@@ -1,4 +1,4 @@
-import { CaretLeft, MagnifyingGlass } from "phosphor-react-native";
+import { CaretLeft, MagnifyingGlass, UserPlus } from "phosphor-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
   hashText: {
     fontSize: 16,
   },
-  searchButton: {
+  actionButton: {
     alignItems: "center",
     height: 36,
     justifyContent: "center",
@@ -50,12 +50,13 @@ const styles = StyleSheet.create({
 
 type ChatHeaderProps = {
   onBackToRoutePage: () => void;
+  onInviteMembers?: () => void;
   onSearch: () => void;
   roomName: string | null;
   unreadCount?: number;
 };
 
-export function ChatHeader({ onBackToRoutePage, onSearch, roomName, unreadCount = 0 }: ChatHeaderProps) {
+export function ChatHeader({ onBackToRoutePage, onInviteMembers, onSearch, roomName, unreadCount = 0 }: ChatHeaderProps) {
   const theme = useTheme();
 
   return (
@@ -80,7 +81,14 @@ export function ChatHeader({ onBackToRoutePage, onSearch, roomName, unreadCount 
         </ThemedText>
       </View>
 
-      <Pressable style={styles.searchButton} onPress={onSearch} accessibilityLabel="搜索">
+      {onInviteMembers
+        ? (
+            <Pressable style={styles.actionButton} onPress={onInviteMembers} accessibilityLabel="拉人进入频道">
+              <UserPlus size={20} color={theme.text} weight="bold" />
+            </Pressable>
+          )
+        : null}
+      <Pressable style={styles.actionButton} onPress={onSearch} accessibilityLabel="搜索">
         <MagnifyingGlass size={20} color={theme.text} weight="bold" />
       </Pressable>
     </View>

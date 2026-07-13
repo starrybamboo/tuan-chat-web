@@ -42,4 +42,14 @@ describe("createLoginEasterEggAnalyticsReporter", () => {
 
     await expect(report("login_page_view")).resolves.toBe(false);
   });
+
+  it("不会把旧版 SPA 的 200 响应误判为事件已写入", async () => {
+    const report = createLoginEasterEggAnalyticsReporter({
+      fetchFn: vi.fn(async () => new Response("<html />", { status: 200 })),
+      getLocation: () => ({ hostname: "tuan.chat", protocol: "https:" }),
+      isProd: true,
+    });
+
+    await expect(report("login_page_view")).resolves.toBe(false);
+  });
 });

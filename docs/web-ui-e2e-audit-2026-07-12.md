@@ -19,6 +19,8 @@
 | React Scan | 开发环境默认启动并显示组件边界、工具栏和 FPS 面板，污染所有产品页面 | 仅当 `VITE_ENABLE_REACT_SCAN=true` 时启动 | 页面截图恢复产品真实视觉 |
 | TanStack Router Devtools | 开发环境默认显示，覆盖顶栏 Bug 反馈区域 | 仅当 `VITE_ENABLE_ROUTER_DEVTOOLS=true` 时显示 | 顶栏无遮挡 |
 
+> 2026-07-14 策略更新：React Scan 在 development 与 test mode 默认启用，production mode 保持关闭。
+
 - 修改文件：`apps/web/app/routes/__root.tsx`
 - 修改前证据：[`before/discover.png`](assets/web-ui-e2e-2026-07-12/before/discover.png)
 - 修改后证据：[`after/discover.png`](assets/web-ui-e2e-2026-07-12/after/discover.png)

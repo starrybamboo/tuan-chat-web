@@ -8,6 +8,7 @@ import type { ChatMessageListItem } from "./messageListModel";
 import {
   buildChatMessageListModel,
   buildVisibleMessageMap,
+  getInvertedMessageIndex,
   getMessageListItemKey,
   getVisibleMessageListSignature,
   getReplyPreviewText,
@@ -70,6 +71,16 @@ describe("messageListModel", () => {
     expect(model.messageMap.get(3)).toBe(second);
     expect(model.messageMap.has(2)).toBe(false);
     expect(model.messageMap.has(4)).toBe(false);
+  });
+
+  it("按倒序列表索引定位回复目标消息", () => {
+    const first = item(makeMessage({ messageId: 1 }));
+    const second = item(makeMessage({ messageId: 2 }));
+    const model = buildChatMessageListModel([first, second]);
+
+    expect(getInvertedMessageIndex(model.invertedData, 2)).toBe(0);
+    expect(getInvertedMessageIndex(model.invertedData, 1)).toBe(1);
+    expect(getInvertedMessageIndex(model.invertedData, 404)).toBe(-1);
   });
 
   it("列表 key 优先使用乐观消息保留下来的本地渲染 key", () => {
