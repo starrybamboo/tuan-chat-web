@@ -34,6 +34,7 @@
     },
     "production-apk": {
       "extends": "production",
+      "autoIncrement": true,
       "distribution": "internal",
       "android": {
         "buildType": "apk"

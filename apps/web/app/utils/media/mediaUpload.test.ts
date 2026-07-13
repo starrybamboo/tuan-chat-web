@@ -418,6 +418,71 @@ describe("mediaUpload", () => {
     }));
   });
 
+  it("乐观上传延迟 primary complete 到最终提交阶段，派生质量继续后台上传", async () => {
+    vi.stubGlobal("requestIdleCallback", vi.fn((callback: IdleRequestCallback) => {
+      callback({ didTimeout: false, timeRemaining: () => 50 });
+      return 1;
+    }));
+    vi.stubGlobal("cancelIdleCallback", vi.fn());
+    const original = new File(["original"], "original.webp", { type: "image/webp" });
+    const low = new File(["low"], "low.webp", { type: "image/webp" });
+    let resolveLowUpload!: (response: Response) => void;
+    prepareUploadMock.mockResolvedValueOnce({
+      success: true,
+      data: {
+        fileId: 51,
+        mediaType: "image",
+        uploadRequired: true,
+        sessionId: 108,
+        uploadTargets: {
+          original: { uploadUrl: "https://oss.example.com/original" },
+          low: { uploadUrl: "https://oss.example.com/low" },
+        },
+      },
+    });
+    completeUploadMock.mockResolvedValue({ success: true });
+    vi.mocked(globalThis.fetch).mockImplementation(async (url) => {
+      if (String(url).endsWith("/low")) {
+        return await new Promise<Response>((resolve) => {
+          resolveLowUpload = resolve;
+        });
+      }
+      return { ok: true, status: 200 } as Response;
+    });
+
+    const result = await uploadGeneratedMediaFiles({
+      original,
+      mediaType: "image",
+      hasNovelAiMetadata: false,
+      metadata: {},
+      filesByQuality: { original, low },
+    }, {
+      completeAfterPrimaryQuality: true,
+      deferPrimaryCompletion: true,
+    });
+
+    expect(result).toEqual(expect.objectContaining({
+      fileId: 51,
+      availableQualities: ["original"],
+      pendingQualities: ["low"],
+    }));
+    expect(result.ensurePrimaryCompletion).toEqual(expect.any(Function));
+    expect(completeUploadMock).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(globalThis.fetch).toHaveBeenCalledTimes(2));
+    expect(completeUploadMock).not.toHaveBeenCalled();
+
+    await result.ensurePrimaryCompletion?.();
+    expect(completeUploadMock).toHaveBeenNthCalledWith(1, 108, expect.objectContaining({
+      availableQualities: ["original"],
+      pendingQualities: ["low"],
+    }));
+
+    resolveLowUpload({ ok: true, status: 200 } as Response);
+    await vi.waitFor(() => expect(completeUploadMock).toHaveBeenCalledTimes(2));
+    await result.ensurePrimaryCompletion?.();
+    expect(completeUploadMock).toHaveBeenCalledTimes(2);
+  });
+
   it("后台派生质量按 low、medium、high 全局串行上传，单档失败后继续后续质量", async () => {
     vi.stubGlobal("requestIdleCallback", vi.fn((callback: IdleRequestCallback) => {
       callback({ didTimeout: false, timeRemaining: () => 50 });

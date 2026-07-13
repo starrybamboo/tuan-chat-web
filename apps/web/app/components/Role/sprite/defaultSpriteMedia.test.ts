@@ -64,6 +64,7 @@ describe("defaultSpriteMedia", () => {
     expect(upload).toHaveBeenCalledWith(payload, {
       ...options,
       completeAfterPrimaryQuality: true,
+      deferPrimaryCompletion: true,
     });
     expect(result).toEqual({
       origin: firstUpload,

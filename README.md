@@ -7,6 +7,7 @@
 - 产品版本从 `0.1.0.0` 开始；每次迭代递增最后一位，例如 `0.1.0.1`。
 - npm workspace、Electron 等需要 SemVer 的 `package.json` 版本只记录前三段，例如 `0.1.0`。
 - Android 安装包使用四段 `versionName`，同时每次迭代递增 `versionCode`，保证设备可以覆盖安装。
+- EAS 正式构建（`production`、`production-apk`）启用 `autoIncrement`，每次正式打包自动递增原生构建号。
 
 ## 环境要求
 
