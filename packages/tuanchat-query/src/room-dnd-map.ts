@@ -4,6 +4,12 @@ import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import {
+  beginOptimisticQueryTransaction,
+  optimisticQueryPatch,
+  rollbackOptimisticQueryTransaction,
+} from "./optimistic-cache";
+
 type RoomDndMapClient = Pick<TuanChat, "roomDndMapController">;
 
 export type RoomDndMapToken = {
@@ -64,6 +70,59 @@ export function getRoomDndMapImageUrl(
   return resolveMediaUrl(map.mapFileId, "image", "high");
 }
 
+export function applyRoomDndMapUpsert(
+  current: RoomDndMapSnapshot | null | undefined,
+  roomId: number,
+  input: {
+    clearTokens?: boolean;
+    gridColor?: string;
+    gridCols?: number;
+    gridRows?: number;
+    mapFileId?: number;
+  },
+): RoomDndMapSnapshot {
+  const base = current ?? {
+    gridColor: "#808080",
+    gridCols: 10,
+    gridRows: 10,
+    roomId,
+    tokens: [],
+  };
+  return {
+    ...base,
+    ...(input.gridColor !== undefined ? { gridColor: input.gridColor } : {}),
+    ...(input.gridCols !== undefined ? { gridCols: input.gridCols } : {}),
+    ...(input.gridRows !== undefined ? { gridRows: input.gridRows } : {}),
+    ...(input.mapFileId !== undefined ? { mapFileId: input.mapFileId } : {}),
+    roomId,
+    tokens: input.clearTokens ? [] : base.tokens,
+  };
+}
+
+export function applyRoomDndTokenUpsert(
+  current: RoomDndMapSnapshot | null | undefined,
+  roomId: number,
+  token: RoomDndMapToken,
+) {
+  const map = applyRoomDndMapUpsert(current, roomId, {});
+  const index = map.tokens.findIndex(item => item.roleId === token.roleId);
+  return {
+    ...map,
+    tokens: index >= 0
+      ? map.tokens.map((item, itemIndex) => itemIndex === index ? token : item)
+      : [...map.tokens, token],
+  };
+}
+
+export function applyRoomDndTokenRemove(
+  current: RoomDndMapSnapshot | null | undefined,
+  roleId: number,
+) {
+  return current
+    ? { ...current, tokens: current.tokens.filter(token => token.roleId !== roleId) }
+    : current;
+}
+
 export function useRoomDndMapQuery(
   client: RoomDndMapClient,
   roomId: number | null,
@@ -107,10 +166,17 @@ export function useRoomDndMapMutations(client: RoomDndMapClient, roomId: number 
       });
       return normalizeRoomDndMap(response.data);
     },
+    onMutate: input => beginOptimisticQueryTransaction(queryClient, [
+      optimisticQueryPatch<RoomDndMapSnapshot | null>({
+        queryKey: roomDndMapQueryKey(roomId),
+        update: current => roomId ? applyRoomDndMapUpsert(current, roomId, input) : current,
+      }),
+    ]),
+    onError: (_error, _input, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
     onSuccess: async (data) => {
       queryClient.setQueryData(roomDndMapQueryKey(roomId), data);
-      await invalidate();
     },
+    onSettled: invalidate,
   });
 
   const clearMapMutation = useMutation({
@@ -120,10 +186,14 @@ export function useRoomDndMapMutations(client: RoomDndMapClient, roomId: number 
       }
       await client.roomDndMapController.clearRoomMap({ roomId });
     },
-    onSuccess: async () => {
-      queryClient.setQueryData(roomDndMapQueryKey(roomId), null);
-      await invalidate();
-    },
+    onMutate: () => beginOptimisticQueryTransaction(queryClient, [
+      optimisticQueryPatch<RoomDndMapSnapshot | null>({
+        queryKey: roomDndMapQueryKey(roomId),
+        update: () => null,
+      }),
+    ]),
+    onError: (_error, _input, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
+    onSettled: invalidate,
   });
 
   const upsertTokenMutation = useMutation({
@@ -136,7 +206,14 @@ export function useRoomDndMapMutations(client: RoomDndMapClient, roomId: number 
         ...input,
       });
     },
-    onSuccess: invalidate,
+    onMutate: input => beginOptimisticQueryTransaction(queryClient, [
+      optimisticQueryPatch<RoomDndMapSnapshot | null>({
+        queryKey: roomDndMapQueryKey(roomId),
+        update: current => roomId ? applyRoomDndTokenUpsert(current, roomId, input) : current,
+      }),
+    ]),
+    onError: (_error, _input, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
+    onSettled: invalidate,
   });
 
   const removeTokenMutation = useMutation({
@@ -149,7 +226,14 @@ export function useRoomDndMapMutations(client: RoomDndMapClient, roomId: number 
         roleId,
       });
     },
-    onSuccess: invalidate,
+    onMutate: roleId => beginOptimisticQueryTransaction(queryClient, [
+      optimisticQueryPatch<RoomDndMapSnapshot | null>({
+        queryKey: roomDndMapQueryKey(roomId),
+        update: current => applyRoomDndTokenRemove(current, roleId),
+      }),
+    ]),
+    onError: (_error, _roleId, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
+    onSettled: invalidate,
   });
 
   return {

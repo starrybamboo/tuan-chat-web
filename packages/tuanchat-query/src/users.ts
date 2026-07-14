@@ -7,6 +7,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { bindCancelablePromiseToSignal } from "./cancelable";
 import { invalidateClientMetadataBatchQueries } from "./metadata";
+import {
+  beginOptimisticQueryTransaction,
+  optimisticQueryPatch,
+  rollbackOptimisticQueryTransaction,
+} from "./optimistic-cache";
 
 export type UserQueryOptions = {
   enabled?: boolean;
@@ -93,12 +98,130 @@ export function fetchMyUserInfoWithCache(queryClient: QueryClient, client: UserC
   });
 }
 
+function isRecord(value: unknown): value is Record<string, any> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function buildUserProfilePatch(request: UserUpdateInfoRequest) {
+  const patch: Record<string, unknown> = {};
+  for (const key of ["username", "avatarFileId", "description", "gender"] as const) {
+    if (request[key] != null) {
+      patch[key] = request[key];
+    }
+  }
+  return patch;
+}
+
+export function patchUserCacheValue(current: unknown, request: UserUpdateInfoRequest): unknown {
+  if (Array.isArray(current)) {
+    let changed = false;
+    const next = current.map((item) => {
+      const patched = patchUserCacheValue(item, request);
+      changed ||= patched !== item;
+      return patched;
+    });
+    return changed ? next : current;
+  }
+  if (!isRecord(current)) {
+    return current;
+  }
+  const profilePatch = buildUserProfilePatch(request);
+  if (current.userId === request.userId) {
+    return {
+      ...current,
+      ...profilePatch,
+      ...(request.extra ? { extra: { ...(isRecord(current.extra) ? current.extra : {}), ...request.extra } } : {}),
+    };
+  }
+
+  let next = current;
+  for (const key of ["data", "list"] as const) {
+    if (!Object.prototype.hasOwnProperty.call(current, key)) {
+      continue;
+    }
+    const patched = patchUserCacheValue(current[key], request);
+    if (patched !== current[key]) {
+      next = { ...next, [key]: patched };
+    }
+  }
+  if (isRecord(current.users)) {
+    const userKey = String(request.userId);
+    const user = current.users[userKey];
+    if (isRecord(user)) {
+      next = {
+        ...next,
+        users: {
+          ...current.users,
+          [userKey]: patchUserCacheValue(user, request),
+        },
+      };
+    }
+  }
+  return next;
+}
+
+function patchDirectMessageUser(current: unknown, request: UserUpdateInfoRequest): unknown {
+  if (!Array.isArray(current)) {
+    return current;
+  }
+  const profilePatch = buildUserProfilePatch(request);
+  return current.map((message) => {
+    if (!isRecord(message)) {
+      return message;
+    }
+    let next = message;
+    if (message.senderId === request.userId) {
+      next = {
+        ...next,
+        ...(profilePatch.username !== undefined ? { senderUsername: profilePatch.username } : {}),
+        ...(profilePatch.avatarFileId !== undefined ? { senderAvatarFileId: profilePatch.avatarFileId } : {}),
+      };
+    }
+    if (message.receiverId === request.userId) {
+      next = {
+        ...next,
+        ...(profilePatch.username !== undefined ? { receiverUsername: profilePatch.username } : {}),
+        ...(profilePatch.avatarFileId !== undefined ? { receiverAvatarFileId: profilePatch.avatarFileId } : {}),
+      };
+    }
+    return next;
+  });
+}
+
+export function beginUserInfoUpdateOptimisticMutation(queryClient: QueryClient, request: UserUpdateInfoRequest) {
+  const prefixes = [
+    ["getUserInfo"],
+    ["getUserProfileInfo"],
+    ["getMyUserInfo"],
+    ["getUserInfoByUsername"],
+    ["clientMetadataBatch"],
+    ["friends"],
+    ["blacklist"],
+    ["userFollowers"],
+    ["userFollowings"],
+  ] as const;
+  return beginOptimisticQueryTransaction(queryClient, [
+    ...prefixes.map(queryKey => optimisticQueryPatch<unknown>({
+      queryKey,
+      exact: false,
+      update: current => patchUserCacheValue(current, request),
+    })),
+    optimisticQueryPatch<unknown>({
+      queryKey: ["dmInbox"],
+      exact: false,
+      update: current => patchDirectMessageUser(current, request),
+    }),
+  ]);
+}
+
 export function useUpdateUserInfoMutation(client: UserClient) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (request: UserUpdateInfoRequest) => client.userController.updateUserInfo(request),
     mutationKey: ["updateUserInfo"],
-    onSuccess: () => {
+    onMutate: request => beginUserInfoUpdateOptimisticMutation(queryClient, request),
+    onError: (_error, _request, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
+    onSettled: () => {
       invalidateClientMetadataBatchQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: ["getUserInfo"] });
       queryClient.invalidateQueries({ queryKey: ["getUserProfileInfo"] });

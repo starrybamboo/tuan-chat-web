@@ -1,6 +1,14 @@
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {tuanchat} from "../instance";
 import type {StickerCreateRequest} from "@tuanchat/openapi-client/models/StickerCreateRequest";
+import {
+    assertStickerApiResult,
+    beginCreateStickerOptimisticMutation,
+    beginDeleteStickerOptimisticMutation,
+    commitCreatedSticker,
+    getUserStickersQueryKey,
+} from "@tuanchat/query/stickers";
+import { rollbackOptimisticQueryTransaction } from "@tuanchat/query/optimistic-cache";
 
 /**
  * 创建表情包
@@ -8,11 +16,15 @@ import type {StickerCreateRequest} from "@tuanchat/openapi-client/models/Sticker
 export function useCreateStickerMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: StickerCreateRequest) => tuanchat.stickerController.createSticker(req),
+        mutationFn: async (req: StickerCreateRequest) => assertStickerApiResult(
+            await tuanchat.stickerController.createSticker(req),
+            "创建表情包失败。",
+        ),
         mutationKey: ['createSticker'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['getUserStickers'] });
-        }
+        onMutate: request => beginCreateStickerOptimisticMutation(queryClient, request),
+        onError: (_error, _request, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
+        onSuccess: (result, request) => commitCreatedSticker(queryClient, request, result.data),
+        onSettled: () => queryClient.invalidateQueries({ queryKey: getUserStickersQueryKey() }),
     });
 }
 
@@ -22,11 +34,14 @@ export function useCreateStickerMutation() {
 export function useDeleteStickerMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (stickerId: number) => tuanchat.stickerController.deleteSticker(stickerId),
+        mutationFn: async (stickerId: number) => assertStickerApiResult(
+            await tuanchat.stickerController.deleteSticker(stickerId),
+            "删除表情包失败。",
+        ),
         mutationKey: ['deleteSticker'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['getUserStickers'] });
-        }
+        onMutate: stickerId => beginDeleteStickerOptimisticMutation(queryClient, stickerId),
+        onError: (_error, _stickerId, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
+        onSettled: () => queryClient.invalidateQueries({ queryKey: getUserStickersQueryKey() }),
     });
 }
 
@@ -35,9 +50,11 @@ export function useDeleteStickerMutation() {
  */
 export function useGetUserStickersQuery() {
     return useQuery({
-        queryKey: ['getUserStickers'],
-        queryFn: () => tuanchat.stickerController.getUserStickers(),
+        queryKey: getUserStickersQueryKey(),
+        queryFn: async () => assertStickerApiResult(
+            await tuanchat.stickerController.getUserStickers(),
+            "获取表情包列表失败。",
+        ),
         staleTime: 300000 // 5分钟缓存
     });
 }
-

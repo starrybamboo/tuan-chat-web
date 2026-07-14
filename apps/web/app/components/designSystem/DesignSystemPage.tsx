@@ -298,6 +298,13 @@ function FormSpecimens() {
           <FormField id="ds-invalid" label="规则标识" error="标识已被使用">
             {controlProps => <TextInput {...controlProps} defaultValue="astra" />}
           </FormField>
+          <FormField id="ds-summary" label="角色简介" labelAdornment="120 字以内">
+            {controlProps => <TextArea {...controlProps} defaultValue="来自雾港的记录者。" />}
+          </FormField>
+        </div>
+      </SpecimenRow>
+      <SpecimenRow label="浮层选择" token="SelectInput / Listbox">
+        <div className="max-w-sm">
           <FormField id="ds-select" label="可见范围">
             {controlProps => (
               <SelectInput {...controlProps} defaultValue="space">
@@ -306,9 +313,6 @@ function FormSpecimens() {
                 <option value="public">公开</option>
               </SelectInput>
             )}
-          </FormField>
-          <FormField id="ds-summary" label="角色简介" labelAdornment="120 字以内">
-            {controlProps => <TextArea {...controlProps} defaultValue="来自雾港的记录者。" />}
           </FormField>
         </div>
       </SpecimenRow>
@@ -482,21 +486,19 @@ function NavigationSpecimens() {
           <Text variant="supporting">当前页签：{tab}</Text>
         </div>
       </SpecimenRow>
-      <SpecimenRow label="菜单与折叠" token="DropdownMenu / Disclosure">
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div>
-            <DropdownMenu
-              ariaLabel="示例操作"
-              trigger={<Button variant="outline" icon={<DotsThreeIcon weight="bold" />}>打开菜单</Button>}
-            >
-              <MenuItem icon={<CheckIcon />}>设为当前项</MenuItem>
-              <MenuItem icon={<TrashIcon />} tone="danger">删除项目</MenuItem>
-            </DropdownMenu>
-          </div>
-          <Disclosure title="高级选项">
-            <Text variant="body">折叠内容使用原生 details 语义与统一焦点状态。</Text>
-          </Disclosure>
-        </div>
+      <SpecimenRow label="操作菜单" token="DropdownMenu">
+        <DropdownMenu
+          ariaLabel="示例操作"
+          trigger={<Button variant="outline" icon={<DotsThreeIcon weight="bold" />}>打开菜单</Button>}
+        >
+          <MenuItem icon={<CheckIcon />}>设为当前项</MenuItem>
+          <MenuItem icon={<TrashIcon />} tone="danger">删除项目</MenuItem>
+        </DropdownMenu>
+      </SpecimenRow>
+      <SpecimenRow label="折叠区域" token="Disclosure">
+        <Disclosure title="高级选项" className="max-w-xl">
+          <Text variant="body">这里承载与当前表单上下文连续的高级配置。</Text>
+        </Disclosure>
       </SpecimenRow>
       <SpecimenRow label="对话框" token="DialogFrame">
         <Button variant="primary" onClick={() => setDialogOpen(true)}>打开对话框</Button>

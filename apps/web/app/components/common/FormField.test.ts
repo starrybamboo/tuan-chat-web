@@ -1,11 +1,15 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import {
   choiceControlClassName,
   fileInputClassName,
+  FormField,
   formControlClassName,
   formControlShellClassName,
   rangeInputClassName,
+  TextInput,
 } from "./FormField";
 
 describe("formControlClassName", () => {
@@ -65,5 +69,23 @@ describe("formControlClassName", () => {
     expect(bareClassName).toContain("focus:shadow-none");
     expect(bareClassName).toContain("focus-visible:outline-none");
     expect(bareClassName).not.toContain("border-base-300");
+  });
+});
+
+describe("FormField", () => {
+  it("把标签、说明与错误关系传给字段控件", () => {
+    const markup = renderToStaticMarkup(FormField({
+      id: "display-name",
+      label: "显示名称",
+      description: "最多 24 个字符",
+      error: "名称已被使用",
+      children: controlProps => createElement(TextInput, controlProps),
+    }));
+
+    expect(markup).toContain('id="display-name-label"');
+    expect(markup).toContain('for="display-name"');
+    expect(markup).toContain('aria-labelledby="display-name-label"');
+    expect(markup).toContain('aria-describedby="display-name-description display-name-error"');
+    expect(markup).toContain('aria-invalid="true"');
   });
 });

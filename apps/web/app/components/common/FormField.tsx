@@ -1,19 +1,25 @@
 import type {
-  AriaAttributes,
   HTMLAttributes,
   InputHTMLAttributes,
   LabelHTMLAttributes,
   ReactNode,
-  SelectHTMLAttributes,
   TextareaHTMLAttributes,
 } from "react";
 
 import { createElement, forwardRef } from "react";
 
 import type { InterfaceDensity } from "@/components/common/DesignLanguage";
+import type { FormControlAppearance, FormControlSurface } from "@/components/common/FormControlStyles";
 
-export type FormControlSurface = "default" | "muted";
-export type FormControlAppearance = "field" | "bare";
+import {
+  formControlClassName,
+  isFormControlInvalid,
+} from "@/components/common/FormControlStyles";
+
+export type { FormControlAppearance, FormControlSurface } from "@/components/common/FormControlStyles";
+export { formControlClassName, formControlShellClassName } from "@/components/common/FormControlStyles";
+export { SelectInput } from "@/components/common/SelectInput";
+export type { SelectInputProps } from "@/components/common/SelectInput";
 
 /** 统一需要自定义组合方式的字段垂直节奏。 */
 export function FieldGroup({ className = "", ...rest }: HTMLAttributes<HTMLDivElement>) {
@@ -43,74 +49,6 @@ export function FieldError({
   return createElement(as, { ...rest, role: "alert", className: `text-xs leading-5 text-error ${className}` });
 }
 
-const CONTROL_DENSITY_CLASS: Record<InterfaceDensity, string> = {
-  compact: "min-h-control-compact px-2.5 py-1.5 text-sm",
-  default: "min-h-control-default px-3 py-2 text-sm",
-};
-
-const CONTROL_SURFACE_CLASS: Record<FormControlSurface, string> = {
-  default: "bg-base-100",
-  muted: "bg-base-200",
-};
-
-/**
- * 生成文本输入类，统一尺寸、表面与交互状态；复合输入可直接复用该函数。
- */
-export function formControlClassName({
-  density = "default",
-  surface = "default",
-  appearance = "field",
-  invalid = false,
-  className,
-}: {
-  density?: InterfaceDensity;
-  surface?: FormControlSurface;
-  appearance?: FormControlAppearance;
-  invalid?: boolean;
-  className?: string;
-} = {}) {
-  return [
-    "w-full text-base-content transition-colors duration-150 placeholder:text-base-content/40 focus:outline-none",
-    appearance === "field"
-      ? "rounded-md border focus:ring-2"
-      : "tc-form-control-bare border-0 bg-transparent focus:border-transparent focus:ring-0 focus:shadow-none focus-visible:outline-none",
-    "disabled:cursor-not-allowed disabled:bg-base-200 disabled:text-base-content/40 disabled:opacity-70",
-    "read-only:cursor-default read-only:bg-base-200 read-only:text-base-content/70",
-    appearance === "field"
-      ? invalid
-        ? "border-error focus:border-error focus:ring-error/20"
-        : "border-base-300 hover:border-base-content/30 focus:border-info focus:ring-info/20"
-      : "",
-    CONTROL_DENSITY_CLASS[density],
-    appearance === "field" ? CONTROL_SURFACE_CLASS[surface] : "",
-    className ?? "",
-  ].filter(Boolean).join(" ");
-}
-
-/** 生成带前后缀复合输入的统一外壳状态。 */
-export function formControlShellClassName({
-  surface = "default",
-  invalid = false,
-  className,
-}: {
-  surface?: FormControlSurface;
-  invalid?: boolean;
-  className?: string;
-} = {}) {
-  return [
-    "relative flex items-center rounded-md border transition-colors duration-150 focus-within:ring-1 focus-within:ring-inset",
-    invalid
-      ? "border-error focus-within:border-error focus-within:ring-error/20"
-      : "border-base-300 hover:border-base-content/30 focus-within:border-info focus-within:ring-info/20",
-    CONTROL_SURFACE_CLASS[surface],
-    className ?? "",
-  ].filter(Boolean).join(" ");
-}
-
-function isInvalid(value: AriaAttributes["aria-invalid"]) {
-  return value === true || value === "true" || value === "grammar" || value === "spelling";
-}
-
 export type TextInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & {
   density?: InterfaceDensity;
   surface?: FormControlSurface;
@@ -137,7 +75,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(function T
         density,
         surface,
         appearance,
-        invalid: isInvalid(ariaInvalid),
+        invalid: isFormControlInvalid(ariaInvalid),
         className,
       })}
       {...rest}
@@ -171,42 +109,8 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(function 
         density,
         surface,
         appearance,
-        invalid: isInvalid(ariaInvalid),
+        invalid: isFormControlInvalid(ariaInvalid),
         className: `min-h-24 resize-y ${className ?? ""}`,
-      })}
-      {...rest}
-    />
-  );
-});
-
-export type SelectInputProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, "size"> & {
-  density?: InterfaceDensity;
-  surface?: FormControlSurface;
-  appearance?: FormControlAppearance;
-};
-
-/** 统一原生选择器的视觉和交互状态。 */
-export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(function SelectInput(
-  {
-    density = "default",
-    surface = "default",
-    appearance = "field",
-    className,
-    "aria-invalid": ariaInvalid,
-    ...rest
-  },
-  ref,
-) {
-  return (
-    <select
-      ref={ref}
-      aria-invalid={ariaInvalid}
-      className={formControlClassName({
-        density,
-        surface,
-        appearance,
-        invalid: isInvalid(ariaInvalid),
-        className,
       })}
       {...rest}
     />
@@ -434,6 +338,7 @@ export function ChoiceField({
 
 export type FormFieldControlProps = {
   id: string;
+  "aria-labelledby": string;
   "aria-describedby"?: string;
   "aria-invalid"?: true;
 };
@@ -464,11 +369,12 @@ export function FormField({
 }: FormFieldProps) {
   const descriptionId = description != null ? `${id}-description` : undefined;
   const errorId = error != null ? `${id}-error` : undefined;
+  const labelId = `${id}-label`;
   const describedBy = [descriptionId, errorId].filter(Boolean).join(" ") || undefined;
 
   return (
     <div className={`space-y-1.5 ${className}`}>
-      <label htmlFor={id} className="flex items-baseline justify-between gap-3 text-sm font-medium text-base-content">
+      <label id={labelId} htmlFor={id} className="flex items-baseline justify-between gap-3 text-sm font-medium text-base-content">
         <span>
           {label}
           {required ? <span className="ml-0.5 text-error" aria-hidden="true">*</span> : null}
@@ -479,6 +385,7 @@ export function FormField({
       </label>
       {children({
         id,
+        "aria-labelledby": labelId,
         "aria-describedby": describedBy,
         "aria-invalid": error != null ? true : undefined,
       })}

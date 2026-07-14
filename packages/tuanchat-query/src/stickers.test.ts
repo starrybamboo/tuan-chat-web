@@ -1,7 +1,12 @@
 import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 
-import { assertStickerApiResult } from "./stickers";
+import {
+  addStickerToCacheData,
+  assertStickerApiResult,
+  createOptimisticSticker,
+  removeStickerFromCacheData,
+} from "./stickers";
 
 type MockFn = (...args: any[]) => any;
 
@@ -56,5 +61,22 @@ describe("stickers", () => {
 
     expect(mutation.state.status).toBe("error");
     expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it("创建和删除表情时可即时更新同一份列表缓存", () => {
+    const optimistic = createOptimisticSticker({
+      fileId: 9,
+      fileSize: 100,
+      format: "png",
+      name: "赞",
+    });
+    const original = { success: true, data: [{ stickerId: 1, name: "旧表情" }] };
+    const created = addStickerToCacheData(original, optimistic);
+
+    expect(created?.data).toEqual([
+      { stickerId: 1, name: "旧表情" },
+      { fileId: 9, fileSize: 100, format: "png", name: "赞", stickerId: -9 },
+    ]);
+    expect(removeStickerFromCacheData(created, 1)?.data).toEqual([optimistic]);
   });
 });

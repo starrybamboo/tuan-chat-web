@@ -27,6 +27,8 @@
     "production": {
       "autoIncrement": true,
       "environment": "production",
+      "node": "22.19.0",
+      "pnpm": "11.7.0",
       "env": {
         "EAS_GRADLE_CACHE": "1",
         "EAS_USE_CACHE": "1",
