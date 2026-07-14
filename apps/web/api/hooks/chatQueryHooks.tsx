@@ -63,9 +63,18 @@ import {
 import {
     invalidateRoomRoleQueries,
     optimisticAddRoomRoleQueryCache,
+    optimisticRemoveRoomRoleQueryCache,
     reconcileAddRoomRoleQueryCache,
     rollbackAddRoomRoleQueryCache,
+    rollbackRemoveRoomRoleQueryCache,
 } from "../roomRoleQueryCache";
+import {
+    beginRoomRemovalOptimisticMutation,
+    beginSpaceArchiveOptimisticMutation,
+    beginSpaceRemovalOptimisticMutation,
+    beginSpaceUpdateOptimisticMutation,
+    rollbackSpaceOptimisticMutation,
+} from "./spaceOptimisticCache";
 
 export const ROOM_INFO_STALE_TIME_MS = 300_000;
 export const SPACE_INFO_STALE_TIME_MS = 300_000;
@@ -573,12 +582,17 @@ export function useUpdateRoomMutation() {
 export function useUpdateSpaceMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: SpaceUpdateRequest) => tuanchat.spaceController.updateSpace(req),
-        mutationKey: ['updateSpace'],
-        onSuccess: (result, variables) => {
-            if (isSuccessfulApiResult(result)) {
-                patchApiResultData(queryClient, spaceInfoQueryKey(variables.spaceId), variables);
+        mutationFn: async (req: SpaceUpdateRequest) => {
+            const result = await tuanchat.spaceController.updateSpace(req);
+            if (!isSuccessfulApiResult(result)) {
+                throw new Error(getApiResultErrorMessage(result, "更新空间信息失败"));
             }
+            return result;
+        },
+        mutationKey: ['updateSpace'],
+        onMutate: variables => beginSpaceUpdateOptimisticMutation(queryClient, variables),
+        onError: (_error, _variables, transaction) => rollbackSpaceOptimisticMutation(queryClient, transaction),
+        onSettled: (_result, _error, variables) => {
             queryClient.invalidateQueries({ queryKey: spaceInfoQueryKey(variables.spaceId) });
             queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
             queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
@@ -631,7 +645,9 @@ export function useExitSpaceMutation() {
     return useMutation({
         mutationFn: (req: number) => tuanchat.spaceMemberController.exitSpace(req),
         mutationKey: ['exitSpace'],
-        onSuccess: () => {
+        onMutate: spaceId => beginSpaceRemovalOptimisticMutation(queryClient, spaceId),
+        onError: (_error, _spaceId, transaction) => rollbackSpaceOptimisticMutation(queryClient, transaction),
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList'] });
             queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
             queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
@@ -678,7 +694,9 @@ export function useDissolveRoomMutation() {
     return useMutation({
         mutationFn: (req: number) => tuanchat.roomController.dissolveRoom(req),
         mutationKey: ['dissolveRoom'],
-        onSuccess: () => {
+        onMutate: roomId => beginRoomRemovalOptimisticMutation(queryClient, roomId),
+        onError: (_error, _roomId, transaction) => rollbackSpaceOptimisticMutation(queryClient, transaction),
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
         }
     })
@@ -692,7 +710,9 @@ export function useDissolveSpaceMutation() {
     return useMutation({
         mutationFn: (req: number) => tuanchat.spaceController.dissolveSpace(req),
         mutationKey: ['dissolveSpace'],
-        onSuccess: () => {
+        onMutate: spaceId => beginSpaceRemovalOptimisticMutation(queryClient, spaceId),
+        onError: (_error, _spaceId, transaction) => rollbackSpaceOptimisticMutation(queryClient, transaction),
+        onSettled: () => {
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
 queryClient.invalidateQueries({ queryKey: getMyArchivedSpacesQueryKey() });
@@ -708,7 +728,9 @@ export function useUpdateSpaceArchiveStatusMutation() {
     return useMutation({
         mutationFn: (req: SpaceArchiveRequest) => tuanchat.spaceController.updateSpaceArchiveStatus(req),
         mutationKey: ['updateSpaceArchiveStatus'],
-        onSuccess: () => {
+        onMutate: request => beginSpaceArchiveOptimisticMutation(queryClient, request),
+        onError: (_error, _request, transaction) => rollbackSpaceOptimisticMutation(queryClient, transaction),
+        onSettled: () => {
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
 queryClient.invalidateQueries({ queryKey: getMyArchivedSpacesQueryKey() });
@@ -728,7 +750,13 @@ export function useRecoverSpaceMutation() {
     return useMutation({
         mutationFn: (req: SpaceRecoverRequest) => tuanchat.spaceController.recoverArchivedSpace(req),
         mutationKey: ['recoverArchivedSpace'],
-        onSuccess: () => {
+        onMutate: request => beginSpaceArchiveOptimisticMutation(queryClient, {
+            spaceId: request.spaceId,
+            archived: false,
+            archiveRequested: false,
+        }),
+        onError: (_error, _request, transaction) => rollbackSpaceOptimisticMutation(queryClient, transaction),
+        onSettled: () => {
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
 queryClient.invalidateQueries({ queryKey: getMyArchivedSpacesQueryKey() });
@@ -908,10 +936,9 @@ export function useDeleteRole1Mutation() {
     return useMutation({
         mutationFn: (req: RoomRoleDeleteRequest) => tuanchat.roomRoleController.deleteRole1(req),
         mutationKey: ['deleteRole1'],
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['roomRole', variables.roomId] });
-            queryClient.invalidateQueries({ queryKey: ['roomNpcRole', variables.roomId] });
-        }
+        onMutate: variables => optimisticRemoveRoomRoleQueryCache(queryClient, variables),
+        onError: (_error, _variables, transaction) => rollbackRemoveRoomRoleQueryCache(queryClient, transaction),
+        onSettled: (_, _error, variables) => invalidateRoomRoleQueries(queryClient, variables.roomId),
     });
 }
 

@@ -1,6 +1,12 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { RoomRoleAddRequest } from "@tuanchat/openapi-client/models/RoomRoleAddRequest";
+import type { RoomRoleDeleteRequest } from "@tuanchat/openapi-client/models/RoomRoleDeleteRequest";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+import {
+  beginOptimisticQueryTransaction,
+  optimisticQueryPatch,
+  rollbackOptimisticQueryTransaction,
+} from "@tuanchat/query/optimistic-cache";
 
 export function roomRoleQueryKey(roomId: number) {
   return ["roomRole", roomId] as const;
@@ -72,6 +78,56 @@ function patchRoomRoleListData(old: unknown, addList: UserRole[]) {
   }
 
   return old;
+}
+
+function removeRoomRolesFromData(old: unknown, roleIds: Set<number>): unknown {
+  if (Array.isArray(old)) {
+    return old.filter(item => !roleIds.has((item as UserRole).roleId));
+  }
+  if (!old || typeof old !== "object") {
+    return old;
+  }
+  const data = (old as any).data;
+  if (Array.isArray(data)) {
+    return { ...(old as any), data: removeRoomRolesFromData(data, roleIds) };
+  }
+  if (data && typeof data === "object") {
+    return {
+      ...(old as any),
+      data: {
+        ...data,
+        allRoles: removeRoomRolesFromData(data.allRoles, roleIds),
+        baseRoles: removeRoomRolesFromData(data.baseRoles, roleIds),
+        npcRoles: removeRoomRolesFromData(data.npcRoles, roleIds),
+      },
+    };
+  }
+  return old;
+}
+
+export function optimisticRemoveRoomRoleQueryCache(queryClient: QueryClient, request: RoomRoleDeleteRequest) {
+  const roleIds = new Set(request.roleIdList.filter(roleId => roleId > 0));
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<unknown>({
+      queryKey: roomRoleQueryKey(request.roomId),
+      update: current => removeRoomRolesFromData(current, roleIds),
+    }),
+    optimisticQueryPatch<unknown>({
+      queryKey: roomNpcRoleQueryKey(request.roomId),
+      update: current => removeRoomRolesFromData(current, roleIds),
+    }),
+    optimisticQueryPatch<unknown>({
+      queryKey: roomAllRoleQueryKey(request.roomId),
+      update: current => removeRoomRolesFromData(current, roleIds),
+    }),
+  ]);
+}
+
+export function rollbackRemoveRoomRoleQueryCache(
+  queryClient: QueryClient,
+  transaction: Parameters<typeof rollbackOptimisticQueryTransaction>[1],
+) {
+  rollbackOptimisticQueryTransaction(queryClient, transaction);
 }
 
 function findCachedRoleById(queryClient: QueryClient, roleId: number): UserRole | null {

@@ -6,8 +6,10 @@ import { describe, expect, it, vi } from "vitest";
 import {
   invalidateRoomRoleQueries,
   optimisticAddRoomRoleQueryCache,
+  optimisticRemoveRoomRoleQueryCache,
   reconcileAddRoomRoleQueryCache,
   rollbackAddRoomRoleQueryCache,
+  rollbackRemoveRoomRoleQueryCache,
   roomNpcRoleQueryKey,
   roomAllRoleQueryKey,
   roomRoleQueryKey,
@@ -59,5 +61,30 @@ describe("roomRoleQueryCache", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: roomRoleQueryKey(8) });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: roomNpcRoleQueryKey(8) });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: roomAllRoleQueryKey(8) });
+  });
+
+  it("移除房间角色会同步三种分组缓存并支持回滚", async () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(roomRoleQueryKey(7), { success: true, data: [role(11), role(12)] });
+    queryClient.setQueryData(roomNpcRoleQueryKey(7), { success: true, data: [role(13, 2)] });
+    queryClient.setQueryData(roomAllRoleQueryKey(7), {
+      success: true,
+      data: {
+        allRoles: [role(11), role(12), role(13, 2)],
+        baseRoles: [role(11), role(12)],
+        npcRoles: [role(13, 2)],
+      },
+    });
+
+    const transaction = await optimisticRemoveRoomRoleQueryCache(queryClient, {
+      roomId: 7,
+      roleIdList: [12, 13],
+    });
+    expect(queryClient.getQueryData<any>(roomRoleQueryKey(7))?.data.map((item: UserRole) => item.roleId)).toEqual([11]);
+    expect(queryClient.getQueryData<any>(roomNpcRoleQueryKey(7))?.data).toEqual([]);
+    expect(queryClient.getQueryData<any>(roomAllRoleQueryKey(7))?.data.allRoles.map((item: UserRole) => item.roleId)).toEqual([11]);
+
+    rollbackRemoveRoomRoleQueryCache(queryClient, transaction);
+    expect(queryClient.getQueryData<any>(roomRoleQueryKey(7))?.data.map((item: UserRole) => item.roleId)).toEqual([11, 12]);
   });
 });
