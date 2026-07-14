@@ -10,6 +10,11 @@ import type {Rule} from "@tuanchat/openapi-client/models/Rule";
 import type { PageBaseRespRuleResponse } from "@tuanchat/openapi-client/models/PageBaseRespRuleResponse";
 
 import {tuanchat} from "../instance";
+import {
+  beginRuleDeleteOptimisticMutation,
+  beginRuleUpdateOptimisticMutation,
+  rollbackRuleOptimisticMutation,
+} from "./ruleOptimisticCache";
 
 export const RULE_DETAIL_STALE_TIME_MS = 300000;
 
@@ -33,7 +38,9 @@ export function useUpdateRuleMutation() {
     return useMutation({
         mutationFn: (req: RuleUpdateRequest) => tuanchat.ruleController.updateRule(req),
         mutationKey: ['updateRule'],
-        onSuccess: () => {
+        onMutate: request => beginRuleUpdateOptimisticMutation(queryClient, request),
+        onError: (_error, _request, transaction) => rollbackRuleOptimisticMutation(queryClient, transaction),
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['getRulePage'] });
             queryClient.invalidateQueries({ queryKey: ['getRuleDetail'] });
         }
@@ -124,7 +131,9 @@ export function useDeleteRuleMutation() {
     return useMutation({
         mutationFn: (ruleId: number) => tuanchat.ruleController.deleteRule(ruleId),
         mutationKey: ['deleteRule'],
-        onSuccess: () => {
+        onMutate: ruleId => beginRuleDeleteOptimisticMutation(queryClient, ruleId),
+        onError: (_error, _ruleId, transaction) => rollbackRuleOptimisticMutation(queryClient, transaction),
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['getRulePage'] });
             queryClient.invalidateQueries({ queryKey: ['getRuleDetail'] });
       // 兼容规则选择/列表等其它 queryKey

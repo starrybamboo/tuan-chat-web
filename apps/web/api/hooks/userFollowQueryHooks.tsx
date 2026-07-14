@@ -1,6 +1,25 @@
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {tuanchat} from "../instance";
 import type { PageBaseRequest } from '@tuanchat/openapi-client/models/PageBaseRequest';
+import type { ApiResultBoolean } from '@tuanchat/openapi-client/models/ApiResultBoolean';
+import {
+  beginOptimisticQueryTransaction,
+  optimisticQueryPatch,
+  rollbackOptimisticQueryTransaction,
+} from '@tuanchat/query/optimistic-cache';
+
+export function beginUserFollowOptimisticMutation(
+  queryClient: ReturnType<typeof useQueryClient>,
+  targetUserId: number,
+  followed: boolean,
+) {
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<ApiResultBoolean>({
+      queryKey: ['userIsFollowed', targetUserId],
+      update: current => current ? { ...current, success: true, data: followed } : current,
+    }),
+  ]);
+}
 
 /**
  * 判断是否关注了某个用户
@@ -24,7 +43,10 @@ export function useUserFollowMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (targetUserId: number) => tuanchat.userFollowController.follow(targetUserId),
-    onSuccess: (_, variables) => {
+    mutationKey: ['followUser'],
+    onMutate: targetUserId => beginUserFollowOptimisticMutation(queryClient, targetUserId, true),
+    onError: (_error, _targetUserId, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
+    onSettled: (_, _error, variables) => {
       queryClient.invalidateQueries({queryKey: ['userIsFollowed',variables]});
       queryClient.invalidateQueries({queryKey: ['userFollowers',variables]});
       queryClient.invalidateQueries({queryKey: ['userFollowings',variables]});
@@ -41,7 +63,10 @@ export function useUserUnfollowMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (targetUserId: number) => tuanchat.userFollowController.unfollow(targetUserId),
-    onSuccess: (_, variables) => {
+    mutationKey: ['unfollowUser'],
+    onMutate: targetUserId => beginUserFollowOptimisticMutation(queryClient, targetUserId, false),
+    onError: (_error, _targetUserId, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
+    onSettled: (_, _error, variables) => {
       queryClient.invalidateQueries({queryKey: ['userIsFollowed',variables]});
       queryClient.invalidateQueries({queryKey: ['userFollowers',variables]});
       queryClient.invalidateQueries({queryKey: ['userFollowings',variables]});
@@ -80,4 +105,3 @@ export function useGetUserFollowersQuery(targetUserId: number, requestBody: Page
  * @param targetUserId 目标用户ID
  * @param requestBody 分页请求参数
  */
-

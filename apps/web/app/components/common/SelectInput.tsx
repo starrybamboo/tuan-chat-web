@@ -370,11 +370,11 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(funct
                       aria-label={ariaLabel ?? (ariaLabelledBy ? undefined : "选择选项")}
                       aria-labelledby={ariaLabelledBy}
                       data-dismissible-layer="true"
-                      initial={{ opacity: 0, scale: 0.98, y: position?.placement === "top" ? 4 : -4 }}
+                      initial={{ opacity: 0, scale: 0.98, y: -4 }}
                       animate={position
                         ? { opacity: 1, scale: 1, y: 0 }
-                        : { opacity: 0, scale: 0.98, y: position?.placement === "top" ? 4 : -4 }}
-                      exit={{ opacity: 0, scale: 0.98, y: position?.placement === "top" ? 4 : -4 }}
+                        : { opacity: 0, scale: 0.98, y: -4 }}
+                      exit={{ opacity: 0, scale: 0.98, y: -4 }}
                       transition={{ duration: prefersReducedMotion ? 0 : 0.12, ease: "easeOut" }}
                       style={listboxStyle}
                       className="tc-surface-floating max-h-60 list-none overflow-y-auto overscroll-contain p-1"

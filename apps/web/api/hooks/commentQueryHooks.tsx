@@ -9,6 +9,11 @@ import type {CommentAddRequest} from "@tuanchat/openapi-client/models/CommentAdd
 import type {CommentTimelinePageRequest} from "@tuanchat/openapi-client/models/CommentTimelinePageRequest";
 import { FEEDBACK_ISSUE_TARGET_TYPE } from "@/components/feedback/feedbackTypes";
 import { FEEDBACK_ISSUES_QUERY_KEY, feedbackIssueDetailQueryKey } from "../feedbackQueryCache";
+import {
+    beginOptimisticQueryTransaction,
+    optimisticQueryPatch,
+    rollbackOptimisticQueryTransaction,
+} from "@tuanchat/query/optimistic-cache";
 
 const COMMENT_PAGE_QUERY_KEY = ["pageComments"] as const;
 const COMMENT_CHILD_PAGE_QUERY_KEY = ["pageChildComments"] as const;
@@ -154,6 +159,76 @@ export async function invalidateCommentTargetQueries(queryClient: QueryClient, t
     ]);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+export function removeCommentFromCacheValue(current: unknown, commentId: number): unknown {
+    if (Array.isArray(current)) {
+        let changed = false;
+        const next = current.flatMap((item) => {
+            if (isRecord(item) && item.commentId === commentId) {
+                changed = true;
+                return [];
+            }
+            const patched = removeCommentFromCacheValue(item, commentId);
+            changed ||= patched !== item;
+            return [patched];
+        });
+        return changed ? next : current;
+    }
+    if (!isRecord(current)) {
+        return current;
+    }
+    if (current.commentId === commentId) {
+        return null;
+    }
+
+    let next = current;
+    for (const key of ["data", "list", "pages", "children"] as const) {
+        if (!Object.prototype.hasOwnProperty.call(current, key)) {
+            continue;
+        }
+        const before = current[key];
+        const patched = removeCommentFromCacheValue(before, commentId);
+        if (patched !== before) {
+            next = { ...next, [key]: patched };
+            if (key === "children" && Array.isArray(before) && Array.isArray(patched)) {
+                next = {
+                    ...next,
+                    totalChildren: Math.max(0, Number(current.totalChildren ?? before.length) - (before.length - patched.length)),
+                };
+            }
+        }
+    }
+    return next;
+}
+
+export function beginDeleteCommentOptimisticMutation(queryClient: QueryClient, payload: DeleteCommentPayload) {
+    const target = normalizeCommentTargetInfo(payload);
+    return beginOptimisticQueryTransaction(queryClient, [
+        optimisticQueryPatch<unknown>({
+            queryKey: buildCommentPageQueryKey(target),
+            exact: false,
+            update: current => removeCommentFromCacheValue(current, payload.commentId),
+        }),
+        optimisticQueryPatch<unknown>({
+            queryKey: [...COMMENT_CHILD_PAGE_QUERY_KEY, target],
+            exact: false,
+            update: current => removeCommentFromCacheValue(current, payload.commentId),
+        }),
+        optimisticQueryPatch<unknown>({
+            queryKey: buildCommentTimelineQueryKey(target),
+            exact: false,
+            update: current => removeCommentFromCacheValue(current, payload.commentId),
+        }),
+        optimisticQueryPatch<unknown>({
+            queryKey: ["getComment", payload.commentId],
+            update: current => removeCommentFromCacheValue(current, payload.commentId),
+        }),
+    ]);
+}
+
 /**
  * 根据id获取评论
  */
@@ -287,7 +362,7 @@ export function useDeleteCommentMutation() {
         mutationFn: async ({ commentId }: DeleteCommentPayload) =>{
             await tuanchat.commentController.deleteComment(commentId);
     },
-        onSuccess:(_, variables) => {
-        void invalidateCommentTargetQueries(queryClient, variables);
-    }
+        onMutate: variables => beginDeleteCommentOptimisticMutation(queryClient, variables),
+        onError: (_error, _variables, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
+        onSettled:(_, _error, variables) => invalidateCommentTargetQueries(queryClient, variables),
 })}

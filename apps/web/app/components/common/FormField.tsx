@@ -338,7 +338,7 @@ export function ChoiceField({
 
 export type FormFieldControlProps = {
   id: string;
-  "aria-labelledby": string;
+  "aria-labelledby"?: string;
   "aria-describedby"?: string;
   "aria-invalid"?: true;
 };

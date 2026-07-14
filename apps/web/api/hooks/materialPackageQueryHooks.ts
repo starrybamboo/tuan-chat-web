@@ -12,6 +12,13 @@ import type { SpaceMaterialPackageImportRequest } from "@tuanchat/openapi-client
 import type { SpaceMaterialPackagePageRequest } from "@tuanchat/openapi-client/models/SpaceMaterialPackagePageRequest";
 import type { SpaceMaterialPackageUpdateRequest } from "@tuanchat/openapi-client/models/SpaceMaterialPackageUpdateRequest";
 import { tuanchat } from "../instance";
+import {
+  beginMaterialPackageDeleteOptimisticMutation,
+  beginMaterialPackageUpdateOptimisticMutation,
+  beginSpaceMaterialPackageDeleteOptimisticMutation,
+  beginSpaceMaterialPackageUpdateOptimisticMutation,
+  rollbackMaterialPackageOptimisticMutation,
+} from "./materialPackageOptimisticCache";
 
 export const MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE = 24;
 
@@ -135,7 +142,9 @@ export function useUpdateMaterialPackageMutation() {
   return useMutation({
     mutationKey: ["materialPackage", "update"],
     mutationFn: (request: MaterialPackageUpdateRequest) => tuanchat.materialPackageController.updatePackage1(request),
-    onSuccess: (_result, variables) => {
+    onMutate: request => beginMaterialPackageUpdateOptimisticMutation(queryClient, request),
+    onError: (_error, _request, transaction) => rollbackMaterialPackageOptimisticMutation(queryClient, transaction),
+    onSettled: (_result, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: ["materialPackage", "my"] });
       queryClient.invalidateQueries({ queryKey: ["materialPackage", "public"] });
       queryClient.invalidateQueries({ queryKey: ["materialPackage", "detail", variables.packageId] });
@@ -148,11 +157,15 @@ export function useDeleteMaterialPackageMutation() {
   return useMutation({
     mutationKey: ["materialPackage", "delete"],
     mutationFn: (packageId: number) => tuanchat.materialPackageController.deletePackage1(packageId),
+    onMutate: packageId => beginMaterialPackageDeleteOptimisticMutation(queryClient, packageId),
+    onError: (_error, _packageId, transaction) => rollbackMaterialPackageOptimisticMutation(queryClient, transaction),
     onSuccess: (_result, packageId) => {
-      queryClient.invalidateQueries({ queryKey: ["materialPackage", "my"] });
-      queryClient.invalidateQueries({ queryKey: ["materialPackage", "public"] });
       queryClient.removeQueries({ queryKey: ["materialPackage", "detail", packageId] });
     },
+    onSettled: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["materialPackage", "my"] }),
+      queryClient.invalidateQueries({ queryKey: ["materialPackage", "public"] }),
+    ]),
   });
 }
 
@@ -230,7 +243,9 @@ export function useUpdateSpaceMaterialPackageMutation() {
   return useMutation({
     mutationKey: ["spaceMaterialPackage", "update"],
     mutationFn: (request: SpaceMaterialPackageUpdateRequest) => tuanchat.spaceMaterialPackageController.updatePackage(request),
-    onSuccess: (_result, variables) => {
+    onMutate: request => beginSpaceMaterialPackageUpdateOptimisticMutation(queryClient, request),
+    onError: (_error, _request, transaction) => rollbackMaterialPackageOptimisticMutation(queryClient, transaction),
+    onSettled: (_result, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: ["spaceMaterialPackage", "page"] });
       queryClient.invalidateQueries({ queryKey: ["spaceMaterialPackage", "detail", variables.spacePackageId] });
     },
@@ -243,10 +258,12 @@ export function useDeleteSpaceMaterialPackageMutation() {
     mutationKey: ["spaceMaterialPackage", "delete"],
     mutationFn: ({ spaceId: _spaceId, spacePackageId }: { spaceId: number; spacePackageId: number }) =>
       tuanchat.spaceMaterialPackageController.deletePackage(spacePackageId),
+    onMutate: ({ spacePackageId }) => beginSpaceMaterialPackageDeleteOptimisticMutation(queryClient, spacePackageId),
+    onError: (_error, _variables, transaction) => rollbackMaterialPackageOptimisticMutation(queryClient, transaction),
     onSuccess: (_result, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["spaceMaterialPackage", "page"] });
       queryClient.removeQueries({ queryKey: ["spaceMaterialPackage", "detail", variables.spacePackageId] });
     },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["spaceMaterialPackage", "page"] }),
   });
 }
 

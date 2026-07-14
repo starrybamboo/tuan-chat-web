@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 import {
+  beginDeleteCommentOptimisticMutation,
   buildCommentPageQueryKey,
   buildCommentTimelineQueryKey,
   DEFAULT_COMMENT_MAX_LEVEL,
@@ -11,8 +12,36 @@ import {
   normalizeCommentTreeQueryOptions,
 } from "./commentQueryHooks";
 import { FEEDBACK_ISSUE_TARGET_TYPE } from "../../app/components/feedback/feedbackTypes";
+import { rollbackOptimisticQueryTransaction } from "@tuanchat/query/optimistic-cache";
 
 describe("commentQueryHooks", () => {
+  it("删除评论即时移出树状、子评论和时间线缓存并支持回滚", async () => {
+    const queryClient = new QueryClient();
+    const target = { targetId: 11, targetType: FEEDBACK_ISSUE_TARGET_TYPE };
+    const rootKey = buildCommentPageQueryKey(target);
+    const timelineKey = buildCommentTimelineQueryKey(target);
+    const childKey = ["pageChildComments", target, 1, 20, 20, 2] as const;
+    const rootComment = {
+      commentId: 1,
+      children: [{ commentId: 2 }, { commentId: 3 }],
+      totalChildren: 2,
+    };
+    queryClient.setQueryData(rootKey, { pages: [{ success: true, data: [rootComment] }], pageParams: [] });
+    queryClient.setQueryData(childKey, { pages: [{ success: true, data: [{ commentId: 2 }] }], pageParams: [] });
+    queryClient.setQueryData(timelineKey, { pages: [{ success: true, data: [{ commentId: 2 }] }], pageParams: [] });
+
+    const transaction = await beginDeleteCommentOptimisticMutation(queryClient, { ...target, commentId: 2 });
+    expect(queryClient.getQueryData<any>(rootKey)?.pages[0].data[0]).toMatchObject({
+      children: [{ commentId: 3 }],
+      totalChildren: 1,
+    });
+    expect(queryClient.getQueryData<any>(childKey)?.pages[0].data).toEqual([]);
+    expect(queryClient.getQueryData<any>(timelineKey)?.pages[0].data).toEqual([]);
+
+    rollbackOptimisticQueryTransaction(queryClient, transaction);
+    expect(queryClient.getQueryData<any>(rootKey)?.pages[0].data[0]).toEqual(rootComment);
+  });
+
   it("树状评论分页参数会钳制到后端允许范围", () => {
     expect(normalizeCommentTreeQueryOptions(9999, 99)).toEqual({
       childLimit: 20,
