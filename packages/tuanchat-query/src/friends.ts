@@ -56,6 +56,72 @@ function reconcileFriendRequestPageCaches(queryClient: ReturnType<typeof useQuer
   );
 }
 
+export function removeFriendFromList(current: FriendResponse[] | undefined, targetUserId: number) {
+  return current?.filter(friend => friend.userId !== targetUserId);
+}
+
+function addFriendToList(current: FriendResponse[] | undefined, friend?: FriendResponse) {
+  if (!current || !friend?.userId || current.some(item => item.userId === friend.userId)) {
+    return current;
+  }
+  return [...current, friend];
+}
+
+function findFriendInCaches(queryClient: ReturnType<typeof useQueryClient>, targetUserId: number) {
+  for (const [, friends] of queryClient.getQueriesData<FriendResponse[]>({ queryKey: ["friends"] })) {
+    const friend = friends?.find(item => item.userId === targetUserId);
+    if (friend) {
+      return friend;
+    }
+  }
+  return undefined;
+}
+
+export function beginDeleteFriendOptimisticMutation(
+  queryClient: ReturnType<typeof useQueryClient>,
+  targetUserId: number,
+) {
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<FriendResponse[]>({
+      queryKey: ["friends"],
+      exact: false,
+      update: current => removeFriendFromList(current, targetUserId),
+    }),
+  ]);
+}
+
+export function beginBlockFriendOptimisticMutation(
+  queryClient: ReturnType<typeof useQueryClient>,
+  targetUserId: number,
+) {
+  const friend = findFriendInCaches(queryClient, targetUserId);
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<FriendResponse[]>({
+      queryKey: ["friends"],
+      exact: false,
+      update: current => removeFriendFromList(current, targetUserId),
+    }),
+    optimisticQueryPatch<FriendResponse[]>({
+      queryKey: ["blacklist"],
+      exact: false,
+      update: current => addFriendToList(current, friend),
+    }),
+  ]);
+}
+
+export function beginUnblockFriendOptimisticMutation(
+  queryClient: ReturnType<typeof useQueryClient>,
+  targetUserId: number,
+) {
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<FriendResponse[]>({
+      queryKey: ["blacklist"],
+      exact: false,
+      update: current => removeFriendFromList(current, targetUserId),
+    }),
+  ]);
+}
+
 export function useFriendsQuery(
   client: FriendClient,
   request: FriendListRequest = { pageNo: 1, pageSize: 100 },
@@ -178,7 +244,9 @@ export function useDeleteFriendMutation(client: FriendClient) {
     mutationFn: (targetUserId: number) =>
       client.friendController.deleteFriend({ targetUserId }),
     mutationKey: ["deleteFriend"],
-    onSuccess: (_result, targetUserId) => {
+    onMutate: targetUserId => beginDeleteFriendOptimisticMutation(queryClient, targetUserId),
+    onError: (_error, _targetUserId, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
+    onSettled: (_result, _error, targetUserId) => {
       queryClient.invalidateQueries({ queryKey: ["friends"] });
       queryClient.invalidateQueries({ queryKey: ["dmInbox"] });
       queryClient.invalidateQueries({ queryKey: getFriendCheckQueryKey(targetUserId) });
@@ -192,7 +260,9 @@ export function useBlockFriendMutation(client: FriendClient) {
     mutationFn: (targetUserId: number) =>
       client.friendController.blockFriend({ targetUserId }),
     mutationKey: ["blockFriend"],
-    onSuccess: (_result, targetUserId) => {
+    onMutate: targetUserId => beginBlockFriendOptimisticMutation(queryClient, targetUserId),
+    onError: (_error, _targetUserId, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
+    onSettled: (_result, _error, targetUserId) => {
       queryClient.invalidateQueries({ queryKey: ["friends"] });
       queryClient.invalidateQueries({ queryKey: ["blacklist"] });
       queryClient.invalidateQueries({ queryKey: getFriendCheckQueryKey(targetUserId) });
@@ -206,7 +276,9 @@ export function useUnblockFriendMutation(client: FriendClient) {
     mutationFn: (targetUserId: number) =>
       client.friendController.unblockFriend({ targetUserId }),
     mutationKey: ["unblockFriend"],
-    onSuccess: (_result, targetUserId) => {
+    onMutate: targetUserId => beginUnblockFriendOptimisticMutation(queryClient, targetUserId),
+    onError: (_error, _targetUserId, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
+    onSettled: (_result, _error, targetUserId) => {
       queryClient.invalidateQueries({ queryKey: ["blacklist"] });
       queryClient.invalidateQueries({ queryKey: getFriendCheckQueryKey(targetUserId) });
     },
