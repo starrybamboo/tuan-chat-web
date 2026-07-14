@@ -75,6 +75,11 @@ import {
     beginSpaceUpdateOptimisticMutation,
     rollbackSpaceOptimisticMutation,
 } from "./spaceOptimisticCache";
+import {
+    beginOptimisticQueryTransaction,
+    optimisticQueryPatch,
+    rollbackOptimisticQueryTransaction,
+} from "@tuanchat/query/optimistic-cache";
 
 export const ROOM_INFO_STALE_TIME_MS = 300_000;
 export const SPACE_INFO_STALE_TIME_MS = 300_000;
@@ -326,42 +331,77 @@ function rollbackRoomUpdateQueryCache(queryClient: QueryClient, snapshot?: RoomU
     }
 }
 
+export function patchSpaceExtraData(old: any, request: SpaceExtraSetRequest) {
+    if (!old?.data) {
+        return old;
+    }
+
+    let extra: Record<string, unknown> = {};
+    if (typeof old.data.extra === "string" && old.data.extra.trim()) {
+        try {
+            const parsed = JSON.parse(old.data.extra);
+            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+                extra = parsed;
+            }
+        }
+        catch {
+            extra = {};
+        }
+    }
+
+    return {
+        ...old,
+        data: {
+            ...old.data,
+            extra: JSON.stringify({
+                ...extra,
+                [request.key]: request.value,
+            }),
+        },
+    };
+}
+
 export function patchSpaceExtraCache(queryClient: QueryClient, request: SpaceExtraSetRequest) {
     queryClient.setQueryData(spaceInfoQueryKey(request.spaceId), (old: any) => {
-        if (!old?.data) {
-            return old;
-        }
-
-        let extra: Record<string, unknown> = {};
-        if (typeof old.data.extra === "string" && old.data.extra.trim()) {
-            try {
-                const parsed = JSON.parse(old.data.extra);
-                if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-                    extra = parsed;
-                }
-            }
-            catch {
-                extra = {};
-            }
-        }
-
-        return {
-            ...old,
-            data: {
-                ...old.data,
-                extra: JSON.stringify({
-                    ...extra,
-                    [request.key]: request.value,
-                }),
-            },
-        };
+        return patchSpaceExtraData(old, request);
     });
+}
+
+export function beginSetSpaceExtraOptimisticMutation(queryClient: QueryClient, request: SpaceExtraSetRequest) {
+    return beginOptimisticQueryTransaction(queryClient, [
+        optimisticQueryPatch<ApiResultString>({
+            queryKey: spaceExtraQueryKey(request.spaceId, request.key),
+            update: () => ({ success: true, data: request.value }),
+        }),
+        optimisticQueryPatch<unknown>({
+            queryKey: spaceInfoQueryKey(request.spaceId),
+            update: current => patchSpaceExtraData(current, request),
+        }),
+    ]);
+}
+
+export function beginSetRoomExtraOptimisticMutation(queryClient: QueryClient, request: RoomExtraSetRequest) {
+    return beginOptimisticQueryTransaction(queryClient, [
+        optimisticQueryPatch<ApiResultString>({
+            queryKey: roomExtraQueryKey(request.roomId, request.key),
+            update: () => ({ success: true, data: request.value }),
+        }),
+    ]);
+}
+
+export function beginDeleteRoomExtraOptimisticMutation(queryClient: QueryClient, request: RoomExtraRequest) {
+    return beginOptimisticQueryTransaction(queryClient, [
+        optimisticQueryPatch<ApiResultString>({
+            queryKey: roomExtraQueryKey(request.roomId, request.key),
+            update: () => ({ success: true }),
+        }),
+    ]);
 }
 
 export async function setSpaceExtraWithCache(queryClient: QueryClient, request: SpaceExtraSetRequest) {
     const result = await tuanchat.spaceController.setSpaceExtra(request);
     if (!isSuccessfulApiResult(result)) {
-        return result;
+        throw new Error(getApiResultErrorMessage(result, "设置空间扩展信息失败"));
     }
     setExtraStringCache(queryClient, spaceExtraQueryKey(request.spaceId, request.key), request.value);
     patchSpaceExtraCache(queryClient, request);
@@ -373,7 +413,7 @@ export async function setSpaceExtraWithCache(queryClient: QueryClient, request: 
 export async function setRoomExtraWithCache(queryClient: QueryClient, request: RoomExtraSetRequest) {
     const result = await tuanchat.roomController.setRoomExtra(request);
     if (!isSuccessfulApiResult(result)) {
-        return result;
+        throw new Error(getApiResultErrorMessage(result, "设置房间扩展信息失败"));
     }
     setExtraStringCache(queryClient, roomExtraQueryKey(request.roomId, request.key), request.value);
     void queryClient.invalidateQueries({ queryKey: roomExtraQueryKey(request.roomId, request.key) });
@@ -633,6 +673,12 @@ export function useSetSpaceExtraMutation() {
     return useMutation({
         mutationFn: (req: SpaceExtraSetRequest) => setSpaceExtraWithCache(queryClient, req),
         mutationKey: ['setSpaceExtra'],
+        onMutate: request => beginSetSpaceExtraOptimisticMutation(queryClient, request),
+        onError: (_error, _request, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
+        onSettled: (_result, _error, request) => Promise.all([
+            queryClient.invalidateQueries({ queryKey: spaceExtraQueryKey(request.spaceId, request.key) }),
+            queryClient.invalidateQueries({ queryKey: spaceInfoQueryKey(request.spaceId) }),
+        ]),
     });
 }
 
@@ -1081,6 +1127,10 @@ export function useSetRoomExtraMutation() {
     return useMutation({
         mutationFn: (req: RoomExtraSetRequest) => setRoomExtraWithCache(queryClient, req),
         mutationKey: ['setRoomExtra'],
+        onMutate: request => beginSetRoomExtraOptimisticMutation(queryClient, request),
+        onError: (_error, _request, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
+        onSettled: (_result, _error, request) =>
+            queryClient.invalidateQueries({ queryKey: roomExtraQueryKey(request.roomId, request.key) }),
     });
 }
 
@@ -1090,10 +1140,17 @@ export function useSetRoomExtraMutation() {
 export function useDeleteRoomExtraMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: RoomExtraRequest) => tuanchat.roomController.deleteRoomExtra(req),
+        mutationFn: async (req: RoomExtraRequest) => {
+            const result = await tuanchat.roomController.deleteRoomExtra(req);
+            if (!isSuccessfulApiResult(result)) {
+                throw new Error(getApiResultErrorMessage(result, "删除房间扩展信息失败"));
+            }
+            return result;
+        },
         mutationKey: ['deleteRoomExtra'],
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({queryKey: roomExtraQueryKey(variables.roomId, variables.key),});
-        }
+        onMutate: request => beginDeleteRoomExtraOptimisticMutation(queryClient, request),
+        onError: (_error, _request, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
+        onSettled: (_, _error, variables) =>
+            queryClient.invalidateQueries({queryKey: roomExtraQueryKey(variables.roomId, variables.key),}),
     });
 }

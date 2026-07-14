@@ -5,6 +5,9 @@ import {
   addRoomMemberWithSuccessGuard,
   addRoomRoleWithSuccessGuard,
   addSpaceMemberWithSuccessGuard,
+  beginDeleteRoomExtraOptimisticMutation,
+  beginSetRoomExtraOptimisticMutation,
+  beginSetSpaceExtraOptimisticMutation,
   deleteRoomMemberWithSuccessGuard,
   deleteSpaceMemberWithSuccessGuard,
   fetchSpaceExtraWithCache,
@@ -16,6 +19,7 @@ import {
   spaceInfoQueryKey,
   updateSpaceMemberTypeWithSuccessGuard,
 } from "./chatQueryHooks";
+import { rollbackOptimisticQueryTransaction } from "@tuanchat/query/optimistic-cache";
 
 const {
   addRoomMemberMock,
@@ -77,6 +81,31 @@ function createQueryClient() {
 }
 
 describe("chat extra cache helpers", () => {
+  it("空间和房间 extra 在提交时即时写入缓存并支持回滚", async () => {
+    const queryClient = createQueryClient();
+    queryClient.setQueryData(spaceInfoQueryKey(7), {
+      success: true,
+      data: { extra: JSON.stringify({ old: "value" }), spaceId: 7 },
+    });
+    queryClient.setQueryData(spaceExtraQueryKey(7, "theme"), { success: true, data: "old" });
+    queryClient.setQueryData(roomExtraQueryKey(9, "scene"), { success: true, data: "old" });
+
+    const spaceTransaction = await beginSetSpaceExtraOptimisticMutation(queryClient, {
+      key: "theme",
+      spaceId: 7,
+      value: "dark",
+    });
+    expect(queryClient.getQueryData(spaceExtraQueryKey(7, "theme"))).toEqual({ success: true, data: "dark" });
+    expect(JSON.parse(queryClient.getQueryData<any>(spaceInfoQueryKey(7))?.data.extra)).toEqual({ old: "value", theme: "dark" });
+    rollbackOptimisticQueryTransaction(queryClient, spaceTransaction);
+    expect(queryClient.getQueryData(spaceExtraQueryKey(7, "theme"))).toEqual({ success: true, data: "old" });
+
+    await beginSetRoomExtraOptimisticMutation(queryClient, { key: "scene", roomId: 9, value: "night" });
+    expect(queryClient.getQueryData(roomExtraQueryKey(9, "scene"))).toEqual({ success: true, data: "night" });
+    await beginDeleteRoomExtraOptimisticMutation(queryClient, { key: "scene", roomId: 9 });
+    expect(queryClient.getQueryData(roomExtraQueryKey(9, "scene"))).toEqual({ success: true });
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
   });
