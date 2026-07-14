@@ -3,6 +3,7 @@
   "type": "module",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.7.0",
   "author": "Tuan Chat",
   "scripts": {
     "build": "node ./scripts/build.mjs",

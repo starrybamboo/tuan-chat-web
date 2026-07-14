@@ -2,11 +2,11 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { DesignSystemPage } from "@/components/designSystem/DesignSystemPage";
 import {
   COLOR_TOKEN_GROUPS,
   DESIGN_SYSTEM_SECTIONS,
 } from "@/components/designSystem/designSystemCatalog";
+import { DesignSystemPage } from "@/components/designSystem/DesignSystemPage";
 
 const LEGACY_DAISY_CLASS = /^(?:avatar|btn|checkbox|file-input|join|menu|modal|progress|radio|range|toggle)(?:-|$)/;
 

@@ -5,7 +5,7 @@
 
 import type { PixelCrop } from "react-image-crop";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 type CropParams = {
   img: HTMLImageElement;
@@ -277,13 +277,13 @@ export function useImageCropWorker() {
   /**
    * 使用 Worker Pool 裁剪图像（支持并行）
    */
-  const cropImage = async (params: CropParams): Promise<Blob> => {
+  const cropImage = useCallback(async (params: CropParams): Promise<Blob> => {
     if (!workerPoolRef.current) {
       throw new Error("Worker pool not initialized");
     }
 
     return workerPoolRef.current.cropImage(params);
-  };
+  }, []);
 
   /**
    * 批量裁剪图像（带并发控制）
@@ -291,13 +291,13 @@ export function useImageCropWorker() {
    * @param maxConcurrency 最大并发数，默认为 8
    * @param processor 处理函数
    */
-  const cropImagesWithConcurrency = async <T, R>(
+  const cropImagesWithConcurrency = useCallback(async <T, R>(
     tasks: T[],
     maxConcurrency: number = 8,
     processor: (task: T, index: number) => Promise<R>,
   ): Promise<R[]> => {
     return runWithConcurrencyLimit(tasks, maxConcurrency, processor);
-  };
+  }, []);
 
   return { cropImage, cropImagesWithConcurrency };
 }

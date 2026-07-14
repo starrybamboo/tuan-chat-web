@@ -1,9 +1,9 @@
 import { XIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 
-import { IconButton } from "@/components/common/IconButton";
-import { FieldGroup, formControlShellClassName, TextInput } from "@/components/common/FormField";
 import { Text } from "@/components/common/DesignLanguage";
+import { FieldGroup, formControlShellClassName, TextInput } from "@/components/common/FormField";
+import { IconButton } from "@/components/common/IconButton";
 
 type EditableFieldProps = {
   fieldKey: string;
