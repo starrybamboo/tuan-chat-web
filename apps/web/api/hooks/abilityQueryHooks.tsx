@@ -13,6 +13,10 @@ import {
     roleAbilityListQueryKey,
 } from "./abilityMutationInvalidation";
 import { normalizeRoleAbilityCacheData } from "./roleAbilityCacheData";
+import {
+    beginWebRoleAbilityOptimisticMutation,
+    rollbackWebRoleAbilityOptimisticMutation,
+} from "./roleAbilityOptimisticCache";
 
 type JsonObject = Record<string, unknown>;
 type RulePackId = "coc" | "dnd" | "fu" | "generic";
@@ -130,97 +134,6 @@ export function fetchRoleAbilityByRuleWithCache(queryClient: QueryClient, roleId
         queryFn: () => loadRoleAbilityByRule(roleId, ruleId),
         staleTime: ROLE_ABILITY_BY_RULE_STALE_TIME_MS,
         retry: shouldRetryRoleAbilityByRule,
-    });
-}
-
-type RoleAbilityFullMutationPayload = AbilitySetRequest | AbilityByRuleUpdateRequest;
-
-function setRoleAbilityByRuleCache(queryClient: QueryClient, payload: RoleAbilityFullMutationPayload) {
-    const normalized = normalizeRoleAbilityCacheData(payload, {
-        roleId: payload.roleId,
-        ruleId: payload.ruleId,
-    });
-    if (!normalized) {
-        return;
-    }
-
-    queryClient.setQueryData(roleAbilityByRuleQueryKey(payload.roleId, payload.ruleId), (old: CachedRoleAbility | null | undefined) => {
-        const shouldPatchSection = (section: "act" | "basic" | "ability" | "skill") =>
-            Object.prototype.hasOwnProperty.call(payload, section);
-
-        return {
-            ...(old ?? {}),
-            ...normalized,
-            abilityId: old?.abilityId ?? normalized.abilityId,
-            act: shouldPatchSection("act") ? normalized.act : (old?.act ?? normalized.act),
-            basic: shouldPatchSection("basic") ? normalized.basic : (old?.basic ?? normalized.basic),
-            ability: shouldPatchSection("ability") ? normalized.ability : (old?.ability ?? normalized.ability),
-            skill: shouldPatchSection("skill") ? normalized.skill : (old?.skill ?? normalized.skill),
-            actTemplate: shouldPatchSection("act") ? normalized.actTemplate : (old?.actTemplate ?? normalized.actTemplate),
-            basicDefault: shouldPatchSection("basic") ? normalized.basicDefault : (old?.basicDefault ?? normalized.basicDefault),
-            abilityDefault: shouldPatchSection("ability") ? normalized.abilityDefault : (old?.abilityDefault ?? normalized.abilityDefault),
-            skillDefault: shouldPatchSection("skill") ? normalized.skillDefault : (old?.skillDefault ?? normalized.skillDefault),
-        };
-    });
-}
-
-function patchStringRecord(
-    current: Record<string, string> | undefined,
-    fields: Record<string, string> | undefined,
-): Record<string, string> {
-    const next = { ...(current ?? {}) };
-    Object.entries(fields ?? {}).forEach(([key, value]) => {
-        if (value == null) {
-            delete next[key];
-            return;
-        }
-        const renamedKey = String(value);
-        if (!renamedKey || renamedKey === key) {
-            return;
-        }
-        const currentValue = next[key] ?? "";
-        delete next[key];
-        next[renamedKey] = currentValue;
-    });
-    return next;
-}
-
-function patchRoleAbilityFieldsCache(queryClient: QueryClient, payload: AbilityByRuleFieldUpdateRequest) {
-    queryClient.setQueryData(roleAbilityByRuleQueryKey(payload.roleId, payload.ruleId), (old: CachedRoleAbility | null | undefined) => {
-        const base = normalizeRoleAbilityCacheData(old ?? {}, {
-            roleId: payload.roleId,
-            ruleId: payload.ruleId,
-        }) ?? {
-            abilityId: 0,
-            roleId: payload.roleId,
-            ruleId: payload.ruleId,
-            act: {},
-            basic: {},
-            ability: {},
-            skill: {},
-            actTemplate: {},
-            basicDefault: {},
-            abilityDefault: {},
-            skillDefault: {},
-        };
-
-        const act = patchStringRecord(base.act, payload.actFields);
-        const basic = patchStringRecord(base.basic, payload.basicFields);
-        const ability = patchStringRecord(base.ability, payload.abilityFields);
-        const skill = patchStringRecord(base.skill, payload.skillFields);
-
-        return {
-            ...base,
-            act,
-            basic,
-            ability,
-            skill,
-            extra: patchStringRecord(base.extra, payload.extraFields),
-            actTemplate: act,
-            basicDefault: basic,
-            abilityDefault: ability,
-            skillDefault: skill,
-        };
     });
 }
 
@@ -618,12 +531,10 @@ export function useSetRoleAbilityMutation() {
     return useMutation({
         mutationFn: setRoleAbilityWithSuccessGuard,
         mutationKey: ["setRoleAbility"],
-        onSuccess: (result, variables) => {
-            if (isSuccessfulApiResult(result)) {
-                setRoleAbilityByRuleCache(queryClient, variables);
-            }
-            return invalidateRoleAbilityCaches(queryClient, { roleId: variables.roleId, ruleId: variables.ruleId });
-        },
+        onMutate: variables => beginWebRoleAbilityOptimisticMutation(queryClient, "set", variables),
+        onError: (_error, _variables, transaction) => rollbackWebRoleAbilityOptimisticMutation(queryClient, transaction),
+        onSettled: (_result, _error, variables) =>
+            invalidateRoleAbilityCaches(queryClient, { roleId: variables.roleId, ruleId: variables.ruleId }),
     });
 }
 
@@ -643,12 +554,10 @@ export function useUpdateRoleAbilityByRoleIdMutation() {
     return useMutation({
         mutationFn: updateRoleAbilityByRuleWithSuccessGuard,
         mutationKey: ["updateRoleAbilityByRoleId"],
-        onSuccess: (result, variables) => {
-            if (isSuccessfulApiResult(result)) {
-                setRoleAbilityByRuleCache(queryClient, variables);
-            }
-            return invalidateRoleAbilityCaches(queryClient, { roleId: variables.roleId, ruleId: variables.ruleId });
-        }
+        onMutate: variables => beginWebRoleAbilityOptimisticMutation(queryClient, "update", variables),
+        onError: (_error, _variables, transaction) => rollbackWebRoleAbilityOptimisticMutation(queryClient, transaction),
+        onSettled: (_result, _error, variables) =>
+            invalidateRoleAbilityCaches(queryClient, { roleId: variables.roleId, ruleId: variables.ruleId }),
     })
 }
 
@@ -656,13 +565,11 @@ export function useUpdateKeyFieldByRoleIdMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: updateRoleAbilityFieldByRuleWithSuccessGuard,
-        mutationKey: ["updateRoleAbilityByRoleId"],
-        onSuccess: (result, variables) => {
-            if (isSuccessfulApiResult(result)) {
-                patchRoleAbilityFieldsCache(queryClient, variables);
-            }
-            return invalidateRoleAbilityCaches(queryClient, { roleId: variables.roleId, ruleId: variables.ruleId });
-        }
+        mutationKey: ["updateRoleAbilityFieldByRoleId"],
+        onMutate: variables => beginWebRoleAbilityOptimisticMutation(queryClient, "field", variables),
+        onError: (_error, _variables, transaction) => rollbackWebRoleAbilityOptimisticMutation(queryClient, transaction),
+        onSettled: (_result, _error, variables) =>
+            invalidateRoleAbilityCaches(queryClient, { roleId: variables.roleId, ruleId: variables.ruleId }),
     })
 }
 

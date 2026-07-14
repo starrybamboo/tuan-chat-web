@@ -37,7 +37,7 @@ import { Drawer } from "vaul";
 import { appToast } from "@/components/common/appToast/appToast";
 import { Button } from "@/components/common/Button";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import { selectionClassName, surfaceClassName, textClassName } from "@/components/common/DesignLanguage";
+import { surfaceClassName, textClassName } from "@/components/common/DesignLanguage";
 import { DialogActions, DialogFrame } from "@/components/common/DialogFrame";
 import { FieldGroup, FieldLabel, TextInput } from "@/components/common/FormField";
 import { IconButton } from "@/components/common/IconButton";
@@ -103,11 +103,8 @@ const AVATAR_FOLDER_STACK_CARD_CLASS_NAMES = [
   "left-[18%] bottom-[8%] z-[3] rotate-[6deg] opacity-90 scale-[0.84]",
   "left-1/2 top-1/2 z-[4] -translate-x-1/2 -translate-y-1/2 rotate-[-1deg] opacity-100 scale-100",
 ] as const;
-const selectedVariantFolderClassName = selectionClassName({
-  level: "strong",
-  className: "border-info shadow-lg",
-});
-const selectedVariantFolderLabelClassName = selectionClassName({ level: "tone" });
+const selectedVariantFolderClassName = "border-warning bg-warning/15 shadow-lg ring-1 ring-inset ring-warning/70 dark:bg-warning/20";
+const selectedVariantFolderLabelClassName = "text-warning";
 
 type PendingVariantInitialization = {
   name: string;

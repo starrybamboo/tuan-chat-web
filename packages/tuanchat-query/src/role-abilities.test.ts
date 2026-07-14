@@ -2,11 +2,15 @@ import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  beginRoleAbilityOptimisticMutation,
   assertSuccessfulAbilityApiResult,
   fetchRoleAbilitiesByRule,
   fetchRoleAbilitiesByRuleWithCache,
   readSuccessfulAbilityApiResultData,
+  roleAbilitiesBatchByRuleQueryKey,
   roleAbilityByRuleQueryKey,
+  roleAbilityListQueryKey,
+  rollbackRoleAbilityOptimisticMutation,
 } from "./role-abilities";
 
 describe("role-abilities success guard", () => {
@@ -69,5 +73,83 @@ describe("role-abilities success guard", () => {
     expect(result.get(11)).toEqual({ roleId: 11, ruleId: 3 });
     expect(result.get(12)).toEqual({ roleId: 12, ruleId: 3 });
     expect(queryClient.getQueryData(roleAbilityByRuleQueryKey(12, 3))).toEqual({ roleId: 12, ruleId: 3 });
+  });
+
+  it("提交局部能力更新时立即合并所有缓存视图并支持回滚", async () => {
+    const queryClient = new QueryClient();
+    const original = {
+      abilityId: 101,
+      roleId: 11,
+      ruleId: 3,
+      basic: { 力量: "50", 敏捷: "60" },
+      ability: { hp: "12", san: "45" },
+    };
+    const batchQueryKey = [...roleAbilitiesBatchByRuleQueryKey(3), 11, 12];
+    queryClient.setQueryData(roleAbilityByRuleQueryKey(11, 3), original);
+    queryClient.setQueryData(roleAbilityListQueryKey(11), [original]);
+    queryClient.setQueryData(batchQueryKey, { 11: original });
+
+    const transaction = await beginRoleAbilityOptimisticMutation(queryClient, "update", {
+      roleId: 11,
+      ruleId: 3,
+      basic: { 力量: "70" },
+      ability: {},
+    });
+
+    expect(queryClient.getQueryData<any>(roleAbilityByRuleQueryKey(11, 3))?.basic).toEqual({
+      力量: "70",
+      敏捷: "60",
+    });
+    expect(queryClient.getQueryData<any[]>(roleAbilityListQueryKey(11))?.[0]?.ability).toEqual({
+      hp: "12",
+      san: "45",
+    });
+    expect(queryClient.getQueryData<any>(batchQueryKey)?.[11]?.basic?.力量).toBe("70");
+
+    rollbackRoleAbilityOptimisticMutation(queryClient, transaction);
+    expect(queryClient.getQueryData(roleAbilityByRuleQueryKey(11, 3))).toEqual(original);
+    expect(queryClient.getQueryData<any[]>(roleAbilityListQueryKey(11))?.[0]).toEqual(original);
+    expect(queryClient.getQueryData<any>(batchQueryKey)?.[11]).toEqual(original);
+  });
+
+  it("字段更新即时重命名和删除，并忽略服务端不会处理的缺失键", async () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(roleAbilityByRuleQueryKey(11, 3), {
+      roleId: 11,
+      ruleId: 3,
+      skill: { 侦查: "60", 聆听: "45" },
+    });
+
+    await beginRoleAbilityOptimisticMutation(queryClient, "field", {
+      roleId: 11,
+      ruleId: 3,
+      skillFields: {
+        侦查: "观察",
+        聆听: null as unknown as string,
+        不存在: "新字段",
+      },
+    });
+
+    expect(queryClient.getQueryData<any>(roleAbilityByRuleQueryKey(11, 3))?.skill).toEqual({
+      观察: "60",
+    });
+  });
+
+  it("创建能力时生成临时单条缓存，回滚后移除", async () => {
+    const queryClient = new QueryClient();
+
+    const transaction = await beginRoleAbilityOptimisticMutation(queryClient, "set", {
+      roleId: 11,
+      ruleId: 3,
+      basic: { 力量: "50" },
+    });
+
+    expect(queryClient.getQueryData(roleAbilityByRuleQueryKey(11, 3))).toEqual({
+      roleId: 11,
+      ruleId: 3,
+      basic: { 力量: "50" },
+    });
+    rollbackRoleAbilityOptimisticMutation(queryClient, transaction);
+    expect(queryClient.getQueryData(roleAbilityByRuleQueryKey(11, 3))).toBeUndefined();
   });
 });
