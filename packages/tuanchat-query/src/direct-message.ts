@@ -6,7 +6,19 @@ import type { DirectBadgeSummaryResponse } from "@tuanchat/openapi-client/models
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { groupDirectConversations, mergeDirectMessages } from "@tuanchat/domain/direct-message";
+import {
+  DIRECT_MESSAGE_READ_LINE_TYPE,
+  getDirectUnreadCount,
+  getLatestIncomingSync,
+  groupDirectConversations,
+  mergeDirectMessages,
+} from "@tuanchat/domain/direct-message";
+
+import {
+  beginOptimisticQueryTransaction,
+  optimisticQueryPatch,
+  rollbackOptimisticQueryTransaction,
+} from "./optimistic-cache";
 
 type DirectMessageClient = Pick<TuanChat, "messageDirectController">;
 
@@ -125,6 +137,62 @@ export function markDirectMessageRecalledInCaches(
   }
 }
 
+function isPositiveUserId(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
+export function createDirectReadLineMessage(currentUserId: number, contactId: number, syncId: number): MessageDirectResponse {
+  return {
+    createTime: new Date().toISOString(),
+    messageId: -contactId,
+    messageType: DIRECT_MESSAGE_READ_LINE_TYPE,
+    receiverId: contactId,
+    senderId: currentUserId,
+    status: 0,
+    syncId,
+    userId: currentUserId,
+  };
+}
+
+export function beginDirectRecallOptimisticMutation(queryClient: QueryClient, messageId: number) {
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<MessageDirectResponse[]>({
+      queryKey: ["dmInbox"],
+      exact: false,
+      update: current => markDirectMessageRecalledData(current, messageId),
+    }),
+  ]);
+}
+
+export async function beginDirectReadOptimisticMutation(
+  queryClient: QueryClient,
+  currentUserId: number | null | undefined,
+  targetUserId: number,
+) {
+  if (!isPositiveUserId(currentUserId) || !isPositiveUserId(targetUserId)) {
+    return { readSync: 0, transaction: await beginOptimisticQueryTransaction(queryClient, []) };
+  }
+
+  const messages = queryClient.getQueryData<MessageDirectResponse[]>(getDirectInboxQueryKey(currentUserId)) ?? [];
+  const readSync = getLatestIncomingSync(messages, targetUserId);
+  const unreadCount = getDirectUnreadCount(messages, targetUserId, currentUserId);
+  const transaction = await beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<MessageDirectResponse[]>({
+      queryKey: getDirectInboxQueryKey(currentUserId),
+      update: current => readSync > 0
+        ? upsertDirectInboxMessagesData(current, [createDirectReadLineMessage(currentUserId, targetUserId, readSync)])
+        : current,
+    }),
+    optimisticQueryPatch<DirectBadgeSummaryResponse>({
+      queryKey: getDirectBadgeSummaryQueryKey(currentUserId),
+      update: current => current && unreadCount > 0
+        ? { ...current, directUnreadCount: Math.max(0, (current.directUnreadCount ?? 0) - unreadCount) }
+        : current,
+    }),
+  ]);
+  return { readSync, transaction };
+}
+
 export function useDirectInboxMessagesQuery(
   client: DirectMessageClient,
   currentUserId: number | null | undefined,
@@ -172,22 +240,25 @@ export function useRecallDirectMessageMutation(client: DirectMessageClient, curr
   return useMutation({
     mutationFn: (request: MessageDirectRecallRequest) => client.messageDirectController.recallMessage(request),
     mutationKey: ["recallDirectMessage", currentUserId ?? null],
-    onSuccess: (_result, request) => {
-      markDirectMessageRecalledInCaches(queryClient, request.messageId);
+    onMutate: request => beginDirectRecallOptimisticMutation(queryClient, request.messageId),
+    onError: (_error, _request, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
+    onSettled: (_result, _error, request) => {
       queryClient.invalidateQueries({ queryKey: getDirectInboxQueryKey(currentUserId) });
       queryClient.invalidateQueries({ queryKey: getDirectBadgeSummaryQueryKey(currentUserId) });
     },
   });
 }
 
-export function useUpdateDirectReadPositionMutation(client: DirectMessageClient) {
+export function useUpdateDirectReadPositionMutation(client: DirectMessageClient, currentUserId?: number | null) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (targetUserId: number) => client.messageDirectController.updateReadPosition({ targetUserId }),
     mutationKey: ["updateDirectReadPosition"],
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dmInbox"] });
-      queryClient.invalidateQueries({ queryKey: ["directBadgeSummary"] });
+    onMutate: targetUserId => beginDirectReadOptimisticMutation(queryClient, currentUserId, targetUserId),
+    onError: (_error, _targetUserId, context) => rollbackOptimisticQueryTransaction(queryClient, context?.transaction),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: getDirectInboxQueryKey(currentUserId) });
+      queryClient.invalidateQueries({ queryKey: getDirectBadgeSummaryQueryKey(currentUserId) });
     },
   });
 }

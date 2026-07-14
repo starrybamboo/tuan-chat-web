@@ -382,7 +382,6 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
   const theme = useTheme();
   const queryClient = useQueryClient();
   const flatListRef = useRef<FlatList<MessageDirectResponse>>(null);
-  const readSyncRef = useRef(0);
   const [draft, setDraft] = useState("");
   const [inputHeight, setInputHeight] = useState(COMPOSER_MIN_HEIGHT);
   const [attachments, setAttachments] = useState<MobileMessageAttachment[]>([]);
@@ -466,7 +465,6 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
     }
     sendInFlightRef.current = false;
     isAtBottomRef.current = true;
-    readSyncRef.current = 0;
     scrollDebugCountRef.current = 0;
     previousPaginatedLengthRef.current = null;
 
@@ -541,13 +539,9 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
   useEffect(() => {
     if (!contactId || latestIncomingSync <= 0)
       return;
-    const effectiveReadSync = Math.max(currentReadSync, readSyncRef.current);
-    if (latestIncomingSync <= effectiveReadSync)
+    if (latestIncomingSync <= currentReadSync)
       return;
-    readSyncRef.current = latestIncomingSync;
-    updateReadPositionMutation.mutate(contactId, {
-      onError: () => { readSyncRef.current = effectiveReadSync; },
-    });
+    updateReadPositionMutation.mutate(contactId);
   }, [contactId, currentReadSync, latestIncomingSync, updateReadPositionMutation]);
 
   useEffect(() => {

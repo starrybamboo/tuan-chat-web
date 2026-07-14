@@ -3,12 +3,13 @@ import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/Mess
 import type { MessageDirectSendRequest } from "@tuanchat/openapi-client/models/MessageDirectSendRequest";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { DIRECT_MESSAGE_READ_LINE_TYPE, getLatestIncomingSync } from "@tuanchat/domain/direct-message";
 import {
+  beginDirectReadOptimisticMutation,
+  beginDirectRecallOptimisticMutation,
   getDirectInboxQueryKey,
-  markDirectMessageRecalledInCaches,
   upsertDirectInboxQueryData,
 } from "@tuanchat/query/direct-message";
+import { rollbackOptimisticQueryTransaction } from "@tuanchat/query/optimistic-cache";
 
 import { mobileApiClient } from "@/lib/api";
 
@@ -30,23 +31,6 @@ let nextOptimisticDirectSyncId = Date.now() * 1000;
 type SendDmMutationContext = {
   optimisticMessageId?: number;
 };
-
-function isPositiveUserId(value: number | null | undefined): value is number {
-  return typeof value === "number" && Number.isInteger(value) && value > 0;
-}
-
-function createDirectReadLineMessage(currentUserId: number, contactId: number, syncId: number): MessageDirectResponse {
-  return {
-    createTime: new Date().toISOString(),
-    messageId: -contactId,
-    messageType: DIRECT_MESSAGE_READ_LINE_TYPE,
-    receiverId: contactId,
-    senderId: currentUserId,
-    status: 0,
-    syncId,
-    userId: currentUserId,
-  };
-}
 
 function warnDiskCacheFailure(action: string, error: unknown) {
   console.warn(`[useSendDmMutation] ${action}失败:`, error);
@@ -111,13 +95,14 @@ export function useRecallDmMutation(currentUserId?: number | null) {
   return useMutation({
     mutationFn: (request: MessageDirectRecallRequest) => mobileApiClient.messageDirectController.recallMessage(request),
     mutationKey: ["recallDirectMessage", currentUserId ?? null],
+    onMutate: request => beginDirectRecallOptimisticMutation(queryClient, request.messageId),
+    onError: (_error, _request, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
     onSuccess: (_result, request) => {
-      markDirectMessageRecalledInCaches(queryClient, request.messageId);
-      queryClient.invalidateQueries({ queryKey: getDirectInboxQueryKey(currentUserId) });
       void markCachedDirectMessagesRecalled(currentUserId, [request.messageId]).catch((error) => {
         warnDiskCacheFailure("写入私聊撤回磁盘缓存", error);
       });
     },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: getDirectInboxQueryKey(currentUserId) }),
   });
 }
 
@@ -127,20 +112,15 @@ export function useUpdateDmReadPositionMutation(currentUserId?: number | null) {
   return useMutation({
     mutationFn: (targetUserId: number) => mobileApiClient.messageDirectController.updateReadPosition({ targetUserId }),
     mutationKey: ["updateDirectReadPosition", currentUserId ?? null],
-    onSuccess: (_result, targetUserId) => {
-      if (isPositiveUserId(currentUserId) && isPositiveUserId(targetUserId)) {
-        const messages = queryClient.getQueryData<MessageDirectResponse[]>(getDirectInboxQueryKey(currentUserId)) ?? [];
-        const latestIncomingSync = getLatestIncomingSync(messages, targetUserId);
-        if (latestIncomingSync > 0) {
-          upsertDirectInboxQueryData(queryClient, currentUserId, [
-            createDirectReadLineMessage(currentUserId, targetUserId, latestIncomingSync),
-          ]);
-          void upsertCachedDirectReadLine(currentUserId, targetUserId, latestIncomingSync).catch((error) => {
+    onMutate: targetUserId => beginDirectReadOptimisticMutation(queryClient, currentUserId, targetUserId),
+    onError: (_error, _targetUserId, context) => rollbackOptimisticQueryTransaction(queryClient, context?.transaction),
+    onSuccess: (_result, targetUserId, context) => {
+      if (context.readSync > 0) {
+          void upsertCachedDirectReadLine(currentUserId, targetUserId, context.readSync).catch((error) => {
             warnDiskCacheFailure("写入私聊已读线磁盘缓存", error);
           });
-        }
       }
-      queryClient.invalidateQueries({ queryKey: getDirectInboxQueryKey(currentUserId) });
     },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: getDirectInboxQueryKey(currentUserId) }),
   });
 }

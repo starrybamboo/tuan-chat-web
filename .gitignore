@@ -1,6 +1,8 @@
 lint.out
 
 # Local temp artifacts
+/.codex/
+/.codex-tmp-*
 /.codex-tmp/
 /.tmp/
 /.auth/
