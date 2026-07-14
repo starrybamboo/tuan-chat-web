@@ -389,6 +389,17 @@ export function beginAvatarDeleteOptimisticMutation(
   return beginOptimisticQueryTransaction(queryClient, avatarCachePatches(roleId, avatarId, () => null));
 }
 
+export function beginAvatarDeleteManyOptimisticMutation(
+  queryClient: ReturnType<typeof useQueryClient>,
+  roleId: number,
+  avatarIds: number[],
+) {
+  return beginOptimisticQueryTransaction(
+    queryClient,
+    avatarIds.flatMap(avatarId => avatarCachePatches(roleId, avatarId, () => null)),
+  );
+}
+
 export function useCreateRoleMutation(client: RoleClient) {
   const queryClient = useQueryClient();
   return useMutation({

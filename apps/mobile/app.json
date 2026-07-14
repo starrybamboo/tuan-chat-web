@@ -2,7 +2,7 @@
   "expo": {
     "name": "团剧共创",
     "slug": "tuanchat-mobile",
-    "version": "0.1.0.0",
+    "version": "0.1.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "tuanchat",

@@ -14,6 +14,7 @@ import {
 } from "./abilityMutationInvalidation";
 import { normalizeRoleAbilityCacheData } from "./roleAbilityCacheData";
 import {
+    beginWebRoleAbilityDeleteOptimisticMutation,
     beginWebRoleAbilityOptimisticMutation,
     rollbackWebRoleAbilityOptimisticMutation,
 } from "./roleAbilityOptimisticCache";
@@ -543,9 +544,12 @@ export function useDeleteRoleAbilityMutation() {
     return useMutation({
         mutationFn: (abilityId: number) => tuanchat.abilityController.deleteRoleAbility(abilityId),
         mutationKey: ["deleteRoleAbility"],
-        onSuccess: () => {
-            return invalidateRoleAbilityCaches(queryClient);
-        }
+        onMutate: abilityId => beginWebRoleAbilityDeleteOptimisticMutation(queryClient, abilityId),
+        onError: (_error, _abilityId, context) => rollbackWebRoleAbilityOptimisticMutation(queryClient, context?.transaction),
+        onSettled: (_result, _error, _abilityId, context) => invalidateRoleAbilityCaches(queryClient, {
+            roleId: context?.target?.roleId,
+            ruleId: context?.target?.ruleId,
+        }),
     })
 }
 

@@ -11,6 +11,15 @@ import type { QueryClient } from '@tanstack/react-query';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { invalidateRoleMetadataBatchQueries } from '@tuanchat/query/metadata';
+import {
+  beginAvatarDeleteManyOptimisticMutation,
+  beginAvatarDeleteOptimisticMutation,
+  beginAvatarUpdateOptimisticMutation,
+  beginClearRoleTrashOptimisticMutation,
+  beginHardDeleteRolesOptimisticMutation,
+  beginRoleUpdateOptimisticMutation,
+} from '@tuanchat/query/roles';
+import { rollbackOptimisticQueryTransaction } from '@tuanchat/query/optimistic-cache';
 import { tuanchat } from '../instance';
 
 
@@ -52,6 +61,14 @@ import {
 } from "../roleQueryCache";
 import { invalidateRoleAbilityCaches } from "./abilityMutationInvalidation";
 import { invalidateRoleCreateQueries, invalidateUpdatedRoleQueries, invalidateUserRoleListQueries } from "./roleMutationInvalidation";
+import {
+  beginClearDeletedRoleAvatarsOptimisticMutation,
+  beginClearSpaceNpcRoleTrashOptimisticMutation,
+  beginDeleteRoleAvatarVariantOptimisticMutation,
+  beginRestoreRoleAvatarOptimisticMutation,
+  beginUpdateRoleAvatarVariantOptimisticMutation,
+  rollbackRoleWebOptimisticMutation,
+} from "./roleWebOptimisticCache";
 
 export const ROLE_AVATARS_STALE_TIME_MS = 86_400_000;
 export const ROLE_AVATAR_STALE_TIME_MS = 86_400_000;
@@ -572,6 +589,13 @@ export function useSetDefaultRoleAvatarMutation(roleId?: number) {
         avatarId,
       };
     },
+    onMutate: (avatar) => {
+      const resolvedRoleId = avatar.roleId ?? roleId;
+      return isPositiveId(resolvedRoleId) && isPositiveId(avatar.avatarId)
+        ? beginRoleUpdateOptimisticMutation(queryClient, { roleId: resolvedRoleId, avatarId: avatar.avatarId })
+        : undefined;
+    },
+    onError: (_error, _avatar, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
     onSuccess: ({ avatar, roleId, avatarId }) => {
       seedRoleAvatarQueryCaches(queryClient, avatar, roleId);
       patchRoleAvatarIdCaches(queryClient, roleId, avatarId);
@@ -671,6 +695,11 @@ export function useHardDeleteRolesMutation(onSuccess?: () => void) {
       }
       return res;
     },
+    onMutate: roleIds => beginHardDeleteRolesOptimisticMutation(queryClient, roleIds),
+    onError: (error, _roleIds, transaction) => {
+      rollbackOptimisticQueryTransaction(queryClient, transaction);
+      console.error("硬删除角色失败:", error);
+    },
     onSuccess: (_, roleIds) => {
       invalidateUserRoleListQueries(queryClient);
       invalidateRoleTrashQueries(queryClient);
@@ -685,9 +714,6 @@ export function useHardDeleteRolesMutation(onSuccess?: () => void) {
         void invalidateRoleAbilityCaches(queryClient, { roleId });
       });
       onSuccess?.();
-    },
-    onError: (error) => {
-      console.error("硬删除角色失败:", error);
     },
     onSettled: () => {
       invalidateUserRoleListQueries(queryClient);
@@ -708,15 +734,17 @@ export function useClearRoleTrashMutation(onSuccess?: () => void) {
       }
       return res;
     },
+    onMutate: () => beginClearRoleTrashOptimisticMutation(queryClient),
+    onError: (error, _variables, transaction) => {
+      rollbackOptimisticQueryTransaction(queryClient, transaction);
+      console.error("清空角色回收站失败:", error);
+    },
     onSuccess: () => {
       invalidateUserRoleListQueries(queryClient);
       invalidateRoleTrashQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: ["roomRole"] });
       queryClient.invalidateQueries({ queryKey: ["roomNpcRole"] });
       onSuccess?.();
-    },
-    onError: (error) => {
-      console.error("清空角色回收站失败:", error);
     },
     onSettled: () => {
       invalidateUserRoleListQueries(queryClient);
@@ -737,6 +765,11 @@ export function useClearSpaceNpcRoleTrashMutation(onSuccess?: () => void) {
       }
       return res;
     },
+    onMutate: spaceId => beginClearSpaceNpcRoleTrashOptimisticMutation(queryClient, spaceId),
+    onError: (error, _spaceId, transaction) => {
+      rollbackRoleWebOptimisticMutation(queryClient, transaction);
+      console.error("清空空间 NPC 回收站失败:", error);
+    },
     onSuccess: () => {
       invalidateUserRoleListQueries(queryClient);
       invalidateRoleTrashQueries(queryClient);
@@ -744,9 +777,6 @@ export function useClearSpaceNpcRoleTrashMutation(onSuccess?: () => void) {
       queryClient.invalidateQueries({ queryKey: ["roomNpcRole"] });
       queryClient.invalidateQueries({ queryKey: ["spaceRole"] });
       onSuccess?.();
-    },
-    onError: (error) => {
-      console.error("清空空间 NPC 回收站失败:", error);
     },
     onSettled: () => {
       invalidateRoleTrashQueries(queryClient);
@@ -900,6 +930,10 @@ export function useUpdateRoleAvatarVariantMutation(roleId?: number) {
   return useMutation({
     mutationKey: ["updateRoleAvatarVariant", roleId],
     mutationFn: (request: RoleAvatarVariantUpdateRequest) => tuanchat.avatarController.updateRoleAvatarVariant(request),
+    onMutate: request => isPositiveId(roleId)
+      ? beginUpdateRoleAvatarVariantOptimisticMutation(queryClient, roleId, request)
+      : undefined,
+    onError: (_error, _request, transaction) => rollbackRoleWebOptimisticMutation(queryClient, transaction),
     onSuccess: (res) => {
       if (!isSuccessfulApiResult(res)) {
         return;
@@ -917,6 +951,10 @@ export function useDeleteRoleAvatarVariantMutation(roleId?: number) {
   return useMutation({
     mutationKey: ["deleteRoleAvatarVariant", roleId],
     mutationFn: (variantId: number) => tuanchat.avatarController.deleteRoleAvatarVariant(variantId),
+    onMutate: variantId => isPositiveId(roleId)
+      ? beginDeleteRoleAvatarVariantOptimisticMutation(queryClient, roleId, variantId)
+      : undefined,
+    onError: (_error, _variantId, transaction) => rollbackRoleWebOptimisticMutation(queryClient, transaction),
     onSuccess: (res) => {
       if (!isSuccessfulApiResult(res)) {
         return;
@@ -969,6 +1007,8 @@ export function useUpdateRoleAvatarMutation(roleId: number) {
   return useMutation({
     mutationFn: (req: RoleAvatar) => tuanchat.avatarController.updateRoleAvatar(req),
     mutationKey: ['updateRoleAvatar'],
+    onMutate: request => beginAvatarUpdateOptimisticMutation(queryClient, request),
+    onError: (_error, _request, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
     onSuccess: (res, variables) => {
       if (!isSuccessfulApiResult(res)) {
         return;
@@ -1012,7 +1052,10 @@ export function useUpdateRoleAvatarMutation(roleId: number) {
         emitWebgalAvatarUpdated({ avatarId: nextAvatar.avatarId, avatar: nextAvatar });
         invalidateRoleAppearanceCaches(queryClient, resolvedRoleId, nextAvatar.avatarId);
       }
-    }
+    },
+    onSettled: (_result, _error, variables) => {
+      invalidateRoleAppearanceCaches(queryClient, variables.roleId ?? roleId, variables.avatarId);
+    },
   });
 }
 
@@ -1040,9 +1083,14 @@ export function useDeleteRoleAvatarMutation(roleId?: number) {
   return useMutation({
     mutationFn: deleteRoleAvatarWithSuccessGuard,
     mutationKey: ['deleteRoleAvatar'],
+    onMutate: avatarId => isPositiveId(roleId)
+      ? beginAvatarDeleteOptimisticMutation(queryClient, roleId, avatarId)
+      : undefined,
+    onError: (_error, _avatarId, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
     onSuccess: (_, avatarId) => {
       removeRoleAvatarCaches(queryClient, roleId, avatarId);
-    }
+    },
+    onSettled: (_result, _error, avatarId) => invalidateRoleAppearanceCaches(queryClient, roleId, avatarId),
   });
 }
 
@@ -1055,9 +1103,14 @@ export function useBatchDeleteRoleAvatarsMutation(roleId?: number) {
   return useMutation({
     mutationFn: deleteRoleAvatarsWithSuccessGuard,
     mutationKey: ['batchDeleteRoleAvatars'],
+    onMutate: avatarIds => isPositiveId(roleId)
+      ? beginAvatarDeleteManyOptimisticMutation(queryClient, roleId, avatarIds)
+      : undefined,
+    onError: (_error, _avatarIds, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
     onSuccess: (_, avatarIds) => {
       avatarIds.forEach(avatarId => removeRoleAvatarCaches(queryClient, roleId, avatarId));
-    }
+    },
+    onSettled: () => invalidateRoleAppearanceCaches(queryClient, roleId),
   });
 }
 
@@ -1070,6 +1123,10 @@ export function useRestoreRoleAvatarMutation(roleId?: number) {
   return useMutation({
     mutationKey: ['restoreRoleAvatar', roleId],
     mutationFn: (avatarId: number) => tuanchat.avatarController.restoreRoleAvatar(avatarId),
+    onMutate: avatarId => isPositiveId(roleId)
+      ? beginRestoreRoleAvatarOptimisticMutation(queryClient, roleId, avatarId)
+      : undefined,
+    onError: (_error, _avatarId, transaction) => rollbackRoleWebOptimisticMutation(queryClient, transaction),
     onSuccess: (_, avatarId) => {
       invalidateRoleAppearanceCaches(queryClient, roleId, avatarId);
     },
@@ -1085,6 +1142,8 @@ export function useClearDeletedRoleAvatarsMutation(roleId?: number) {
   return useMutation({
     mutationKey: ['clearDeletedRoleAvatars', roleId],
     mutationFn: (targetRoleId: number) => tuanchat.avatarController.clearDeletedRoleAvatars(targetRoleId),
+    onMutate: targetRoleId => beginClearDeletedRoleAvatarsOptimisticMutation(queryClient, targetRoleId),
+    onError: (_error, _targetRoleId, transaction) => rollbackRoleWebOptimisticMutation(queryClient, transaction),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['getDeletedRoleAvatars', roleId] });
     },
@@ -1506,6 +1565,16 @@ export function useUpdateAvatarTitleMutation(roleId: number) {
       
       return res;
     },
+    onMutate: (variables) => {
+      const currentAvatar = variables.avatarsForUpdate.find(avatar => avatar.avatarId === variables.avatarId);
+      return currentAvatar
+        ? beginAvatarUpdateOptimisticMutation(queryClient, {
+            ...currentAvatar,
+            avatarTitle: { ...currentAvatar.avatarTitle, label: variables.title },
+          })
+        : undefined;
+    },
+    onError: (_error, _variables, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
     onSuccess: (res, variables) => {
       if (!isSuccessfulApiResult(res)) {
         return;

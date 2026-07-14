@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { roleAbilityByRuleQueryKey, roleAbilityListQueryKey } from "./abilityMutationInvalidation";
 import { normalizeRoleAbilityCacheData } from "./roleAbilityCacheData";
 import {
+  beginWebRoleAbilityDeleteOptimisticMutation,
   beginWebRoleAbilityOptimisticMutation,
   rollbackWebRoleAbilityOptimisticMutation,
 } from "./roleAbilityOptimisticCache";
@@ -69,5 +70,18 @@ describe("roleAbilityOptimisticCache", () => {
     const optimistic = queryClient.getQueryData<any>(roleAbilityByRuleQueryKey(11, 3));
     expect(optimistic.skill).toEqual({ 观察: "60" });
     expect(optimistic.skillDefault).toEqual({ 观察: "60" });
+  });
+
+  it("删除能力即时移出列表并清空对应详情缓存", async () => {
+    const queryClient = new QueryClient();
+    const ability = { abilityId: 101, roleId: 11, ruleId: 3 };
+    queryClient.setQueryData(roleAbilityListQueryKey(11), { success: true, data: [ability] });
+    queryClient.setQueryData(roleAbilityByRuleQueryKey(11, 3), ability);
+
+    const context = await beginWebRoleAbilityDeleteOptimisticMutation(queryClient, 101);
+    expect(queryClient.getQueryData<any>(roleAbilityListQueryKey(11))?.data).toEqual([]);
+    expect(queryClient.getQueryData(roleAbilityByRuleQueryKey(11, 3))).toBeNull();
+    rollbackWebRoleAbilityOptimisticMutation(queryClient, context.transaction);
+    expect(queryClient.getQueryData<any>(roleAbilityListQueryKey(11))?.data).toEqual([ability]);
   });
 });

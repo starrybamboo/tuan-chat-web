@@ -99,3 +99,35 @@ export function rollbackWebRoleAbilityOptimisticMutation(
 ) {
   rollbackOptimisticQueryTransaction(queryClient, transaction);
 }
+
+export async function beginWebRoleAbilityDeleteOptimisticMutation(queryClient: QueryClient, abilityId: number) {
+  let target: RoleAbility | undefined;
+  for (const [, current] of queryClient.getQueriesData<ApiResultListRoleAbility>({ queryKey: roleAbilityListQueryKey() })) {
+    target = current?.data?.find(ability => ability.abilityId === abilityId);
+    if (target) {
+      break;
+    }
+  }
+  const patches = [
+    optimisticQueryPatch<unknown>({
+      queryKey: roleAbilityListQueryKey(),
+      exact: false,
+      update: (value) => {
+        const current = value as ApiResultListRoleAbility | undefined;
+        return current?.data
+          ? { ...current, data: current.data.filter(ability => ability.abilityId !== abilityId) }
+          : current;
+      },
+    }),
+  ];
+  if (target?.roleId && target.ruleId) {
+    patches.push(optimisticQueryPatch<unknown>({
+      queryKey: roleAbilityByRuleQueryKey(target.roleId, target.ruleId),
+      update: () => null,
+    }));
+  }
+  return {
+    target,
+    transaction: await beginOptimisticQueryTransaction(queryClient, patches),
+  };
+}

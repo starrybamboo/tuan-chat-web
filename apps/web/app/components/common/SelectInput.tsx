@@ -317,7 +317,7 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(funct
           surface,
           appearance,
           invalid,
-          className: `inline-flex items-center justify-between gap-2 text-left ${className ?? ""}`,
+          className: `inline-flex items-center justify-between gap-2 text-left max-md:min-h-hit-default ${className ?? ""}`,
         })}
         onBlur={(event) => {
           if (open && !listboxRef.current?.contains(event.relatedTarget as Node | null)) {
@@ -379,8 +379,9 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(funct
                       style={listboxStyle}
                       className="tc-surface-floating max-h-60 list-none overflow-y-auto overscroll-contain p-1"
                     >
-                      {options.map((option, index) => option.kind === "group"
-                        ? (
+                      {options.map((option, index) => {
+                        if (option.kind === "group") {
+                          return (
                             <li
                               key={option.key}
                               role="presentation"
@@ -388,32 +389,38 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(funct
                             >
                               {option.label}
                             </li>
-                          )
-                        : (
+                          );
+                        }
+                        const selected = option.value === selectedValue;
+                        const stateClassName = selected
+                          ? `bg-info/10 text-info ${index === activeIndex ? "bg-info/15" : ""}`
+                          : index === activeIndex ? "bg-base-200" : "";
+                        return (
                             <li key={option.key} role="presentation">
                               <button
                                 id={`${listboxId}-option-${index}`}
                                 type="button"
                                 role="option"
-                                aria-selected={option.value === selectedValue}
+                                aria-selected={selected}
                                 aria-disabled={option.disabled || undefined}
                                 disabled={option.disabled}
                                 tabIndex={-1}
                                 data-active={index === activeIndex ? "true" : undefined}
-                                className="flex min-h-control-compact w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm text-base-content transition-colors duration-100 hover:bg-base-200 focus:outline-none data-[active=true]:bg-base-200 aria-selected:bg-info/10 aria-selected:text-info aria-selected:data-[active=true]:bg-info/15 disabled:pointer-events-none disabled:opacity-45"
+                                className={`flex min-h-hit-default w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm text-base-content transition-colors duration-100 hover:bg-base-200 focus:outline-none md:min-h-control-compact disabled:pointer-events-none disabled:opacity-45 ${stateClassName}`}
                                 onPointerDown={event => event.preventDefault()}
                                 onMouseEnter={() => setActiveIndex(index)}
                                 onClick={() => chooseOption(index)}
                               >
                                 <span className="min-w-0 flex-1 truncate">{option.label}</span>
                                 <CheckIcon
-                                  className={`size-icon-compact shrink-0 ${option.value === selectedValue ? "opacity-100" : "opacity-0"}`}
+                                  className={`size-icon-compact shrink-0 ${selected ? "opacity-100" : "opacity-0"}`}
                                   weight="bold"
                                   aria-hidden="true"
                                 />
                               </button>
                             </li>
-                          ))}
+                        );
+                      })}
                     </motion.ul>
                   )
                 : null}
