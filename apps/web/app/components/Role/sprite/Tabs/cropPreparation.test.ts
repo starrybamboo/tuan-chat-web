@@ -14,6 +14,8 @@ describe("CurrentCropPreparation", () => {
     expect(second).toBe(first);
     expect(create).toHaveBeenCalledTimes(1);
     await expect(second).resolves.toBe(blob);
+    preparation.clear();
+    expect(preparation.read("same")).toBeUndefined();
   });
 
   it("新参数替换旧任务并在失败后清理", async () => {

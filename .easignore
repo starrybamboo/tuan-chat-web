@@ -1,5 +1,4 @@
 # EAS 从仓库根目录归档；仅保留移动端应用与共享工作区依赖。
-.git
 node_modules/
 **/node_modules/
 
