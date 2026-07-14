@@ -10,7 +10,6 @@ import {
   useUpdateReadPosition1Mutation
 } from "./hooks/messageSessionQueryHooks";
 import type {MessageSessionResponse} from "@tuanchat/openapi-client/models/MessageSessionResponse";
-import type {ApiResultListMessageSessionResponse} from "@tuanchat/openapi-client/models/ApiResultListMessageSessionResponse";
 import type { CrossTabNotificationGuard } from "@/utils/crossTabNotificationGuard";
 import { createCrossTabNotificationGuard } from "@/utils/crossTabNotificationGuard";
 import { appendUrlQueryParam, resolveRuntimeWebSocketBaseUrl } from "@/utils/runtimeUrl";
@@ -22,6 +21,10 @@ import {
   removeDirectInboxMessageFromCache,
   upsertDirectInboxQueryData,
 } from "@tuanchat/query/direct-message";
+import {
+  bumpRoomSessionLatestSyncInCache,
+  getRoomUnreadCountsFromSessions,
+} from "@tuanchat/query/message-sessions";
 import { normalizeWebSocketRequestForSend } from "./webSocketProtocol";
 
 /**
@@ -120,37 +123,12 @@ export function useWebSocket() {
    */
   const roomSessions: MessageSessionResponse[] = useGetUserSessionsQuery().data?.data ?? EMPTY_SESSIONS;
   const { mutate: updateReadPosition1 } = useUpdateReadPosition1Mutation();
-  const unreadMessagesNumber: Record<number, number> = useMemo(() => {
-    return roomSessions.reduce((acc, session) => {
-      // Keep 0 for rooms without messages so UI can treat them as subscribed.
-      if (session.roomId != null) {
-        const latestSyncId = session.latestSyncId ?? 0;
-        const lastReadSyncId = session.lastReadSyncId ?? 0;
-        acc[session.roomId] = Math.max(0, latestSyncId - lastReadSyncId);
-      }
-      return acc;
-    }, {} as Record<number, number>);
-  }, [roomSessions]);
+  const unreadMessagesNumber = useMemo(
+    () => getRoomUnreadCountsFromSessions(roomSessions),
+    [roomSessions],
+  );
   const updateLatestSyncId = useCallback((roomId: number, latestSyncId: number) => {
-    queryClient.setQueriesData<ApiResultListMessageSessionResponse>({ queryKey: ["getUserSessions"] }, (oldData) => {
-      if (!oldData?.data) return oldData;
-      const nextData = oldData.data.map(session => {
-        if (session.roomId === roomId) {
-          const prevLatest = session.latestSyncId ?? 0;
-          return {
-            ...session,
-            // 只在“已订阅会话”内推进 latestSyncId，避免把已取消提醒的房间重新加入未读体系。
-            latestSyncId: Math.max(prevLatest, latestSyncId),
-          };
-        }
-        return session;
-      });
-
-      return {
-        ...oldData,
-        data: nextData,
-      };
-    });
+    bumpRoomSessionLatestSyncInCache(queryClient, roomId, latestSyncId);
   }, [queryClient]);
   /**
    * 更新群聊的最后阅读的消息位置
@@ -158,35 +136,18 @@ export function useWebSocket() {
    * @param lastReadSyncId
    */
   const updateLastReadSyncId = useCallback((roomId: number, lastReadSyncId?: number) => {
-    const oldData = queryClient.getQueryData<ApiResultListMessageSessionResponse>(["getUserSessions"]);
-    if (!oldData?.data) return;
-    const session = oldData.data.find(session => session.roomId === roomId);
+    const session = roomSessions.find(session => session.roomId === roomId);
     if (!session) return;
 
     const targetReadySyncId = lastReadSyncId ?? session.latestSyncId ?? session.lastReadSyncId ?? 0;
     if (targetReadySyncId === (session.lastReadSyncId ?? 0))
       return;
 
-    queryClient.setQueryData<ApiResultListMessageSessionResponse>(["getUserSessions"], (oldData) => {
-      if (!oldData?.data) return oldData;
-      return {
-        ...oldData,
-        data: oldData.data.map(session => {
-          if (session.roomId === roomId) {
-            return {
-              ...session,
-              lastReadSyncId: targetReadySyncId,
-            };
-          }
-          return session;
-        }),
-      };
-    });
     updateReadPosition1({
       roomId,
       syncId: targetReadySyncId,
     });
-  }, [queryClient, updateReadPosition1]);
+  }, [roomSessions, updateReadPosition1]);
   // 输入状态, 按照roomId进行分组
   const [chatStatus, updateChatStatus] = useImmer<Record<number, ChatStatus[]>>({});
 

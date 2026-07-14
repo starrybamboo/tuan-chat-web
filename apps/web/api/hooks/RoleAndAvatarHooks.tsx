@@ -1284,8 +1284,15 @@ export function useApplyCropAvatarMutation() {
         throw error;
       }
     },
-    onSuccess: (res, variables) => {
+    onMutate: variables => beginAvatarUpdateOptimisticMutation(queryClient, {
+      ...variables.currentAvatar,
+      roleId: variables.roleId,
+      avatarId: variables.avatarId,
+      spriteTransform: toSpriteTransformPayload(variables.transform),
+    }),
+    onSuccess: (res, variables, transaction) => {
       if (!isSuccessfulApiResult(res)) {
+        rollbackOptimisticQueryTransaction(queryClient, transaction);
         return;
       }
       const nextAvatar: RoleAvatar = {
@@ -1359,9 +1366,11 @@ export function useUpdateAvatarTransformMutation() {
       emitWebgalAvatarUpdated({ avatarId: variables.avatarId, avatar: nextAvatar });
       invalidateRoleAppearanceCaches(queryClient, variables.roleId, variables.avatarId);
     },
-    onError: (error) => {
-      console.error("Transform update mutation failed:", error.message || error);
+    onError: (error, _variables, transaction) => {
+      rollbackOptimisticQueryTransaction(queryClient, transaction);
+      console.error("Transform update mutation failed:", error);
     },
+    onSettled: (_result, _error, variables) => invalidateRoleAppearanceCaches(queryClient, variables.roleId, variables.avatarId),
   });
 }
 

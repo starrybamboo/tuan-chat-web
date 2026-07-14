@@ -8,13 +8,18 @@ import type { PageBaseRequest } from "@tuanchat/openapi-client/models/PageBaseRe
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
 import {
+  FRIEND_BLACK_LIST_QUERY_KEY,
   FRIEND_CHECK_QUERY_KEY,
   FRIEND_LIST_QUERY_KEY,
   FRIEND_REQUEST_PAGE_QUERY_KEY,
+  beginBlockFriendRelationshipOptimisticMutation,
+  beginDeleteFriendRelationshipOptimisticMutation,
+  beginUnblockFriendRelationshipOptimisticMutation,
   invalidateAcceptFriendRequestQueries,
   invalidateRejectFriendRequestQueries,
   optimisticRemoveFriendRequestFromPageCaches,
   reconcileFriendRequestPageCaches,
+  rollbackFriendRelationshipOptimisticMutation,
   rollbackFriendRequestPageCaches,
 } from "../friendQueryCache";
 
@@ -137,10 +142,12 @@ export function useDeleteFriendMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (requestBody: FriendDeleteRequest) => tuanchat.friendController.deleteFriend(requestBody),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["friendList"] });
-      queryClient.invalidateQueries({ queryKey: ["friendBlackList"] });
-      queryClient.invalidateQueries({ queryKey: ["friendCheck", variables.targetUserId] });
+    onMutate: variables => beginDeleteFriendRelationshipOptimisticMutation(queryClient, variables.targetUserId),
+    onError: (_error, _variables, transaction) => rollbackFriendRelationshipOptimisticMutation(queryClient, transaction),
+    onSettled: (_, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: FRIEND_LIST_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: FRIEND_BLACK_LIST_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: [...FRIEND_CHECK_QUERY_KEY, variables.targetUserId] });
     },
   });
 }
@@ -152,10 +159,12 @@ export function useBlockFriendMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (requestBody: FriendBlockRequest) => tuanchat.friendController.blockFriend(requestBody),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["friendList"] });
-      queryClient.invalidateQueries({ queryKey: ["friendBlackList"] });
-      queryClient.invalidateQueries({ queryKey: ["friendCheck", variables.targetUserId] });
+    onMutate: variables => beginBlockFriendRelationshipOptimisticMutation(queryClient, variables.targetUserId),
+    onError: (_error, _variables, transaction) => rollbackFriendRelationshipOptimisticMutation(queryClient, transaction),
+    onSettled: (_, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: FRIEND_LIST_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: FRIEND_BLACK_LIST_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: [...FRIEND_CHECK_QUERY_KEY, variables.targetUserId] });
     },
   });
 }
@@ -167,10 +176,12 @@ export function useUnblockFriendMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (requestBody: FriendBlockRequest) => tuanchat.friendController.unblockFriend(requestBody),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["friendList"] });
-      queryClient.invalidateQueries({ queryKey: ["friendBlackList"] });
-      queryClient.invalidateQueries({ queryKey: ["friendCheck", variables.targetUserId] });
+    onMutate: variables => beginUnblockFriendRelationshipOptimisticMutation(queryClient, variables.targetUserId),
+    onError: (_error, _variables, transaction) => rollbackFriendRelationshipOptimisticMutation(queryClient, transaction),
+    onSettled: (_, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: FRIEND_LIST_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: FRIEND_BLACK_LIST_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: [...FRIEND_CHECK_QUERY_KEY, variables.targetUserId] });
     },
   });
 }

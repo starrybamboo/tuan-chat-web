@@ -4,11 +4,23 @@ import { describe, expect, it } from "vitest";
 import {
   beginRoomRemovalOptimisticMutation,
   beginSpaceArchiveOptimisticMutation,
+  beginSpacePatchOptimisticMutation,
   beginSpaceUpdateOptimisticMutation,
   rollbackSpaceOptimisticMutation,
 } from "./spaceOptimisticCache";
 
 describe("space optimistic cache", () => {
+  it("空间所有者变更同步详情和列表", async () => {
+    const queryClient = new QueryClient();
+    const space = { spaceId: 7, userId: 1 };
+    queryClient.setQueryData(["getSpaceInfo", 7], { success: true, data: space });
+    queryClient.setQueryData(["getUserSpaces"], { success: true, data: [space] });
+
+    await beginSpacePatchOptimisticMutation(queryClient, 7, { userId: 2 });
+    expect(queryClient.getQueryData<any>(["getSpaceInfo", 7])?.data.userId).toBe(2);
+    expect(queryClient.getQueryData<any>(["getUserSpaces"])?.data[0].userId).toBe(2);
+  });
+
   it("空间更新同步详情和列表并支持回滚", async () => {
     const queryClient = new QueryClient();
     const space = { spaceId: 7, name: "旧空间", status: 0 };

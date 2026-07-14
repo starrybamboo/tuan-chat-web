@@ -6,6 +6,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { resolveSelectableRoomRoles } from "@tuanchat/domain/room-identity";
 
 import { bindCancelablePromiseToSignal } from "./cancelable";
+import {
+  beginOptimisticQueryTransaction,
+  optimisticQueryPatch,
+  rollbackOptimisticQueryTransaction,
+} from "./optimistic-cache";
 
 type RoomRoleClient = Pick<TuanChat, "roomRoleController" | "roleController" | "avatarController">;
 
@@ -93,6 +98,58 @@ function assertRoomRoleMutationSuccess(result: { success?: boolean; errMsg?: str
   }
 }
 
+type RoomRoleGroups = Awaited<ReturnType<typeof fetchRoomRoleGroups>>;
+
+function findRoleInQueryCache(queryClient: ReturnType<typeof useQueryClient>, roleId: number) {
+  for (const prefix of [["getUserRolesByTypes"], ["myRoles"], ["getUserRoles"]] as const) {
+    for (const [, current] of queryClient.getQueriesData<unknown>({ queryKey: prefix })) {
+      const list = Array.isArray(current)
+        ? current
+        : current && typeof current === "object" && Array.isArray((current as { data?: unknown }).data)
+          ? (current as { data: UserRole[] }).data
+          : [];
+      const role = list.find((item: UserRole) => item.roleId === roleId);
+      if (role) {
+        return role;
+      }
+    }
+  }
+  return undefined;
+}
+
+function appendUniqueRoles(current: UserRole[], roles: UserRole[]) {
+  const currentIds = new Set(current.map(role => role.roleId));
+  const additions = roles.filter(role => !currentIds.has(role.roleId));
+  return additions.length > 0 ? [...current, ...additions] : current;
+}
+
+export function beginAddRoomRoleOptimisticMutation(
+  queryClient: ReturnType<typeof useQueryClient>,
+  request: RoomRoleAddRequest,
+) {
+  const roles = [...new Set(request.roleIdList)]
+    .filter(roleId => roleId > 0)
+    .map((roleId): UserRole => {
+      const cached = findRoleInQueryCache(queryClient, roleId);
+      return {
+        ...(cached ?? { roleId, roleName: `角色${roleId}` }),
+        ...(typeof request.type === "number" ? { type: request.type } : {}),
+      };
+    });
+  const npcRoles = roles.filter(role => role.type === 2);
+  const baseRoles = roles.filter(role => role.type !== 2);
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<RoomRoleGroups>({
+      queryKey: getRoomAllRolesQueryKey(request.roomId),
+      update: current => ({
+        allRoles: appendUniqueRoles(current?.allRoles ?? [], roles),
+        baseRoles: appendUniqueRoles(current?.baseRoles ?? [], baseRoles),
+        npcRoles: appendUniqueRoles(current?.npcRoles ?? [], npcRoles),
+      }),
+    }),
+  ]);
+}
+
 /** 将角色绑定到房间，并失效房间角色列表缓存。 */
 export function useAddRoomRoleMutation(client: RoomRoleClient) {
   const queryClient = useQueryClient();
@@ -104,7 +161,9 @@ export function useAddRoomRoleMutation(client: RoomRoleClient) {
       return result;
     },
     mutationKey: ["addRoomRole"],
-    onSuccess: (_result, request) => {
+    onMutate: request => beginAddRoomRoleOptimisticMutation(queryClient, request),
+    onError: (_error, _request, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
+    onSettled: (_result, _error, request) => {
       queryClient.invalidateQueries({ queryKey: ["roomRoles", request.roomId] });
       queryClient.invalidateQueries({ queryKey: getRoomBaseRolesQueryKey(request.roomId) });
       queryClient.invalidateQueries({ queryKey: getRoomNpcRolesQueryKey(request.roomId) });

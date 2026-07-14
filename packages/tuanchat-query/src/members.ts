@@ -1,9 +1,13 @@
 import type { QueryClient } from "@tanstack/react-query";
+import type { ApiResultListRoomMember } from "@tuanchat/openapi-client/models/ApiResultListRoomMember";
+import type { ApiResultListSpaceMember } from "@tuanchat/openapi-client/models/ApiResultListSpaceMember";
+import type { RoomMember } from "@tuanchat/openapi-client/models/RoomMember";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import { useQuery } from "@tanstack/react-query";
 
 import { bindCancelablePromiseToSignal } from "./cancelable";
+import { beginOptimisticQueryTransaction, optimisticQueryPatch } from "./optimistic-cache";
 
 export type MemberQueryOptions = {
   enabled?: boolean;
@@ -19,6 +23,52 @@ export function getSpaceMembersQueryKey(spaceId: number) {
 
 export function getRoomMembersQueryKey(roomId: number) {
   return ["getRoomMemberList", roomId] as const;
+}
+
+function buildRoomMemberFromSpaceCache(
+  queryClient: QueryClient,
+  roomId: number,
+  spaceId: number,
+  userId: number,
+): RoomMember {
+  const source = queryClient
+    .getQueryData<ApiResultListSpaceMember>(getSpaceMembersQueryKey(spaceId))
+    ?.data
+    ?.find(member => member.userId === userId);
+  return {
+    avatarFileId: source?.avatarFileId,
+    avatarMediaType: source?.avatarMediaType,
+    roomId,
+    userId,
+    username: source?.username,
+  };
+}
+
+/** 将已存在的空间成员即时加入房间成员缓存。 */
+export function beginAddRoomMemberOptimisticMutation(
+  queryClient: QueryClient,
+  request: { roomId: number; spaceId: number; userId: number },
+) {
+  const member = buildRoomMemberFromSpaceCache(
+    queryClient,
+    request.roomId,
+    request.spaceId,
+    request.userId,
+  );
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<ApiResultListRoomMember>({
+      queryKey: getRoomMembersQueryKey(request.roomId),
+      update: (current) => {
+        if (current?.data?.some(item => item.userId === request.userId)) {
+          return current;
+        }
+        return {
+          ...(current ?? { success: true }),
+          data: [...(current?.data ?? []), member],
+        };
+      },
+    }),
+  ]);
 }
 
 export function useGetSpaceMembersQuery(client: MemberClient, spaceId: number, options?: MemberQueryOptions) {

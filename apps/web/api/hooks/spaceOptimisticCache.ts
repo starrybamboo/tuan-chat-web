@@ -95,10 +95,18 @@ function removeSpaceFromList(current: unknown, spaceId: number) {
 }
 
 export function beginSpaceUpdateOptimisticMutation(queryClient: QueryClient, request: SpaceUpdateRequest) {
-  const queryKeys = [spaceInfoQueryKey(request.spaceId), getUserSpacesQueryKey(), getUserActiveSpacesQueryKey(), getMyArchivedSpacesQueryKey()];
+  return beginSpacePatchOptimisticMutation(queryClient, request.spaceId, request);
+}
+
+export function beginSpacePatchOptimisticMutation(
+  queryClient: QueryClient,
+  spaceId: number,
+  patch: Partial<Space>,
+) {
+  const queryKeys = [spaceInfoQueryKey(spaceId), getUserSpacesQueryKey(), getUserActiveSpacesQueryKey(), getMyArchivedSpacesQueryKey()];
   return beginOptimisticQueryTransaction(queryClient, queryKeys.map(queryKey => optimisticQueryPatch<unknown>({
     queryKey,
-    update: current => patchSpaceCacheValue(current, request.spaceId, space => ({ ...space, ...request })),
+    update: current => patchSpaceCacheValue(current, spaceId, space => ({ ...space, ...patch, spaceId })),
   })));
 }
 

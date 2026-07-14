@@ -12,6 +12,7 @@ import {
   optimisticAddSpaceMembersQueryCache,
   optimisticRemoveRoomMembersQueryCache,
   optimisticSetSpaceMemberTypeQueryCache,
+  optimisticTransferSpaceLeaderQueryCache,
   reconcileSpaceMemberTypeQueryCache,
   rollbackMemberQueryTransaction,
   rollbackOptimisticRoomMembers,
@@ -129,6 +130,26 @@ describe("memberQueryCache", () => {
       userId: 11,
       memberType: 1,
     });
+  });
+
+  it("转让 KP 即时切换唯一 leader 并可回滚", async () => {
+    const queryClient = new QueryClient();
+    const queryKey = getSpaceMembersQueryKey(7);
+    queryClient.setQueryData(queryKey, {
+      success: true,
+      data: [{ leader: true, userId: 11 }, { leader: false, userId: 12 }],
+    });
+
+    const transaction = await optimisticTransferSpaceLeaderQueryCache(queryClient, {
+      newLeaderId: 12,
+      spaceId: 7,
+    });
+    expect(queryClient.getQueryData<ApiResultListSpaceMember>(queryKey)?.data).toEqual([
+      { leader: false, userId: 11 },
+      { leader: true, userId: 12 },
+    ]);
+    rollbackMemberQueryTransaction(queryClient, transaction);
+    expect(queryClient.getQueryData<ApiResultListSpaceMember>(queryKey)?.data?.[0].leader).toBe(true);
   });
 
   it("成功返回后校准缓存并统一失效成员查询", async () => {

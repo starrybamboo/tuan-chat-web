@@ -1,8 +1,42 @@
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+
+import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 
-import { fetchRoomRoleGroups, fetchUserRolesByTypes } from "./room-roles";
+import { rollbackOptimisticQueryTransaction } from "./optimistic-cache";
+import {
+  beginAddRoomRoleOptimisticMutation,
+  fetchRoomRoleGroups,
+  fetchUserRolesByTypes,
+  getRoomAllRolesQueryKey,
+} from "./room-roles";
 
 describe("room role query helpers", () => {
+  it("添加角色即时更新房间角色分组并支持回滚", async () => {
+    const queryClient = new QueryClient();
+    const original = {
+      allRoles: [{ roleId: 1, roleName: "已有角色", type: 0 }],
+      baseRoles: [{ roleId: 1, roleName: "已有角色", type: 0 }],
+      npcRoles: [],
+    };
+    queryClient.setQueryData(["getUserRolesByTypes", 7, 0, 2], [
+      { roleId: 2, roleName: "新 NPC", type: 2 },
+    ] satisfies UserRole[]);
+    queryClient.setQueryData(getRoomAllRolesQueryKey(9), original);
+
+    const transaction = await beginAddRoomRoleOptimisticMutation(queryClient, {
+      roomId: 9,
+      roleIdList: [2],
+      type: 2,
+    });
+    const optimistic = queryClient.getQueryData<typeof original>(getRoomAllRolesQueryKey(9));
+    expect(optimistic?.allRoles.map(role => role.roleId)).toEqual([1, 2]);
+    expect(optimistic?.npcRoles).toEqual([{ roleId: 2, roleName: "新 NPC", type: 2 }]);
+
+    rollbackOptimisticQueryTransaction(queryClient, transaction);
+    expect(queryClient.getQueryData(getRoomAllRolesQueryKey(9))).toEqual(original);
+  });
+
   it("一次请求返回房间角色分组", async () => {
     const roomAllRole = vi.fn().mockResolvedValue({
       success: true,

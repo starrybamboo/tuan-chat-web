@@ -1,6 +1,6 @@
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
+import { useUpdateRoomReadPositionMutation as useSharedUpdateRoomReadPositionMutation } from "@tuanchat/query/message-sessions";
 import {tuanchat} from "../instance";
-import type {SessionReadUpdateRequest} from "@tuanchat/openapi-client/models/SessionReadUpdateRequest";
 import {
     ROOM_SESSION_QUERY_KEY,
     USER_SESSIONS_QUERY_KEY,
@@ -64,15 +64,7 @@ export function useSubscribeRoomMutation() {
  * 更新已读位置
  */
 export function useUpdateReadPosition1Mutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: SessionReadUpdateRequest) => tuanchat.messageSession.updateReadPosition1(req),
-        mutationKey: ['updateReadPosition1'],
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: [...ROOM_SESSION_QUERY_KEY, variables.roomId] });
-            // queryClient.invalidateQueries({ queryKey: ['getUserSessions'] });
-        }
-    });
+    return useSharedUpdateRoomReadPositionMutation(tuanchat);
 }
 
 /**

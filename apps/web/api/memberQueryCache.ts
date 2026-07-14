@@ -8,6 +8,7 @@ import type { SpaceMember } from "@tuanchat/openapi-client/models/SpaceMember";
 import type { SpaceMemberAddRequest } from "@tuanchat/openapi-client/models/SpaceMemberAddRequest";
 import type { SpaceMemberDeleteRequest } from "@tuanchat/openapi-client/models/SpaceMemberDeleteRequest";
 import type { SpaceMemberTypeUpdateRequest } from "@tuanchat/openapi-client/models/SpaceMemberTypeUpdateRequest";
+import type { LeaderTransferRequest } from "@tuanchat/openapi-client/models/LeaderTransferRequest";
 import type { OptimisticQueryTransaction } from "@tuanchat/query/optimistic-cache";
 
 import { getRoomMembersQueryKey, getSpaceMembersQueryKey } from "@tuanchat/query/members";
@@ -284,6 +285,21 @@ export function reconcileSpaceMemberTypeQueryCache(
     getSpaceMembersQueryKey(request.spaceId),
     current => setSpaceMemberTypeInListData(current, request.uidList ?? [], request.memberType),
   );
+}
+
+export function optimisticTransferSpaceLeaderQueryCache(
+  queryClient: QueryClient,
+  request: LeaderTransferRequest,
+) {
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<ApiResultListSpaceMember>({
+      queryKey: getSpaceMembersQueryKey(request.spaceId),
+      update: current => patchSpaceMemberListData(current, (member) => {
+        const leader = member.userId === request.newLeaderId;
+        return Boolean(member.leader) === leader ? member : { ...member, leader };
+      }),
+    }),
+  ]);
 }
 
 export async function invalidateSpaceMemberQueries(queryClient: QueryClient, spaceId: number) {

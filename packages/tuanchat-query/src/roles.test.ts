@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { rollbackOptimisticQueryTransaction } from "./optimistic-cache";
 import {
   beginAvatarDeleteOptimisticMutation,
+  beginAvatarDeleteManyOptimisticMutation,
   beginAvatarUpdateOptimisticMutation,
   beginClearRoleTrashOptimisticMutation,
   beginHardDeleteRolesOptimisticMutation,
@@ -93,5 +94,9 @@ describe("role optimistic cache", () => {
     await beginAvatarDeleteOptimisticMutation(queryClient, 7, 11);
     expect(queryClient.getQueryData(getRoleAvatarListQueryKey(7))).toEqual([]);
     expect(queryClient.getQueryData<any>(["roleAvatarListsBatch", [7]])?.[7]).toEqual([]);
+
+    queryClient.setQueryData(getRoleAvatarListQueryKey(7), [avatar, { ...avatar, avatarId: 12 }]);
+    await beginAvatarDeleteManyOptimisticMutation(queryClient, 7, [11, 12]);
+    expect(queryClient.getQueryData(getRoleAvatarListQueryKey(7))).toEqual([]);
   });
 });

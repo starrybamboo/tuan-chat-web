@@ -54,6 +54,7 @@ import {
     optimisticRemoveRoomMembersQueryCache,
     optimisticRemoveSpaceMembersQueryCache,
     optimisticSetSpaceMemberTypeQueryCache,
+    optimisticTransferSpaceLeaderQueryCache,
     reconcileSpaceMemberTypeQueryCache,
     rollbackMemberQueryTransaction,
     rollbackOptimisticRoomMembers,
@@ -71,6 +72,7 @@ import {
 import {
     beginRoomRemovalOptimisticMutation,
     beginSpaceArchiveOptimisticMutation,
+    beginSpacePatchOptimisticMutation,
     beginSpaceRemovalOptimisticMutation,
     beginSpaceUpdateOptimisticMutation,
     rollbackSpaceOptimisticMutation,
@@ -925,11 +927,20 @@ export function useTransferOwnerMutation() {
     return useMutation({
         mutationFn: (req: SpaceOwnerTransferRequest) => tuanchat.spaceController.transferSpaceOwner(req),
         mutationKey: ['transferRoomOwner'],
-        onSuccess: (_, variables) => {
+        onMutate: variables => beginSpacePatchOptimisticMutation(queryClient, variables.spaceId, {
+            userId: variables.newOwnerId,
+        }),
+        onError: (_error, _variables, transaction) => rollbackSpaceOptimisticMutation(queryClient, transaction),
+        onSuccess: (result, _variables, transaction) => {
+            if (!isSuccessfulApiResult(result)) {
+                rollbackSpaceOptimisticMutation(queryClient, transaction);
+            }
+        },
+        onSettled: (_, _error, variables) => {
             queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList', variables.spaceId] });
             queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
-queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
-queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
+            queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
+            queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
         }
     });
 }
@@ -942,11 +953,18 @@ export function useTransferLeader() {
     return useMutation({
         mutationFn: (req: LeaderTransferRequest) => tuanchat.spaceMemberController.transferLeader(req),
         mutationKey: ['transferLeader'],
-        onSuccess: (_, variables) => {
+        onMutate: variables => optimisticTransferSpaceLeaderQueryCache(queryClient, variables),
+        onError: (_error, _variables, transaction) => rollbackMemberQueryTransaction(queryClient, transaction),
+        onSuccess: (result, _variables, transaction) => {
+            if (!isSuccessfulApiResult(result)) {
+                rollbackMemberQueryTransaction(queryClient, transaction);
+            }
+        },
+        onSettled: (_, _error, variables) => {
             queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList', variables.spaceId] });
             queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
-queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
-queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
+            queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
+            queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
         }
     })
 }
