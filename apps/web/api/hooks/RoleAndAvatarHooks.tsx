@@ -1284,15 +1284,8 @@ export function useApplyCropAvatarMutation() {
         throw error;
       }
     },
-    onMutate: variables => beginAvatarUpdateOptimisticMutation(queryClient, {
-      ...variables.currentAvatar,
-      roleId: variables.roleId,
-      avatarId: variables.avatarId,
-      spriteTransform: toSpriteTransformPayload(variables.transform),
-    }),
-    onSuccess: (res, variables, transaction) => {
+    onSuccess: (res, variables) => {
       if (!isSuccessfulApiResult(res)) {
-        rollbackOptimisticQueryTransaction(queryClient, transaction);
         return;
       }
       const nextAvatar: RoleAvatar = {
@@ -1351,8 +1344,15 @@ export function useUpdateAvatarTransformMutation() {
         throw error;
       }
     },
-    onSuccess: (res, variables) => {
+    onMutate: variables => beginAvatarUpdateOptimisticMutation(queryClient, {
+      ...variables.currentAvatar,
+      roleId: variables.roleId,
+      avatarId: variables.avatarId,
+      spriteTransform: toSpriteTransformPayload(variables.transform),
+    }),
+    onSuccess: (res, variables, transaction) => {
       if (!isSuccessfulApiResult(res)) {
+        rollbackOptimisticQueryTransaction(queryClient, transaction);
         return;
       }
       const nextAvatar: RoleAvatar = res?.data ?? {
