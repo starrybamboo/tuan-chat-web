@@ -188,13 +188,19 @@ export function useWebSocketMessageHandlers({
         draft[roomId] = [];
       const userIndex = draft[roomId].findIndex(u => u.userId === userId);
       if (status.type === "idle") {
-        if (userIndex !== -1)
-          draft[roomId].splice(userIndex, 1);
+        for (let index = draft[roomId].length - 1; index >= 0; index--) {
+          if (draft[roomId][index].userId === userId)
+            draft[roomId].splice(index, 1);
+        }
         return;
       }
 
       if (userIndex !== -1) {
         draft[roomId][userIndex].status = status;
+        for (let index = draft[roomId].length - 1; index > userIndex; index--) {
+          if (draft[roomId][index].userId === userId)
+            draft[roomId].splice(index, 1);
+        }
       }
       else {
         draft[roomId].push({ userId, status });

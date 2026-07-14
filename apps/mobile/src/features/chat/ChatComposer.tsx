@@ -6,7 +6,7 @@ import type { ComponentType } from "react";
 
 import { CaretDown, ImageSquare, PaperPlaneTilt, PencilSimple, Smiley, X, XCircle } from "phosphor-react-native";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { FlatList, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
 import type { MobilePokeComposerTarget } from "@/features/chat/mobilePokeTemplateStorage";
 import type { MobileChatStatusType } from "@/features/messages/mobileChatStatus";
@@ -518,7 +518,11 @@ function ChatComposerInner({
   }, [onChangeChatStatus]);
 
   return (
-    <View style={styles.composerWrapper}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      enabled={Platform.OS === "ios"}
+      style={styles.composerWrapper}
+    >
       {showMentionList && filteredMentionRoles.length > 0
         ? (
             <FlatList
@@ -883,7 +887,7 @@ function ChatComposerInner({
             )
           : null}
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

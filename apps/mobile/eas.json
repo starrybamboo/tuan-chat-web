@@ -26,9 +26,12 @@
     },
     "production": {
       "autoIncrement": true,
+      "environment": "production",
       "env": {
         "EAS_GRADLE_CACHE": "1",
         "EAS_USE_CACHE": "1",
+        "EXPO_PUBLIC_TUANCHAT_API_BASE_URL": "https://api.tuan.chat/api",
+        "EXPO_PUBLIC_TUANCHAT_API_WS_URL": "wss://api.tuan.chat/ws",
         "SHARP_IGNORE_GLOBAL_LIBVIPS": "1"
       }
     },

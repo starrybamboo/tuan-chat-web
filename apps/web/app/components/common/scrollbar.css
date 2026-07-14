@@ -1,3 +1,29 @@
+:where(html, body, *) {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-base-content) 32%, transparent) transparent;
+}
+
+:where(html, body, *)::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+:where(html, body, *)::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:where(html, body, *)::-webkit-scrollbar-thumb {
+  min-height: 2rem;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-color: color-mix(in srgb, var(--color-base-content) 32%, transparent);
+  background-clip: content-box;
+}
+
+:where(html, body, *)::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 .hidden-scrollbar {
   overflow: auto;
   -ms-overflow-style: none;

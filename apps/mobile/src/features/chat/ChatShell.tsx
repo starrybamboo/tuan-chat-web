@@ -40,7 +40,6 @@ import {
   BackHandler,
   InteractionManager,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
@@ -216,7 +215,6 @@ type MobilePokeNormalDraft = {
 const styles = StyleSheet.create({
   shell: { flex: 1 },
   safeArea: { flex: 1 },
-  kav: { flex: 1 },
   panelContainer: { flex: 1, overflow: "hidden" },
   center: { flex: 1 },
   rightDrawer: {
@@ -1989,14 +1987,10 @@ export default function ChatShell() {
     setRoomContentHeight(prev => (prev === nextHeight ? prev : nextHeight));
   }, []);
 
-  const keyboardAvoidingEnabled = Platform.OS === "ios";
-  const keyboardBehavior = Platform.select<"height" | "padding" | "position" | undefined>({ ios: "padding" });
-
   return (
     <ThemedView style={styles.shell}>
       <SafeAreaView edges={["top"]} style={styles.safeArea}>
-        <KeyboardAvoidingView behavior={keyboardBehavior} enabled={keyboardAvoidingEnabled} style={styles.kav}>
-          {isRoutePage
+        {isRoutePage
             ? (
                 <View style={styles.panelContainer}>
                   <LeftDrawer
@@ -2220,7 +2214,6 @@ export default function ChatShell() {
                   </Animated.View>
                 </View>
               )}
-        </KeyboardAvoidingView>
       </SafeAreaView>
       {actionMenuVisible
         ? (

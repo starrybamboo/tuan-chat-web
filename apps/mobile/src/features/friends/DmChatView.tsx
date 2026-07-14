@@ -8,7 +8,7 @@ import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { getDirectInboxQueryKey } from "@tuanchat/query/direct-message";
 import { CaretLeft, PaperPlaneTilt, Warning, X, XCircle } from "phosphor-react-native";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, FlatList, InteractionManager, Keyboard, StyleSheet, TextInput, View } from "react-native";
+import { Alert, FlatList, InteractionManager, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
 import Animated, { useAnimatedStyle, withSpring } from "react-native-reanimated";
 
@@ -1087,7 +1087,9 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
                   )
                 : null}
 
-              <View
+              <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : undefined}
+                enabled={Platform.OS === "ios"}
                 style={[
                   styles.composerContainer,
                   {
@@ -1209,7 +1211,7 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
                     </Pressable>
                   </Animated.View>
                 </View>
-              </View>
+              </KeyboardAvoidingView>
             </>
           )
         : <View style={styles.list} />}

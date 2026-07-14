@@ -127,6 +127,7 @@ export function RoleSelectionPanel({
         )}
         <CollapsibleMotion
           open={!showMobileCurrentRoleToggle || isExpanded}
+          expandedOverflow="auto"
           className={listClassName}
         >
             {showNarratorOption && hasHostAccess && (

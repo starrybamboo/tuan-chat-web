@@ -10,9 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as DevRouteRouteImport } from './routes/_dev/route'
 import { Route as DashboardRouteRouteImport } from './routes/_dashboard/route'
 import { Route as DashboardIndexRouteImport } from './routes/_dashboard/index'
 import { Route as InviteCodeRouteImport } from './routes/invite/$code'
+import { Route as DevDesignSystemRouteImport } from './routes/_dev/design-system'
 import { Route as DashboardSettingsRouteImport } from './routes/_dashboard/settings'
 import { Route as DashboardNotificationsRouteImport } from './routes/_dashboard/notifications'
 import { Route as DashboardAiImageRouteImport } from './routes/_dashboard/ai-image'
@@ -43,6 +45,10 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DevRouteRoute = DevRouteRouteImport.update({
+  id: '/_dev',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRouteRoute = DashboardRouteRouteImport.update({
   id: '/_dashboard',
   getParentRoute: () => rootRouteImport,
@@ -56,6 +62,11 @@ const InviteCodeRoute = InviteCodeRouteImport.update({
   id: '/invite/$code',
   path: '/invite/$code',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DevDesignSystemRoute = DevDesignSystemRouteImport.update({
+  id: '/design-system',
+  path: '/design-system',
+  getParentRoute: () => DevRouteRoute,
 } as any)
 const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
   id: '/settings',
@@ -203,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/ai-image': typeof DashboardAiImageRoute
   '/notifications': typeof DashboardNotificationsRoute
   '/settings': typeof DashboardSettingsRoute
+  '/design-system': typeof DevDesignSystemRoute
   '/invite/$code': typeof InviteCodeRoute
   '/chat': typeof DashboardChatChatLayoutRouteRouteWithChildren
   '/profile/$userId': typeof DashboardProfileUserIdRouteRouteWithChildren
@@ -225,13 +237,14 @@ export interface FileRoutesByFullPath {
   '/chat/$spaceId/{-$roomId}/{-$messageId}': typeof DashboardChatChatLayoutSpaceIdChar123RoomIdChar125Char123MessageIdChar125Route
 }
 export interface FileRoutesByTo {
+  '/': typeof DashboardIndexRoute
   '/login': typeof LoginRoute
   '/material': typeof DashboardMaterialRouteRouteWithChildren
   '/ai-image': typeof DashboardAiImageRoute
   '/notifications': typeof DashboardNotificationsRoute
   '/settings': typeof DashboardSettingsRoute
+  '/design-system': typeof DevDesignSystemRoute
   '/invite/$code': typeof InviteCodeRoute
-  '/': typeof DashboardIndexRoute
   '/feedback/$issueId': typeof DashboardFeedbackIssueIdRoute
   '/role/{-$roleId}': typeof DashboardRoleChar123RoleIdChar125Route
   '/room-map/$spaceId/$roomId': typeof RoomMapSpaceIdRoomIdRoute
@@ -253,12 +266,14 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_dashboard': typeof DashboardRouteRouteWithChildren
+  '/_dev': typeof DevRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/_dashboard/material': typeof DashboardMaterialRouteRouteWithChildren
   '/_dashboard/role': typeof DashboardRoleRouteRouteWithChildren
   '/_dashboard/ai-image': typeof DashboardAiImageRoute
   '/_dashboard/notifications': typeof DashboardNotificationsRoute
   '/_dashboard/settings': typeof DashboardSettingsRoute
+  '/_dev/design-system': typeof DevDesignSystemRoute
   '/invite/$code': typeof InviteCodeRoute
   '/_dashboard/': typeof DashboardIndexRoute
   '/_dashboard/chat/_chat-layout': typeof DashboardChatChatLayoutRouteRouteWithChildren
@@ -291,6 +306,7 @@ export interface FileRouteTypes {
     | '/ai-image'
     | '/notifications'
     | '/settings'
+    | '/design-system'
     | '/invite/$code'
     | '/chat'
     | '/profile/$userId'
@@ -313,13 +329,14 @@ export interface FileRouteTypes {
     | '/chat/$spaceId/{-$roomId}/{-$messageId}'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/login'
     | '/material'
     | '/ai-image'
     | '/notifications'
     | '/settings'
+    | '/design-system'
     | '/invite/$code'
-    | '/'
     | '/feedback/$issueId'
     | '/role/{-$roleId}'
     | '/room-map/$spaceId/$roomId'
@@ -340,12 +357,14 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_dashboard'
+    | '/_dev'
     | '/login'
     | '/_dashboard/material'
     | '/_dashboard/role'
     | '/_dashboard/ai-image'
     | '/_dashboard/notifications'
     | '/_dashboard/settings'
+    | '/_dev/design-system'
     | '/invite/$code'
     | '/_dashboard/'
     | '/_dashboard/chat/_chat-layout'
@@ -371,6 +390,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
+  DevRouteRoute: typeof DevRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   InviteCodeRoute: typeof InviteCodeRoute
   RoomMapSpaceIdRoomIdRoute: typeof RoomMapSpaceIdRoomIdRoute
@@ -383,6 +403,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_dev': {
+      id: '/_dev'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof DevRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_dashboard': {
@@ -405,6 +432,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/invite/$code'
       preLoaderRoute: typeof InviteCodeRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_dev/design-system': {
+      id: '/_dev/design-system'
+      path: '/design-system'
+      fullPath: '/design-system'
+      preLoaderRoute: typeof DevDesignSystemRouteImport
+      parentRoute: typeof DevRouteRoute
     }
     '/_dashboard/settings': {
       id: '/_dashboard/settings'
@@ -688,8 +722,21 @@ const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
   DashboardRouteRouteChildren,
 )
 
+interface DevRouteRouteChildren {
+  DevDesignSystemRoute: typeof DevDesignSystemRoute
+}
+
+const DevRouteRouteChildren: DevRouteRouteChildren = {
+  DevDesignSystemRoute: DevDesignSystemRoute,
+}
+
+const DevRouteRouteWithChildren = DevRouteRoute._addFileChildren(
+  DevRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
+  DevRouteRoute: DevRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   InviteCodeRoute: InviteCodeRoute,
   RoomMapSpaceIdRoomIdRoute: RoomMapSpaceIdRoomIdRoute,

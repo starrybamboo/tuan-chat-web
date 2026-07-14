@@ -229,7 +229,7 @@ export default function ChatStatusBar({
         const tooltipLines = g.users.map(u => `#${u}`).join("\n");
         const isSingle = nameNodes.length === 1;
         return (
-          <span key={g.type} className={colorMap[g.type] || `
+          <span key={`${g.type}:${g.description}`} className={colorMap[g.type] || `
             text-base-content/70
           `}>
             <PortalTooltip content={<span className="whitespace-pre-line">{tooltipLines}</span>} placement="top">
