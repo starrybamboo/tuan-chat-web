@@ -65,6 +65,19 @@ export function beginDeleteFriendRelationshipOptimisticMutation(queryClient: Que
   ]);
 }
 
+export function beginSendFriendRequestOptimisticMutation(queryClient: QueryClient, targetUserId: number) {
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<ApiResultFriendCheckResponse>({
+      queryKey: [...FRIEND_CHECK_QUERY_KEY, targetUserId],
+      update: current => patchFriendCheckResult(current, {
+        canSendMessage: false,
+        isFriend: false,
+        status: 1,
+      }),
+    }),
+  ]);
+}
+
 export function beginBlockFriendRelationshipOptimisticMutation(queryClient: QueryClient, targetUserId: number) {
   const friend = findFriendInListCaches(queryClient, targetUserId);
   return beginOptimisticQueryTransaction(queryClient, [

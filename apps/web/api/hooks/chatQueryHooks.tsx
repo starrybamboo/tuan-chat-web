@@ -64,9 +64,11 @@ import {
 import {
     invalidateRoomRoleQueries,
     optimisticAddRoomRoleQueryCache,
+    optimisticAddSpaceRoleQueryCache,
     optimisticRemoveRoomRoleQueryCache,
     reconcileAddRoomRoleQueryCache,
     rollbackAddRoomRoleQueryCache,
+    rollbackAddSpaceRoleQueryCache,
     rollbackRemoveRoomRoleQueryCache,
 } from "../roomRoleQueryCache";
 import {
@@ -1104,7 +1106,14 @@ export function useAddSpaceRoleMutation() {
     return useMutation({
         mutationFn: (req: SpaceRole) => tuanchat.spaceRepositoryController.addSpaceRole(req),
         mutationKey: ['addSpaceRole'],
-        onSuccess: (_, variables) => {
+        onMutate: variables => optimisticAddSpaceRoleQueryCache(queryClient, variables),
+        onError: (_error, _variables, transaction) => rollbackAddSpaceRoleQueryCache(queryClient, transaction),
+        onSuccess: (result, _variables, transaction) => {
+            if (!isSuccessfulApiResult(result)) {
+                rollbackAddSpaceRoleQueryCache(queryClient, transaction);
+            }
+        },
+        onSettled: (_, _error, variables) => {
             queryClient.invalidateQueries({ queryKey: ['spaceRole', variables.spaceId] });
         }
     });

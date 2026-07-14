@@ -6,9 +6,11 @@ import { describe, expect, it, vi } from "vitest";
 import {
   invalidateRoomRoleQueries,
   optimisticAddRoomRoleQueryCache,
+  optimisticAddSpaceRoleQueryCache,
   optimisticRemoveRoomRoleQueryCache,
   reconcileAddRoomRoleQueryCache,
   rollbackAddRoomRoleQueryCache,
+  rollbackAddSpaceRoleQueryCache,
   rollbackRemoveRoomRoleQueryCache,
   roomNpcRoleQueryKey,
   roomAllRoleQueryKey,
@@ -25,6 +27,23 @@ function role(roleId: number, type = 0): UserRole {
 }
 
 describe("roomRoleQueryCache", () => {
+  it("添加空间角色即时写入空间角色缓存并支持回滚", async () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(["getRole", 12], { success: true, data: role(12, 2) });
+    queryClient.setQueryData(["spaceRole", 7], { success: true, data: [role(11)] });
+
+    const transaction = await optimisticAddSpaceRoleQueryCache(queryClient, {
+      roleId: 12,
+      spaceId: 7,
+      type: 2,
+    });
+    expect(queryClient.getQueryData<any>(["spaceRole", 7])?.data.map((item: UserRole) => item.roleId))
+      .toEqual([11, 12]);
+    rollbackAddSpaceRoleQueryCache(queryClient, transaction);
+    expect(queryClient.getQueryData<any>(["spaceRole", 7])?.data.map((item: UserRole) => item.roleId))
+      .toEqual([11]);
+  });
+
   it("会按角色类型乐观加入房间角色缓存并可回滚", async () => {
     const queryClient = new QueryClient();
     queryClient.setQueryData(["getRole", 12], { success: true, data: role(12, 2) });

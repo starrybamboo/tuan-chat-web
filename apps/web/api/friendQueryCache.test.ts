@@ -11,6 +11,7 @@ import {
   FRIEND_REQUEST_PAGE_QUERY_KEY,
   beginBlockFriendRelationshipOptimisticMutation,
   beginDeleteFriendRelationshipOptimisticMutation,
+  beginSendFriendRequestOptimisticMutation,
   beginUnblockFriendRelationshipOptimisticMutation,
   invalidateAcceptFriendRequestQueries,
   invalidateRejectFriendRequestQueries,
@@ -53,6 +54,14 @@ describe("friendQueryCache", () => {
     queryClient.setQueryData(friendListKey, { success: true, data: [friend, { userId: 8 }] });
     queryClient.setQueryData(blackListKey, { success: true, data: [] });
     queryClient.setQueryData(friendCheckKey, { success: true, data: { canSendMessage: true, isFriend: true, status: 2 } });
+
+    const requestTransaction = await beginSendFriendRequestOptimisticMutation(queryClient, 7);
+    expect(queryClient.getQueryData<any>(friendCheckKey)?.data).toMatchObject({
+      canSendMessage: false,
+      isFriend: false,
+      status: 1,
+    });
+    rollbackFriendRelationshipOptimisticMutation(queryClient, requestTransaction);
 
     const blockTransaction = await beginBlockFriendRelationshipOptimisticMutation(queryClient, 7);
     expect(queryClient.getQueryData<any>(friendListKey)?.data).toEqual([{ userId: 8 }]);

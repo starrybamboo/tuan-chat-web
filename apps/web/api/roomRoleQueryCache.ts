@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { RoomRoleAddRequest } from "@tuanchat/openapi-client/models/RoomRoleAddRequest";
 import type { RoomRoleDeleteRequest } from "@tuanchat/openapi-client/models/RoomRoleDeleteRequest";
+import type { SpaceRole } from "@tuanchat/openapi-client/models/SpaceRole";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import {
   beginOptimisticQueryTransaction,
@@ -223,6 +224,33 @@ export function reconcileAddRoomRoleQueryCache(
     return;
   }
   patchRoomRoleQueries(queryClient, roomId, roleIds);
+}
+
+export function optimisticAddSpaceRoleQueryCache(queryClient: QueryClient, request: SpaceRole) {
+  const spaceId = request.spaceId ?? -1;
+  const roleId = request.roleId ?? -1;
+  if (spaceId <= 0 || roleId <= 0) {
+    return beginOptimisticQueryTransaction(queryClient, []);
+  }
+  const cached = findCachedRoleById(queryClient, roleId);
+  const role: UserRole = {
+    ...(cached ?? { roleId, roleName: `角色${roleId}` }),
+    ...(typeof request.type === "number" ? { type: request.type } : {}),
+    ...(typeof request.userId === "number" ? { userId: request.userId } : {}),
+  };
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<unknown>({
+      queryKey: ["spaceRole", spaceId],
+      update: current => patchRoomRoleListData(current, [role]),
+    }),
+  ]);
+}
+
+export function rollbackAddSpaceRoleQueryCache(
+  queryClient: QueryClient,
+  transaction: Parameters<typeof rollbackOptimisticQueryTransaction>[1],
+) {
+  rollbackOptimisticQueryTransaction(queryClient, transaction);
 }
 
 export async function invalidateRoomRoleQueries(queryClient: QueryClient, roomId?: number): Promise<void> {

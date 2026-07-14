@@ -14,6 +14,7 @@ import {
   FRIEND_REQUEST_PAGE_QUERY_KEY,
   beginBlockFriendRelationshipOptimisticMutation,
   beginDeleteFriendRelationshipOptimisticMutation,
+  beginSendFriendRequestOptimisticMutation,
   beginUnblockFriendRelationshipOptimisticMutation,
   invalidateAcceptFriendRequestQueries,
   invalidateRejectFriendRequestQueries,
@@ -79,7 +80,14 @@ export function useSendFriendRequestMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (requestBody: FriendReqSendRequest) => tuanchat.friendController.sendFriendRequest(requestBody),
-    onSuccess: (_, variables) => {
+    onMutate: variables => beginSendFriendRequestOptimisticMutation(queryClient, variables.targetUserId),
+    onError: (_error, _variables, transaction) => rollbackFriendRelationshipOptimisticMutation(queryClient, transaction),
+    onSuccess: (result, _variables, transaction) => {
+      if (!result.success) {
+        rollbackFriendRelationshipOptimisticMutation(queryClient, transaction);
+      }
+    },
+    onSettled: (_, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: [...FRIEND_CHECK_QUERY_KEY, variables.targetUserId] });
       queryClient.invalidateQueries({ queryKey: FRIEND_REQUEST_PAGE_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ["directBadgeSummary"] });
