@@ -41,6 +41,7 @@ import {
   toSpriteTransformPayload,
 } from "../utils";
 import { useImageCropWorker } from "../worker/useImageCropWorker";
+import { createCropPreparationKey, CurrentCropPreparation } from "./cropPreparation";
 import { DeferredCropCommit } from "./deferredCropCommit";
 import { resolveSpriteCropperOperationMode } from "./spriteCropperMode";
 import {
@@ -564,8 +565,16 @@ export function SpriteCropper({
     cropCommitterRef.current = new DeferredCropCommit(setCompletedCrop);
   }
   const cropCommitter = cropCommitterRef.current!;
+  const cropPreparationRef = useRef<CurrentCropPreparation | null>(null);
+  if (!cropPreparationRef.current) {
+    cropPreparationRef.current = new CurrentCropPreparation();
+  }
+  const cropPreparation = cropPreparationRef.current!;
 
-  useEffect(() => () => cropCommitter.cancel(), [cropCommitter]);
+  useEffect(() => () => {
+    cropCommitter.cancel();
+    cropPreparation.clear();
+  }, [cropCommitter, cropPreparation]);
 
   const flushPendingCropCommit = useCallback(() => {
     cropCommitter.flush();
@@ -599,9 +608,10 @@ export function SpriteCropper({
 
     lastResetSourceUrlRef.current = currentUrl;
     cropCommitter.reset();
+    cropPreparation.clear();
     resetCropState();
     setPreviewReadyKey("");
-  }, [cropCommitter, currentUrl, resetCropState]);
+  }, [cropCommitter, cropPreparation, currentUrl, resetCropState]);
 
   const handleZoomableCropAreaChange = useCallback((coordinates: Coordinates, image: HTMLImageElement) => {
     const cropState = createCropStateFromCoordinates(coordinates, image);
@@ -646,25 +656,12 @@ export function SpriteCropper({
    * 将Img数据转换为Blob
    * 使用 Web Worker 优化,将图像处理转移到后台线程
    */
-  async function getCroppedImageBlobFromImg(
+  const renderCroppedImageBlobFromImg = useCallback(async (
     img: HTMLImageElement,
-    options?: {
-      crop?: PixelCrop;
-      displaySize?: { width: number; height: number };
-    },
-  ): Promise<Blob> {
-    const cropToUse = options?.crop ?? cropCommitter.getLatest() ?? completedCrop;
-    if (!cropToUse) {
-      throw new Error("No completed crop");
-    }
-
-    const currentImg = imgRef.current;
-    const tempDisplayWidth = options?.displaySize?.width ?? currentImg?.width ?? 0;
-    const tempDisplayHeight = options?.displaySize?.height ?? currentImg?.height ?? 0;
-    if (!tempDisplayWidth || !tempDisplayHeight) {
-      throw new Error("Preview image size is 0");
-    }
-
+    cropToUse: PixelCrop,
+    displaySize: { width: number; height: number },
+    allowMainThreadFallback = true,
+  ): Promise<Blob> => {
     // 使用 Worker 在后台线程处理图像裁剪
     try {
       const blob = await cropImage({
@@ -673,18 +670,21 @@ export function SpriteCropper({
         scale: 1,
         rotate: 0,
         displaySize: {
-          width: tempDisplayWidth,
-          height: tempDisplayHeight,
+          width: displaySize.width,
+          height: displaySize.height,
         },
       });
       return blob;
     }
     catch (error) {
+      if (!allowMainThreadFallback) {
+        throw error;
+      }
       console.error("Worker 裁剪失败，回退到主线程处理:", error);
 
       // 回退方案：在主线程使用 OffscreenCanvas
-      const scaleX = img.naturalWidth / tempDisplayWidth;
-      const scaleY = img.naturalHeight / tempDisplayHeight;
+      const scaleX = img.naturalWidth / displaySize.width;
+      const scaleY = img.naturalHeight / displaySize.height;
       const outputWidth = Math.max(1, Math.round(cropToUse.width * scaleX));
       const outputHeight = Math.max(1, Math.round(cropToUse.height * scaleY));
       const outputCanvas: HTMLCanvasElement | OffscreenCanvas = typeof OffscreenCanvas !== "undefined"
@@ -699,16 +699,67 @@ export function SpriteCropper({
         0,
         {
           previewMode: false,
-          displaySize: {
-            width: tempDisplayWidth,
-            height: tempDisplayHeight,
-          },
+          displaySize,
         },
       );
 
       return await canvasToBlob(outputCanvas);
     }
-  }
+  }, [cropImage]);
+
+  const getCropPreparationKey = useCallback((
+    img: HTMLImageElement,
+    crop: PixelCrop,
+    displaySize: { width: number; height: number },
+  ) => createCropPreparationKey({
+    sourceKey: spriteSwitchKey,
+    imageSrc: img.currentSrc || img.src,
+    naturalWidth: img.naturalWidth,
+    naturalHeight: img.naturalHeight,
+    displayWidth: displaySize.width,
+    displayHeight: displaySize.height,
+    crop,
+  }), [spriteSwitchKey]);
+
+  const getCroppedImageBlobFromImg = useCallback(async (
+    img: HTMLImageElement,
+    options?: {
+      crop?: PixelCrop;
+      displaySize?: { width: number; height: number };
+    },
+  ): Promise<Blob> => {
+    const cropToUse = options?.crop ?? cropCommitter.getLatest() ?? completedCrop;
+    if (!cropToUse) {
+      throw new Error("No completed crop");
+    }
+
+    const currentImg = imgRef.current;
+    const displaySize = options?.displaySize ?? {
+      width: currentImg?.width ?? 0,
+      height: currentImg?.height ?? 0,
+    };
+    if (!displaySize.width || !displaySize.height) {
+      throw new Error("Preview image size is 0");
+    }
+
+    const key = getCropPreparationKey(img, cropToUse, displaySize);
+    return cropPreparation.read(key)
+      ?? renderCroppedImageBlobFromImg(img, cropToUse, displaySize);
+  }, [completedCrop, cropCommitter, cropPreparation, getCropPreparationKey, imgRef, renderCroppedImageBlobFromImg]);
+
+  useEffect(() => {
+    const img = imgRef.current;
+    if (!completedCrop || !img?.naturalWidth || !img.naturalHeight || !img.width || !img.height) {
+      return;
+    }
+
+    const displaySize = { width: img.width, height: img.height };
+    const key = getCropPreparationKey(img, completedCrop, displaySize);
+    cropPreparation.prepare(
+      key,
+      () => renderCroppedImageBlobFromImg(img, completedCrop, displaySize, false),
+    );
+  }, [completedCrop, cropPreparation, getCropPreparationKey, imgRef, renderCroppedImageBlobFromImg]);
 
   /**
    * 获取指定图片的裁剪结果（通用函数）
