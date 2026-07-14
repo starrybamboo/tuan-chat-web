@@ -1,0 +1,53 @@
+# EAS 从仓库根目录归档；仅保留移动端应用与共享工作区依赖。
+.git/
+node_modules/
+**/node_modules/
+
+# 本地密钥、环境变量与开发工具状态
+.env
+.env.*
+**/.env
+**/.env.*
+.auth/
+.codex/
+.codex-tmp/
+.codex-tmp-*
+.idea/
+.logs/
+.playwright-mcp/
+.react-router/
+.tanstack/
+.tmp/
+.vscode/
+.wrangler/
+
+# 构建缓存与生成产物
+**/.expo/
+**/.expo-export-web/
+**/.gradle/
+**/.kotlin/
+**/.tmp/
+**/build/
+**/build-output/
+**/coverage/
+**/dist/
+**/web-build/
+**/*.tsbuildinfo
+*.log
+
+# 移动端正式构建不需要的仓库区域
+.github/
+.husky/
+android/
+apps/desktop/
+apps/web/
+docs/
+extraResources/
+functions/
+logo/
+openspec/
+scripts/
+
+# EAS 会从 app.json 重新生成原生工程。
+apps/mobile/android/
+apps/mobile/ios/
