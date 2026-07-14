@@ -48,6 +48,14 @@
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
+/* daisyUI 会先展开内建主题值；语义别名在生成后覆盖才能保留 var() 引用。 */
+:root,
+[data-theme="light"],
+[data-theme="dark"] {
+  --color-accent: var(--color-success);
+  --color-accent-content: var(--color-success-content);
+}
+
 @theme {
   --font-sans:
     "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",

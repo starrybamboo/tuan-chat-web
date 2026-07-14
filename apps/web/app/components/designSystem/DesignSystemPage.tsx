@@ -5,9 +5,7 @@ import {
   CheckIcon,
   DotsThreeIcon,
   FloppyDiskIcon,
-  MoonIcon,
   PaletteIcon,
-  SunIcon,
   TrashIcon,
   UserIcon,
   WarningCircleIcon,
@@ -56,7 +54,6 @@ import {
   TYPOGRAPHY_SPECIMENS,
 } from "@/components/designSystem/designSystemCatalog";
 
-type PreviewTheme = "light" | "dark";
 type PreviewTab = "components" | "tokens" | "a11y";
 
 const PREVIEW_TABS = [
@@ -134,7 +131,10 @@ function ColorSpecimens() {
                 >
                   <figcaption className="text-sm font-semibold">{token.label}</figcaption>
                 </div>
-                <TokenCode>{token.variable}</TokenCode>
+                <TokenCode>
+                  {token.variable}
+                  {"alias" in token ? ` → ${token.alias}` : null}
+                </TokenCode>
               </figure>
             ))}
           </div>
@@ -514,40 +514,12 @@ function NavigationSpecimens() {
   );
 }
 
-function ThemeControl({ theme, onChange }: { theme: PreviewTheme; onChange: (theme: PreviewTheme) => void }) {
-  return (
-    <ControlGroup aria-label="预览主题">
-      <IconButton
-        size="sm"
-        shape="square"
-        variant="outline"
-        icon={<SunIcon weight="regular" />}
-        label="使用浅色主题"
-        aria-pressed={theme === "light"}
-        onClick={() => onChange("light")}
-      />
-      <IconButton
-        size="sm"
-        shape="square"
-        variant="outline"
-        icon={<MoonIcon weight="regular" />}
-        label="使用深色主题"
-        aria-pressed={theme === "dark"}
-        onClick={() => onChange("dark")}
-      />
-    </ControlGroup>
-  );
-}
-
 /** 开发环境的 Web 端 token 与公共原语视觉合约页。 */
 export function DesignSystemPage() {
-  const [theme, setTheme] = useState<PreviewTheme>("light");
-
   return (
     <main
-      data-theme={theme}
       data-design-system-page="true"
-      className="min-h-dvh bg-base-200 text-base-content"
+      className="min-h-full bg-base-200 text-base-content"
     >
       <div className="grid h-1.5 grid-cols-4" aria-hidden="true">
         <span className="bg-info" />
@@ -556,7 +528,7 @@ export function DesignSystemPage() {
         <span className="bg-error" />
       </div>
       <header className="sticky top-0 z-20 border-b border-base-300 bg-base-100/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl items-center px-4 py-4 sm:px-6 lg:px-8">
           <div className="min-w-0">
             <div className="mb-1 flex items-center gap-2">
               <Badge tone="info" appearance="outline">DEV</Badge>
@@ -564,7 +536,6 @@ export function DesignSystemPage() {
             </div>
             <Text as="h1" variant="pageTitle" className="truncate">Design System</Text>
           </div>
-          <ThemeControl theme={theme} onChange={setTheme} />
         </div>
         <nav className="mx-auto flex max-w-7xl gap-5 overflow-x-auto px-4 pb-3 sm:px-6 lg:px-8" aria-label="页面区块">
           {DESIGN_SYSTEM_SECTIONS.map(section => (

@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { DesignSystemPage } from "@/components/designSystem/DesignSystemPage";
+import { requireDevelopmentRoute } from "@/utils/devRouteAccess";
 import { createSeoMeta } from "@/utils/seo";
 
-export const Route = createFileRoute("/_dev/design-system")({
+export const Route = createFileRoute("/_dashboard/design-system")({
+  beforeLoad: () => requireDevelopmentRoute(import.meta.env.DEV),
   head: () => ({
     meta: createSeoMeta({
       title: "Design System · 团剧共创",

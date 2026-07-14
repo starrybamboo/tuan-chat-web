@@ -1,7 +1,8 @@
+import { XIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 
 import { IconButton } from "@/components/common/IconButton";
-import { FieldGroup, TextInput } from "@/components/common/FormField";
+import { FieldGroup, formControlShellClassName, TextInput } from "@/components/common/FormField";
 import { Text } from "@/components/common/DesignLanguage";
 
 type EditableFieldProps = {
@@ -263,18 +264,18 @@ export default function EditableField({
 
   return (
     <FieldGroup className={className}>
-      <label className={`
-        relative flex items-center gap-2 rounded-lg transition-all duration-200
-        border
-        focus-within:border-info focus-within:ring-1
-        focus-within:ring-info/20
-        border-base-content/20
-        ${editingBackgroundClassName}
-        ${isCompact ? "py-1 px-2" : "py-2 px-3"}
-        max-md:flex-col max-md:items-stretch max-md:h-auto max-md:gap-0
-        w-full
-        md:input md:input-ghost md:border-transparent md:h-10
-      `}
+      <div
+        role="group"
+        aria-label={`编辑字段 ${fieldKey}`}
+        className={formControlShellClassName({
+        className: `
+          gap-2 border-base-content/20
+          ${editingBackgroundClassName}
+          ${isCompact ? "px-2 py-1" : "px-3 py-2"}
+          max-md:h-auto max-md:flex-col max-md:items-stretch max-md:gap-0
+          w-full md:h-10
+        `,
+        })}
       >
         {/* 字段名编辑 */}
         <div className="
@@ -308,9 +309,7 @@ export default function EditableField({
                   }}
                   data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
                   className={`
-                    bg-transparent border-none
-                    focus:outline-none focus:ring-2 focus:ring-info/30
-                    outline-none font-medium
+                    font-medium
                     ${isCompact ? `
                       text-[10px]
                       md:text-xs
@@ -334,7 +333,7 @@ export default function EditableField({
                     cursor-pointer
                     hover:text-info
                     font-medium whitespace-nowrap overflow-x-auto overscroll-x-none
-                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30
+                    focus-visible:text-info focus-visible:outline-none
                     ${isCompact ? `
                       text-[10px]
                       md:text-xs
@@ -394,8 +393,6 @@ export default function EditableField({
             onValueCommit?.(fieldKey, (e.target as HTMLInputElement).value);
           }}
           className={`
-            bg-transparent border-none outline-none
-            focus:outline-none focus:ring-2 focus:ring-info/30
             grow min-w-0
             ${isCompact ? "text-xs" : "text-sm"}
             max-md:w-full max-md:font-semibold max-md:text-base-content
@@ -413,22 +410,16 @@ export default function EditableField({
             className={`
               text-base-content/40
               hover:text-error hover:bg-error/10
+              focus-visible:text-error focus-visible:bg-error/10 focus-visible:ring-0
               md:static
-              max-md:absolute max-md:top-1 max-md:right-1 max-md:size-6
-              max-md:min-h-0
+              max-md:absolute max-md:right-0 max-md:top-0
+              max-md:min-h-hit-default max-md:min-w-hit-default
             `}
             title="删除字段"
-            icon={(
-              <svg xmlns="http://www.w3.org/2000/svg" className="
-                size-3
-                md:size-3.5
-              " viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-            )}
+            icon={<XIcon weight="bold" aria-hidden="true" />}
           />
         )}
-      </label>
+      </div>
     </FieldGroup>
   );
 }

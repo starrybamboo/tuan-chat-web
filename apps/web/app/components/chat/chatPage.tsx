@@ -6,6 +6,7 @@ import type { SelectRoomOptions } from "@/components/chat/chatPage.types";
 import type { PrivateChatTab } from "@/components/chat/chatPageLayoutContext";
 
 import { ChatPageOverlays, ChatPagePanels } from "@/components/chat/chatPageContainers";
+import { shouldShowRoomSelectionLoading } from "@/components/chat/chatPageLoadingState";
 import { ChatPageLayoutProvider } from "@/components/chat/chatPageLayoutProvider";
 import { ChatPageDocContent } from "@/components/chat/chatPageMainContent";
 import ChatPageSubWindow from "@/components/chat/chatPageSubWindow";
@@ -196,6 +197,12 @@ export default function ChatPage() {
     sidebarTreeRemoteUpdateKey,
     saveSidebarTree: handleSaveSidebarTree,
   } = useChatPageSidebarTree({ activeSpaceId });
+  const isRoomSelectionPending = shouldShowRoomSelectionLoading({
+    activeSpaceId,
+    activeRoomId,
+    isSidebarTreeReady,
+    isUserRoomsPending: userRoomQuery.isPending,
+  });
 
   const sidebarTreeFirstRoomId = useMemo(() => {
     if (!sidebarTree) {
@@ -573,6 +580,7 @@ export default function ChatPage() {
       activeSpaceId,
       activeRoomId,
       activeDocId,
+      isRoomSelectionPending,
       targetMessageId,
       setIsOpenLeftDrawer,
       setActiveRoomId,
@@ -599,6 +607,7 @@ export default function ChatPage() {
     handleOpenPrivate,
     isKPInSpace,
     isPrivateChatMode,
+    isRoomSelectionPending,
     isSpaceDetailRoute,
     privateChatTab,
     roomSettingState,

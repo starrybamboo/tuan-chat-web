@@ -15,6 +15,8 @@ describe("DesignSystemPage", () => {
     const markup = renderToStaticMarkup(createElement(DesignSystemPage));
 
     expect(markup).toContain('data-design-system-page="true"');
+    expect(markup).not.toContain("data-theme=");
+    expect(markup).not.toContain("预览主题");
     for (const section of DESIGN_SYSTEM_SECTIONS) {
       expect(markup).toContain(`id="${section.id}"`);
       expect(markup).toContain(`aria-labelledby="${section.id}-heading"`);
@@ -26,6 +28,7 @@ describe("DesignSystemPage", () => {
       }
     }
     expect(markup).toContain("保存更改");
+    expect(markup).toContain("--color-accent → --color-success");
     expect(markup).toContain('type="range"');
     expect(markup).toContain("打开对话框");
   });

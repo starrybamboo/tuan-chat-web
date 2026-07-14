@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   DESIGN_SYSTEM_PATH,
-  isDesignSystemPath,
   requireDevelopmentRoute,
 } from "@/utils/devRouteAccess";
 
@@ -25,9 +24,7 @@ describe("requireDevelopmentRoute", () => {
     expect(isNotFound(thrown)).toBe(true);
   });
 
-  it("只识别 Design System 的固定开发路径", () => {
-    expect(isDesignSystemPath(DESIGN_SYSTEM_PATH)).toBe(true);
-    expect(isDesignSystemPath(`${DESIGN_SYSTEM_PATH}/`)).toBe(true);
-    expect(isDesignSystemPath("/settings")).toBe(false);
+  it("提供 Design System 的固定开发路径", () => {
+    expect(DESIGN_SYSTEM_PATH).toBe("/design-system");
   });
 });

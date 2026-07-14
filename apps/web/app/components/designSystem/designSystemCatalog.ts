@@ -25,7 +25,12 @@ export const COLOR_TOKEN_GROUPS = [
     tokens: [
       { label: "主要动作", variable: "--color-primary", foreground: "--color-primary-content" },
       { label: "次级动作", variable: "--color-secondary", foreground: "--color-secondary-content" },
-      { label: "强调", variable: "--color-accent", foreground: "--color-accent-content" },
+      {
+        label: "强调",
+        variable: "--color-accent",
+        foreground: "--color-accent-content",
+        alias: "--color-success",
+      },
       { label: "中性", variable: "--color-neutral", foreground: "--color-neutral-content" },
     ],
   },

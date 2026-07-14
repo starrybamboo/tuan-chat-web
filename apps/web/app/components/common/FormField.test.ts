@@ -54,7 +54,10 @@ describe("formControlClassName", () => {
   });
 
   it("复合输入使用统一外壳并让内部输入保持透明", () => {
-    expect(formControlShellClassName({ invalid: true })).toContain("focus-within:ring-error/20");
+    const shellClassName = formControlShellClassName({ invalid: true });
+    expect(shellClassName).toContain("focus-within:ring-error/20");
+    expect(shellClassName).toContain("focus-within:ring-1");
+    expect(shellClassName).toContain("focus-within:ring-inset");
     const bareClassName = formControlClassName({ appearance: "bare" });
     expect(bareClassName).toContain("border-0");
     expect(bareClassName).toContain("bg-transparent");

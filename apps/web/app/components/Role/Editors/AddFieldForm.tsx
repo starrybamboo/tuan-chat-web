@@ -1,7 +1,9 @@
+import { PlusIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/common/Button";
 import { FieldGroup, formControlShellClassName, TextArea, TextInput } from "@/components/common/FormField";
+import { IconButton } from "@/components/common/IconButton";
 import PortalTooltip from "@/components/common/portalTooltip";
 
 type AddFieldFormProps = {
@@ -208,26 +210,21 @@ export default function AddFieldForm({
   const stackedAddTip = fieldStatus === "duplicate" ? "key 已存在" : "Ctrl + ↩︎ 添加";
   const tileShellStateClassName = canAdd
     ? `
-      border-info/55 bg-info/8 shadow-sm shadow-info/10
-      ring-1 ring-info/25
+      border-info/55 bg-info/8
     `
     : fieldStatus === "duplicate"
-      ? "border-error/45 bg-error/5 ring-1 ring-error/15"
+      ? "border-error/45 bg-error/5"
       : "border-base-content/20 bg-base-100";
-  const tileSubmitButtonVariant = isSubmitSaved
-    ? "success"
-    : isSubmitError
-      ? "error"
-      : canAdd || isSubmitting
-        ? "primary"
-        : "ghost";
   const tileSubmitButtonStateClassName = isSubmitSaved
-    ? "shadow-sm shadow-success/20"
+    ? "text-success"
     : isSubmitError
-      ? "shadow-sm shadow-error/20"
+      ? "text-error hover:bg-error/10 focus-visible:bg-error/10 focus-visible:ring-0"
       : canAdd || isSubmitting
-        ? "shadow-sm shadow-info/25"
-        : "text-base-content/50 hover:text-info hover:bg-info/10";
+        ? "text-info hover:bg-info/10 focus-visible:bg-info/10 focus-visible:ring-0"
+        : "text-base-content/40 hover:text-info hover:bg-info/10 focus-visible:bg-info/10 focus-visible:ring-0";
+  const addButtonIcon = submitStatus === "idle"
+    ? <PlusIcon weight="bold" aria-hidden="true" />
+    : undefined;
 
   if (layout === "stacked") {
     if (!isStackedOpen) {
@@ -248,7 +245,7 @@ export default function AddFieldForm({
             <span className="
               inline-flex size-6 items-center justify-center rounded-lg
               bg-base-content/6 text-base-content/60
-            ">+</span>
+            "><PlusIcon className="size-4" weight="bold" aria-hidden="true" /></span>
             {title}
           </button>
         </div>
@@ -271,7 +268,7 @@ export default function AddFieldForm({
               <span className="
                 inline-flex size-5 items-center justify-center rounded-md
                 bg-info/10 text-info
-              ">+</span>
+              "><PlusIcon className="size-3.5" weight="bold" aria-hidden="true" /></span>
               {title}
             </span>
             <Button
@@ -285,7 +282,7 @@ export default function AddFieldForm({
           </div>
         )}
         <div className="space-y-3">
-          <label className={formControlShellClassName({
+          <div className={formControlShellClassName({
             surface: "muted",
             className: "w-full gap-2 rounded-lg border-base-content/12 bg-base-200/35",
           })}>
@@ -303,13 +300,12 @@ export default function AddFieldForm({
               placeholder={placeholder.key || "字段名"}
               data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
               className="
-                grow border-none bg-transparent outline-none
-                placeholder:text-base-content/35 focus:outline-none focus:ring-2 focus:ring-info/30
+                grow placeholder:text-base-content/35
               "
             />
-          </label>
+          </div>
           <div className="relative">
-            <label className={formControlShellClassName({
+            <div className={formControlShellClassName({
               surface: "muted",
               className: "w-full gap-2 rounded-lg border-base-content/12 bg-base-200/35 p-0",
             })}>
@@ -326,12 +322,13 @@ export default function AddFieldForm({
                 data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
                 className="min-h-28 grow pb-12 pr-20 placeholder:text-base-content/35"
               />
-            </label>
+            </div>
             <PortalTooltip label={stackedAddTip} placement="top" anchorClassName="absolute bottom-2 right-2">
               <Button
                 variant="primary"
                 size="xs"
                 loading={isSubmitting}
+                icon={addButtonIcon}
                 onClick={() => void handleAddField()}
                 disabled={!canAdd || isSubmitting}
                 title={
@@ -342,7 +339,7 @@ export default function AddFieldForm({
                       : stackedAddTip
                 }
               >
-                {isSubmitting ? "保存中..." : isSubmitSaved ? "已保存" : isSubmitError ? "保存失败" : "✓ 添加"}
+                {isSubmitting ? "保存中..." : isSubmitSaved ? "已保存" : isSubmitError ? "保存失败" : "添加"}
               </Button>
             </PortalTooltip>
           </div>
@@ -354,16 +351,18 @@ export default function AddFieldForm({
   if (variant === "tile") {
     return (
       <FieldGroup className={className}>
-        <label className={`
-          relative flex items-center gap-2 rounded-lg border
-          py-2 px-3 transition-all
-          focus-within:border-info focus-within:ring-1
-          focus-within:ring-info/20
-          max-md:flex-col max-md:items-stretch max-md:h-auto max-md:gap-0
-          w-full
-          md:h-10
-          ${tileShellStateClassName}
-        `}>
+        <div
+          role="group"
+          aria-label="添加字段"
+          className={formControlShellClassName({
+          className: `
+            gap-2 px-3 py-2
+            max-md:h-auto max-md:flex-col max-md:items-stretch max-md:gap-0
+            w-full md:h-10
+            ${tileShellStateClassName}
+          `,
+          })}
+        >
           <TextInput
             appearance="bare"
             ref={keyInputRef}
@@ -377,8 +376,7 @@ export default function AddFieldForm({
             autoComplete="off"
             data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
             className="
-              bg-transparent border-none outline-none font-medium
-              focus:outline-none focus:ring-2 focus:ring-info/30
+              font-medium
               text-xs
               md:text-sm
               w-full
@@ -404,34 +402,29 @@ export default function AddFieldForm({
             autoComplete="off"
             data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
             className="
-              bg-transparent border-none outline-none
-              focus:outline-none focus:ring-2 focus:ring-info/30
               grow min-w-0 text-sm
               max-md:w-full max-md:font-semibold max-md:text-base-content
               placeholder:text-base-content/30
             "
           />
-          <Button
-            variant={tileSubmitButtonVariant}
-            shape="circle"
+          <IconButton
+            variant="ghost"
+            shape="square"
             size="xs"
             loading={isSubmitting}
             onClick={() => void handleAddField()}
             disabled={!canAdd || isSubmitting}
             className={`
               md:static
-              max-md:absolute max-md:top-1 max-md:right-1 max-md:size-6
-              max-md:min-h-0
+              max-md:absolute max-md:right-0 max-md:top-0
+              max-md:min-h-hit-default max-md:min-w-hit-default
               ${tileSubmitButtonStateClassName}
             `}
             title={inlineAddTip}
-            aria-label={isSubmitting ? "保存中" : isSubmitSaved ? "已保存" : isSubmitError ? "保存失败" : "添加字段"}
-          >
-            {isSubmitSaved && <span className="text-success">✓</span>}
-            {isSubmitError && <span className="text-error">!</span>}
-            {submitStatus === "idle" && "✓"}
-          </Button>
-        </label>
+            label={isSubmitting ? "保存中" : isSubmitSaved ? "已保存" : isSubmitError ? "保存失败" : "添加字段"}
+            icon={<PlusIcon weight="bold" aria-hidden="true" />}
+          />
+        </div>
       </FieldGroup>
     );
   }
@@ -444,7 +437,7 @@ export default function AddFieldForm({
       {showTitle && (
         <span className="text-sm text-base-content/50 mb-2 block">{title}</span>
       )}
-      <label className={formControlShellClassName({ className: "gap-2" })}>
+      <div role="group" aria-label="添加字段" className={formControlShellClassName({ className: "gap-2" })}>
         <TextInput
           appearance="bare"
           ref={keyInputRef}
@@ -458,9 +451,7 @@ export default function AddFieldForm({
           autoComplete="off"
           data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
           className="
-            text-sm font-medium bg-transparent border-none
-            focus:outline-none focus:ring-2 focus:ring-info/30
-            outline-none w-24 shrink-0
+            w-24 shrink-0 text-sm font-medium
           "
         />
         <div className="w-px h-4 bg-base-content/20"></div>
@@ -475,17 +466,14 @@ export default function AddFieldForm({
           placeholder={placeholder.value || "字段值"}
           autoComplete="off"
           data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
-          className="
-            grow
-            focus:outline-none focus:ring-2 focus:ring-info/30
-            border-none outline-none
-          "
+          className="grow"
         />
         <PortalTooltip label={inlineAddTip} placement="top">
           <Button
             variant="primary"
             size="xs"
             loading={isSubmitting}
+            icon={addButtonIcon}
             onClick={() => void handleAddField()}
             disabled={!canAdd || isSubmitting}
             title={
@@ -496,10 +484,10 @@ export default function AddFieldForm({
                 : inlineAddTip
             }
           >
-            {isSubmitting ? "保存中..." : isSubmitSaved ? "已保存" : isSubmitError ? "保存失败" : "✓ 添加"}
+            {isSubmitting ? "保存中..." : isSubmitSaved ? "已保存" : isSubmitError ? "保存失败" : "添加"}
           </Button>
         </PortalTooltip>
-      </label>
+      </div>
     </div>
   );
 }

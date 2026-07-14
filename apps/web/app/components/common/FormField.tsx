@@ -98,7 +98,7 @@ export function formControlShellClassName({
   className?: string;
 } = {}) {
   return [
-    "relative flex items-center rounded-md border transition-colors duration-150 focus-within:ring-2",
+    "relative flex items-center rounded-md border transition-colors duration-150 focus-within:ring-1 focus-within:ring-inset",
     invalid
       ? "border-error focus-within:border-error focus-within:ring-error/20"
       : "border-base-300 hover:border-base-content/30 focus-within:border-info focus-within:ring-info/20",

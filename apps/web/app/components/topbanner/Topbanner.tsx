@@ -1,7 +1,6 @@
-import type { ComponentType, SVGProps } from "react";
 import { appToast } from "@/components/common/appToast/appToast";
 
-import { BugBeetleIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, TreeStructureIcon, UserIcon } from "@phosphor-icons/react";
+import { BugBeetleIcon, GearSixIcon, IdentificationCardIcon, SignOutIcon, TreeStructureIcon, UserIcon } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { buildAccountInviteRegisterUrl } from "@tuanchat/domain/account-invite";
@@ -20,7 +19,8 @@ import { interactiveButtonMotionProps } from "@/components/common/motion/interac
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import NotificationBell from "@/components/notification/notificationBell";
-import { BilibiliIcon, QQIcon, RoomChatIcon, WebgalIcon } from "@/icons";
+import { buildTopNavItems, type TopNavItem } from "@/components/topbanner/topNavItems";
+import { BilibiliIcon, QQIcon, WebgalIcon } from "@/icons";
 import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
 import { exportDiagnosticConsoleFile } from "@/utils/diagnosticConsole";
 import { isElectronEnv } from "@/utils/isElectronEnv";
@@ -74,7 +74,7 @@ function TopNavMotionLink({
 }: {
   to: string;
   label: string;
-  Icon: ComponentType<SVGProps<SVGSVGElement>>;
+  Icon: TopNavItem["icon"];
   activePathPrefix?: string;
   compact?: boolean;
 }) {
@@ -260,12 +260,12 @@ export default function Topbar() {
     setIsBugQqOpen(true);
   }, [exportBugReportLog]);
 
-  const navItems = [
-    { to: lastChatPathRef.current ?? DEFAULT_CHAT_PATH, label: "聊天", icon: RoomChatIcon, activePathPrefix: "/chat" },
-    { to: "/role", label: "角色", icon: IdentificationCardIcon },
-    ...(canUseAiImage ? [{ to: "/ai-image", label: "AI生图", icon: PaintBrushBroadIcon }] : []),
-    ...(canUseFeedback ? [{ to: "/feedback", label: "反馈", icon: CheckCircleIcon }] : []),
-  ];
+  const navItems = buildTopNavItems({
+    lastChatPath: lastChatPathRef.current ?? DEFAULT_CHAT_PATH,
+    canUseAiImage,
+    canUseFeedback,
+    canUseDesignSystem: import.meta.env.DEV,
+  });
 
   return (
     <div className="w-full">

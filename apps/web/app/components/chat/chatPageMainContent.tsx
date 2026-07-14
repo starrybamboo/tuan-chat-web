@@ -77,6 +77,7 @@ function ChatPageChatContent() {
     isPrivateChatMode,
     activeRoomId,
     activeSpaceId,
+    isRoomSelectionPending,
     targetMessageId,
     privateChatTab,
   } = useChatPageLayoutContext();
@@ -125,6 +126,10 @@ function ChatPageChatContent() {
   }
 
   if (activeRoomId == null) {
+    if (isRoomSelectionPending) {
+      return <RoomWindowLoadingState />;
+    }
+
     return (
       <div className="flex items-center justify-center size-full font-bold">
         <span className="text-center">请先选择房间</span>

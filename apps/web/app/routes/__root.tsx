@@ -41,7 +41,6 @@ import { queryClient } from "@/queryClient";
 import { checkAuthStatus } from "@/utils/auth/authapi";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
 import { cloudflareWebAnalytics } from "@/utils/cloudflareWebAnalytics";
-import { isDesignSystemPath } from "@/utils/devRouteAccess";
 import {
   buildDiagnosticConsoleFileContent,
   buildDiagnosticConsoleFileName,
@@ -119,9 +118,7 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
 const isTestBuild = import.meta.env.MODE === "test";
 const isDevBuild = import.meta.env.DEV;
 const shouldEnableReactScan
-  = typeof window !== "undefined"
-    && (isDevBuild || isTestBuild)
-    && !isDesignSystemPath(window.location.pathname);
+  = typeof window !== "undefined" && (isDevBuild || isTestBuild);
 if (shouldEnableReactScan) {
   void import("react-scan")
     .then(({ scan }) => {
@@ -215,15 +212,12 @@ function Layout({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const location = useLocation();
-  const isDesignSystemPage = isDesignSystemPath(location.pathname);
   const [cloudflareWebAnalyticsStatus, setCloudflareWebAnalyticsStatus] = React.useState<CloudflareWebAnalyticsStatus>(
     () => cloudflareWebAnalytics.getStatus(),
   );
   const authStatusQuery = useQuery({
     queryKey: ["authStatus"],
     queryFn: checkAuthStatus,
-    enabled: !isDesignSystemPage,
   });
   const isLoggedIn = authStatusQuery.data?.isLoggedIn === true;
   const isAnalyticsBlockedByAdBlocker = cloudflareWebAnalyticsStatus === "blocked";
@@ -297,17 +291,13 @@ function App() {
       <ToastWindowRenderer />
       {/* 命令式 confirm() 的承载者 */}
       <ConfirmDialogProvider />
-      {isDesignSystemPage
-        ? null
-        : (
-            <StartupNoticeCenter
-              isTestBuild={isTestBuild}
-              isDevBuild={isDevBuild}
-              isAuthStatusLoading={authStatusQuery.isLoading}
-              isAnalyticsBlockedByAdBlocker={isAnalyticsBlockedByAdBlocker}
-              shouldShowBugFeedbackGuide={shouldShowBugFeedbackGuide}
-            />
-          )}
+      <StartupNoticeCenter
+        isTestBuild={isTestBuild}
+        isDevBuild={isDevBuild}
+        isAuthStatusLoading={authStatusQuery.isLoading}
+        isAnalyticsBlockedByAdBlocker={isAnalyticsBlockedByAdBlocker}
+        shouldShowBugFeedbackGuide={shouldShowBugFeedbackGuide}
+      />
       </GlobalContextProvider>
     </MotionConfig>
   );

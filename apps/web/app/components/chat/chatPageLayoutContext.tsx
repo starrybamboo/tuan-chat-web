@@ -9,6 +9,7 @@ export type ChatPageLayoutContextValue = {
   activeSpaceId: number | null;
   activeRoomId: number | null;
   activeDocId: string | null;
+  isRoomSelectionPending: boolean;
   targetMessageId: number | null;
   setIsOpenLeftDrawer: (isOpen: boolean) => void;
   setActiveRoomId: (roomId: number | null, options?: SelectRoomOptions) => void;
