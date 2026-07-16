@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
-import { MediaImage } from "@/components/common/mediaImage";
 import { FileInput } from "@/components/common/FormField";
+import { MediaImage } from "@/components/common/mediaImage";
 import { TrashIcon } from "@/icons";
 import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -20,7 +20,6 @@ type MessageEditorAtomicBlockProps = {
   onDelete?: (blockId: string) => void;
   onFocus: (blockId: string) => void;
   onResize?: (blockId: string, size: { height: number; width: number }) => void;
-  onUpdate?: (blockId: string, updater: (message: MessageEditorMessage) => MessageEditorMessage) => void;
   onUpload: (blockId: string, file: File) => Promise<void>;
   readOnly?: boolean;
 }
@@ -208,7 +207,7 @@ function formatAudioProgressLabel(second: unknown) {
 /**
  * 原子块编辑壳，负责上传、删除与媒体缩放交互。
  */
-export function MessageEditorAtomicBlock({
+export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
   blockId,
   message,
   onDelete,
@@ -582,6 +581,8 @@ export function MessageEditorAtomicBlock({
                       <MediaImage
                         src={uploadedMediaUrl}
                         alt={message.content?.trim() || uploadMeta.title}
+                        loading="lazy"
+                        decoding="async"
                         width={typeof mediaDimensions?.width === "number" ? mediaDimensions.width : undefined}
                         height={typeof mediaDimensions?.height === "number" ? mediaDimensions.height : undefined}
                         className="
@@ -723,4 +724,4 @@ export function MessageEditorAtomicBlock({
       )}
     </div>
   );
-}
+});

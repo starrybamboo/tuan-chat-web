@@ -1,19 +1,15 @@
 import type { ReactNode } from "react";
-import { appToast } from "@/components/common/appToast/appToast";
+import type { ListRange } from "react-virtuoso";
 
-import { buildOptimisticRoomMessagesFromPatch } from "@tuanchat/query/room-message-lifecycle";
 import { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import type { RoomMessageStreamPatchOperation } from "@/components/chat/infra/doc/document/roomMessageStreamApi";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
-import { patchRemoteRoomMessageStream } from "@/components/chat/infra/doc/document/roomMessageStreamApi";
 import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
 import { parseImportedChatText } from "@/components/chat/utils/importChatText";
+import { appToast } from "@/components/common/appToast/appToast";
 import { useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
-import { MediaImage } from "@/components/common/mediaImage";
-import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import {
   readImageDimensions,
   readMediaDuration,
@@ -21,48 +17,84 @@ import {
 } from "@/utils/media/mediaMetadata";
 import { UploadUtils } from "@/utils/media/UploadUtils";
 
-import type { Message, UserRole } from "../../../api";
-import type { MessageEditorSlashMenuItem } from "./components/MessageEditorSlashMenu";
-import type { MessageEditorMessage } from "./messageEditorTypes";
+import type { Message } from "../../../api";
+import type { MessageEditorMessage, MessageEditorTcHeader } from "./messageEditorTypes";
+import type { MessageEditorRemotePatchSourceSurface } from "./model/messageEditorPersistencePolicy";
+import type { MessageEditorSlashMenuState } from "./model/messageEditorSlash";
 import type { MessageEditorSpeakerMenuItem } from "./model/messageEditorSpeaker";
 import type { MessageEditorSpeakerAvatarMenuItem } from "./model/messageEditorSpeakerAvatar";
 import type {
-  MessageEditorInsertableBlockKind,
+  MessageEditorInsertBlockResult,
   MessageEditorSelectionTextResult,
-} from "./model/messageEditorTransforms";
-import type { MessageEditorController } from "./runtime/messageEditorController";
+} from "./model/messageEditorTextTransforms";
+import type { MessageEditorInsertableBlockKind } from "./model/messageEditorTransforms";
+import type {
+  MessageEditorActions,
+  MessageEditorEditTransaction,
+} from "./runtime/messageEditorActions";
+import type {
+  MessageEditorHistoryEntry,
+  MessageEditorHistoryFocus,
+} from "./runtime/messageEditorHistoryManager";
 import type { MessageEditorSelection, MessageEditorSelectionPoint } from "./runtime/messageEditorSelection";
 
 import { useGetRoleAvatarsQuery } from "../../../api/hooks/RoleAndAvatarHooks";
-import { MessageEditorAtomicBlock } from "./components/MessageEditorAtomicBlock";
+import { MessageEditorBlockRow } from "./components/MessageEditorBlockRow";
+import {
+  MessageEditorFloatingHeader,
+  MessageEditorHeader,
+  shouldShowMessageEditorFloatingHeader,
+} from "./components/MessageEditorHeader";
 import { MessageEditorSlashMenu } from "./components/MessageEditorSlashMenu";
 import { MessageEditorSpeakerAvatarMenu } from "./components/MessageEditorSpeakerAvatarMenu";
 import { MessageEditorSpeakerHeader } from "./components/MessageEditorSpeakerHeader";
 import { MessageEditorSpeakerMenu } from "./components/MessageEditorSpeakerMenu";
-import { MessageEditorTextBlock } from "./components/MessageEditorTextBlock";
+import {
+  MessageEditorVirtualizedBlockList,
+  type MessageEditorVirtualizedBlockListHandle,
+} from "./components/MessageEditorVirtualizedBlockList";
+import useMessageEditorMessageMutations from "./hooks/useMessageEditorMessageMutations";
+import {
+  MESSAGE_EDITOR_BLOCK_GUTTER_CLASS,
+  MESSAGE_EDITOR_COMMAND_MENU_LAYER_CLASS,
+  MESSAGE_EDITOR_CONTENT_WIDTH_CLASS,
+  MESSAGE_EDITOR_DEFAULT_FRAME_CLASS,
+  MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS,
+  MESSAGE_EDITOR_SPEAKER_HANDLE_CLASS,
+  MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS,
+  MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS,
+} from "./messageEditorLayout";
+import {
+  buildRoomMessagePatchOperations,
+  getMessageEditorPatchMutationMeta,
+  getMessageEditorSnapshotFingerprint,
+  mergeChangedRoomMessagesIntoEditorMessages,
+} from "./model/messageEditorPersistencePolicy";
+import { resolveMessageEditorSlashMenuState } from "./model/messageEditorSlash";
 import {
   buildMessageEditorSpeakerMenuItems,
   extractMessageEditorSpeakerCommandMatch,
   hasMessageEditorSpeaker,
   isMessageEditorSpeakerMenuCommitKey,
-  isMessageEditorSpeakerRoleCandidate,
+  resolveMessageEditorSpeakerRoles,
   splitMessageEditorSpeakerCommandQuery,
 } from "./model/messageEditorSpeaker";
-import { buildMessageEditorSpeakerAvatarClearMenuItems, buildMessageEditorSpeakerAvatarMenuItems } from "./model/messageEditorSpeakerAvatar";
 import {
-  createMessageEditorTextDraft,
+  buildMessageEditorSpeakerAvatarClearMenuItems,
+  buildMessageEditorSpeakerAvatarMenuItems,
+} from "./model/messageEditorSpeakerAvatar";
+import {
   ensureMessageEditorMessages,
   getMessageEditorBlockId,
   mergeMessageEditorMediaLayouts,
   normalizeMessageEditorContent,
   serializeMessageEditorMessages,
-  setMessageEditorSpeakerMetadata,
-  setMessageEditorUploadedMedia,
-  updateMessageEditorMediaSize,
-  updateMessageEditorTextContent,
 } from "./model/messageEditorTransforms";
-import { createMessageEditorController } from "./runtime/messageEditorController";
-import { MessageEditorEventBus } from "./runtime/messageEditorEventBus";
+import {
+  estimateMessageEditorBlockHeight,
+} from "./model/messageEditorVirtualizationPolicy";
+import { createMessageEditorActions } from "./runtime/messageEditorActions";
+import { MessageEditorBlockDragSession } from "./runtime/messageEditorBlockDragSession";
 import {
   getMessageEditorClipboardFiles,
   getMessageEditorMediaBlockKindForFile,
@@ -70,12 +102,24 @@ import {
   isMessageEditorFileDrag,
   isMessageEditorUploadableMediaMessage,
 } from "./runtime/messageEditorFileDrop";
-import { resolveMessageEditorTextPointFromClientPosition } from "./runtime/messageEditorHitTest";
+import { MessageEditorHistoryManager } from "./runtime/messageEditorHistoryManager";
+import {
+  resolveMessageEditorBlockIdFromNode,
+  resolveMessageEditorDropTarget,
+  resolveMessageEditorTextPointFromClientPosition,
+  resolveMessageEditorVisibleDropTarget,
+} from "./runtime/messageEditorHitTest";
+import {
+  MessageEditorPointerSelectionSession,
+  resolveMessageEditorPointerAutoScrollDelta,
+} from "./runtime/messageEditorPointerSelectionSession";
 import { createMessageEditorRegistry } from "./runtime/messageEditorRegistry";
 import {
-
-  createMessageEditorDocumentSelection,
+  createMessageEditorDocumentSelectionFromDocument,
   createMessageEditorSelection,
+  createMessageEditorSelectionDocument,
+  createMessageEditorSelectionFromDocument,
+  createMessageEditorSelectionRenderLookup,
   getAdjacentMessageEditorDocumentBlockPoint,
   getAdjacentMessageEditorTextBlockPoint,
   getMessageEditorSelectionText,
@@ -84,6 +128,8 @@ import {
   resolveMessageEditorSelectionFromRange,
   restoreMessageEditorSelection,
 } from "./runtime/messageEditorSelection";
+
+// ==== Props 与局部编排类型 ====
 
 type MessageEditorProps = {
   className?: string;
@@ -97,34 +143,12 @@ type MessageEditorProps = {
   readOnly?: boolean;
   remotePatchSourceSurface?: MessageEditorRemotePatchSourceSurface;
   spaceId?: number;
-  tcHeader?: {
-    enabled?: boolean;
-    fallbackTitle?: string;
-    fallbackImageUrl?: string;
-    fallbackImageFileId?: number;
-    fallbackOriginalImageFileId?: number;
-    fallbackImageMediaType?: string;
-  };
+  tcHeader?: MessageEditorTcHeader;
   title?: string;
   workspaceId?: string;
 }
 
-type SaveState = "idle" | "saving" | "saved" | "error";
-type MessageEditorRemotePatchSourceSurface = "doc_view" | "message_editor";
 const ROOM_DOC_REMOTE_CHANGE_TOAST_ID = "room-doc-remote-change";
-
-type MessageEditorHistoryFocus = {
-  blockId: string;
-  caret: number;
-}
-
-type MessageEditorHistoryEntry = {
-  focus: MessageEditorHistoryFocus | null;
-  messages: MessageEditorMessage[];
-  serialized: string;
-}
-
-type MessageEditorHistoryKind = "default" | "typing";
 
 type MessageEditorDragState = {
   draggedBlockId: string;
@@ -155,289 +179,47 @@ type MessageEditorSpeakerAvatarMenuState = {
   roleLabel: string;
 }
 
-const MESSAGE_EDITOR_SLASH_ITEMS: MessageEditorSlashMenuItem[] = [
-  { kind: "paragraph", keyword: "text", label: "正文", description: "普通文本段落" },
-  { kind: "heading1", keyword: "h1", label: "大标题", description: "插入 # 标题" },
-  { kind: "heading2", keyword: "h2", label: "中标题", description: "插入 ## 标题" },
-  { kind: "heading3", keyword: "h3", label: "小标题", description: "插入 ### 标题" },
-  { kind: "bulletedList", keyword: "list", label: "列表", description: "插入 - 列表项" },
-  { kind: "numberedList", keyword: "ol", label: "编号", description: "插入 1. 列表项" },
-  { kind: "quote", keyword: "quote", label: "引用", description: "插入 > 引用" },
-  { kind: "intro", keyword: "intro", label: "黑幕", description: "黑底文字块" },
-  { kind: "image", keyword: "image", label: "图片", description: "插入图片消息块" },
-  { kind: "file", keyword: "file", label: "文件", description: "插入文件消息块" },
-  { kind: "audio", keyword: "audio", label: "音频", description: "插入音频消息块" },
-  { kind: "video", keyword: "video", label: "视频", description: "插入视频消息块" },
-  { kind: "dice", keyword: "dice", label: "骰子", description: "插入骰子结果块" },
-  { kind: "choose", keyword: "choose", label: "选择", description: "插入 WebGAL 选项块" },
-];
+type MessageEditorFocusRestore = {
+  blockId?: string;
+  caret?: number;
+  selection?: MessageEditorSelection;
+}
 
-const MESSAGE_EDITOR_HISTORY_LIMIT = 100;
-const MESSAGE_EDITOR_TYPING_HISTORY_INTERVAL_MS = 1000;
-const MESSAGE_EDITOR_REMOTE_SYNC_DELAY_MS = 10000;
-const MESSAGE_EDITOR_CONTENT_WIDTH_CLASS = "mx-auto w-full max-w-4xl";
-const MESSAGE_EDITOR_BLOCK_GUTTER_CLASS = "pl-6";
-const MESSAGE_EDITOR_SPEAKER_HANDLE_CLASS = [
-  "absolute z-30 inline-flex cursor-grab transition-opacity duration-150 active:cursor-grabbing",
-  "opacity-100",
-].join(" ");
+export function shouldKeepMessageEditorFocusRestore(
+  restore: MessageEditorFocusRestore | null,
+  focusedBlockId: string,
+) {
+  const restoreBlockId = restore?.selection?.focus.blockId ?? restore?.blockId ?? null;
+  return restoreBlockId === focusedBlockId;
+}
+
+// ==== 公共 helper 与远端持久化桥接 ====
 
 export function isMessageEditorImportablePasteText(text: string): boolean {
   return parseImportedChatText(text).messages.length > 0;
 }
 
-export function getMessageEditorPatchMutationMeta(sourceSurface: MessageEditorRemotePatchSourceSurface = "message_editor") {
-  return {
-    operationCause: "normal",
-    sourceSurface,
-  };
-}
+export { extractMessageEditorSlashQuery } from "./model/messageEditorSlash";
 
-function hasMeaningfulMessageEditorContent(messages: MessageEditorMessage[]): boolean {
-  return ensureMessageEditorMessages(messages).some((message) => {
-    if (message.messageType !== MESSAGE_TYPE.TEXT && message.messageType !== MESSAGE_TYPE.INTRO_TEXT) {
-      return true;
-    }
-    return normalizeMessageEditorContent(message.content).trim().length > 0;
-  });
-}
-
-function getMessageEditorSnapshotFingerprint(messages: MessageEditorMessage[]): string {
-  return stableSerializeMessageEditorValue(ensureMessageEditorMessages(messages));
-}
-
-type RuntimeMessageLike = MessageEditorMessage & Partial<Message>;
-
-type RuntimeMessageIdState = "new" | "optimistic" | "persisted";
-
-function isRuntimeOptimisticMessage(message: MessageEditorMessage): boolean {
-  const value = (message as RuntimeMessageLike).tcLocalSyncState;
-  if (value === "optimistic") {
-    return true;
-  }
-  const runtimeMessageId = (message as RuntimeMessageLike).messageId;
-  return typeof runtimeMessageId === "number" && Number.isFinite(runtimeMessageId) && runtimeMessageId < 0;
-}
-
-function getRuntimeMessageIdState(message: MessageEditorMessage): RuntimeMessageIdState {
-  if (isRuntimeOptimisticMessage(message)) {
-    return "optimistic";
-  }
-  const value = (message as RuntimeMessageLike).messageId;
-  if (typeof value !== "number" || !Number.isFinite(value) || value === 0) {
-    return "new";
-  }
-  return "persisted";
-}
-
-function getRuntimeMessageId(message: MessageEditorMessage): number | undefined {
-  const value = (message as RuntimeMessageLike).messageId;
-  return getRuntimeMessageIdState(message) === "persisted" ? value : undefined;
-}
-
-function getRuntimePosition(message: MessageEditorMessage, fallback: number): number {
-  const value = (message as RuntimeMessageLike).position;
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-function stableSerializeMessageEditorValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "null";
-  }
-  if (typeof value === "string") {
-    return JSON.stringify(value);
-  }
-  if (typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-  if (Array.isArray(value)) {
-    return `[${value.map(item => stableSerializeMessageEditorValue(item)).join(",")}]`;
-  }
-  if (typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    return `{${Object.keys(record).sort().map(key => `${JSON.stringify(key)}:${stableSerializeMessageEditorValue(record[key])}`).join(",")}}`;
-  }
-  return JSON.stringify(String(value));
-}
-
-function serializeMessageEditorPatchContent(message: MessageEditorMessage): string {
-  return stableSerializeMessageEditorValue({
-    annotations: message.annotations ?? null,
-    avatarId: message.avatarId ?? null,
-    content: message.content ?? "",
-    customRoleName: message.customRoleName ?? null,
-    extra: message.extra ?? null,
-    messageType: message.messageType ?? MESSAGE_TYPE.TEXT,
-    roleId: message.roleId ?? null,
-    webgal: message.webgal ?? null,
-  });
-}
-
-function toPatchOptimisticMessageInput(message: MessageEditorMessage): Partial<Message> & { clientId: string } {
-  const runtime = message as RuntimeMessageLike;
-  return {
-    clientId: getMessageEditorBlockId(message),
-    ...(typeof runtime.messageId === "number" && Number.isFinite(runtime.messageId) ? { messageId: runtime.messageId } : {}),
-    ...(typeof runtime.syncId === "number" && Number.isFinite(runtime.syncId) ? { syncId: runtime.syncId } : {}),
-    ...(typeof runtime.roomId === "number" && Number.isFinite(runtime.roomId) ? { roomId: runtime.roomId } : {}),
-    ...(typeof runtime.userId === "number" && Number.isFinite(runtime.userId) ? { userId: runtime.userId } : {}),
-    ...(typeof message.roleId === "number" ? { roleId: message.roleId } : {}),
-    content: normalizeMessageEditorContent(message.content),
-    ...(typeof message.customRoleName === "string" ? { customRoleName: message.customRoleName } : {}),
-    ...(Array.isArray(message.annotations) ? { annotations: message.annotations } : {}),
-    ...(typeof message.avatarId === "number" ? { avatarId: message.avatarId } : {}),
-    ...(message.webgal ? { webgal: message.webgal } : {}),
-    ...(typeof message.replyMessageId === "number" ? { replyMessageId: message.replyMessageId } : {}),
-    ...(typeof runtime.status === "number" && Number.isFinite(runtime.status) ? { status: runtime.status } : {}),
-    messageType: message.messageType ?? MESSAGE_TYPE.TEXT,
-    position: getRuntimePosition(message, 1),
-    ...(message.extra ? { extra: message.extra as Message["extra"] } : {}),
-    ...(typeof runtime.createTime === "string" ? { createTime: runtime.createTime } : {}),
-    ...(typeof runtime.updateTime === "string" ? { updateTime: runtime.updateTime } : {}),
-  };
-}
-
-export function buildRoomMessagePatchOperations(
-  baselineMessages: MessageEditorMessage[],
-  nextMessages: MessageEditorMessage[],
-): RoomMessageStreamPatchOperation[] {
-  const baselineById = new Map<number, MessageEditorMessage>();
-  ensureMessageEditorMessages(baselineMessages).forEach((message) => {
-    const messageId = getRuntimeMessageId(message);
-    if (messageId !== undefined) {
-      baselineById.set(messageId, message);
-    }
-  });
-
-  const seenIds = new Set<number>();
-  const operations: RoomMessageStreamPatchOperation[] = [];
-  ensureMessageEditorMessages(nextMessages).forEach((message, index) => {
-    const messageIdState = getRuntimeMessageIdState(message);
-    const messageId = getRuntimeMessageId(message);
-    const position = getRuntimePosition(message, index + 1);
-    if (messageIdState === "optimistic") {
-      // 本地乐观消息还没真正进云端，文档 patch 只处理已确认的消息。
-      return;
-    }
-    if (messageIdState === "new") {
-      operations.push({
-        op: "insert",
-        clientId: getMessageEditorBlockId(message),
-        message: {
-          ...message,
-          position,
-        },
-        position,
-      });
-      return;
-    }
-    if (messageId === undefined) {
-      return;
-    }
-
-    seenIds.add(messageId);
-    const baseline = baselineById.get(messageId);
-    if (!baseline) {
-      operations.push({
-        op: "insert",
-        clientId: getMessageEditorBlockId(message),
-        message: {
-          ...message,
-          position,
-        },
-        position,
-      });
-      return;
-    }
-
-    const contentChanged = serializeMessageEditorPatchContent(baseline) !== serializeMessageEditorPatchContent(message);
-    const positionChanged = getRuntimePosition(baseline, index + 1) !== position;
-    if (contentChanged) {
-      operations.push({
-        op: "update",
-        messageId,
-        message: {
-          ...message,
-          position,
-        },
-        position,
-      });
-      return;
-    }
-    if (positionChanged) {
-      operations.push({
-        op: "move",
-        messageId,
-        position,
-      });
-    }
-  });
-
-  for (const messageId of baselineById.keys()) {
-    if (!seenIds.has(messageId)) {
-      operations.push({
-        op: "delete",
-        messageId,
-      });
-    }
-  }
-
-  return operations;
-}
-
-export function mergeChangedRoomMessagesIntoEditorMessages(params: {
-  changedMessages: Message[];
-  currentMessages: MessageEditorMessage[];
-  operations: RoomMessageStreamPatchOperation[];
-}): MessageEditorMessage[] {
-  const insertedByClientId = new Map<string, Message>();
-  const changedByMessageId = new Map<number, Message>();
-  const deletedMessageIds = new Set<number>();
-  params.operations.forEach((operation, index) => {
-    const changedMessage = params.changedMessages[index];
-    if (!changedMessage) {
-      return;
-    }
-    if (operation.op === "insert" && operation.clientId) {
-      insertedByClientId.set(operation.clientId, changedMessage);
-      return;
-    }
-    if (typeof operation.messageId !== "number") {
-      return;
-    }
-    if (operation.op === "delete") {
-      deletedMessageIds.add(operation.messageId);
-      return;
-    }
-    changedByMessageId.set(operation.messageId, changedMessage);
-  });
-
-  const merged = params.currentMessages
-    .filter(message => !deletedMessageIds.has(getRuntimeMessageId(message) ?? Number.NaN))
-    .map((message) => {
-      const blockId = getMessageEditorBlockId(message);
-      const runtimeMessageId = getRuntimeMessageId(message);
-      const changedMessage = insertedByClientId.get(blockId)
-        ?? (runtimeMessageId !== undefined ? changedByMessageId.get(runtimeMessageId) : undefined);
-      if (!changedMessage) {
-        return message;
-      }
-      Object.assign(message, changedMessage);
-      return message;
-    });
-
-  return merged;
-}
-const MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS = "px-8 md:px-10";
-const MESSAGE_EDITOR_DEFAULT_FRAME_CLASS = "h-[80vh] min-h-0 rounded-md";
-const MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS = "relative min-h-0 flex-1 overflow-auto";
-const MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS = "mb-2";
-const MESSAGE_EDITOR_COMMAND_MENU_LAYER_CLASS = "absolute left-3 right-0 top-full z-50 mt-2";
-const MESSAGE_EDITOR_POINTER_SCROLL_EDGE_PX = 72;
-const MESSAGE_EDITOR_POINTER_SCROLL_MAX_DELTA_PX = 28;
+export {
+  buildRoomMessagePatchOperations,
+  getMessageEditorPatchMutationMeta,
+  mergeChangedRoomMessagesIntoEditorMessages,
+};
+// ==== 文本规范化与布局 class helper ====
 
 function normalizeEditableText(value: string) {
   return value.replace(/\r\n?/g, "\n").replace(/\u00A0/g, " ");
+}
+
+function useMessageEditorEventCallback<Args extends unknown[], Result>(
+  callback: (...args: Args) => Result,
+) {
+  const callbackRef = useRef(callback);
+  useLayoutEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+  return useCallback((...args: Args) => callbackRef.current(...args), []);
 }
 
 /**
@@ -465,7 +247,7 @@ export function getMessageEditorSlashMenuLayerClassName() {
 
 /**
  * 解析文字块外壳类名。
- * 连续文字块之间额外留 4px，区分块间分隔和块内 leading-7 产生的自然换行。
+ * 连续文字块之间的间距放在被测量 item 内，避免 Virtuoso 忽略外边距。
  */
 export function getMessageEditorTextBlockShellClassName(options: {
   hasFollowingTextBlock: boolean;
@@ -478,35 +260,22 @@ export function getMessageEditorTextBlockShellClassName(options: {
   ].join(" ");
 }
 
-export function resolveMessageEditorPointerAutoScrollDelta(params: {
-  clientY: number;
-  edgeSize?: number;
-  maxDelta?: number;
-  viewportBottom: number;
-  viewportTop: number;
+function getMessageEditorAtomicBlockShellClassName(options: {
+  isActive: boolean;
+  isDragging: boolean;
+  isSelected: boolean;
+  readOnly: boolean;
 }) {
-  const viewportHeight = params.viewportBottom - params.viewportTop;
-  if (viewportHeight <= 0) {
-    return 0;
-  }
-
-  const edgeSize = Math.max(1, Math.min(params.edgeSize ?? MESSAGE_EDITOR_POINTER_SCROLL_EDGE_PX, viewportHeight / 2));
-  const maxDelta = Math.max(1, params.maxDelta ?? MESSAGE_EDITOR_POINTER_SCROLL_MAX_DELTA_PX);
-  const topDistance = params.clientY - params.viewportTop;
-  if (topDistance < edgeSize) {
-    const intensity = Math.min(1, Math.max(0, (edgeSize - topDistance) / edgeSize));
-    return -Math.ceil(intensity * maxDelta);
-  }
-
-  const bottomDistance = params.viewportBottom - params.clientY;
-  if (bottomDistance < edgeSize) {
-    const intensity = Math.min(1, Math.max(0, (edgeSize - bottomDistance) / edgeSize));
-    return Math.ceil(intensity * maxDelta);
-  }
-
-  return 0;
+  return [
+    `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} py-1 transition`,
+    options.isDragging ? "bg-base-100/80 ring-1 ring-base-300/80" : "",
+    options.isSelected
+      ? "bg-info/10 ring-1 ring-info/80"
+      : options.isActive && !options.readOnly ? "bg-base-200/20" : "",
+  ].join(" ");
 }
 
+export { resolveMessageEditorPointerAutoScrollDelta };
 function isSelectionAtStart(range: Range, blockElement: HTMLElement) {
   const selectionText = normalizeEditableText(range.toString());
   const prefixRange = document.createRange();
@@ -522,41 +291,6 @@ function isSelectionAtEnd(range: Range, blockElement: HTMLElement) {
   return suffixRange.toString().length === 0 && normalizeEditableText(range.toString()).length === 0;
 }
 
-export function extractMessageEditorSlashQuery(value: string): string | null {
-  const normalized = value.replace(/\r\n?/g, "\n");
-  let lineStart = 0;
-
-  // 允许在同一个块的任意一行输入 / 触发块菜单。
-  while (lineStart <= normalized.length) {
-    const lineEnd = normalized.indexOf("\n", lineStart);
-    const rawLine = lineEnd >= 0 ? normalized.slice(lineStart, lineEnd) : normalized.slice(lineStart);
-    const trimmedLine = rawLine.trimStart();
-    const match = trimmedLine.match(/^\/\s*(\S*)$/);
-    if (match) {
-      return match[1].toLowerCase();
-    }
-
-    if (lineEnd < 0) {
-      break;
-    }
-    lineStart = lineEnd + 1;
-  }
-
-  return null;
-}
-
-function parseWholeTextEnhanceReplacement(replacement: string, selectedText: string): string | null {
-  if (!selectedText) {
-    return null;
-  }
-
-  const prefix = `[${selectedText}](`;
-  if (!replacement.startsWith(prefix) || !replacement.endsWith(")")) {
-    return null;
-  }
-
-  return replacement.slice(prefix.length, -1);
-}
 
 function MessageEditorFloatingCommandMenu({ children }: { children: ReactNode }) {
   return (
@@ -570,6 +304,8 @@ function MessageEditorFloatingCommandMenu({ children }: { children: ReactNode })
  * 判断文档级点击是否应被视为编辑器外部点击。
  * 工具栏内部的 SVG / Path 等元素同样需要被识别为“内部”，否则会误触发清理逻辑。
  */
+// ==== DOM 事件守卫 ====
+
 type MessageEditorSelectionEventElementLike = {
   closest?: (selector: string) => MessageEditorSelectionEventElementLike | null;
   parentElement?: MessageEditorSelectionEventElementLike | null;
@@ -661,6 +397,8 @@ function resolveUndoRedoShortcut(event: Pick<KeyboardEvent | React.KeyboardEvent
 /**
  * 基于 message-stream 的线性文档编辑器。
  */
+// ==== MessageEditor 中心编排器 ====
+
 export default function MessageEditor({
   className,
   coverUrl,
@@ -677,9 +415,18 @@ export default function MessageEditor({
   workspaceId,
 }: MessageEditorProps) {
   const roomContext = use(RoomContext);
+
+  /**
+   * 状态拓扑：
+   * - messages 是渲染源，messagesRef 是事件回调和控制器读取的同步镜像。
+   * - actions 声明用户心智级编辑意图，所有事务都经 commitEditorTransaction 写入文档、历史与 dirty 标记。
+   * - historyManagerRef 封装 undo / redo / typing merge 规则，避免历史栈 invariant 散落在 React refs 中。
+   * - activeBlockId、crossBlockSelection、restoreSelectionRef 构成焦点层，低层由 applyFocusTarget 提交，高层由 activate* command 编排。
+   * - useMessageEditorMessageMutations 统一提交消息事务，并封装 dirty、批处理、乐观更新和持久化对账。
+   */
+
+  // ==== 文档身份与初始来源 ====
   const frameClassName = getMessageEditorFrameClassName(className);
-  const resolvedTitle = title?.trim() || tcHeader?.fallbackTitle?.trim() || "消息";
-  const resolvedCoverUrl = coverUrl || tcHeader?.fallbackImageUrl || "";
   const resolvedDocId = docId?.trim() || undefined;
   const resolvedSpaceId = typeof spaceId === "number" && Number.isFinite(spaceId) && spaceId > 0 ? spaceId : undefined;
   const resolvedWorkspaceId = workspaceId?.trim() || undefined;
@@ -693,33 +440,26 @@ export default function MessageEditor({
     && resolvedSpaceId
     && (!resolvedWorkspaceId || resolvedWorkspaceId.startsWith("space:")),
   );
+  const shouldUseLocalSnapshot = Boolean(resolvedDocId && !isRoomDocument);
   const initialEditorMessages = useMemo(
-    () => normalizedInitialMessages,
-    [normalizedInitialMessages],
+    () => isRoomDocument ? normalizedInitialMessages : ensureMessageEditorMessages([]),
+    [isRoomDocument, normalizedInitialMessages],
   );
+  // ==== Runtime refs 与 DOM registry ====
   const editorRootRef = useRef<HTMLDivElement | null>(null);
   const blockRefsRef = useRef(new Map<string, HTMLDivElement>());
   const blockShellRefsRef = useRef(new Map<string, HTMLDivElement>());
-  const messagesRef = useRef<MessageEditorMessage[]>(initialEditorMessages);
-  const controllerRef = useRef<MessageEditorController | null>(null);
+  const blockSlotRefsRef = useRef(new Map<string, HTMLDivElement>());
+  const virtualizedBlockListRef = useRef<MessageEditorVirtualizedBlockListHandle | null>(null);
+  const actionsRef = useRef<MessageEditorActions | null>(null);
   const textStyleInputRef = useRef<ChatInputAreaHandle | null>(null);
-  const undoStackRef = useRef<MessageEditorHistoryEntry[]>([]);
-  const redoStackRef = useRef<MessageEditorHistoryEntry[]>([]);
-  const typingHistoryRef = useRef<{
-    baseSerialized: string;
-    blockId: string;
-    lastAt: number;
-  } | null>(null);
+  const historyManagerRef = useRef(new MessageEditorHistoryManager());
   const uploadUtils = useMemo(() => new UploadUtils(), []);
-  const restoreSelectionRef = useRef<{
-    blockId?: string;
-    caret?: number;
-    selection?: ReturnType<typeof createMessageEditorSelection>;
-  } | null>(null);
-  const pointerSelectionCleanupRef = useRef<(() => void) | null>(null);
-  const pointerSelectionRef = useRef<MessageEditorSelection | null>(null);
-  const pointerSelectionPositionRef = useRef<{ x: number; y: number } | null>(null);
-  const [messages, setMessages] = useState<MessageEditorMessage[]>(() => initialEditorMessages);
+  const restoreSelectionRef = useRef<MessageEditorFocusRestore | null>(null);
+  const pointerSelectionSessionRef = useRef<MessageEditorPointerSelectionSession | null>(null);
+  const blockDragSessionRef = useRef<MessageEditorBlockDragSession | null>(null);
+  const headerVisibilityMarkerRef = useRef<HTMLDivElement | null>(null);
+  // ==== React 交互状态 ====
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [crossBlockSelection, setCrossBlockSelection] = useState<{
     position: { x: number; y: number };
@@ -735,19 +475,17 @@ export default function MessageEditor({
   const [speakerAvatarMenuState, setSpeakerAvatarMenuState] = useState<MessageEditorSpeakerAvatarMenuState | null>(null);
   const [speakerAvatarSelectionIndex, setSpeakerAvatarSelectionIndex] = useState(0);
   const [speakerAvatarSearchQuery, setSpeakerAvatarSearchQuery] = useState("");
-  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [editorScrollRoot, setEditorScrollRoot] = useState<HTMLDivElement | null>(null);
+  const [showFloatingHeader, setShowFloatingHeader] = useState(false);
+  const [composingBlockId, setComposingBlockId] = useState<string | null>(null);
   const [ready, setReady] = useState(!resolvedDocId || isRoomDocument);
+  // ==== Runtime 单例与加载镜像 ====
   const registry = useMemo(() => createMessageEditorRegistry(), []);
-  const eventBus = useMemo(() => new MessageEditorEventBus(), []);
-  const lastSavedSerializedRef = useRef(isRoomDocument ? getMessageEditorSnapshotFingerprint(initialEditorMessages) : "");
-  const saveGenerationRef = useRef(0);
-  const activeRemoteSaveGenerationRef = useRef<number | null>(null);
-  const dirtySinceLoadRef = useRef(false);
   const initialMessagesSeedRef = useRef(normalizedInitialMessages);
   const incomingRoomMessagesFingerprintRef = useRef(getMessageEditorSnapshotFingerprint(initialEditorMessages));
   const loadSeedKeyRef = useRef<string | null>(null);
-  const baselineMessagesRef = useRef<MessageEditorMessage[]>(isRoomDocument ? initialEditorMessages : []);
 
+  // ==== 加载 seed ====
   useEffect(() => {
     const loadSeedKey = `${resolvedDocId ?? ""}|${isRoomDocument ? "room" : "local"}`;
     if (loadSeedKeyRef.current !== loadSeedKey) {
@@ -757,104 +495,86 @@ export default function MessageEditor({
   }, [isRoomDocument, normalizedInitialMessages, resolvedDocId]);
 
   useEffect(() => {
-    if (!ready || !resolvedDocId || !isRoomDocument) {
+    const root = editorScrollRoot;
+    const marker = headerVisibilityMarkerRef.current;
+    if (!root || !marker) {
+      setShowFloatingHeader(false);
       return;
     }
 
-    const nextMessages = mergeMessageEditorMediaLayouts(
-      ensureMessageEditorMessages(normalizedInitialMessages),
-      messagesRef.current,
-    );
-    const nextFingerprint = getMessageEditorSnapshotFingerprint(nextMessages);
-    if (nextFingerprint === incomingRoomMessagesFingerprintRef.current) {
-      return;
-    }
-    incomingRoomMessagesFingerprintRef.current = nextFingerprint;
+    const commitVisibility = (isIntersecting: boolean, markerTop: number, viewportTop: number) => {
+      const nextVisible = shouldShowMessageEditorFloatingHeader({
+        isIntersecting,
+        markerTop,
+        viewportTop,
+      });
+      setShowFloatingHeader(previous => previous === nextVisible ? previous : nextVisible);
+    };
+    const measureVisibility = () => {
+      const markerRect = marker.getBoundingClientRect();
+      const viewportRect = root.getBoundingClientRect();
+      commitVisibility(
+        markerRect.bottom >= viewportRect.top && markerRect.top <= viewportRect.bottom,
+        markerRect.top,
+        viewportRect.top,
+      );
+    };
 
-    if (dirtySinceLoadRef.current) {
-      // 文档自动保存会回写房间消息流；这类自发回流不应提示为外部变更。
-      if (activeRemoteSaveGenerationRef.current !== null) {
+    measureVisibility();
+    const view = marker.ownerDocument.defaultView;
+    const ViewIntersectionObserver = view?.IntersectionObserver;
+    if (typeof ViewIntersectionObserver !== "function") {
+      root.addEventListener("scroll", measureVisibility, { passive: true });
+      view?.addEventListener("resize", measureVisibility);
+      return () => {
+        root.removeEventListener("scroll", measureVisibility);
+        view?.removeEventListener("resize", measureVisibility);
+      };
+    }
+
+    const observer = new ViewIntersectionObserver((entries) => {
+      const entry = entries.at(-1);
+      if (!entry) {
         return;
       }
-      appToast.info("房间里有新的消息变更，保存后会同步到当前文档视图", {
-        id: ROOM_DOC_REMOTE_CHANGE_TOAST_ID,
-      });
-      return;
-    }
-
-    const currentFingerprint = getMessageEditorSnapshotFingerprint(messagesRef.current);
-    if (currentFingerprint === nextFingerprint) {
-      return;
-    }
-
-    // 未编辑时可以直接接受房间消息的 WebSocket 增量；正在编辑时只提醒，不自动合并。
-    baselineMessagesRef.current = nextMessages;
-    messagesRef.current = nextMessages;
-    lastSavedSerializedRef.current = nextFingerprint;
-    setMessages(nextMessages);
-  }, [isRoomDocument, normalizedInitialMessages, ready, resolvedDocId]);
-
-  const reconcileRemotePatchMessages = useCallback(async (
-    operations: RoomMessageStreamPatchOperation[],
-    changedMessages: Message[],
-    options: { updateState?: boolean } = {},
-  ) => {
-    if (operations.length === 0) {
-      return false;
-    }
-    if (changedMessages.length !== operations.length) {
-      throw new Error("房间消息变更响应数量不匹配");
-    }
-
-    const mergedMessages = mergeChangedRoomMessagesIntoEditorMessages({
-      changedMessages,
-      currentMessages: messagesRef.current,
-      operations,
+      commitVisibility(
+        entry.isIntersecting,
+        entry.boundingClientRect.top,
+        entry.rootBounds?.top ?? root.getBoundingClientRect().top,
+      );
+    }, {
+      root,
+      threshold: 0,
     });
-    const nextFingerprint = getMessageEditorSnapshotFingerprint(mergedMessages);
-    baselineMessagesRef.current = mergedMessages;
-    messagesRef.current = mergedMessages;
-    lastSavedSerializedRef.current = nextFingerprint;
-    dirtySinceLoadRef.current = false;
-    if (options.updateState !== false) {
-      setMessages(mergedMessages);
-    }
-    await onRemoteMessagesSaved?.(changedMessages);
-    return true;
-  }, [onRemoteMessagesSaved]);
+    observer.observe(marker);
+    return () => observer.disconnect();
+  }, [editorScrollRoot]);
 
-  const unloadFlushOptionsRef = useRef({
-    isRoomDocument,
-    onRemoteMessagesSaved,
-    readOnly,
-    reconcileRemotePatchMessages,
-    remotePatchSourceSurface,
-    resolvedDocId,
-    resolvedDocRoomId,
-  });
-
-  useEffect(() => {
-    unloadFlushOptionsRef.current = {
-      isRoomDocument,
-      onRemoteMessagesSaved,
-      readOnly,
-      reconcileRemotePatchMessages,
-      remotePatchSourceSurface,
-      resolvedDocId,
-      resolvedDocRoomId,
-    };
-  }, [isRoomDocument, onRemoteMessagesSaved, readOnly, reconcileRemotePatchMessages, remotePatchSourceSurface, resolvedDocId, resolvedDocRoomId]);
-
-  const isActiveRemoteSaveGeneration = useCallback((generation: number) => {
-    return activeRemoteSaveGenerationRef.current === generation
-      && saveGenerationRef.current === generation;
+  // ==== 核心 command 与 commit helper ====
+  const stageFocusRestore = useCallback((restore: MessageEditorFocusRestore | null) => {
+    restoreSelectionRef.current = restore;
   }, []);
 
+  const commitActiveBlock = useCallback((blockId: string | null) => {
+    setActiveBlockId(blockId);
+  }, []);
+
+  const applyFocusTarget = useCallback((target: MessageEditorFocusRestore | null) => {
+    const blockId = target?.selection?.focus.blockId ?? target?.blockId ?? null;
+    commitActiveBlock(blockId);
+    stageFocusRestore(target);
+  }, [commitActiveBlock, stageFocusRestore]);
+
   const clearCrossBlockSelection = useCallback(() => {
-    pointerSelectionRef.current = null;
-    pointerSelectionPositionRef.current = null;
     setCrossBlockSelectionPreview(null);
     setCrossBlockSelection(null);
+  }, []);
+
+  const commitCrossBlockSelectionPreview = useCallback((selection: MessageEditorSelection | null) => {
+    setCrossBlockSelectionPreview(selection);
+    if (selection) {
+      window.getSelection()?.removeAllRanges();
+    }
   }, []);
 
   const clearSpeakerAvatarMenu = useCallback(() => {
@@ -863,16 +583,78 @@ export default function MessageEditor({
     setSpeakerAvatarSearchQuery("");
   }, []);
 
-  const clearActiveBlock = useCallback(() => {
-    setActiveBlockId(null);
-    controllerRef.current?.setActiveBlock(null);
+  const openSpeakerAvatarMenu = useCallback((state: MessageEditorSpeakerAvatarMenuState, searchQuery: string) => {
+    setSpeakerAvatarMenuState(state);
+    setSpeakerAvatarSearchQuery(searchQuery);
+    setSpeakerAvatarSelectionIndex(0);
+  }, []);
+
+  const clearEditorInteractionState = useCallback(() => {
+    applyFocusTarget(null);
     clearCrossBlockSelection();
     clearSpeakerAvatarMenu();
-  }, [clearCrossBlockSelection, clearSpeakerAvatarMenu]);
+  }, [applyFocusTarget, clearCrossBlockSelection, clearSpeakerAvatarMenu]);
 
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
+  const resetSlashCommandMenu = useCallback(() => {
+    setDismissedSlashKey(null);
+    setSlashSelectionIndex(0);
+  }, []);
+
+  const clearSlashCommandDismissal = useCallback(() => {
+    setDismissedSlashKey(null);
+  }, []);
+
+  const dismissSlashCommandMenu = useCallback((slashKey: string) => {
+    setDismissedSlashKey(slashKey);
+  }, []);
+
+  const moveSlashCommandSelection = useCallback((delta: -1 | 1, itemCount: number) => {
+    setSlashSelectionIndex((previous) => {
+      return Math.max(0, Math.min(previous + delta, itemCount - 1));
+    });
+  }, []);
+
+  const resetSpeakerCommandMenu = useCallback(() => {
+    setDismissedSpeakerKey(null);
+    setSpeakerSelectionIndex(0);
+  }, []);
+
+  const clearSpeakerCommandDismissal = useCallback(() => {
+    setDismissedSpeakerKey(null);
+  }, []);
+
+  const resetSpeakerCommandSelection = useCallback(() => {
+    setSpeakerSelectionIndex(0);
+  }, []);
+
+  const dismissSpeakerCommandMenu = useCallback((commandKey: string) => {
+    setDismissedSpeakerKey(commandKey);
+  }, []);
+
+  const moveSpeakerCommandSelection = useCallback((delta: -1 | 1, itemCount: number) => {
+    setSpeakerSelectionIndex((previous) => {
+      return Math.max(0, Math.min(previous + delta, itemCount - 1));
+    });
+  }, []);
+
+  const moveSpeakerAvatarCommandSelection = useCallback((delta: -1 | 1, itemCount: number) => {
+    setSpeakerAvatarSelectionIndex((previous) => {
+      return Math.max(0, Math.min(previous + delta, Math.max(0, itemCount - 1)));
+    });
+  }, []);
+
+  const resetSpeakerAvatarCommandSelection = useCallback(() => {
+    setSpeakerAvatarSelectionIndex(0);
+  }, []);
+
+  const appendSpeakerAvatarSearchCharacter = useCallback((character: string) => {
+    setSpeakerAvatarSearchQuery(previous => `${previous}${character}`);
+    setSpeakerAvatarSelectionIndex(0);
+  }, []);
+
+  const deleteSpeakerAvatarSearchCharacter = useCallback(() => {
+    setSpeakerAvatarSearchQuery(previous => previous.slice(0, -1));
+  }, []);
 
   const resolveHistoryFocus = useCallback((sourceMessages: MessageEditorMessage[]): MessageEditorHistoryFocus | null => {
     const sourceByBlockId = new Map(ensureMessageEditorMessages(sourceMessages).map(message => [getMessageEditorBlockId(message), message] as const));
@@ -928,72 +710,90 @@ export default function MessageEditor({
     };
   }, [resolveHistoryFocus]);
 
-  const pushUndoHistoryEntry = useCallback((entry: MessageEditorHistoryEntry, historyKind: MessageEditorHistoryKind = "default") => {
-    const undoStack = undoStackRef.current;
-    if (undoStack.at(-1)?.serialized === entry.serialized) {
+  const {
+    acceptPersistedSnapshot: commitPersistedDocumentSnapshot,
+    commitTransaction: commitEditorTransaction,
+    getCurrentMessages,
+    hasDirtyChanges,
+    isRemoteSaveActive,
+    loadPersistedSnapshot,
+    messages,
+    messagesRef,
+    resetSaveState,
+    restoreSnapshot: commitDocumentSnapshot,
+    saveState,
+  } = useMessageEditorMessageMutations({
+    createHistoryEntry,
+    docId: resolvedDocId,
+    historyManager: historyManagerRef.current,
+    initialMessages: initialEditorMessages,
+    isRoomDocument,
+    onRemoteMessagesSaved,
+    readOnly,
+    ready,
+    remotePatchSourceSurface,
+    roomId: resolvedDocRoomId,
+    shouldUseLocalSnapshot,
+  });
+  const selectionDocument = useMemo(() => createMessageEditorSelectionDocument(messages), [messages]);
+  const messageByBlockId = selectionDocument.messageByBlockId;
+
+  useEffect(() => {
+    if (!ready || !resolvedDocId || !isRoomDocument) {
       return;
     }
 
-    const now = Date.now();
-    const typingHistory = typingHistoryRef.current;
-    const focusBlockId = entry.focus?.blockId;
-    if (
-      historyKind === "typing"
-      && focusBlockId
-      && typingHistory
-      && typingHistory.blockId === focusBlockId
-      && typingHistory.baseSerialized === undoStack.at(-1)?.serialized
-      && now - typingHistory.lastAt <= MESSAGE_EDITOR_TYPING_HISTORY_INTERVAL_MS
-    ) {
-      typingHistory.lastAt = now;
-      redoStackRef.current = [];
+    const nextMessages = mergeMessageEditorMediaLayouts(
+      ensureMessageEditorMessages(normalizedInitialMessages),
+      messagesRef.current,
+    );
+    const nextFingerprint = getMessageEditorSnapshotFingerprint(nextMessages);
+    if (nextFingerprint === incomingRoomMessagesFingerprintRef.current) {
+      return;
+    }
+    incomingRoomMessagesFingerprintRef.current = nextFingerprint;
+
+    if (hasDirtyChanges()) {
+      // 文档自动保存会回写房间消息流；这类自发回流不应提示为外部变更。
+      if (isRemoteSaveActive()) {
+        return;
+      }
+      appToast.info("房间里有新的消息变更，保存后会同步到当前文档视图", {
+        id: ROOM_DOC_REMOTE_CHANGE_TOAST_ID,
+      });
       return;
     }
 
-    undoStackRef.current = [...undoStack, entry].slice(-MESSAGE_EDITOR_HISTORY_LIMIT);
-    redoStackRef.current = [];
-    typingHistoryRef.current = historyKind === "typing" && focusBlockId
-      ? {
-          baseSerialized: entry.serialized,
-          blockId: focusBlockId,
-          lastAt: now,
-        }
-      : null;
-  }, []);
+    const currentFingerprint = getMessageEditorSnapshotFingerprint(messagesRef.current);
+    if (currentFingerprint === nextFingerprint) {
+      return;
+    }
+
+    // 未编辑时可以直接接受房间消息的 WebSocket 增量；正在编辑时只提醒，不自动合并。
+    commitPersistedDocumentSnapshot(nextMessages, { preserveRuntimeBlockIds: true });
+  }, [
+    commitPersistedDocumentSnapshot,
+    hasDirtyChanges,
+    isRemoteSaveActive,
+    isRoomDocument,
+    messagesRef,
+    normalizedInitialMessages,
+    ready,
+    resolvedDocId,
+  ]);
 
   const resetHistory = useCallback(() => {
-    undoStackRef.current = [];
-    redoStackRef.current = [];
-    typingHistoryRef.current = null;
-  }, []);
-
-  const setMessagesWithRef = useCallback((updater: (previous: MessageEditorMessage[]) => MessageEditorMessage[], historyKind: MessageEditorHistoryKind = "default") => {
-    setMessages((previous) => {
-      const normalizedPrevious = ensureMessageEditorMessages(previous);
-      const next = ensureMessageEditorMessages(updater(normalizedPrevious));
-      if (serializeMessageEditorMessages(normalizedPrevious) !== serializeMessageEditorMessages(next)) {
-        pushUndoHistoryEntry(createHistoryEntry(normalizedPrevious), historyKind);
-        if (ready) {
-          dirtySinceLoadRef.current = true;
-        }
-      }
-      messagesRef.current = next;
-      return next;
-    });
-  }, [createHistoryEntry, pushUndoHistoryEntry, ready]);
-
-  const getCurrentMessages = useCallback(() => {
-    return messagesRef.current;
+    historyManagerRef.current.reset();
   }, []);
 
   useEffect(() => {
-    controllerRef.current = createMessageEditorController({
-      eventBus,
+    actionsRef.current = createMessageEditorActions({
+      createHistoryEntry,
+      historyManager: historyManagerRef.current,
       registry,
       getMessages: getCurrentMessages,
-      setMessages: setMessagesWithRef,
     });
-  }, [eventBus, getCurrentMessages, registry, setMessagesWithRef]);
+  }, [createHistoryEntry, getCurrentMessages, registry]);
 
   const { savedSelectionRef, hideToolbar } = useFloatingSelectionToolbar({
     suspend: isPointerSelecting || crossBlockSelectionPreview !== null || crossBlockSelection !== null,
@@ -1011,6 +811,77 @@ export default function MessageEditor({
     }, [registry]),
   });
 
+  const clearSelectionInteractionState = useCallback(() => {
+    clearCrossBlockSelection();
+    hideToolbar();
+  }, [clearCrossBlockSelection, hideToolbar]);
+
+  const commitCrossBlockSelection = useCallback((
+    selection: MessageEditorSelection,
+    position: { x: number; y: number },
+    options: { hideToolbar?: boolean } = {},
+  ) => {
+    applyFocusTarget(null);
+    if (options.hideToolbar !== false) {
+      hideToolbar();
+    }
+    setCrossBlockSelectionPreview(null);
+    setCrossBlockSelection({
+      position,
+      selection,
+    });
+    window.getSelection()?.removeAllRanges();
+  }, [applyFocusTarget, hideToolbar]);
+
+  const commitRestoredDocumentSelection = useCallback((selection: MessageEditorSelection) => {
+    clearCrossBlockSelection();
+    applyFocusTarget({ selection });
+  }, [applyFocusTarget, clearCrossBlockSelection]);
+
+  const commitCommandFocusResult = useCallback((
+    focus: MessageEditorFocusRestore | null,
+    options: { clearWhenMissing?: boolean; hideToolbar?: boolean } = {},
+  ) => {
+    if (options.hideToolbar) {
+      hideToolbar();
+    }
+    if (focus) {
+      applyFocusTarget(focus);
+      return true;
+    }
+    if (options.clearWhenMissing) {
+      clearEditorInteractionState();
+    }
+    return false;
+  }, [applyFocusTarget, clearEditorInteractionState, hideToolbar]);
+
+  const commitSpeakerCommandResult = useCallback((blockId: string, nextContent: string) => {
+    resetSpeakerCommandMenu();
+    commitCommandFocusResult({
+      blockId,
+      caret: normalizeMessageEditorContent(nextContent).length,
+    }, { hideToolbar: true });
+  }, [commitCommandFocusResult, resetSpeakerCommandMenu]);
+
+  const commitTextInputInteraction = useCallback((blockId: string) => {
+    clearCrossBlockSelection();
+    clearSpeakerCommandDismissal();
+    if (speakerAvatarMenuState?.blockId === blockId) {
+      clearSpeakerAvatarMenu();
+    }
+  }, [clearCrossBlockSelection, clearSpeakerAvatarMenu, clearSpeakerCommandDismissal, speakerAvatarMenuState]);
+
+  const activateBlock = useCallback((blockId: string, options: { clearDismissedSlash?: boolean } = {}) => {
+    clearCrossBlockSelection();
+    if (options.clearDismissedSlash) {
+      clearSlashCommandDismissal();
+    }
+    commitActiveBlock(blockId);
+    if (!shouldKeepMessageEditorFocusRestore(restoreSelectionRef.current, blockId)) {
+      stageFocusRestore(null);
+    }
+  }, [clearCrossBlockSelection, clearSlashCommandDismissal, commitActiveBlock, stageFocusRestore]);
+
   const restorePendingSelection = useCallback(() => {
     const root = editorRootRef.current;
     const pending = restoreSelectionRef.current;
@@ -1025,18 +896,49 @@ export default function MessageEditor({
       target?.focus?.({ preventScroll: true });
     };
 
-    restoreSelectionRef.current = null;
     if (pending.selection) {
       const focusBlock = root.querySelector<HTMLElement>(`[data-me-block-id="${pending.selection.focus.blockId}"]`);
+      if (!focusBlock) {
+        const requested = virtualizedBlockListRef.current?.scrollBlockIntoView(
+          pending.selection.focus.blockId,
+          { align: "center", behavior: "auto" },
+        );
+        if (requested === false) {
+          stageFocusRestore(null);
+        }
+        return;
+      }
+
+      if (pending.selection.multiBlock) {
+        const bounds = focusBlock.getBoundingClientRect();
+        stageFocusRestore(null);
+        commitCrossBlockSelection(pending.selection, {
+          x: bounds.left + bounds.width / 2,
+          y: bounds.top,
+        }, { hideToolbar: false });
+        return;
+      }
+
       focusEditableInsideBlock(focusBlock);
       restoreMessageEditorSelection(root, pending.selection);
+      stageFocusRestore(null);
       return;
     }
 
     if (pending.blockId && typeof pending.caret === "number") {
       const focusBlock = root.querySelector<HTMLElement>(`[data-me-block-id="${pending.blockId}"]`);
+      if (!focusBlock) {
+        const requested = virtualizedBlockListRef.current?.scrollBlockIntoView(
+          pending.blockId,
+          { align: "center", behavior: "auto" },
+        );
+        if (requested === false) {
+          stageFocusRestore(null);
+        }
+        return;
+      }
       focusEditableInsideBlock(focusBlock);
-      const selection = createMessageEditorSelection(messagesRef.current, registry, {
+      const selection = createMessageEditorSelectionFromDocument(selectionDocument, registry, {
         blockId: pending.blockId,
         offset: pending.caret,
       }, {
@@ -1046,8 +948,9 @@ export default function MessageEditor({
       if (selection) {
         restoreMessageEditorSelection(root, selection);
       }
+      stageFocusRestore(null);
     }
-  }, [registry]);
+  }, [commitCrossBlockSelection, registry, selectionDocument, stageFocusRestore]);
 
   useLayoutEffect(() => {
     if (!ready) {
@@ -1058,181 +961,50 @@ export default function MessageEditor({
 
   useEffect(() => {
     let cancelled = false;
-    restoreSelectionRef.current = null;
+    stageFocusRestore(null);
     hideToolbar();
 
-    const seededInitialMessages = initialMessagesSeedRef.current;
-    const fallback = resolvedDocId
-      ? (seededInitialMessages.length > 0 ? seededInitialMessages : [createMessageEditorTextDraft()])
-      : (messagesRef.current.length > 0 ? messagesRef.current : [createMessageEditorTextDraft()]);
-    const nextMessages = ensureMessageEditorMessages(fallback);
-    const nextFingerprint = getMessageEditorSnapshotFingerprint(nextMessages);
     if (isRoomDocument) {
+      const nextMessages = ensureMessageEditorMessages(initialMessagesSeedRef.current);
+      const nextFingerprint = getMessageEditorSnapshotFingerprint(nextMessages);
       incomingRoomMessagesFingerprintRef.current = nextFingerprint;
+      resetHistory();
+      commitPersistedDocumentSnapshot(nextMessages);
+      resetSaveState();
+      setReady(true);
+      return () => {
+        cancelled = true;
+      };
     }
 
     queueMicrotask(() => {
+      if (!cancelled) {
+        setReady(false);
+      }
+    });
+
+    void (async () => {
+      await Promise.resolve();
+      const nextMessages = await loadPersistedSnapshot(initialMessagesSeedRef.current);
+
       if (cancelled) {
         return;
       }
+
       resetHistory();
-      dirtySinceLoadRef.current = false;
-      baselineMessagesRef.current = nextMessages;
-      messagesRef.current = nextMessages;
-      lastSavedSerializedRef.current = nextFingerprint;
-      setMessages(nextMessages);
-      setSaveState("idle");
+      commitPersistedDocumentSnapshot(nextMessages);
+      resetSaveState();
       setReady(true);
-    });
+    })();
 
     return () => {
       cancelled = true;
     };
-  }, [hideToolbar, isRoomDocument, resetHistory, resolvedDocId]);
+  }, [commitPersistedDocumentSnapshot, hideToolbar, isRoomDocument, loadPersistedSnapshot, resetHistory, resetSaveState, resolvedDocId, shouldUseLocalSnapshot, stageFocusRestore]);
 
-  useEffect(() => {
-    if (!ready || readOnly || !resolvedDocId || !isRoomDocument || !resolvedDocRoomId || !dirtySinceLoadRef.current) {
-      return;
-    }
-
-    const snapshotFingerprint = getMessageEditorSnapshotFingerprint(messages);
-    if (snapshotFingerprint === lastSavedSerializedRef.current) {
-      return;
-    }
-
-    if (!hasMeaningfulMessageEditorContent(messages)) {
-      console.warn("[MessageEditor] skip empty room message-stream sync to avoid clearing content");
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      const saveGeneration = saveGenerationRef.current + 1;
-      saveGenerationRef.current = saveGeneration;
-      activeRemoteSaveGenerationRef.current = saveGeneration;
-      setSaveState("saving");
-      const operations = buildRoomMessagePatchOperations(baselineMessagesRef.current, messages);
-      const persistTask = operations.length === 0
-        ? Promise.resolve()
-        : patchRemoteRoomMessageStream({
-            mutationMeta: getMessageEditorPatchMutationMeta(remotePatchSourceSurface),
-            operations,
-            roomId: resolvedDocRoomId,
-          }).then(async (changedMessages) => {
-            if (!isActiveRemoteSaveGeneration(saveGeneration)) {
-              return;
-            }
-            await reconcileRemotePatchMessages(operations, changedMessages);
-          });
-
-      void persistTask
-        .then(() => {
-          if (saveGenerationRef.current === saveGeneration) {
-            const savedBaseline = messagesRef.current;
-            lastSavedSerializedRef.current = getMessageEditorSnapshotFingerprint(savedBaseline);
-            dirtySinceLoadRef.current = false;
-            baselineMessagesRef.current = savedBaseline;
-            setSaveState("saved");
-          }
-          if (activeRemoteSaveGenerationRef.current === saveGeneration) {
-            activeRemoteSaveGenerationRef.current = null;
-          }
-        })
-        .catch((error) => {
-          console.error("[MessageEditor] persist snapshot failed", error);
-          if (saveGenerationRef.current === saveGeneration) {
-            setSaveState("error");
-          }
-          if (activeRemoteSaveGenerationRef.current === saveGeneration) {
-            activeRemoteSaveGenerationRef.current = null;
-          }
-        });
-    }, MESSAGE_EDITOR_REMOTE_SYNC_DELAY_MS);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [isActiveRemoteSaveGeneration, isRoomDocument, messages, readOnly, ready, reconcileRemotePatchMessages, remotePatchSourceSurface, resolvedDocId, resolvedDocRoomId]);
-
-  useEffect(() => {
-    return () => {
-      const {
-        isRoomDocument: currentIsRoomDocument,
-        onRemoteMessagesSaved: currentOnRemoteMessagesSaved,
-        readOnly: currentReadOnly,
-        reconcileRemotePatchMessages: currentReconcileRemotePatchMessages,
-        remotePatchSourceSurface: currentRemotePatchSourceSurface,
-        resolvedDocId: currentResolvedDocId,
-        resolvedDocRoomId: currentResolvedDocRoomId,
-      } = unloadFlushOptionsRef.current;
-
-      if (currentReadOnly || !currentResolvedDocId || !dirtySinceLoadRef.current) {
-        return;
-      }
-
-      const snapshotFingerprint = getMessageEditorSnapshotFingerprint(messagesRef.current);
-      if (snapshotFingerprint === lastSavedSerializedRef.current) {
-        return;
-      }
-
-      if (currentIsRoomDocument && currentResolvedDocRoomId && !hasMeaningfulMessageEditorContent(messagesRef.current)) {
-        console.warn("[MessageEditor] skip empty room message-stream flush to avoid clearing content");
-        return;
-      }
-
-      if (currentIsRoomDocument && currentResolvedDocRoomId) {
-        const operations = buildRoomMessagePatchOperations(baselineMessagesRef.current, messagesRef.current);
-        if (operations.length === 0) {
-          dirtySinceLoadRef.current = false;
-          baselineMessagesRef.current = messagesRef.current;
-          return;
-        }
-        const optimisticMessages = buildOptimisticRoomMessagesFromPatch({
-          baselineMessages: baselineMessagesRef.current.map(toPatchOptimisticMessageInput),
-          nextMessages: messagesRef.current.map(toPatchOptimisticMessageInput),
-          operations,
-          roomId: currentResolvedDocRoomId,
-        });
-        if (optimisticMessages.length > 0) {
-          void Promise.resolve(currentOnRemoteMessagesSaved?.(optimisticMessages)).catch((error: unknown) => {
-            console.warn("[MessageEditor] optimistic room message stream merge failed", error);
-          });
-        }
-        if (activeRemoteSaveGenerationRef.current !== null) {
-          return;
-        }
-
-        saveGenerationRef.current += 1;
-        const saveGeneration = saveGenerationRef.current;
-        activeRemoteSaveGenerationRef.current = saveGeneration;
-        lastSavedSerializedRef.current = snapshotFingerprint;
-        const persistRemote = patchRemoteRoomMessageStream({
-          mutationMeta: getMessageEditorPatchMutationMeta(currentRemotePatchSourceSurface),
-          operations,
-          roomId: currentResolvedDocRoomId,
-        }).then((changedMessages) => {
-          if (!isActiveRemoteSaveGeneration(saveGeneration)) {
-            return;
-          }
-          return currentReconcileRemotePatchMessages(operations, changedMessages, { updateState: false });
-        });
-        void persistRemote.catch((error) => {
-          console.warn("[MessageEditor] flush remote room message stream failed", error);
-        }).finally(() => {
-          if (activeRemoteSaveGenerationRef.current === saveGeneration) {
-            activeRemoteSaveGenerationRef.current = null;
-          }
-        });
-        return;
-      }
-    };
-  }, [isActiveRemoteSaveGeneration, isRoomDocument, resolvedDocId, resolvedDocRoomId]);
-
+  // ==== 选区、历史与用户 action dispatch ====
   const resolveEditorSelection = useCallback((preferSaved = false) => {
     if (crossBlockSelection?.selection) {
-      eventBus.emit("selectionChanged", {
-        blockIds: crossBlockSelection.selection.blockIds,
-        multiBlock: crossBlockSelection.selection.multiBlock,
-      });
       return crossBlockSelection.selection;
     }
 
@@ -1245,10 +1017,6 @@ export default function MessageEditor({
     if (!preferSaved && selection && selection.rangeCount > 0) {
       const resolved = resolveMessageEditorSelectionFromNative(root, messagesRef.current, registry, selection);
       if (resolved) {
-        eventBus.emit("selectionChanged", {
-          blockIds: resolved.blockIds,
-          multiBlock: resolved.multiBlock,
-        });
         return resolved;
       }
     }
@@ -1259,14 +1027,8 @@ export default function MessageEditor({
     }
 
     const resolved = resolveMessageEditorSelectionFromRange(root, messagesRef.current, registry, saved.range);
-    if (resolved) {
-      eventBus.emit("selectionChanged", {
-        blockIds: resolved.blockIds,
-        multiBlock: resolved.multiBlock,
-      });
-    }
     return resolved;
-  }, [crossBlockSelection, eventBus, registry, savedSelectionRef]);
+  }, [crossBlockSelection, registry, savedSelectionRef]);
 
   const crossBlockSelectionText = useMemo(() => {
     return crossBlockSelection
@@ -1274,31 +1036,28 @@ export default function MessageEditor({
       : "";
   }, [crossBlockSelection, messages]);
 
-  const focusTextPoint = useCallback((point: MessageEditorSelectionPoint | null) => {
+  const activateTextPoint = useCallback((point: MessageEditorSelectionPoint | null) => {
     if (!point) {
       return;
     }
 
-    clearCrossBlockSelection();
-    hideToolbar();
-    setActiveBlockId(point.blockId);
-    controllerRef.current?.setActiveBlock(point.blockId);
-    restoreSelectionRef.current = {
+    clearSelectionInteractionState();
+    applyFocusTarget({
       blockId: point.blockId,
       caret: point.offset,
-    };
+    });
     window.requestAnimationFrame(() => {
       restorePendingSelection();
     });
-  }, [clearCrossBlockSelection, hideToolbar, restorePendingSelection]);
+  }, [applyFocusTarget, clearSelectionInteractionState, restorePendingSelection]);
 
-  const showDocumentTextSelection = useCallback((selection: MessageEditorSelection | null) => {
+  const activateBlockSelection = useCallback((selection: MessageEditorSelection | null) => {
     if (!selection) {
       return;
     }
 
     if (selection.collapsed) {
-      focusTextPoint(selection.focus);
+      activateTextPoint(selection.focus);
       return;
     }
 
@@ -1307,97 +1066,162 @@ export default function MessageEditor({
       ?? blockRefsRef.current.get(selection.end.blockId)
       ?? blockShellRefsRef.current.get(selection.end.blockId);
     const bounds = focusBlock?.getBoundingClientRect();
-    setActiveBlockId(null);
-    controllerRef.current?.setActiveBlock(null);
-    hideToolbar();
-    window.getSelection()?.removeAllRanges();
-    setCrossBlockSelectionPreview(null);
-    setCrossBlockSelection({
-      position: bounds
-        ? {
-            x: bounds.left + bounds.width / 2,
-            y: bounds.top,
-          }
-        : { x: 0, y: 0 },
-      selection,
-    });
-  }, [focusTextPoint, hideToolbar]);
+    commitCrossBlockSelection(selection, bounds
+      ? {
+          x: bounds.left + bounds.width / 2,
+          y: bounds.top,
+        }
+      : { x: 0, y: 0 });
+  }, [activateTextPoint, commitCrossBlockSelection]);
 
-  const focusAfterSelectionEdit = useCallback((focus: { blockId: string; caret: number } | null) => {
-    if (!focus) {
+  const commitSelectionBoundaryCollapse = useCallback((selection: MessageEditorSelection, direction: -1 | 1) => {
+    activateTextPoint(direction < 0 ? selection.start : selection.end);
+  }, [activateTextPoint]);
+
+  const commitSelectionFocusExtension = useCallback((anchor: MessageEditorSelectionPoint, nextFocus: MessageEditorSelectionPoint | null) => {
+    if (!nextFocus) {
       return;
     }
-    focusTextPoint({
-      blockId: focus.blockId,
-      offset: focus.caret,
-    });
-  }, [focusTextPoint]);
 
-  const restoreSelectionAfterSelectionEdit = useCallback((result: MessageEditorSelectionTextResult | null) => {
+    activateBlockSelection(createMessageEditorSelectionFromDocument(selectionDocument, registry, anchor, nextFocus));
+  }, [activateBlockSelection, registry, selectionDocument]);
+
+  const applySelectionEditResult = useCallback((
+    result: MessageEditorSelectionTextResult | null,
+    options: { restoreExpandedSelection?: boolean } = {},
+  ) => {
     if (!result) {
-      return;
+      return false;
     }
 
-    const nextSelection = createMessageEditorSelection(
-      result.messages,
-      registry,
-      result.selection.start,
-      result.selection.end,
-    );
-    if (!nextSelection || nextSelection.collapsed) {
-      focusAfterSelectionEdit(result.focus);
-      return;
+    if (options.restoreExpandedSelection) {
+      const nextSelection = createMessageEditorSelection(
+        result.messages,
+        registry,
+        result.selection.start,
+        result.selection.end,
+      );
+      if (nextSelection && !nextSelection.collapsed) {
+        commitRestoredDocumentSelection(nextSelection);
+        return true;
+      }
     }
 
-    clearCrossBlockSelection();
-    setActiveBlockId(nextSelection.focus.blockId);
-    controllerRef.current?.setActiveBlock(nextSelection.focus.blockId);
-    restoreSelectionRef.current = {
-      selection: nextSelection,
-    };
-  }, [clearCrossBlockSelection, focusAfterSelectionEdit, registry]);
+    if (!result.focus) {
+      clearEditorInteractionState();
+      return true;
+    }
+
+    activateTextPoint({
+      blockId: result.focus.blockId,
+      offset: result.focus.caret,
+    });
+    return true;
+  }, [activateTextPoint, clearEditorInteractionState, commitRestoredDocumentSelection, registry]);
+
+  const executeFocusAction = useCallback((
+    action: (actions: MessageEditorActions) => MessageEditorEditTransaction<{ blockId: string; caret: number } | null> | null,
+    options: { clearWhenMissing?: boolean; hideToolbar?: boolean } = {},
+  ) => {
+    const actions = actionsRef.current;
+    const transaction = actions ? action(actions) : null;
+    const focus = transaction ? commitEditorTransaction(transaction) : null;
+    return commitCommandFocusResult(focus, options);
+  }, [commitCommandFocusResult, commitEditorTransaction]);
+
+  const executeSelectionEditAction = useCallback((
+    action: (actions: MessageEditorActions) => MessageEditorEditTransaction<MessageEditorSelectionTextResult> | null,
+    options: { restoreExpandedSelection?: boolean } = {},
+  ) => {
+    const actions = actionsRef.current;
+    const transaction = actions ? action(actions) : null;
+    const result = transaction ? commitEditorTransaction(transaction) : null;
+    return applySelectionEditResult(result, options);
+  }, [applySelectionEditResult, commitEditorTransaction]);
+
+  const executeMutationAction = useCallback((
+    action: (actions: MessageEditorActions) => MessageEditorEditTransaction<void>,
+  ) => {
+    const actions = actionsRef.current;
+    if (!actions) {
+      return false;
+    }
+    commitEditorTransaction(action(actions));
+    return true;
+  }, [commitEditorTransaction]);
+
+  const executeInsertBlockAction = useCallback((
+    action: (actions: MessageEditorActions) => MessageEditorEditTransaction<MessageEditorInsertBlockResult> | null,
+  ) => {
+    const actions = actionsRef.current;
+    const transaction = actions ? action(actions) : null;
+    const result = transaction ? commitEditorTransaction(transaction) : null;
+    if (!result) {
+      return null;
+    }
+
+    clearSelectionInteractionState();
+    commitCommandFocusResult(result.focus);
+    return result;
+  }, [clearSelectionInteractionState, commitCommandFocusResult, commitEditorTransaction]);
+
+  const commitBlockReorder = useCallback((reorder: MessageEditorDragState) => {
+    const currentMessages = ensureMessageEditorMessages(messagesRef.current);
+    const sourceIndex = currentMessages.findIndex(message => getMessageEditorBlockId(message) === reorder.draggedBlockId);
+    const targetIndex = currentMessages.findIndex(message => getMessageEditorBlockId(message) === reorder.targetBlockId);
+    if (sourceIndex < 0 || targetIndex < 0) {
+      return false;
+    }
+
+    let nextIndex = targetIndex + (reorder.position === "after" ? 1 : 0);
+    if (sourceIndex < nextIndex) {
+      nextIndex -= 1;
+    }
+
+    const didMove = executeMutationAction(actions => actions.reorderBlock(reorder.draggedBlockId, nextIndex));
+    if (!didMove) {
+      return false;
+    }
+
+    const draggedMessage = currentMessages[sourceIndex];
+    const focus = draggedMessage && registry.isTextBlock(draggedMessage)
+      ? (() => {
+          const selection = resolveEditorSelection();
+          const preferredOffset = selection && !selection.multiBlock && selection.focus.blockId === reorder.draggedBlockId
+            ? selection.focus.offset
+            : normalizeMessageEditorContent(draggedMessage.content).length;
+          return {
+            blockId: reorder.draggedBlockId,
+            caret: preferredOffset,
+          };
+        })()
+      : null;
+    commitCommandFocusResult(focus, { clearWhenMissing: true });
+    return true;
+  }, [commitCommandFocusResult, executeMutationAction, registry, resolveEditorSelection]);
 
   const restoreHistoryEntry = useCallback((entry: MessageEditorHistoryEntry) => {
-    messagesRef.current = entry.messages;
-    setMessages(entry.messages);
+    commitDocumentSnapshot(entry.messages);
     if (entry.focus) {
-      focusTextPoint({
+      activateTextPoint({
         blockId: entry.focus.blockId,
         offset: entry.focus.caret,
       });
       return;
     }
-    clearActiveBlock();
-  }, [clearActiveBlock, focusTextPoint]);
+    clearEditorInteractionState();
+  }, [activateTextPoint, clearEditorInteractionState, commitDocumentSnapshot]);
 
   const performHistoryAction = useCallback((action: "redo" | "undo") => {
-    const sourceStack = action === "undo" ? undoStackRef.current : redoStackRef.current;
-    const targetEntry = sourceStack.at(-1);
-    if (!targetEntry) {
+    const actions = actionsRef.current;
+    const transaction = action === "undo" ? actions?.undo() : actions?.redo();
+    if (!transaction) {
       return false;
     }
 
-    typingHistoryRef.current = null;
-    const currentEntry = createHistoryEntry(messagesRef.current);
-    const appendEntry = (stack: MessageEditorHistoryEntry[], entry: MessageEditorHistoryEntry) => {
-      if (stack.at(-1)?.serialized === entry.serialized) {
-        return stack;
-      }
-      return [...stack, entry].slice(-MESSAGE_EDITOR_HISTORY_LIMIT);
-    };
-
-    if (action === "undo") {
-      undoStackRef.current = sourceStack.slice(0, -1);
-      redoStackRef.current = appendEntry(redoStackRef.current, currentEntry);
-    }
-    else {
-      redoStackRef.current = sourceStack.slice(0, -1);
-      undoStackRef.current = appendEntry(undoStackRef.current, currentEntry);
-    }
-
-    restoreHistoryEntry(targetEntry);
+    restoreHistoryEntry(transaction.entry);
     return true;
-  }, [createHistoryEntry, restoreHistoryEntry]);
+  }, [restoreHistoryEntry]);
 
   const handleUndoRedoShortcut = useCallback((event: Pick<KeyboardEvent | React.KeyboardEvent, "altKey" | "ctrlKey" | "key" | "metaKey" | "preventDefault" | "shiftKey" | "stopPropagation">) => {
     const action = resolveUndoRedoShortcut(event);
@@ -1411,15 +1235,22 @@ export default function MessageEditor({
     return true;
   }, [performHistoryAction]);
 
-  const replaceDocumentSelectionText = useCallback((selection: MessageEditorSelection, replacement: string) => {
-    const result = controllerRef.current?.replaceSelectionText(selection, replacement) ?? null;
-    focusAfterSelectionEdit(result?.focus ?? null);
-  }, [focusAfterSelectionEdit]);
+  const commitSelectionTextReplacement = useCallback((selection: MessageEditorSelection, replacement: string) => {
+    executeSelectionEditAction(actions => actions.editSelection(selection, replacement));
+  }, [executeSelectionEditAction]);
 
   const replaceDocumentSelectionTextAsBlocks = useCallback((selection: MessageEditorSelection, replacement: string) => {
-    const result = controllerRef.current?.replaceSelectionTextAsBlocks(selection, replacement) ?? null;
-    focusAfterSelectionEdit(result?.focus ?? null);
-  }, [focusAfterSelectionEdit]);
+    executeSelectionEditAction(actions => actions.pasteContent(selection, replacement));
+  }, [executeSelectionEditAction]);
+
+  const commitTextBlocksReplacement = useCallback((
+    selection: MessageEditorSelection,
+    replacement: string,
+    interactionBlockId = selection.focus.blockId,
+  ) => {
+    commitTextInputInteraction(interactionBlockId);
+    replaceDocumentSelectionTextAsBlocks(selection, replacement);
+  }, [commitTextInputInteraction, replaceDocumentSelectionTextAsBlocks]);
 
   const requestImportTextPaste = useCallback((text: string, insertAsPlainText: () => void) => {
     if (!isRoomDocument || !onRequestImportTextPaste || !isMessageEditorImportablePasteText(text)) {
@@ -1435,19 +1266,15 @@ export default function MessageEditor({
       return false;
     }
 
-    if (options?.transform) {
-      const result = controllerRef.current?.transformSelectionText(selection, options.transform) ?? null;
-      restoreSelectionAfterSelectionEdit(result);
-      return Boolean(result);
-    }
-
-    const textEnhanceParams = parseWholeTextEnhanceReplacement(replacement, selectedText);
-    const result = textEnhanceParams
-      ? controllerRef.current?.transformSelectionText(selection, selectedPart => `[${selectedPart}](${textEnhanceParams})`) ?? null
-      : controllerRef.current?.replaceSelectionText(selection, replacement) ?? null;
-    restoreSelectionAfterSelectionEdit(result);
-    return Boolean(result);
-  }, [crossBlockSelection, resolveEditorSelection, restoreSelectionAfterSelectionEdit]);
+    return executeSelectionEditAction(
+      actions => actions.applyTextStyle(selection, {
+        replacement,
+        selectedText,
+        transform: options?.transform,
+      }),
+      { restoreExpandedSelection: true },
+    );
+  }, [crossBlockSelection, executeSelectionEditAction, resolveEditorSelection]);
 
   const registerBlockRef = useCallback((blockId: string, node: HTMLDivElement | null) => {
     if (node) {
@@ -1455,6 +1282,11 @@ export default function MessageEditor({
       return;
     }
     blockRefsRef.current.delete(blockId);
+  }, []);
+
+  const registerEditorRootRef = useCallback((node: HTMLDivElement | null) => {
+    editorRootRef.current = node;
+    setEditorScrollRoot(previous => previous === node ? previous : node);
   }, []);
 
   const registerBlockShellRef = useCallback((blockId: string, node: HTMLDivElement | null) => {
@@ -1465,71 +1297,39 @@ export default function MessageEditor({
     blockShellRefsRef.current.delete(blockId);
   }, []);
 
-  const speakerRoles = useMemo(() => {
-    const roleMap = new Map<number, UserRole>();
-    const roomRoles = roomContext.roomAllRoles && roomContext.roomAllRoles.length > 0
-      ? roomContext.roomAllRoles
-      : roomContext.roomRolesThatUserOwn;
-
-    for (const role of roomRoles ?? []) {
-      if (isMessageEditorSpeakerRoleCandidate(role)) {
-        roleMap.set(role.roleId, role);
-      }
+  const registerBlockSlotRef = useCallback((blockId: string, node: HTMLDivElement | null) => {
+    if (node) {
+      blockSlotRefsRef.current.set(blockId, node);
+      return;
     }
+    blockSlotRefsRef.current.delete(blockId);
+  }, []);
 
-    return [...roleMap.values()];
-  }, [roomContext.roomAllRoles, roomContext.roomRolesThatUserOwn]);
+  // ==== 命令菜单与文本输入 ====
+  const speakerRoles = useMemo(() => resolveMessageEditorSpeakerRoles({
+    roomAllRoles: roomContext.roomAllRoles,
+    roomRolesThatUserOwn: roomContext.roomRolesThatUserOwn,
+  }), [roomContext.roomAllRoles, roomContext.roomRolesThatUserOwn]);
 
   const activeTextMessage = useMemo(() => {
     if (!activeBlockId) {
       return null;
     }
-    const message = messages.find(item => getMessageEditorBlockId(item) === activeBlockId);
+    const message = messageByBlockId.get(activeBlockId);
     return message && registry.isTextBlock(message) ? message : null;
-  }, [activeBlockId, messages, registry]);
+  }, [activeBlockId, messageByBlockId, registry]);
 
   const slashMenuState = useMemo(() => {
-    if (readOnly || !activeBlockId) {
-      return null;
-    }
-
     if (!activeTextMessage) {
       return null;
     }
 
-    if (extractMessageEditorSpeakerCommandMatch(normalizeMessageEditorContent(activeTextMessage.content))) {
-      // speaker 命令优先，正文里输入 / 或 @ 时不要再弹块指令菜单。
-      return null;
-    }
-
-    const query = extractMessageEditorSlashQuery(normalizeMessageEditorContent(activeTextMessage.content));
-    if (query == null) {
-      return null;
-    }
-
-    const slashKey = `${activeBlockId}:${query}`;
-    if (dismissedSlashKey === slashKey) {
-      return null;
-    }
-
-    const items = MESSAGE_EDITOR_SLASH_ITEMS.filter((item) => {
-      if (!query) {
-        return true;
-      }
-      return item.keyword.includes(query)
-        || item.label.toLowerCase().includes(query)
-        || item.description.toLowerCase().includes(query);
+    return resolveMessageEditorSlashMenuState({
+      activeBlockId,
+      content: activeTextMessage.content,
+      dismissedSlashKey,
+      readOnly,
     });
-
-    if (items.length === 0) {
-      return null;
-    }
-
-    return {
-      blockId: activeBlockId,
-      items,
-      slashKey,
-    };
   }, [activeBlockId, activeTextMessage, dismissedSlashKey, readOnly]);
 
   const speakerMenuState = useMemo<MessageEditorSpeakerMenuState | null>(() => {
@@ -1626,133 +1426,119 @@ export default function MessageEditor({
     : 0;
 
   useEffect(() => {
-    setSpeakerSelectionIndex(0);
-  }, [speakerMenuState?.commandKey]);
+    resetSpeakerCommandSelection();
+  }, [resetSpeakerCommandSelection, speakerMenuState?.commandKey]);
 
   useEffect(() => {
     if (!speakerAvatarMenuState) {
       return;
     }
 
-    setSpeakerAvatarSelectionIndex(0);
-  }, [speakerAvatarMenuState?.commandKey, speakerAvatarMenuState]);
+    resetSpeakerAvatarCommandSelection();
+  }, [resetSpeakerAvatarCommandSelection, speakerAvatarMenuState?.commandKey, speakerAvatarMenuState]);
+
+  const commitSlashCommandSelection = useCallback((state: MessageEditorSlashMenuState, kind: MessageEditorInsertableBlockKind) => {
+    resetSlashCommandMenu();
+    executeFocusAction(actions => actions.insertBlock(state.blockId, kind), {
+      clearWhenMissing: true,
+      hideToolbar: true,
+    });
+  }, [executeFocusAction, resetSlashCommandMenu]);
 
   const handleSelectSlashItem = useCallback((kind: MessageEditorInsertableBlockKind) => {
     if (!slashMenuState) {
       return;
     }
 
-    const focus = controllerRef.current?.replaceBlockWithKind(slashMenuState.blockId, kind) ?? null;
-    setDismissedSlashKey(null);
-    setSlashSelectionIndex(0);
-    hideToolbar();
+    commitSlashCommandSelection(slashMenuState, kind);
+  }, [commitSlashCommandSelection, slashMenuState]);
 
-    if (focus) {
-      setActiveBlockId(focus.blockId);
-      restoreSelectionRef.current = focus;
-      return;
+  const commitSpeakerRoleCommandSelection = useCallback((state: MessageEditorSpeakerMenuState, item: MessageEditorSpeakerMenuItem) => {
+    const blockId = state.blockId;
+    const nextContent = state.remainder;
+    if (item.kind === "clear") {
+      const didUpdate = executeMutationAction(actions => actions.assignSpeaker({
+        blockId,
+        content: nextContent,
+      }));
+      if (!didUpdate) {
+        return;
+      }
+      openSpeakerAvatarMenu({
+        blockId,
+        clearSpeaker: true,
+        commandKey: `${state.commandKey}:avatar:clear`,
+        remainder: nextContent,
+        roleId: 0,
+        roleLabel: "无",
+      }, "");
     }
-
-    clearActiveBlock();
-  }, [clearActiveBlock, hideToolbar, slashMenuState]);
+    else {
+      const didUpdate = executeMutationAction(actions => actions.assignSpeaker({
+        avatarId: item.avatarId,
+        blockId,
+        content: nextContent,
+        roleId: item.roleId,
+      }));
+      if (!didUpdate) {
+        return;
+      }
+      const { avatarQuery } = splitMessageEditorSpeakerCommandQuery(state.query);
+      openSpeakerAvatarMenu({
+        blockId,
+        commandKey: `${state.commandKey}:avatar:${item.roleId}`,
+        remainder: nextContent,
+        roleId: item.roleId,
+        roleLabel: item.label,
+      }, avatarQuery);
+    }
+    commitSpeakerCommandResult(blockId, nextContent);
+  }, [commitSpeakerCommandResult, executeMutationAction, openSpeakerAvatarMenu]);
 
   const handleSelectSpeakerItem = useCallback((item: MessageEditorSpeakerMenuItem) => {
     if (!speakerMenuState) {
       return;
     }
 
-    const blockId = speakerMenuState.blockId;
-    const nextContent = speakerMenuState.remainder;
-    if (item.kind === "clear") {
-      controllerRef.current?.updateBlock(blockId, (current) => {
-        return updateMessageEditorTextContent(current, nextContent);
-      });
-      setSpeakerAvatarMenuState({
-        blockId,
-        clearSpeaker: true,
-        commandKey: `${speakerMenuState.commandKey}:avatar:clear`,
-        remainder: nextContent,
-        roleId: 0,
-        roleLabel: "无",
-      });
-      setSpeakerAvatarSearchQuery("");
-      setSpeakerAvatarSelectionIndex(0);
-    }
-    else {
-      controllerRef.current?.updateBlock(blockId, (current) => {
-        return updateMessageEditorTextContent(setMessageEditorSpeakerMetadata(current, {
-          avatarId: item.avatarId,
-          customRoleName: undefined,
-          roleId: item.roleId,
-        }), nextContent);
-      });
-      const { avatarQuery } = splitMessageEditorSpeakerCommandQuery(speakerMenuState.query);
-      setSpeakerAvatarMenuState({
-        blockId,
-        commandKey: `${speakerMenuState.commandKey}:avatar:${item.roleId}`,
-        remainder: nextContent,
-        roleId: item.roleId,
-        roleLabel: item.label,
-      });
-      setSpeakerAvatarSearchQuery(avatarQuery);
-      setSpeakerAvatarSelectionIndex(0);
-    }
-    setDismissedSpeakerKey(null);
-    setSpeakerSelectionIndex(0);
-    hideToolbar();
-    setActiveBlockId(blockId);
-    controllerRef.current?.setActiveBlock(blockId);
-    restoreSelectionRef.current = {
+    commitSpeakerRoleCommandSelection(speakerMenuState, item);
+  }, [commitSpeakerRoleCommandSelection, speakerMenuState]);
+
+  const commitSpeakerAvatarCommandSelection = useCallback((state: MessageEditorSpeakerAvatarMenuState, item: MessageEditorSpeakerAvatarMenuItem) => {
+    const blockId = state.blockId;
+    const currentMessage = messagesRef.current.find(message => getMessageEditorBlockId(message) === blockId);
+    const didUpdate = executeMutationAction(actions => actions.selectSpeakerAvatar({
+      avatarId: item.kind === "avatar" ? item.avatarId : undefined,
       blockId,
-      caret: normalizeMessageEditorContent(nextContent).length,
-    };
-  }, [hideToolbar, speakerMenuState]);
+      clearSpeaker: Boolean(state.clearSpeaker),
+      content: state.remainder,
+      roleId: state.roleId,
+    }));
+    if (!didUpdate) {
+      return;
+    }
+    clearSpeakerAvatarMenu();
+    commitCommandFocusResult({
+      blockId,
+      caret: normalizeMessageEditorContent(currentMessage?.content ?? state.remainder).length,
+    });
+  }, [clearSpeakerAvatarMenu, commitCommandFocusResult, executeMutationAction]);
 
   const handleSelectSpeakerAvatarItem = useCallback((item: MessageEditorSpeakerAvatarMenuItem) => {
     if (!speakerAvatarMenuState) {
       return;
     }
 
-    const blockId = speakerAvatarMenuState.blockId;
-    const currentMessage = messagesRef.current.find(message => getMessageEditorBlockId(message) === blockId);
-    controllerRef.current?.updateBlock(blockId, (current) => {
-      if (item.kind === "clear") {
-        const nextMessage = setMessageEditorSpeakerMetadata(current, {
-          avatarId: undefined,
-          customRoleName: speakerAvatarMenuState.clearSpeaker ? undefined : current.customRoleName ?? undefined,
-          roleId: speakerAvatarMenuState.clearSpeaker ? undefined : current.roleId ?? speakerAvatarMenuState.roleId,
-        });
-        return speakerAvatarMenuState.clearSpeaker
-          ? updateMessageEditorTextContent(nextMessage, speakerAvatarMenuState.remainder)
-          : nextMessage;
-      }
-      return setMessageEditorSpeakerMetadata(current, {
-        avatarId: item.avatarId,
-        customRoleName: current.customRoleName ?? undefined,
-        roleId: current.roleId ?? speakerAvatarMenuState.roleId,
-      });
-    });
-    clearSpeakerAvatarMenu();
-    setActiveBlockId(blockId);
-    controllerRef.current?.setActiveBlock(blockId);
-    restoreSelectionRef.current = {
-      blockId,
-      caret: normalizeMessageEditorContent(currentMessage?.content ?? speakerAvatarMenuState.remainder).length,
-    };
-  }, [clearSpeakerAvatarMenu, speakerAvatarMenuState]);
+    commitSpeakerAvatarCommandSelection(speakerAvatarMenuState, item);
+  }, [commitSpeakerAvatarCommandSelection, speakerAvatarMenuState]);
 
   const handleTextInput = useCallback((blockId: string, nextContent: string) => {
-    clearCrossBlockSelection();
-    setDismissedSpeakerKey(null);
-    if (speakerAvatarMenuState?.blockId === blockId) {
-      clearSpeakerAvatarMenu();
-    }
-    controllerRef.current?.updateTextContent(blockId, nextContent);
-  }, [clearCrossBlockSelection, clearSpeakerAvatarMenu, speakerAvatarMenuState]);
+    commitTextInputInteraction(blockId);
+    executeMutationAction(actions => actions.inputText(blockId, nextContent));
+  }, [commitTextInputInteraction, executeMutationAction]);
 
   const handleTextBlur = useCallback(() => {
     window.setTimeout(() => {
-      if (pointerSelectionCleanupRef.current) {
+      if (pointerSelectionSessionRef.current) {
         return;
       }
       const root = editorRootRef.current;
@@ -1763,10 +1549,11 @@ export default function MessageEditor({
       if (activeElement instanceof HTMLElement && (activeElement.closest(".text-style-toolbar") || activeElement.closest(".modal"))) {
         return;
       }
-      clearActiveBlock();
+      clearEditorInteractionState();
     }, 0);
-  }, [clearActiveBlock]);
+  }, [clearEditorInteractionState]);
 
+  // ==== Pointer 选区与键盘导航 ====
   const resolveTextSelectionPointFromClientPosition = useCallback((clientX: number, clientY: number, preferredBlockId?: string): MessageEditorSelectionPoint | null => {
     const root = editorRootRef.current;
     if (!root) {
@@ -1776,14 +1563,16 @@ export default function MessageEditor({
     return resolveMessageEditorTextPointFromClientPosition({
       blockRefs: blockRefsRef.current,
       blockShellRefs: blockShellRefsRef.current,
+      blockSlotRefs: blockSlotRefsRef.current,
       clientX,
       clientY,
+      messageByBlockId,
       messages: messagesRef.current,
       preferredBlockId,
       registry,
       root,
     });
-  }, [registry]);
+  }, [messageByBlockId, registry]);
 
   const startTextPointerSelection = useCallback((
     anchor: MessageEditorSelectionPoint,
@@ -1800,147 +1589,64 @@ export default function MessageEditor({
     }
 
     event.preventDefault();
-    pointerSelectionCleanupRef.current?.();
-    clearCrossBlockSelection();
+    pointerSelectionSessionRef.current?.dispose();
+    clearSelectionInteractionState();
     setIsPointerSelecting(true);
-    hideToolbar();
 
-    const documentRef = root.ownerDocument;
-    const ownerWindow = documentRef.defaultView ?? window;
-    const startPosition = {
-      x: event.clientX,
-      y: event.clientY,
-    };
-    let autoScrollFrame: number | null = null;
-    let didDrag = false;
-    let lastPointerPosition = startPosition;
+    const session = new MessageEditorPointerSelectionSession({
+      events: {
+        onCancel() {
+          clearCrossBlockSelection();
+        },
+        onClick: activateCaret,
+        onCommit(state) {
+          commitCrossBlockSelection(state.selection, state.position);
+        },
+        onFinish() {
+          if (pointerSelectionSessionRef.current === session) {
+            pointerSelectionSessionRef.current = null;
+          }
+          setIsPointerSelecting(false);
+        },
+        onPreview(state) {
+          commitCrossBlockSelectionPreview(state?.selection ?? null);
+        },
+      },
+      resolveSelectionState(clientX, clientY) {
+        const resolvedFocus = resolveTextSelectionPointFromClientPosition(clientX, clientY);
+        if (!resolvedFocus) {
+          return undefined;
+        }
 
-    const updatePointerSelection = (clientX: number, clientY: number) => {
-      const resolvedFocus = resolveTextSelectionPointFromClientPosition(clientX, clientY);
-      if (!resolvedFocus) {
-        return;
-      }
+        const selection = createMessageEditorSelectionFromDocument(selectionDocument, registry, anchor, resolvedFocus);
+        if (!selection || selection.collapsed) {
+          return null;
+        }
 
-      const selection = createMessageEditorSelection(messagesRef.current, registry, anchor, resolvedFocus);
-      if (!selection || selection.collapsed) {
-        pointerSelectionRef.current = null;
-        pointerSelectionPositionRef.current = null;
-        setCrossBlockSelectionPreview(null);
-        return;
-      }
+        const focusBlock = blockRefsRef.current.get(selection.focus.blockId)
+          ?? blockShellRefsRef.current.get(selection.focus.blockId);
+        if (!focusBlock) {
+          return undefined;
+        }
 
-      const focusBlock = blockRefsRef.current.get(selection.focus.blockId)
-        ?? blockShellRefsRef.current.get(selection.focus.blockId);
-      if (!focusBlock) {
-        return;
-      }
-
-      const bounds = focusBlock.getBoundingClientRect();
-      const toolbarX = Math.max(bounds.left, Math.min(clientX, bounds.right));
-      pointerSelectionRef.current = selection;
-      pointerSelectionPositionRef.current = {
-        x: toolbarX,
-        y: bounds.top,
-      };
-      setCrossBlockSelectionPreview(selection);
-      window.getSelection()?.removeAllRanges();
-    };
-
-    const stopAutoScroll = () => {
-      if (autoScrollFrame == null) {
-        return;
-      }
-      ownerWindow.cancelAnimationFrame(autoScrollFrame);
-      autoScrollFrame = null;
-    };
-
-    const tickAutoScroll = () => {
-      autoScrollFrame = null;
-      if (!didDrag) {
-        return;
-      }
-
-      const viewport = root.getBoundingClientRect();
-      const delta = resolveMessageEditorPointerAutoScrollDelta({
-        clientY: lastPointerPosition.y,
-        viewportBottom: viewport.bottom,
-        viewportTop: viewport.top,
-      });
-      if (delta === 0) {
-        return;
-      }
-
-      const previousScrollTop = root.scrollTop;
-      const maxScrollTop = Math.max(0, root.scrollHeight - root.clientHeight);
-      root.scrollTop = Math.max(0, Math.min(previousScrollTop + delta, maxScrollTop));
-      if (root.scrollTop !== previousScrollTop) {
-        updatePointerSelection(lastPointerPosition.x, lastPointerPosition.y);
-      }
-      autoScrollFrame = ownerWindow.requestAnimationFrame(tickAutoScroll);
-    };
-
-    const scheduleAutoScroll = () => {
-      if (autoScrollFrame != null) {
-        return;
-      }
-      autoScrollFrame = ownerWindow.requestAnimationFrame(tickAutoScroll);
-    };
-
-    const handleDocumentMouseMove = (moveEvent: MouseEvent) => {
-      if ((moveEvent.buttons & 1) === 0) {
-        return;
-      }
-
-      lastPointerPosition = {
-        x: moveEvent.clientX,
-        y: moveEvent.clientY,
-      };
-      if (!didDrag) {
-        didDrag = Math.abs(moveEvent.clientX - startPosition.x) > 3
-          || Math.abs(moveEvent.clientY - startPosition.y) > 3;
-      }
-      if (!didDrag) {
-        return;
-      }
-
-      updatePointerSelection(moveEvent.clientX, moveEvent.clientY);
-      scheduleAutoScroll();
-    };
-
-    const cleanup = () => {
-      stopAutoScroll();
-      documentRef.removeEventListener("mousemove", handleDocumentMouseMove);
-      documentRef.removeEventListener("mouseup", handleDocumentMouseUp);
-      pointerSelectionCleanupRef.current = null;
-      setIsPointerSelecting(false);
-    };
-
-    const handleDocumentMouseUp = () => {
-      const nextSelection = pointerSelectionRef.current;
-      const nextPosition = pointerSelectionPositionRef.current;
-      cleanup();
-      if (nextSelection && nextPosition) {
-        setActiveBlockId(null);
-        controllerRef.current?.setActiveBlock(null);
-        setCrossBlockSelectionPreview(null);
-        setCrossBlockSelection({
-          position: nextPosition,
-          selection: nextSelection,
-        });
-        window.getSelection()?.removeAllRanges();
-        return;
-      }
-      if (!didDrag) {
-        activateCaret();
-        return;
-      }
-      clearCrossBlockSelection();
-    };
-
-    pointerSelectionCleanupRef.current = cleanup;
-    documentRef.addEventListener("mousemove", handleDocumentMouseMove);
-    documentRef.addEventListener("mouseup", handleDocumentMouseUp, { once: true });
-  }, [clearCrossBlockSelection, hideToolbar, readOnly, registry, resolveTextSelectionPointFromClientPosition]);
+        const bounds = focusBlock.getBoundingClientRect();
+        return {
+          position: {
+            x: Math.max(bounds.left, Math.min(clientX, bounds.right)),
+            y: bounds.top,
+          },
+          selection,
+        };
+      },
+      root,
+      startPosition: {
+        x: event.clientX,
+        y: event.clientY,
+      },
+    });
+    pointerSelectionSessionRef.current = session;
+    session.start();
+  }, [clearCrossBlockSelection, clearSelectionInteractionState, commitCrossBlockSelection, readOnly, registry, resolveTextSelectionPointFromClientPosition, selectionDocument]);
 
   const handleTextMouseDown = useCallback((blockId: string, event: React.MouseEvent<HTMLDivElement>) => {
     const anchor = resolveTextSelectionPointFromClientPosition(event.clientX, event.clientY, blockId);
@@ -1949,9 +1655,9 @@ export default function MessageEditor({
     }
 
     startTextPointerSelection(anchor, event, () => {
-      focusTextPoint(anchor);
+      activateTextPoint(anchor);
     });
-  }, [focusTextPoint, resolveTextSelectionPointFromClientPosition, startTextPointerSelection]);
+  }, [activateTextPoint, resolveTextSelectionPointFromClientPosition, startTextPointerSelection]);
 
   const handleAtomicBlockMouseDown = useCallback((blockId: string, event: React.MouseEvent<HTMLDivElement>) => {
     if (readOnly || event.button !== 0 || !shouldStartMessageEditorAtomicBlockSelection(event.target)) {
@@ -1964,12 +1670,10 @@ export default function MessageEditor({
     }
 
     startTextPointerSelection(anchor, event, () => {
-      clearCrossBlockSelection();
-      setActiveBlockId(blockId);
-      controllerRef.current?.setActiveBlock(blockId);
+      activateBlock(blockId);
     });
   }, [
-    clearCrossBlockSelection,
+    activateBlock,
     readOnly,
     resolveTextSelectionPointFromClientPosition,
     startTextPointerSelection,
@@ -2003,18 +1707,14 @@ export default function MessageEditor({
     const shouldAppendOnClick = Boolean(target.closest("[data-me-editor-bottom-space]"));
     startTextPointerSelection(anchor, event, () => {
       if (!shouldAppendOnClick) {
-        focusTextPoint(anchor);
+        activateTextPoint(anchor);
         return;
       }
-      const focus = controllerRef.current?.ensureTrailingTextBlock() ?? null;
-      if (!focus) {
-        return;
-      }
-      setActiveBlockId(focus.blockId);
-      restoreSelectionRef.current = focus;
+      executeFocusAction(actions => actions.appendParagraph());
     });
   }, [
-    focusTextPoint,
+    activateTextPoint,
+    executeFocusAction,
     readOnly,
     resolveTextSelectionPointFromClientPosition,
     startTextPointerSelection,
@@ -2022,7 +1722,8 @@ export default function MessageEditor({
 
   useEffect(() => {
     return () => {
-      pointerSelectionCleanupRef.current?.();
+      pointerSelectionSessionRef.current?.dispose();
+      pointerSelectionSessionRef.current = null;
     };
   }, []);
 
@@ -2038,7 +1739,7 @@ export default function MessageEditor({
       }
       mouseUpTimer = window.setTimeout(() => {
         mouseUpTimer = null;
-        if (pointerSelectionCleanupRef.current || isPointerSelecting || crossBlockSelection) {
+        if (pointerSelectionSessionRef.current || isPointerSelecting || crossBlockSelection) {
           return;
         }
 
@@ -2060,17 +1761,10 @@ export default function MessageEditor({
           return;
         }
 
-        setActiveBlockId(null);
-        controllerRef.current?.setActiveBlock(null);
-        setCrossBlockSelectionPreview(null);
-        setCrossBlockSelection({
-          position: {
-            x: rect.left + rect.width / 2,
-            y: rect.top,
-          },
-          selection: resolvedSelection,
-        });
-        nativeSelection.removeAllRanges();
+        commitCrossBlockSelection(resolvedSelection, {
+          x: rect.left + rect.width / 2,
+          y: rect.top,
+        }, { hideToolbar: false });
       }, 0);
     };
 
@@ -2081,7 +1775,7 @@ export default function MessageEditor({
       }
       document.removeEventListener("mouseup", handleDocumentMouseUp);
     };
-  }, [crossBlockSelection, isPointerSelecting, readOnly, registry]);
+  }, [commitCrossBlockSelection, crossBlockSelection, isPointerSelecting, readOnly, registry]);
 
   const copySelectionTextToClipboard = useCallback((selection: MessageEditorSelection) => {
     const text = getMessageEditorSelectionText(messagesRef.current, selection);
@@ -2122,10 +1816,10 @@ export default function MessageEditor({
       const selection = crossBlockSelection.selection;
       const key = event.key.toLowerCase();
       if ((event.metaKey || event.ctrlKey) && key === "a") {
-        const documentSelection = createMessageEditorDocumentSelection(messagesRef.current, registry);
+        const documentSelection = createMessageEditorDocumentSelectionFromDocument(selectionDocument, registry);
         if (documentSelection && !documentSelection.collapsed) {
           event.preventDefault();
-          showDocumentTextSelection(documentSelection);
+          activateBlockSelection(documentSelection);
         }
         return;
       }
@@ -2139,7 +1833,7 @@ export default function MessageEditor({
       if ((event.metaKey || event.ctrlKey) && key === "x") {
         event.preventDefault();
         copySelectionTextToClipboard(selection);
-        replaceDocumentSelectionText(selection, "");
+        commitSelectionTextReplacement(selection, "");
         return;
       }
 
@@ -2151,7 +1845,7 @@ export default function MessageEditor({
 
       if (event.key === "Backspace" || event.key === "Delete") {
         event.preventDefault();
-        replaceDocumentSelectionText(selection, "");
+        commitSelectionTextReplacement(selection, "");
         return;
       }
 
@@ -2159,14 +1853,12 @@ export default function MessageEditor({
         event.preventDefault();
         const direction = event.key === "ArrowLeft" ? -1 : 1;
         if (!event.shiftKey) {
-          focusTextPoint(direction < 0 ? selection.start : selection.end);
+          commitSelectionBoundaryCollapse(selection, direction);
           return;
         }
 
         const nextFocus = moveMessageEditorDocumentPointByCharacter(messagesRef.current, registry, selection.focus, direction);
-        if (nextFocus) {
-          showDocumentTextSelection(createMessageEditorSelection(messagesRef.current, registry, selection.anchor, nextFocus));
-        }
+        commitSelectionFocusExtension(selection.anchor, nextFocus);
         return;
       }
 
@@ -2174,20 +1866,18 @@ export default function MessageEditor({
         event.preventDefault();
         const direction = event.key === "ArrowUp" ? -1 : 1;
         if (!event.shiftKey) {
-          focusTextPoint(direction < 0 ? selection.start : selection.end);
+          commitSelectionBoundaryCollapse(selection, direction);
           return;
         }
 
         const nextFocus = getAdjacentMessageEditorDocumentBlockPoint(messagesRef.current, registry, selection.focus, direction, selection.focus.offset);
-        if (nextFocus) {
-          showDocumentTextSelection(createMessageEditorSelection(messagesRef.current, registry, selection.anchor, nextFocus));
-        }
+        commitSelectionFocusExtension(selection.anchor, nextFocus);
         return;
       }
 
       if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
         event.preventDefault();
-        replaceDocumentSelectionText(selection, event.key);
+        commitSelectionTextReplacement(selection, event.key);
       }
     };
 
@@ -2199,12 +1889,12 @@ export default function MessageEditor({
     clearCrossBlockSelection,
     copySelectionTextToClipboard,
     crossBlockSelection,
-    focusTextPoint,
+    activateTextPoint,
     handleUndoRedoShortcut,
     readOnly,
     registry,
-    replaceDocumentSelectionText,
-    showDocumentTextSelection,
+    commitSelectionTextReplacement,
+    activateBlockSelection,
   ]);
 
   useEffect(() => {
@@ -2229,18 +1919,18 @@ export default function MessageEditor({
       event.preventDefault();
       const normalizedText = normalizeEditableText(text);
       if (requestImportTextPaste(normalizedText, () => {
-        replaceDocumentSelectionTextAsBlocks(crossBlockSelection.selection, normalizedText);
+        commitTextBlocksReplacement(crossBlockSelection.selection, normalizedText);
       })) {
         return;
       }
-      replaceDocumentSelectionTextAsBlocks(crossBlockSelection.selection, normalizedText);
+      commitTextBlocksReplacement(crossBlockSelection.selection, normalizedText);
     };
 
     document.addEventListener("paste", handleDocumentPaste);
     return () => {
       document.removeEventListener("paste", handleDocumentPaste);
     };
-  }, [crossBlockSelection, readOnly, replaceDocumentSelectionTextAsBlocks, requestImportTextPaste]);
+  }, [commitTextBlocksReplacement, crossBlockSelection, readOnly, requestImportTextPaste]);
 
   const handleTextKeyDown = useCallback((blockId: string, event: React.KeyboardEvent<HTMLDivElement>) => {
     const root = editorRootRef.current;
@@ -2257,10 +1947,10 @@ export default function MessageEditor({
     }
 
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a") {
-      const documentSelection = createMessageEditorDocumentSelection(messagesRef.current, registry);
+      const documentSelection = createMessageEditorDocumentSelectionFromDocument(selectionDocument, registry);
       if (documentSelection && !documentSelection.collapsed) {
         event.preventDefault();
-        showDocumentTextSelection(documentSelection);
+        activateBlockSelection(documentSelection);
       }
       return;
     }
@@ -2268,15 +1958,13 @@ export default function MessageEditor({
     if (slashMenuState?.blockId === blockId) {
       if (event.key === "ArrowDown") {
         event.preventDefault();
-        setSlashSelectionIndex((previous) => {
-          return Math.min(previous + 1, slashMenuState.items.length - 1);
-        });
+        moveSlashCommandSelection(1, slashMenuState.items.length);
         return;
       }
 
       if (event.key === "ArrowUp") {
         event.preventDefault();
-        setSlashSelectionIndex(previous => Math.max(previous - 1, 0));
+        moveSlashCommandSelection(-1, slashMenuState.items.length);
         return;
       }
 
@@ -2291,7 +1979,7 @@ export default function MessageEditor({
 
       if (event.key === "Escape") {
         event.preventDefault();
-        setDismissedSlashKey(slashMenuState.slashKey);
+        dismissSlashCommandMenu(slashMenuState.slashKey);
         return;
       }
     }
@@ -2299,13 +1987,13 @@ export default function MessageEditor({
     if (speakerAvatarMenuState?.blockId === blockId) {
       if (event.key === "ArrowDown") {
         event.preventDefault();
-        setSpeakerAvatarSelectionIndex(previous => Math.min(previous + 1, Math.max(0, speakerAvatarMenuItems.length - 1)));
+        moveSpeakerAvatarCommandSelection(1, speakerAvatarMenuItems.length);
         return;
       }
 
       if (event.key === "ArrowUp") {
         event.preventDefault();
-        setSpeakerAvatarSelectionIndex(previous => Math.max(previous - 1, 0));
+        moveSpeakerAvatarCommandSelection(-1, speakerAvatarMenuItems.length);
         return;
       }
 
@@ -2326,14 +2014,13 @@ export default function MessageEditor({
 
       if (event.key === "Backspace" && !event.metaKey && !event.ctrlKey && !event.altKey) {
         event.preventDefault();
-        setSpeakerAvatarSearchQuery(previous => previous.slice(0, -1));
+        deleteSpeakerAvatarSearchCharacter();
         return;
       }
 
       if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey && event.key.length === 1) {
         event.preventDefault();
-        setSpeakerAvatarSearchQuery(previous => `${previous}${event.key}`);
-        setSpeakerAvatarSelectionIndex(0);
+        appendSpeakerAvatarSearchCharacter(event.key);
         return;
       }
 
@@ -2344,13 +2031,13 @@ export default function MessageEditor({
     if (speakerMenuState?.blockId === blockId) {
       if (event.key === "ArrowDown") {
         event.preventDefault();
-        setSpeakerSelectionIndex(previous => Math.min(previous + 1, speakerMenuState.items.length - 1));
+        moveSpeakerCommandSelection(1, speakerMenuState.items.length);
         return;
       }
 
       if (event.key === "ArrowUp") {
         event.preventDefault();
-        setSpeakerSelectionIndex(previous => Math.max(previous - 1, 0));
+        moveSpeakerCommandSelection(-1, speakerMenuState.items.length);
         return;
       }
 
@@ -2365,7 +2052,7 @@ export default function MessageEditor({
 
       if (event.key === "Escape") {
         event.preventDefault();
-        setDismissedSpeakerKey(speakerMenuState.commandKey);
+        dismissSpeakerCommandMenu(speakerMenuState.commandKey);
         return;
       }
     }
@@ -2384,8 +2071,8 @@ export default function MessageEditor({
           const nextFocus = moveMessageEditorDocumentPointByCharacter(messagesRef.current, registry, editorSelection.focus, direction);
           if (nextFocus) {
             event.preventDefault();
-            showDocumentTextSelection(createMessageEditorSelection(messagesRef.current, registry, editorSelection.anchor, nextFocus));
           }
+          commitSelectionFocusExtension(editorSelection.anchor, nextFocus);
         }
         return;
       }
@@ -2404,7 +2091,7 @@ export default function MessageEditor({
           );
           if (adjacentPoint) {
             event.preventDefault();
-            focusTextPoint(adjacentPoint);
+            activateTextPoint(adjacentPoint);
           }
         }
       }
@@ -2420,8 +2107,8 @@ export default function MessageEditor({
         const nextFocus = getAdjacentMessageEditorDocumentBlockPoint(messagesRef.current, registry, editorSelection.focus, direction, editorSelection.focus.offset);
         if (nextFocus) {
           event.preventDefault();
-          showDocumentTextSelection(createMessageEditorSelection(messagesRef.current, registry, editorSelection.anchor, nextFocus));
         }
+        commitSelectionFocusExtension(editorSelection.anchor, nextFocus);
       }
       return;
     }
@@ -2430,18 +2117,15 @@ export default function MessageEditor({
       const shouldMove = !contentIsMultiline || isSelectionAtStart(range, blockElement);
       if (shouldMove) {
         event.preventDefault();
-        const point = getAdjacentMessageEditorTextBlockPoint(messagesRef.current, registry, editorSelection.focus, -1, editorSelection.focus.offset);
-        const focus = point
-          ? {
-              blockId: point.blockId,
-              caret: point.offset,
-            }
-          : null;
-        if (focus) {
-          focusTextPoint({
-            blockId: focus.blockId,
-            offset: focus.caret,
-          });
+        const adjacentPoint = getAdjacentMessageEditorTextBlockPoint(
+          messagesRef.current,
+          registry,
+          editorSelection.focus,
+          -1,
+          editorSelection.focus.offset,
+        );
+        if (adjacentPoint) {
+          activateTextPoint(adjacentPoint);
         }
       }
       return;
@@ -2451,18 +2135,15 @@ export default function MessageEditor({
       const shouldMove = !contentIsMultiline || isSelectionAtEnd(range, blockElement);
       if (shouldMove) {
         event.preventDefault();
-        const point = getAdjacentMessageEditorTextBlockPoint(messagesRef.current, registry, editorSelection.focus, 1, editorSelection.focus.offset);
-        const focus = point
-          ? {
-              blockId: point.blockId,
-              caret: point.offset,
-            }
-          : null;
-        if (focus) {
-          focusTextPoint({
-            blockId: focus.blockId,
-            offset: focus.caret,
-          });
+        const adjacentPoint = getAdjacentMessageEditorTextBlockPoint(
+          messagesRef.current,
+          registry,
+          editorSelection.focus,
+          1,
+          editorSelection.focus.offset,
+        );
+        if (adjacentPoint) {
+          activateTextPoint(adjacentPoint);
         }
       }
       return;
@@ -2470,49 +2151,43 @@ export default function MessageEditor({
 
     if (event.key === "Enter" && !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
-      const focus = controllerRef.current?.splitAtSelection(editorSelection);
-      if (focus) {
-        setActiveBlockId(focus.blockId);
-        restoreSelectionRef.current = focus;
-      }
+      executeFocusAction(actions => actions.createParagraph(editorSelection));
       return;
     }
 
     if (event.key === "Backspace" && editorSelection.collapsed && isSelectionAtStart(range, blockElement)) {
       event.preventDefault();
-      const focus = controllerRef.current?.mergeBackward(blockId);
-      if (focus) {
-        setActiveBlockId(focus.blockId);
-        restoreSelectionRef.current = focus;
-      }
+      executeFocusAction(actions => actions.joinPreviousParagraph(blockId));
       return;
     }
 
     if (event.key === "Delete" && editorSelection.collapsed && isSelectionAtEnd(range, blockElement)) {
       event.preventDefault();
-      const focus = controllerRef.current?.mergeForward(blockId);
-      if (focus) {
-        setActiveBlockId(focus.blockId);
-        restoreSelectionRef.current = focus;
-      }
+      executeFocusAction(actions => actions.joinNextParagraph(blockId));
     }
   }, [
     activeSlashSelectionIndex,
     activeSpeakerSelectionIndex,
     activeSpeakerAvatarSelectionIndex,
+    appendSpeakerAvatarSearchCharacter,
+    activateTextPoint,
+    deleteSpeakerAvatarSearchCharacter,
+    dismissSlashCommandMenu,
+    dismissSpeakerCommandMenu,
     clearSpeakerAvatarMenu,
-    focusTextPoint,
+    executeFocusAction,
     handleSelectSlashItem,
     handleSelectSpeakerItem,
     handleSelectSpeakerAvatarItem,
+    moveSlashCommandSelection,
+    moveSpeakerCommandSelection,
+    moveSpeakerAvatarCommandSelection,
     registry,
-    showDocumentTextSelection,
+    activateBlockSelection,
     slashMenuState,
     speakerAvatarMenuItems,
     speakerAvatarMenuState,
     speakerMenuState,
-    setSpeakerAvatarSelectionIndex,
-    setSpeakerAvatarSearchQuery,
   ]);
 
   useEffect(() => {
@@ -2532,67 +2207,109 @@ export default function MessageEditor({
       if (shouldIgnoreDocumentSelectionEventTarget(target)) {
         return;
       }
-      clearActiveBlock();
+      clearEditorInteractionState();
     };
 
     document.addEventListener("mousedown", handleDocumentMouseDown);
     return () => {
       document.removeEventListener("mousedown", handleDocumentMouseDown);
     };
-  }, [clearActiveBlock, readOnly]);
+  }, [clearEditorInteractionState, readOnly]);
 
-  const resolveDragTarget = useCallback((clientY: number): MessageEditorResolvedDragTarget | null => {
-    const currentMessages = ensureMessageEditorMessages(messagesRef.current);
-    const entries = currentMessages
-      .map((message) => {
-        const blockId = getMessageEditorBlockId(message);
-        const node = blockShellRefsRef.current.get(blockId);
-        if (!node) {
-          return null;
-        }
-        const bounds = node.getBoundingClientRect();
-        return {
-          blockId,
-          top: bounds.top,
-          bottom: bounds.bottom,
-          middle: bounds.top + bounds.height / 2,
-        };
-      })
-      .filter((entry): entry is { blockId: string; top: number; bottom: number; middle: number } => entry !== null);
-
-    if (entries.length === 0) {
+  // ==== 拖拽、媒体上传与粘贴处理 ====
+  const resolveDragTarget = useCallback((clientY: number, eventTarget: EventTarget | null): MessageEditorResolvedDragTarget | null => {
+    const root = editorRootRef.current;
+    if (!root) {
       return null;
     }
 
-    for (const entry of entries) {
-      if (clientY <= entry.bottom) {
-        return {
-          targetBlockId: entry.blockId,
-          position: clientY <= entry.middle ? "before" : "after",
-        };
+    const directBlockId = resolveMessageEditorBlockIdFromNode(root, eventTarget instanceof Node ? eventTarget : null);
+    if (directBlockId) {
+      const directNode = blockShellRefsRef.current.get(directBlockId)
+        ?? blockSlotRefsRef.current.get(directBlockId);
+      if (directNode) {
+        return resolveMessageEditorDropTarget(directBlockId, directNode.getBoundingClientRect(), clientY);
       }
     }
 
-    return {
-      targetBlockId: entries[entries.length - 1].blockId,
-      position: "after" as const,
-    };
+    return resolveMessageEditorVisibleDropTarget(
+      [...blockSlotRefsRef.current].map(([blockId, node]) => ({
+        blockId,
+        rect: node.getBoundingClientRect(),
+      })),
+      clientY,
+    );
   }, []);
+
+  const commitResolvedDragTarget = useCallback((nextTarget: MessageEditorResolvedDragTarget | null) => {
+    if (!nextTarget) {
+      return;
+    }
+    setDragState((previous) => {
+      if (!previous) {
+        return previous;
+      }
+      if (previous.targetBlockId === nextTarget.targetBlockId && previous.position === nextTarget.position) {
+        return previous;
+      }
+      return {
+        ...previous,
+        targetBlockId: nextTarget.targetBlockId,
+        position: nextTarget.position,
+      };
+    });
+  }, []);
+
+  const disposeBlockDragSession = useCallback(() => {
+    blockDragSessionRef.current?.dispose();
+    blockDragSessionRef.current = null;
+  }, []);
+
+  const updateBlockDragAutoScroll = useCallback((clientX: number, clientY: number) => {
+    blockDragSessionRef.current?.updatePointer(clientX, clientY);
+  }, []);
+
+  useEffect(() => disposeBlockDragSession, [disposeBlockDragSession]);
 
   const handleBlockDragStart = useCallback((blockId: string, event: React.DragEvent<HTMLButtonElement>) => {
     clearSpeakerAvatarMenu();
+    disposeBlockDragSession();
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", blockId);
+    const root = editorRootRef.current;
+    if (root) {
+      let session: MessageEditorBlockDragSession;
+      session = new MessageEditorBlockDragSession({
+        edgeSize: 80,
+        maxDelta: 18,
+        onAutoScroll(position, eventTarget) {
+          commitResolvedDragTarget(resolveDragTarget(position.y, eventTarget));
+        },
+        onFinish() {
+          if (blockDragSessionRef.current === session) {
+            blockDragSessionRef.current = null;
+          }
+          setDragState(null);
+        },
+        root,
+        scrollBy(top) {
+          virtualizedBlockListRef.current?.scrollBy(top);
+        },
+      });
+      blockDragSessionRef.current = session;
+      session.start();
+    }
     setDragState({
       draggedBlockId: blockId,
       targetBlockId: blockId,
       position: "after",
     });
-  }, [clearSpeakerAvatarMenu]);
+  }, [clearSpeakerAvatarMenu, commitResolvedDragTarget, disposeBlockDragSession, resolveDragTarget]);
 
   const handleBlockDragEnd = useCallback(() => {
+    disposeBlockDragSession();
     setDragState(null);
-  }, []);
+  }, [disposeBlockDragSession]);
 
   const renderBlockSpeakerHandle = useCallback((blockId: string, message: MessageEditorMessage, topClassName: string) => {
     const className = [
@@ -2697,22 +2414,13 @@ export default function MessageEditor({
   }, [uploadUtils]);
 
   const handleDeleteAtomicBlock = useCallback((blockId: string) => {
-    const focus = controllerRef.current?.removeBlock(blockId) ?? null;
-    hideToolbar();
-    if (focus) {
-      setActiveBlockId(focus.blockId);
-      restoreSelectionRef.current = focus;
-      return;
-    }
-    clearActiveBlock();
-  }, [clearActiveBlock, hideToolbar]);
+    executeFocusAction(actions => actions.deleteBlock(blockId), {
+      clearWhenMissing: true,
+      hideToolbar: true,
+    });
+  }, [executeFocusAction]);
 
   const handleUploadAtomicBlock = useCallback(async (blockId: string, file: File) => {
-    const controller = controllerRef.current;
-    if (!controller) {
-      return;
-    }
-
     const currentMessage = messagesRef.current.find(message => getMessageEditorBlockId(message) === blockId);
     const kind = getMessageEditorMediaBlockKindForMessage(currentMessage);
     if (!kind) {
@@ -2720,42 +2428,54 @@ export default function MessageEditor({
     }
 
     const payload = await uploadMediaFileForKind(kind, file);
-    controller.updateBlock(blockId, message => setMessageEditorUploadedMedia(message, payload));
-  }, [uploadMediaFileForKind]);
+    executeMutationAction(actions => actions.replaceMedia(blockId, payload));
+  }, [executeMutationAction, uploadMediaFileForKind]);
 
   const handleResizeAtomicBlock = useCallback((blockId: string, size: { height: number; width: number }) => {
-    controllerRef.current?.updateBlock(blockId, message => updateMessageEditorMediaSize(message, size));
-  }, []);
+    executeMutationAction(actions => actions.resizeMedia(blockId, size));
+  }, [executeMutationAction]);
 
   const insertMediaFileAtSelection = useCallback((file: File, selection: MessageEditorSelection) => {
     const kind = getMessageEditorMediaBlockKindForFile(file);
-    const result = controllerRef.current?.insertBlockAtSelection(selection, kind) ?? null;
+    const result = executeInsertBlockAction(actions => actions.insertMedia(selection, kind));
     if (!result) {
       return;
     }
 
-    clearCrossBlockSelection();
-    hideToolbar();
-    setActiveBlockId(result.focus.blockId);
-    restoreSelectionRef.current = result.focus;
-
     void uploadMediaFileForKind(kind, file)
       .then((payload) => {
-        controllerRef.current?.updateBlock(result.insertedBlockId, message => setMessageEditorUploadedMedia(message, payload));
+        executeMutationAction(actions => actions.replaceMedia(result.insertedBlockId, payload));
       })
       .catch((error) => {
         appToast.error(error instanceof Error ? error.message : "媒体上传失败");
       });
-  }, [clearCrossBlockSelection, hideToolbar, uploadMediaFileForKind]);
+  }, [executeInsertBlockAction, executeMutationAction, uploadMediaFileForKind]);
 
   const insertMediaFileAtPoint = useCallback((file: File, point: MessageEditorSelectionPoint) => {
-    const selection = createMessageEditorSelection(messagesRef.current, registry, point, point);
+    const selection = createMessageEditorSelectionFromDocument(selectionDocument, registry, point, point);
     if (!selection) {
       return;
     }
 
     insertMediaFileAtSelection(file, selection);
-  }, [insertMediaFileAtSelection, registry]);
+  }, [insertMediaFileAtSelection, registry, selectionDocument]);
+
+  const resolveTextInsertionSelection = useCallback((fallbackBlockId: string) => {
+    const currentSelection = resolveEditorSelection(true) ?? resolveEditorSelection(false);
+    if (currentSelection) {
+      return currentSelection;
+    }
+
+    const message = messageByBlockId.get(fallbackBlockId);
+    const offset = normalizeMessageEditorContent(message?.content).length;
+    return createMessageEditorSelectionFromDocument(selectionDocument, registry, {
+      blockId: fallbackBlockId,
+      offset,
+    }, {
+      blockId: fallbackBlockId,
+      offset,
+    });
+  }, [messageByBlockId, registry, resolveEditorSelection, selectionDocument]);
 
   const handleTextPasteFiles = useCallback((blockId: string, files: File[]) => {
     const file = files[0];
@@ -2763,25 +2483,11 @@ export default function MessageEditor({
       return;
     }
 
-    const selection = resolveEditorSelection(true) ?? resolveEditorSelection(false);
+    const selection = resolveTextInsertionSelection(blockId);
     if (selection) {
       insertMediaFileAtSelection(file, selection);
-      return;
     }
-
-    const message = messagesRef.current.find(item => getMessageEditorBlockId(item) === blockId);
-    const offset = normalizeMessageEditorContent(message?.content).length;
-    const fallbackSelection = createMessageEditorSelection(messagesRef.current, registry, {
-      blockId,
-      offset,
-    }, {
-      blockId,
-      offset,
-    });
-    if (fallbackSelection) {
-      insertMediaFileAtSelection(file, fallbackSelection);
-    }
-  }, [insertMediaFileAtSelection, registry, resolveEditorSelection]);
+  }, [insertMediaFileAtSelection, resolveTextInsertionSelection]);
 
   const handleTextPasteText = useCallback((blockId: string, text: string, insertPlainText: () => void) => {
     const normalizedText = normalizeEditableText(text);
@@ -2792,27 +2498,13 @@ export default function MessageEditor({
       return false;
     }
 
-    const selection = resolveEditorSelection(true) ?? resolveEditorSelection(false);
+    const selection = resolveTextInsertionSelection(blockId);
     if (selection) {
-      replaceDocumentSelectionTextAsBlocks(selection, normalizedText);
+      commitTextBlocksReplacement(selection, normalizedText, blockId);
       return true;
     }
-
-    const message = messagesRef.current.find(item => getMessageEditorBlockId(item) === blockId);
-    const offset = normalizeMessageEditorContent(message?.content).length;
-    const fallbackSelection = createMessageEditorSelection(messagesRef.current, registry, {
-      blockId,
-      offset,
-    }, {
-      blockId,
-      offset,
-    });
-    if (!fallbackSelection) {
-      return false;
-    }
-    replaceDocumentSelectionTextAsBlocks(fallbackSelection, normalizedText);
-    return true;
-  }, [registry, replaceDocumentSelectionTextAsBlocks, requestImportTextPaste, resolveEditorSelection]);
+    return false;
+  }, [commitTextBlocksReplacement, requestImportTextPaste, resolveTextInsertionSelection]);
 
   const handleBlockDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     if (isMessageEditorFileDrag(event.dataTransfer)) {
@@ -2827,26 +2519,13 @@ export default function MessageEditor({
 
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
-    const nextTarget = resolveDragTarget(event.clientY);
-    if (!nextTarget) {
-      return;
-    }
-    setDragState((previous) => {
-      if (!previous) {
-        return previous;
-      }
-      if (previous.targetBlockId === nextTarget.targetBlockId && previous.position === nextTarget.position) {
-        return previous;
-      }
-      return {
-        ...previous,
-        targetBlockId: nextTarget.targetBlockId,
-        position: nextTarget.position,
-      };
-    });
-  }, [dragState, resolveDragTarget]);
+    updateBlockDragAutoScroll(event.clientX, event.clientY);
+    const nextTarget = resolveDragTarget(event.clientY, event.target);
+    commitResolvedDragTarget(nextTarget);
+  }, [commitResolvedDragTarget, dragState, resolveDragTarget, updateBlockDragAutoScroll]);
 
   const handleBlockDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    disposeBlockDragSession();
     if (isMessageEditorFileDrag(event.dataTransfer)) {
       event.preventDefault();
       const file = event.dataTransfer.files?.[0];
@@ -2858,8 +2537,10 @@ export default function MessageEditor({
       const point = resolveMessageEditorTextPointFromClientPosition({
         blockRefs: blockRefsRef.current,
         blockShellRefs: blockShellRefsRef.current,
+        blockSlotRefs: blockSlotRefsRef.current,
         clientX: event.clientX,
         clientY: event.clientY,
+        messageByBlockId,
         messages: messagesRef.current,
         registry,
         root,
@@ -2875,39 +2556,9 @@ export default function MessageEditor({
     }
 
     event.preventDefault();
-    const currentMessages = ensureMessageEditorMessages(messagesRef.current);
-    const sourceIndex = currentMessages.findIndex(message => getMessageEditorBlockId(message) === dragState.draggedBlockId);
-    const targetIndex = currentMessages.findIndex(message => getMessageEditorBlockId(message) === dragState.targetBlockId);
-    if (sourceIndex < 0 || targetIndex < 0) {
-      setDragState(null);
-      return;
-    }
-
-    let nextIndex = targetIndex + (dragState.position === "after" ? 1 : 0);
-    if (sourceIndex < nextIndex) {
-      nextIndex -= 1;
-    }
-
-    controllerRef.current?.moveBlockToIndex(dragState.draggedBlockId, nextIndex);
-
-    const draggedMessage = currentMessages[sourceIndex];
-    if (draggedMessage && registry.isTextBlock(draggedMessage)) {
-      const selection = resolveEditorSelection();
-      const preferredOffset = selection && !selection.multiBlock && selection.focus.blockId === dragState.draggedBlockId
-        ? selection.focus.offset
-        : normalizeMessageEditorContent(draggedMessage.content).length;
-      setActiveBlockId(dragState.draggedBlockId);
-      restoreSelectionRef.current = {
-        blockId: dragState.draggedBlockId,
-        caret: preferredOffset,
-      };
-    }
-    else {
-      clearActiveBlock();
-    }
-
+    commitBlockReorder(dragState);
     setDragState(null);
-  }, [clearActiveBlock, dragState, insertMediaFileAtPoint, registry, resolveEditorSelection]);
+  }, [commitBlockReorder, disposeBlockDragSession, dragState, insertMediaFileAtPoint, messageByBlockId, registry]);
 
   const resolveFilePasteTargetBlockId = useCallback(() => {
     const currentMessages = messagesRef.current;
@@ -2954,9 +2605,7 @@ export default function MessageEditor({
       const targetBlockId = resolveFilePasteTargetBlockId();
       if (targetBlockId) {
         event.preventDefault();
-        clearCrossBlockSelection();
-        setActiveBlockId(targetBlockId);
-        controllerRef.current?.setActiveBlock(targetBlockId);
+        activateBlock(targetBlockId);
         void handleUploadAtomicBlock(targetBlockId, files[0]);
         return;
       }
@@ -2975,7 +2624,7 @@ export default function MessageEditor({
       document.removeEventListener("paste", handleDocumentFilePaste);
     };
   }, [
-    clearCrossBlockSelection,
+    activateBlock,
     crossBlockSelection,
     handleUploadAtomicBlock,
     insertMediaFileAtSelection,
@@ -2984,44 +2633,243 @@ export default function MessageEditor({
     resolveFilePasteTargetBlockId,
   ]);
 
+  // ==== Render 派生状态 ====
+  const onAtomicBlockMouseDown = useMessageEditorEventCallback(handleAtomicBlockMouseDown);
+  const onDeleteAtomicBlock = useMessageEditorEventCallback(handleDeleteAtomicBlock);
+  const onResizeAtomicBlock = useMessageEditorEventCallback(handleResizeAtomicBlock);
+  const onTextBlur = useMessageEditorEventCallback(handleTextBlur);
+  const onTextInput = useMessageEditorEventCallback(handleTextInput);
+  const onTextKeyDown = useMessageEditorEventCallback(handleTextKeyDown);
+  const onTextMouseDown = useMessageEditorEventCallback(handleTextMouseDown);
+  const onTextPasteFiles = useMessageEditorEventCallback(handleTextPasteFiles);
+  const onTextPasteText = useMessageEditorEventCallback(handleTextPasteText);
+  const onUploadAtomicBlock = useMessageEditorEventCallback(handleUploadAtomicBlock);
+  const renderSpeakerHandle = useMessageEditorEventCallback(renderBlockSpeakerHandle);
+  const onFocusTextBlock = useCallback((blockId: string) => {
+    activateBlock(blockId, { clearDismissedSlash: true });
+  }, [activateBlock]);
+  const onFocusAtomicBlock = useCallback((blockId: string) => {
+    activateBlock(blockId);
+  }, [activateBlock]);
+
+  const atomicMessageCacheRef = useRef(new WeakMap<MessageEditorMessage, {
+    blockId: string;
+    driver: ReturnType<typeof registry.resolve>;
+    estimatedHeight: number;
+    message: MessageEditorMessage;
+  }>());
   const atomicMessages = useMemo(() => {
     return messages.map((message) => {
-      return {
+      const cached = atomicMessageCacheRef.current.get(message);
+      if (cached) {
+        return cached;
+      }
+      const entry = {
         blockId: getMessageEditorBlockId(message),
         message,
         driver: registry.resolve(message),
+        estimatedHeight: estimateMessageEditorBlockHeight({
+          isTextBlock: registry.isTextBlock(message),
+          message,
+        }),
       };
+      atomicMessageCacheRef.current.set(message, entry);
+      return entry;
     });
   }, [messages, registry]);
+  const atomicMessageIndexByBlockId = useMemo(() => {
+    return new Map(atomicMessages.map((entry, index) => [entry.blockId, index] as const));
+  }, [atomicMessages]);
 
-  let statusLabel = "编辑中";
-  if (readOnly) {
-    statusLabel = "只读";
-  }
-  else if (!ready) {
-    statusLabel = "载入中";
-  }
-  else if (saveState === "saving") {
-    statusLabel = "保存中";
-  }
-  else if (saveState === "saved") {
-    statusLabel = "已保存";
-  }
-  else if (saveState === "error") {
-    statusLabel = "未保存";
-  }
+  const activeTextSelection = crossBlockSelectionPreview ?? crossBlockSelection?.selection ?? null;
+  const selectionRenderLookup = useMemo(() => {
+    return createMessageEditorSelectionRenderLookup(activeTextSelection);
+  }, [activeTextSelection]);
 
+  const handleVirtualizedRangeChange = useMessageEditorEventCallback((range: ListRange) => {
+    if (composingBlockId) {
+      const composingIndex = atomicMessageIndexByBlockId.get(composingBlockId);
+      if (composingIndex != null && (composingIndex < range.startIndex || composingIndex > range.endIndex)) {
+        virtualizedBlockListRef.current?.scrollBlockIntoView(composingBlockId, {
+          align: "center",
+          behavior: "auto",
+        });
+      }
+    }
+    restorePendingSelection();
+  });
+
+  const renderTextBlockCommandMenus = (blockId: string) => {
+    const showSlashMenu = slashMenuState?.blockId === blockId && !readOnly;
+    const showSpeakerMenu = speakerMenuState?.blockId === blockId && !readOnly;
+    const showSpeakerAvatarMenu = speakerAvatarMenuState?.blockId === blockId && !readOnly;
+    if (!showSlashMenu && !showSpeakerMenu && !showSpeakerAvatarMenu) {
+      return null;
+    }
+
+    return (
+      <>
+        {showSlashMenu && (
+          <MessageEditorFloatingCommandMenu>
+            <MessageEditorSlashMenu
+              visible
+              items={slashMenuState.items}
+              selectedIndex={activeSlashSelectionIndex}
+              onSelect={item => handleSelectSlashItem(item.kind)}
+            />
+          </MessageEditorFloatingCommandMenu>
+        )}
+        {showSpeakerMenu && (
+          <MessageEditorFloatingCommandMenu>
+            <MessageEditorSpeakerMenu
+              visible
+              items={speakerMenuState.items}
+              selectedIndex={activeSpeakerSelectionIndex}
+              onSelect={handleSelectSpeakerItem}
+            />
+          </MessageEditorFloatingCommandMenu>
+        )}
+        {showSpeakerAvatarMenu && (
+          <MessageEditorFloatingCommandMenu>
+            <MessageEditorSpeakerAvatarMenu
+              visible
+              items={speakerAvatarMenuItems}
+              loading={speakerAvatarRoleAvatarsQuery.isLoading}
+              query={speakerAvatarSearchQuery}
+              roleLabel={speakerAvatarMenuState.roleLabel}
+              selectedIndex={activeSpeakerAvatarSelectionIndex}
+              onSelect={handleSelectSpeakerAvatarItem}
+            />
+          </MessageEditorFloatingCommandMenu>
+        )}
+      </>
+    );
+  };
+
+  const renderMessageEditorBlock = (
+    { blockId, message, driver }: (typeof atomicMessages)[number],
+    index: number,
+  ) => {
+    const nextDriver = atomicMessages[index + 1]?.driver;
+    const selectedSegment = selectionRenderLookup.get(blockId) ?? null;
+    const atomicSelected = driver.kind !== "text" && Boolean(selectedSegment && selectedSegment.end > selectedSegment.start);
+    const showDropBefore = Boolean(dragState
+      && dragState.draggedBlockId !== blockId
+      && dragState.targetBlockId === blockId
+      && dragState.position === "before");
+    const showDropAfter = Boolean(dragState
+      && dragState.draggedBlockId !== blockId
+      && dragState.targetBlockId === blockId
+      && dragState.position === "after");
+    const isDragging = dragState?.draggedBlockId === blockId;
+    const shellClassName = driver.kind === "text"
+      ? getMessageEditorTextBlockShellClassName({
+          hasFollowingTextBlock: nextDriver?.kind === "text",
+          isDragging,
+        })
+      : getMessageEditorAtomicBlockShellClassName({
+          isActive: activeBlockId === blockId,
+          isDragging,
+          isSelected: atomicSelected,
+          readOnly,
+        });
+
+    return (
+      <MessageEditorBlockRow
+        active={activeBlockId === blockId}
+        blockId={blockId}
+        commandMenus={driver.kind === "text" ? renderTextBlockCommandMenus(blockId) : null}
+        driverKind={driver.kind}
+        message={message}
+        onAtomicMouseDown={onAtomicBlockMouseDown}
+        onDeleteAtomicBlock={onDeleteAtomicBlock}
+        onFocusAtomicBlock={onFocusAtomicBlock}
+        onFocusTextBlock={onFocusTextBlock}
+        onResizeAtomicBlock={onResizeAtomicBlock}
+        onTextBlur={onTextBlur}
+        onTextInput={onTextInput}
+        onTextKeyDown={onTextKeyDown}
+        onTextMouseDown={onTextMouseDown}
+        onTextPasteFiles={onTextPasteFiles}
+        onTextPasteText={onTextPasteText}
+        onUploadAtomicBlock={onUploadAtomicBlock}
+        placeholder={driver.kind === "text" && atomicMessages.length === 1
+          && normalizeMessageEditorContent(message.content).length === 0
+          ? "输入内容"
+          : ""}
+        readOnly={readOnly}
+        registerBlockRef={registerBlockRef}
+        registerBlockShellRef={registerBlockShellRef}
+        renderSpeakerHandle={renderSpeakerHandle}
+        selectionSegment={driver.kind === "text" ? selectedSegment : null}
+        shellClassName={shellClassName}
+        showDropAfter={showDropAfter}
+        showDropBefore={showDropBefore}
+        textInputRef={textStyleInputRef}
+      />
+    );
+  };
+
+  // ==== Render 树 ====
   return (
     <div className={`
       ${frameClassName}
-      overflow-hidden border border-base-300 bg-base-100
+      relative overflow-hidden border border-base-300 bg-base-100
     `}>
       <div className="flex h-full min-h-0 flex-col">
-        <div
-          ref={editorRootRef}
+        <MessageEditorVirtualizedBlockList
+          ref={virtualizedBlockListRef}
+          blocks={ready ? atomicMessages : []}
           className={getMessageEditorScrollViewportClassName()}
+          emptyPlaceholder={(
+            <div className="
+              flex min-h-[40vh] items-center justify-center text-sm
+              text-base-content/50
+            ">
+              载入中
+            </div>
+          )}
+          footer={ready && !readOnly
+            ? (
+                // oxlint-disable-next-line jsx-a11y/no-static-element-interactions
+                <div
+                  data-me-editor-bottom-space="true"
+                  className="min-h-20"
+                  onMouseDown={handleEditorSurfaceMouseDown}
+                />
+              )
+            : null}
+          header={(
+            <>
+              <MessageEditorHeader
+                coverUrl={coverUrl}
+                docId={docId}
+                readOnly={readOnly}
+                ready={ready}
+                saveState={saveState}
+                tcHeader={tcHeader}
+                title={title}
+              />
+              <div ref={headerVisibilityMarkerRef} aria-hidden="true" className="h-px" />
+              <div aria-hidden="true" className="h-2" />
+            </>
+          )}
           onDragOver={handleBlockDragOver}
           onDrop={handleBlockDrop}
+          onCompositionStartCapture={(event) => {
+            const target = event.target;
+            const root = editorRootRef.current;
+            if (!root || !(target instanceof Node)) {
+              return;
+            }
+            const blockId = resolveMessageEditorBlockIdFromNode(root, target);
+            if (blockId) {
+              setComposingBlockId(blockId);
+            }
+          }}
+          onCompositionEndCapture={() => {
+            setComposingBlockId(null);
+          }}
           onKeyDownCapture={(event) => {
             handleUndoRedoShortcut(event);
           }}
@@ -3042,255 +2890,26 @@ export default function MessageEditor({
             ) {
               return;
             }
-            clearActiveBlock();
+            clearEditorInteractionState();
           }}
-        >
-          {resolvedCoverUrl
-            ? (
-                <div className="
-                  h-40 w-full shrink-0 overflow-hidden border-b border-base-300
-                  bg-base-200
-                ">
-                  <MediaImage className="h-full w-full object-cover" src={resolvedCoverUrl} alt={resolvedTitle} />
-                </div>
-              )
-            : null}
-
-          <div className="border-b border-base-300 py-4">
-            <div className={`
-              ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS}
-              ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS}
-              flex items-center justify-between gap-4
-            `}>
-              <div className="min-w-0">
-                <div className="
-                  truncate text-lg font-semibold text-base-content
-                  md:text-xl
-                ">{resolvedTitle}</div>
-                {resolvedDocId
-                  ? (
-                      <div className="
-                        truncate font-mono text-xs text-base-content/50
-                      ">
-                        {resolvedDocId}
-                      </div>
-                    )
-                  : null}
-              </div>
-              <div className="
-                rounded-md border border-base-300 px-2 py-1 text-xs
-                text-base-content/55
-              ">
-                {statusLabel}
-              </div>
-            </div>
-          </div>
-
-          {!ready && (
-            <div className="
-              flex min-h-[40vh] items-center justify-center text-sm
-              text-base-content/50
-            ">
-              载入中
-            </div>
-          )}
-
-          {ready && (
-            <div className="flex min-h-0 flex-col">
-              <div
-                data-me-editor-surface="true"
-                role="presentation"
-                className="flex min-h-svh w-full flex-col py-2"
-                onMouseDown={handleEditorSurfaceMouseDown}
-              >
-                {atomicMessages.map(({ blockId, message, driver }, index) => {
-                  const nextDriver = atomicMessages[index + 1]?.driver;
-                  const activeTextSelection = crossBlockSelectionPreview ?? crossBlockSelection?.selection ?? null;
-                  const selectedSegment = activeTextSelection?.segments.find(item => item.blockId === blockId) ?? null;
-                  const atomicSelected = driver.kind !== "text" && Boolean(selectedSegment && selectedSegment.end > selectedSegment.start);
-                  const selectedBlockIndex = activeTextSelection?.blockIds.indexOf(blockId) ?? -1;
-                  const showSelectedLineBreak = selectedBlockIndex >= 0
-                    && selectedBlockIndex < (activeTextSelection?.blockIds.length ?? 0) - 1;
-                  const showDropBefore = dragState
-                    && dragState.draggedBlockId !== blockId
-                    && dragState.targetBlockId === blockId
-                    && dragState.position === "before";
-                  const showDropAfter = dragState
-                    && dragState.draggedBlockId !== blockId
-                    && dragState.targetBlockId === blockId
-                    && dragState.position === "after";
-                  if (driver.kind === "text") {
-                    const showPlaceholder = atomicMessages.length === 1
-                      && normalizeMessageEditorContent(message.content).length === 0;
-                    return (
-                      <div
-                        key={blockId}
-                        ref={node => registerBlockShellRef(blockId, node)}
-                        className={getMessageEditorTextBlockShellClassName({
-                          hasFollowingTextBlock: nextDriver?.kind === "text",
-                          isDragging: dragState?.draggedBlockId === blockId,
-                        })}
-                      >
-                        {showDropBefore && (
-                          <div className="
-                            pointer-events-none absolute inset-x-10 top-0 h-0.5
-                            rounded-full bg-info
-                          " />
-                        )}
-                        {showDropAfter && (
-                          <div className="
-                            pointer-events-none absolute inset-x-10 bottom-0
-                            h-0.5 rounded-full bg-info
-                          " />
-                        )}
-                        {renderBlockSpeakerHandle(blockId, message, "top-0")}
-                        <MessageEditorTextBlock
-                          active={activeBlockId === blockId}
-                          blockId={blockId}
-                          message={message}
-                          onMouseDown={handleTextMouseDown}
-                          placeholder={showPlaceholder ? "输入内容" : ""}
-                          readOnly={readOnly}
-                          registerBlockRef={registerBlockRef}
-                          textInputRef={textStyleInputRef}
-                          selectionSegment={(() => {
-                            const segment = activeTextSelection?.segments.find(item => item.blockId === blockId);
-                            if (segment) {
-                              return {
-                                ...segment,
-                                showLineBreakAfter: showSelectedLineBreak,
-                              };
-                            }
-                            if (showSelectedLineBreak) {
-                              const contentLength = normalizeMessageEditorContent(message.content).length;
-                              return {
-                                end: contentLength,
-                                showLineBreakAfter: true,
-                                start: contentLength,
-                              };
-                            }
-                            return null;
-                          })()}
-                          onFocus={(nextBlockId) => {
-                            clearCrossBlockSelection();
-                            setDismissedSlashKey(null);
-                            setActiveBlockId(nextBlockId);
-                            controllerRef.current?.setActiveBlock(nextBlockId);
-                          }}
-                          onBlur={handleTextBlur}
-                          onInput={handleTextInput}
-                          onKeyDown={handleTextKeyDown}
-                          onPasteFiles={handleTextPasteFiles}
-                          onPasteText={handleTextPasteText}
-                        />
-                        {slashMenuState?.blockId === blockId && !readOnly && (
-                          <MessageEditorFloatingCommandMenu>
-                            <MessageEditorSlashMenu
-                              visible
-                              items={slashMenuState.items}
-                              selectedIndex={activeSlashSelectionIndex}
-                              onSelect={item => handleSelectSlashItem(item.kind)}
-                            />
-                          </MessageEditorFloatingCommandMenu>
-                        )}
-                        {speakerMenuState?.blockId === blockId && !readOnly && (
-                          <MessageEditorFloatingCommandMenu>
-                            <MessageEditorSpeakerMenu
-                              visible
-                              items={speakerMenuState.items}
-                              selectedIndex={activeSpeakerSelectionIndex}
-                              onSelect={handleSelectSpeakerItem}
-                            />
-                          </MessageEditorFloatingCommandMenu>
-                        )}
-                        {speakerAvatarMenuState?.blockId === blockId && !readOnly && (
-                          <MessageEditorFloatingCommandMenu>
-                            <MessageEditorSpeakerAvatarMenu
-                              visible
-                              items={speakerAvatarMenuItems}
-                              loading={speakerAvatarRoleAvatarsQuery.isLoading}
-                              query={speakerAvatarSearchQuery}
-                              roleLabel={speakerAvatarMenuState.roleLabel}
-                              selectedIndex={activeSpeakerAvatarSelectionIndex}
-                              onSelect={handleSelectSpeakerAvatarItem}
-                            />
-                          </MessageEditorFloatingCommandMenu>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div
-                      key={blockId}
-                      ref={node => registerBlockShellRef(blockId, node)}
-                      className={[
-                        `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} py-1 transition`,
-                        dragState?.draggedBlockId === blockId
-                          ? "bg-base-100/80 ring-1 ring-base-300/80"
-                          : "",
-                        atomicSelected
-                          ? "bg-info/10 ring-1 ring-info/80"
-                          : activeBlockId === blockId && !readOnly ? "bg-base-200/20" : "",
-                      ].join(" ")}
-                    >
-                      {showDropBefore && (
-                        <div className="
-                          pointer-events-none absolute inset-x-10 top-0 h-0.5
-                          rounded-full bg-info
-                        " />
-                      )}
-                      {showDropAfter && (
-                        <div className="
-                          pointer-events-none absolute inset-x-10 bottom-0 h-0.5
-                          rounded-full bg-info
-                        " />
-                      )}
-                      {renderBlockSpeakerHandle(blockId, message, "top-1")}
-                      <div
-                        data-me-block-id={blockId}
-                        className="
-                          select-none
-                          [&_[contenteditable='true']]:select-text
-                          [&_input]:select-text
-                          [&_select]:select-text
-                          [&_textarea]:select-text
-                        "
-                        onMouseDown={event => handleAtomicBlockMouseDown(blockId, event)}
-                      >
-                        <MessageEditorAtomicBlock
-                          active={activeBlockId === blockId}
-                          blockId={blockId}
-                          message={message}
-                          readOnly={readOnly}
-                          onFocus={(nextBlockId) => {
-                            clearCrossBlockSelection();
-                            setActiveBlockId(nextBlockId);
-                            controllerRef.current?.setActiveBlock(nextBlockId);
-                          }}
-                          onUpdate={(nextBlockId, updater) => {
-                            controllerRef.current?.updateBlock(nextBlockId, updater);
-                          }}
-                          onDelete={handleDeleteAtomicBlock}
-                          onUpload={handleUploadAtomicBlock}
-                          onResize={handleResizeAtomicBlock}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-                {!readOnly && (
-                  // oxlint-disable-next-line jsx-a11y/no-static-element-interactions
-                  <div
-                    data-me-editor-bottom-space="true"
-                    className="min-h-20 flex-1"
-                  />
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+          onSurfaceMouseDown={handleEditorSurfaceMouseDown}
+          onVisibleRangeChange={handleVirtualizedRangeChange}
+          registerBlockSlotRef={registerBlockSlotRef}
+          registerScrollRoot={registerEditorRootRef}
+          renderBlock={renderMessageEditorBlock}
+        />
       </div>
+
+      <MessageEditorFloatingHeader
+        coverUrl={coverUrl}
+        docId={docId}
+        readOnly={readOnly}
+        ready={ready}
+        saveState={saveState}
+        tcHeader={tcHeader}
+        title={title}
+        visible={showFloatingHeader}
+      />
 
       {!readOnly && (
         <TextStyleToolbar

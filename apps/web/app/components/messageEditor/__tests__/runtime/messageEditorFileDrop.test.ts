@@ -8,7 +8,7 @@ import {
   getMessageEditorMediaBlockKindForMessage,
   isMessageEditorFileDrag,
   isMessageEditorUploadableMediaMessage,
-} from "./messageEditorFileDrop";
+} from "../../runtime/messageEditorFileDrop";
 
 describe("messageEditorFileDrop", () => {
   it("detects file drag payloads", () => {

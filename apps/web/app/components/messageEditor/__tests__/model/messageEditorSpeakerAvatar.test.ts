@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildMessageEditorSpeakerAvatarClearMenuItems, buildMessageEditorSpeakerAvatarMenuItems } from "./messageEditorSpeakerAvatar";
+import { buildMessageEditorSpeakerAvatarClearMenuItems, buildMessageEditorSpeakerAvatarMenuItems } from "../../model/messageEditorSpeakerAvatar";
 
 describe("messageEditorSpeakerAvatar", () => {
   it("keeps the default avatar as the first candidate and preserves category order", () => {

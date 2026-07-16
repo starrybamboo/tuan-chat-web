@@ -335,6 +335,30 @@ export function isMessageEditorSpeakerRoleCandidate(role: UserRole | null | unde
 }
 
 /**
+ * 解析 MessageEditor 可用的角色列表。
+ *
+ * 优先使用 `roomAllRoles`，否则回退到 `roomRolesThatUserOwn`；同时按 `roleId`
+ * 去重，避免命令菜单在多来源合流时出现重复项。
+ */
+export function resolveMessageEditorSpeakerRoles(params: {
+  roomAllRoles?: UserRole[] | null;
+  roomRolesThatUserOwn?: UserRole[] | null;
+}): UserRole[] {
+  const roleMap = new Map<number, UserRole>();
+  const roomRoles = params.roomAllRoles && params.roomAllRoles.length > 0
+    ? params.roomAllRoles
+    : params.roomRolesThatUserOwn;
+
+  for (const role of roomRoles ?? []) {
+    if (isMessageEditorSpeakerRoleCandidate(role)) {
+      roleMap.set(role.roleId, role);
+    }
+  }
+
+  return [...roleMap.values()];
+}
+
+/**
  * 读取角色标题。
  */
 export function getMessageEditorSpeakerRoleLabel(role: Pick<UserRole, "roleId" | "roleName">): string {

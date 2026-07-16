@@ -1,7 +1,9 @@
 import { useMemo } from "react";
 
-import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { Avatar, AVATAR_HOVER_IMAGE_CLASS, AVATAR_HOVER_SHELL_CLASS } from "@/components/common/Avatar";
+import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { NarratorIcon } from "@/icons";
+import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/media/mediaUrl";
 
 import type { MessageEditorMessage } from "../messageEditorTypes";
 
@@ -60,44 +62,41 @@ const speakerAvatarBadgeClassName = [
   "shadow-sm ring-1 ring-base-300/60 whitespace-nowrap",
 ].join(" ");
 
-/**
- * 消息块前缀 speaker 标签，仅负责展示。
- */
-export function MessageEditorSpeakerHeader({
+type MessageEditorSpeakerHeaderViewProps = MessageEditorSpeakerHeaderProps & {
+  avatarFileId?: number;
+  avatarTitle?: unknown;
+  roleName?: string;
+  showAvatar: boolean;
+};
+
+function MessageEditorSpeakerHeaderView({
+  avatarFileId,
+  avatarTitle,
   className,
   message,
-}: MessageEditorSpeakerHeaderProps) {
+  roleName,
+  showAvatar,
+}: MessageEditorSpeakerHeaderViewProps) {
   const roleId = toFiniteNumber(message.roleId);
   const avatarId = toFiniteNumber(message.avatarId);
   const explicitAvatarId = toPositiveNumber(avatarId);
   const explicitRoleId = toPositiveNumber(roleId);
-  const roleRequest = useGetRoleQuery(explicitRoleId ?? 0);
-  const avatarRequest = useGetRoleAvatarQuery(explicitAvatarId ?? 0, {
-    enabled: Boolean(explicitAvatarId),
-  });
-  const fallbackAvatarsRequest = useGetRoleAvatarsQuery(explicitRoleId ?? 0, {
-    enabled: Boolean(explicitRoleId && !explicitAvatarId),
-  });
-  const fallbackAvatar = useMemo(() => {
-    return pickDefaultAvatar(fallbackAvatarsRequest.data?.data ?? []);
-  }, [fallbackAvatarsRequest.data?.data]);
-  const effectiveAvatar = avatarRequest.data?.data ?? fallbackAvatar;
   const speakerLabel = resolveMessageEditorSpeakerLabel({
-    avatarTitle: effectiveAvatar?.avatarTitle,
+    avatarTitle,
     customRoleName: message.customRoleName,
     roleId,
-    roleName: roleRequest.data?.data?.roleName,
+    roleName,
   });
-  const avatarTitleLabel = resolveMessageEditorAvatarTitleLabel(effectiveAvatar?.avatarTitle);
-  const avatarBadgeLabel = createTwoCharacterAvatarLabel(effectiveAvatar?.avatarTitle);
+  const avatarTitleLabel = resolveMessageEditorAvatarTitleLabel(avatarTitle);
+  const avatarBadgeLabel = createTwoCharacterAvatarLabel(avatarTitle);
   const fallbackLabel = explicitRoleId
     ? `角色 #${explicitRoleId}`
     : (explicitAvatarId ? `头像 #${explicitAvatarId}` : "");
   const displayLabel = speakerLabel || fallbackLabel || "旁白";
-  const showAvatar = Boolean(explicitRoleId || explicitAvatarId);
   const titleLabel = avatarTitleLabel && displayLabel && !displayLabel.includes(avatarTitleLabel)
     ? `${displayLabel}（${avatarTitleLabel}）`
     : displayLabel;
+  const avatarUrl = buildAvatarThumbUrl(avatarFileId) || buildAvatarUrl(avatarFileId) || ROLE_DEFAULT_AVATAR_URL;
 
   return (
     <div
@@ -110,14 +109,17 @@ export function MessageEditorSpeakerHeader({
       <span className={speakerAvatarSlotClassName}>
         {showAvatar
           ? (
-              <RoleAvatarComponent
-                avatarId={explicitAvatarId ?? 0}
-                roleId={roleId}
-                width={6}
-                isRounded={true}
-                withTitle={false}
-                stopToastWindow={true}
+              <Avatar
+                src={avatarUrl}
+                alt="avatar"
+                size={6}
+                rounded={true}
+                fallbackSrc={ROLE_DEFAULT_AVATAR_URL}
+                shellClassName={AVATAR_HOVER_SHELL_CLASS}
+                imgClassName={AVATAR_HOVER_IMAGE_CLASS}
                 hoverToScale={false}
+                imageLoading="lazy"
+                imageDecoding="async"
               />
             )
           : (
@@ -136,5 +138,87 @@ export function MessageEditorSpeakerHeader({
         {avatarBadgeLabel}
       </span>
     </div>
+  );
+}
+
+function MessageEditorAvatarSpeakerHeader(props: MessageEditorSpeakerHeaderProps & {
+  avatarId: number;
+  roleId?: number;
+}) {
+  const roleRequest = useGetRoleQuery(props.roleId ?? 0, {
+    enabled: Boolean(props.roleId),
+  });
+  const avatarRequest = useGetRoleAvatarQuery(props.avatarId);
+  const avatar = avatarRequest.data?.data;
+
+  return (
+    <MessageEditorSpeakerHeaderView
+      {...props}
+      avatarFileId={avatar?.avatarFileId}
+      avatarTitle={avatar?.avatarTitle}
+      roleName={roleRequest.data?.data?.roleName}
+      showAvatar={true}
+    />
+  );
+}
+
+function MessageEditorRoleSpeakerHeader(props: MessageEditorSpeakerHeaderProps & {
+  roleId: number;
+}) {
+  const roleRequest = useGetRoleQuery(props.roleId);
+  const avatarsRequest = useGetRoleAvatarsQuery(props.roleId);
+  const fallbackAvatar = useMemo(() => {
+    return pickDefaultAvatar(avatarsRequest.data?.data ?? []);
+  }, [avatarsRequest.data?.data]);
+
+  return (
+    <MessageEditorSpeakerHeaderView
+      {...props}
+      avatarFileId={fallbackAvatar?.avatarFileId}
+      avatarTitle={fallbackAvatar?.avatarTitle}
+      roleName={roleRequest.data?.data?.roleName}
+      showAvatar={true}
+    />
+  );
+}
+
+/**
+ * 消息块前缀 speaker 标签，仅负责展示。
+ */
+export function MessageEditorSpeakerHeader({
+  className,
+  message,
+}: MessageEditorSpeakerHeaderProps) {
+  const roleId = toFiniteNumber(message.roleId);
+  const avatarId = toFiniteNumber(message.avatarId);
+  const explicitAvatarId = toPositiveNumber(avatarId);
+  const explicitRoleId = toPositiveNumber(roleId);
+  if (explicitAvatarId) {
+    return (
+      <MessageEditorAvatarSpeakerHeader
+        avatarId={explicitAvatarId}
+        className={className}
+        message={message}
+        roleId={explicitRoleId}
+      />
+    );
+  }
+
+  if (explicitRoleId) {
+    return (
+      <MessageEditorRoleSpeakerHeader
+        className={className}
+        message={message}
+        roleId={explicitRoleId}
+      />
+    );
+  }
+
+  return (
+    <MessageEditorSpeakerHeaderView
+      className={className}
+      message={message}
+      showAvatar={false}
+    />
   );
 }

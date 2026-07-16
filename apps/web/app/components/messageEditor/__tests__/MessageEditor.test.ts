@@ -1,22 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import type { MessageEditorMessage } from "./messageEditorTypes";
+import type { MessageEditorMessage } from "../messageEditorTypes";
+import type { MessageEditorSelection } from "../runtime/messageEditorSelection";
 
 import {
   buildRoomMessagePatchOperations,
-  extractMessageEditorSlashQuery,
-  getMessageEditorFrameClassName,
   getMessageEditorPatchMutationMeta,
-  getMessageEditorScrollViewportClassName,
-  getMessageEditorSlashMenuLayerClassName,
-  getMessageEditorTextBlockShellClassName,
   isMessageEditorImportablePasteText,
   mergeChangedRoomMessagesIntoEditorMessages,
   resolveMessageEditorPointerAutoScrollDelta,
+  shouldKeepMessageEditorFocusRestore,
   shouldIgnoreDocumentSelectionEventTarget,
   shouldStartMessageEditorAtomicBlockSelection,
-} from "./MessageEditor";
-import { createMessageEditorTextDraft } from "./model/messageEditorTransforms";
+} from "../MessageEditor";
+import { createMessageEditorTextDraft } from "../model/messageEditorTransforms";
 
 type MockElement = {
   closest?: (selector: string) => MockElement | null;
@@ -44,33 +41,21 @@ function createMockElement(options: {
 }
 
 describe("messageEditor document click guard", () => {
-  it("uses an 80vh frame height by default for standalone document views", () => {
-    expect(getMessageEditorFrameClassName()).toBe("h-[80vh] min-h-0 rounded-md");
-  });
-
-  it("preserves an explicit frame class override", () => {
-    expect(getMessageEditorFrameClassName("h-full rounded-none")).toBe("h-full rounded-none");
-  });
-
-  it("uses one shared scroll viewport for cover, header and content", () => {
-    expect(getMessageEditorScrollViewportClassName()).toBe("relative min-h-0 flex-1 overflow-auto");
-  });
-
-  it("renders command menus as overlays outside the text flow", () => {
-    expect(getMessageEditorSlashMenuLayerClassName()).toContain("absolute");
-    expect(getMessageEditorSlashMenuLayerClassName()).toContain("top-full");
-  });
-
-  it("adds a small gap only between consecutive text blocks", () => {
-    expect(getMessageEditorTextBlockShellClassName({
-      hasFollowingTextBlock: true,
-      isDragging: false,
-    })).toContain("mb-2");
-
-    expect(getMessageEditorTextBlockShellClassName({
-      hasFollowingTextBlock: false,
-      isDragging: false,
-    })).not.toContain("mb-2");
+  it("keeps a pending caret when the editable block focuses itself", () => {
+    expect(shouldKeepMessageEditorFocusRestore({
+      blockId: "target",
+      caret: 12,
+    }, "target")).toBe(true);
+    expect(shouldKeepMessageEditorFocusRestore({
+      selection: {
+        focus: { blockId: "target", offset: 12 },
+      } as MessageEditorSelection,
+    }, "target")).toBe(true);
+    expect(shouldKeepMessageEditorFocusRestore({
+      blockId: "other",
+      caret: 1,
+    }, "target")).toBe(false);
+    expect(shouldKeepMessageEditorFocusRestore(null, "target")).toBe(false);
   });
 
   it("默认把远端 patch 保存标记为 message editor 来源", () => {
@@ -295,14 +280,6 @@ describe("messageEditor room message patch", () => {
     expect(merged[0]).toBe(moved);
     expect((merged[0] as MessageEditorMessage & { position?: number }).position).toBe(9);
     expect((merged[0] as MessageEditorMessage & { syncId?: number }).syncId).toBe(103);
-  });
-});
-
-describe("messageEditor slash query", () => {
-  it("finds a slash command on any line in the active block", () => {
-    expect(extractMessageEditorSlashQuery("前文\n/ h1\n后文")).toBe("h1");
-    expect(extractMessageEditorSlashQuery("前文\n   / quote\n后文")).toBe("quote");
-    expect(extractMessageEditorSlashQuery("前文\n@ feiyue\n后文")).toBeNull();
   });
 });
 

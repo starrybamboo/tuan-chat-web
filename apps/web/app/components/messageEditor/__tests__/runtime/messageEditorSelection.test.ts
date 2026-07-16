@@ -1,8 +1,9 @@
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
-import { createMessageEditorBlockDraft, createMessageEditorTextDraft, getMessageEditorBlockId } from "../model/messageEditorTransforms";
-import { createMessageEditorRegistry } from "./messageEditorRegistry";
+import { createMessageEditorBlockDraft, createMessageEditorTextDraft, getMessageEditorBlockId } from "../../model/messageEditorTransforms";
+import { createMessageEditorRegistry } from "../../runtime/messageEditorRegistry";
 import {
+  createMessageEditorSelectionRenderLookup,
   createMessageEditorDocumentSelection,
   createMessageEditorSelection,
   createMessageEditorTextRunSelection,
@@ -11,7 +12,7 @@ import {
   getMessageEditorSelectionText,
   moveMessageEditorDocumentPointByCharacter,
   moveMessageEditorTextPointByCharacter,
-} from "./messageEditorSelection";
+} from "../../runtime/messageEditorSelection";
 
 describe("messageEditorSelection", () => {
   it("creates a normalized multi-block selection across continuous text blocks", () => {
@@ -77,6 +78,36 @@ describe("messageEditorSelection", () => {
       },
     ]);
     expect(selection ? getMessageEditorSelectionText([first, empty, third], selection) : "").toBe("pha\n\nom");
+  });
+
+  it("builds one render lookup for segments and selected line breaks", () => {
+    const first = createMessageEditorTextDraft({ content: "alpha" });
+    const empty = createMessageEditorTextDraft({ content: "" });
+    const third = createMessageEditorTextDraft({ content: "omega" });
+    const messages = [first, empty, third];
+    const selection = createMessageEditorSelection(messages, createMessageEditorRegistry(), {
+      blockId: getMessageEditorBlockId(first),
+      offset: 2,
+    }, {
+      blockId: getMessageEditorBlockId(third),
+      offset: 2,
+    });
+
+    const lookup = createMessageEditorSelectionRenderLookup(selection);
+
+    expect(lookup.get(getMessageEditorBlockId(first))).toEqual({
+      blockId: getMessageEditorBlockId(first),
+      end: 5,
+      showLineBreakAfter: true,
+      start: 2,
+    });
+    expect(lookup.get(getMessageEditorBlockId(empty))).toEqual({
+      blockId: getMessageEditorBlockId(empty),
+      end: 0,
+      showLineBreakAfter: true,
+      start: 0,
+    });
+    expect(lookup.get(getMessageEditorBlockId(third))?.showLineBreakAfter).toBe(false);
   });
 
   it("includes atomic blocks as whole-object segments in document selections", () => {

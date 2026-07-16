@@ -33,6 +33,7 @@ type MessageEditorResolvedHitEntry<TEntry extends MessageEditorHitTestEntry = Me
 type RuntimeHitTestEntry = MessageEditorHitTestEntry & {
   content: string;
   kind: "atomic" | "text";
+  placeholder: boolean;
   selectableLength: number;
   textElement: HTMLElement;
 };
@@ -120,7 +121,7 @@ function isElementInsideRoot(root: HTMLElement, node: Node | null): node is Elem
   return Boolean(view && node instanceof view.Element && root.contains(node));
 }
 
-function resolveTextBlockIdFromNode(root: HTMLElement, node: Node | null) {
+export function resolveMessageEditorBlockIdFromNode(root: HTMLElement, node: Node | null) {
   if (!isElementInsideRoot(root, node)) {
     return null;
   }
@@ -129,33 +130,115 @@ function resolveTextBlockIdFromNode(root: HTMLElement, node: Node | null) {
   return blockElement?.dataset.meBlockId ?? blockElement?.dataset.meBlockHit ?? null;
 }
 
-function buildRuntimeHitEntries(params: {
+export function resolveMessageEditorDropTarget(
+  blockId: string,
+  shellRect: MessageEditorHitTestRect,
+  clientY: number,
+) {
+  return {
+    targetBlockId: blockId,
+    position: clientY <= shellRect.top + (shellRect.bottom - shellRect.top) / 2
+      ? "before" as const
+      : "after" as const,
+  };
+}
+
+export function resolveMessageEditorVisibleDropTarget(
+  entries: Array<{ blockId: string; rect: MessageEditorHitTestRect }>,
+  clientY: number,
+) {
+  const sortedEntries = [...entries].sort((left, right) => left.rect.top - right.rect.top);
+  const firstEntry = sortedEntries[0];
+  if (!firstEntry) {
+    return null;
+  }
+  if (clientY <= firstEntry.rect.top) {
+    return {
+      targetBlockId: firstEntry.blockId,
+      position: "before" as const,
+    };
+  }
+
+  for (let index = 0; index < sortedEntries.length; index += 1) {
+    const entry = sortedEntries[index];
+    if (clientY <= entry.rect.bottom) {
+      return resolveMessageEditorDropTarget(entry.blockId, entry.rect, clientY);
+    }
+    const nextEntry = sortedEntries[index + 1];
+    if (nextEntry && clientY < nextEntry.rect.top) {
+      const gapMiddle = entry.rect.bottom + (nextEntry.rect.top - entry.rect.bottom) / 2;
+      return clientY <= gapMiddle
+        ? { targetBlockId: entry.blockId, position: "after" as const }
+        : { targetBlockId: nextEntry.blockId, position: "before" as const };
+    }
+  }
+
+  const lastEntry = sortedEntries[sortedEntries.length - 1];
+  return {
+    targetBlockId: lastEntry.blockId,
+    position: "after" as const,
+  };
+}
+
+type RuntimeHitTestParams = {
   blockRefs: ReadonlyMap<string, HTMLElement>;
   blockShellRefs: ReadonlyMap<string, HTMLElement>;
+  blockSlotRefs?: ReadonlyMap<string, HTMLElement>;
+  messageByBlockId?: ReadonlyMap<string, MessageEditorMessage>;
   messages: MessageEditorMessage[];
   registry: MessageEditorRegistry;
-}): RuntimeHitTestEntry[] {
-  return ensureMessageEditorMessages(params.messages).flatMap((message) => {
-    const blockId = getMessageEditorBlockId(message);
-    const isText = params.registry.isTextBlock(message);
-    const shellElement = params.blockShellRefs.get(blockId);
-    const textElement = params.blockRefs.get(blockId) ?? shellElement;
-    if (!textElement) {
-      return [];
-    }
+};
 
-    const textRect = textElement.getBoundingClientRect();
-    const shellRect = shellElement?.getBoundingClientRect() ?? textRect;
-    return [{
-      blockId,
-      content: normalizeMessageEditorContent(message.content),
-      kind: isText ? "text" : "atomic",
-      selectableLength: getMessageEditorSelectableLength(message, params.registry),
-      shellRect,
-      textElement,
-      textRect,
-    }];
-  });
+function buildRuntimeHitEntry(
+  params: RuntimeHitTestParams,
+  message: MessageEditorMessage,
+  allowPlaceholder: boolean,
+): RuntimeHitTestEntry | null {
+  const blockId = getMessageEditorBlockId(message);
+  const isText = params.registry.isTextBlock(message);
+  const renderedShellElement = params.blockShellRefs.get(blockId);
+  const shellElement = renderedShellElement ?? (allowPlaceholder ? params.blockSlotRefs?.get(blockId) : undefined);
+  const textElement = params.blockRefs.get(blockId) ?? shellElement;
+  if (!textElement) {
+    return null;
+  }
+
+  const textRect = textElement.getBoundingClientRect();
+  const shellRect = shellElement?.getBoundingClientRect() ?? textRect;
+  return {
+    blockId,
+    content: normalizeMessageEditorContent(message.content),
+    kind: isText ? "text" : "atomic",
+    placeholder: !renderedShellElement && !params.blockRefs.has(blockId),
+    selectableLength: getMessageEditorSelectableLength(message, params.registry),
+    shellRect,
+    textElement,
+    textRect,
+  };
+}
+
+function findRuntimeHitEntry(params: RuntimeHitTestParams, blockId: string) {
+  const message = params.messageByBlockId?.get(blockId)
+    ?? params.messages.find(item => getMessageEditorBlockId(item) === blockId);
+  return message ? buildRuntimeHitEntry(params, message, true) : null;
+}
+
+function buildRuntimeHitEntries(params: RuntimeHitTestParams): RuntimeHitTestEntry[] {
+  const messageByBlockId = params.messageByBlockId
+    ?? new Map(ensureMessageEditorMessages(params.messages).map(message => [getMessageEditorBlockId(message), message] as const));
+  const mountedBlockIds = params.blockSlotRefs?.keys() ?? params.blockShellRefs.keys();
+  const entries: RuntimeHitTestEntry[] = [];
+  for (const blockId of mountedBlockIds) {
+    const message = messageByBlockId.get(blockId);
+    if (!message) {
+      continue;
+    }
+    const entry = buildRuntimeHitEntry(params, message, false);
+    if (entry) {
+      entries.push(entry);
+    }
+  }
+  return entries;
 }
 
 function resolveBoundaryOffset(entry: RuntimeHitTestEntry, clientX: number, clientY: number, edge: MessageEditorHitTestEdge) {
@@ -190,6 +273,13 @@ function resolvePointForEntry(entry: RuntimeHitTestEntry, clientX: number, clien
     };
   }
 
+  if (entry.placeholder) {
+    return {
+      blockId: entry.blockId,
+      offset: clientY < entry.shellRect.top + (entry.shellRect.bottom - entry.shellRect.top) / 2 ? 0 : selectableLength,
+    };
+  }
+
   if (entry.kind === "atomic") {
     return {
       blockId: entry.blockId,
@@ -220,32 +310,32 @@ function resolvePointForEntry(entry: RuntimeHitTestEntry, clientX: number, clien
 export function resolveMessageEditorTextPointFromClientPosition(params: {
   blockRefs: ReadonlyMap<string, HTMLElement>;
   blockShellRefs: ReadonlyMap<string, HTMLElement>;
+  blockSlotRefs?: ReadonlyMap<string, HTMLElement>;
   clientX: number;
   clientY: number;
+  messageByBlockId?: ReadonlyMap<string, MessageEditorMessage>;
   messages: MessageEditorMessage[];
   preferredBlockId?: string;
   registry: MessageEditorRegistry;
   root: HTMLElement;
 }): MessageEditorSelectionPoint | null {
-  const entries = buildRuntimeHitEntries(params);
-  const entryByBlockId = new Map(entries.map(entry => [entry.blockId, entry] as const));
-
   if (params.preferredBlockId) {
-    const preferredEntry = entryByBlockId.get(params.preferredBlockId);
+    const preferredEntry = findRuntimeHitEntry(params, params.preferredBlockId);
     if (preferredEntry) {
       return resolvePointForEntry(preferredEntry, params.clientX, params.clientY, "inside");
     }
   }
 
-  const directBlockId = resolveTextBlockIdFromNode(
+  const directBlockId = resolveMessageEditorBlockIdFromNode(
     params.root,
     params.root.ownerDocument.elementFromPoint(params.clientX, params.clientY),
   );
-  const directEntry = directBlockId ? entryByBlockId.get(directBlockId) : null;
+  const directEntry = directBlockId ? findRuntimeHitEntry(params, directBlockId) : null;
   if (directEntry) {
     return resolvePointForEntry(directEntry, params.clientX, params.clientY, "inside");
   }
 
+  const entries = buildRuntimeHitEntries(params);
   const picked = pickMessageEditorTextHitEntry(entries, params.clientY);
   return picked ? resolvePointForEntry(picked.entry, params.clientX, params.clientY, picked.edge) : null;
 }

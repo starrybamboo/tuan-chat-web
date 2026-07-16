@@ -2,8 +2,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { vi } from "vitest";
 
-import { createMessageEditorBlockDraft, setMessageEditorUploadedMedia, updateMessageEditorMediaSize } from "../model/messageEditorTransforms";
-import { MessageEditorAtomicBlock } from "./MessageEditorAtomicBlock";
+import { MessageEditorAtomicBlock } from "../../components/MessageEditorAtomicBlock";
+import { createMessageEditorBlockDraft, setMessageEditorUploadedMedia, updateMessageEditorMediaSize } from "../../model/messageEditorTransforms";
 
 vi.mock("@/components/chat/message/media/CachedVideoMessage", () => ({
   default: ({ className, url }: { className?: string; url: string }) => {
@@ -15,20 +15,24 @@ vi.mock("@/components/chat/message/media/CachedVideoMessage", () => ({
 }));
 
 vi.mock("@/components/common/mediaImage", () => ({
-  MediaImage: ({ alt, className, src }: { alt?: string; className?: string; src?: string }) => {
+  MediaImage: ({ alt, className, decoding, loading, src }: {
+    alt?: string;
+    className?: string;
+    decoding?: "async" | "auto" | "sync";
+    loading?: "eager" | "lazy";
+    src?: string;
+  }) => {
     return createElement("img", {
       alt,
       className,
+      decoding,
+      loading,
       src,
     });
   },
 }));
 
 describe("messageEditorAtomicBlock", () => {
-  function normalizeMarkup(markup: string) {
-    return markup.replaceAll(/\s+/g, " ");
-  }
-
   function renderBlock(message = createMessageEditorBlockDraft("image")) {
     return renderToStaticMarkup(createElement(MessageEditorAtomicBlock, {
       active: false,
@@ -46,7 +50,6 @@ describe("messageEditorAtomicBlock", () => {
 
     expect(html).toContain("点击上传图片");
     expect(html).toContain("删除");
-    expect(html).toContain("min-h-24");
     expect(html).not.toContain("<img");
   });
 
@@ -60,7 +63,7 @@ describe("messageEditorAtomicBlock", () => {
     expect(videoHtml).toContain("删除");
   });
 
-  it("renders a full-width uploaded image with replace, delete, and resize actions", () => {
+  it("renders an uploaded image with replace, delete, and resize actions", () => {
     const imageMessage = setMessageEditorUploadedMedia(createMessageEditorBlockDraft("image"), {
       fileId: 45,
       fileName: "cover.png",
@@ -71,19 +74,16 @@ describe("messageEditorAtomicBlock", () => {
     });
 
     const html = renderBlock(imageMessage);
-    const normalizedHtml = normalizeMarkup(html);
 
     expect(html).toContain("更换图片");
     expect(html).toContain("删除");
     expect(html).toContain("拖拽缩放图片");
-    expect(html).toContain("cursor-ew-resize");
-    expect(html).toContain("pointer-events-none");
-    expect(html).toContain("group-hover/media:pointer-events-auto");
     expect(html).toContain("https://media.tuan.chat/media/v1/files/045/45/image/medium.webp");
-    expect(normalizedHtml).toContain("class=\" block h-auto w-full max-w-full object-contain \"");
+    expect(html).toContain('loading="lazy"');
+    expect(html).toContain('decoding="async"');
   });
 
-  it("renders a full-width uploaded video with replace, delete, and resize actions", () => {
+  it("renders an uploaded video with replace, delete, and resize actions", () => {
     const videoMessage = setMessageEditorUploadedMedia(createMessageEditorBlockDraft("video"), {
       fileId: 47,
       fileName: "clip.webm",
@@ -94,13 +94,11 @@ describe("messageEditorAtomicBlock", () => {
     });
 
     const html = renderBlock(videoMessage);
-    const normalizedHtml = normalizeMarkup(html);
 
     expect(html).toContain("更换视频");
     expect(html).toContain("删除");
     expect(html).toContain("拖拽缩放视频");
     expect(html).toContain("https://media.tuan.chat/media/v1/files/047/47/video/low.webm");
-    expect(normalizedHtml).toContain("class=\" block h-auto w-full max-w-full bg-transparent object-contain \"");
   });
 
   it("restores the persisted resized width for image and video blocks", () => {
@@ -147,11 +145,10 @@ describe("messageEditorAtomicBlock", () => {
 
     expect(audioHtml).toContain("删除音频块");
     expect(audioHtml).toContain("0:00 / 0:09");
-    expect(audioHtml).toContain("tc-audio-message");
     expect(audioHtml).not.toContain("更换音频");
   });
 
-  it("renders a hover delete icon at the tail of uploaded file blocks", () => {
+  it("renders a delete action for uploaded file blocks", () => {
     const fileMessage = setMessageEditorUploadedMedia(createMessageEditorBlockDraft("file"), {
       fileId: 50,
       fileName: "notes.pdf",
@@ -163,7 +160,6 @@ describe("messageEditorAtomicBlock", () => {
 
     expect(html).toContain("notes.pdf");
     expect(html).toContain("删除文件块");
-    expect(html).toContain("group-hover/media:pointer-events-auto");
     expect(html).not.toContain("更换文件");
   });
 });

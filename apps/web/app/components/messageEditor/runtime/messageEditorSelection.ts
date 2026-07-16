@@ -40,6 +40,38 @@ export type MessageEditorSelection = {
   collapsed: boolean;
 };
 
+export type MessageEditorSelectionDocument = {
+  messageByBlockId: ReadonlyMap<string, MessageEditorMessage>;
+  messageIndexByBlockId: ReadonlyMap<string, number>;
+  messages: MessageEditorMessage[];
+};
+
+export type MessageEditorSelectionRenderSegment = MessageEditorSelectionSegment & {
+  showLineBreakAfter: boolean;
+};
+
+/**
+ * 为 block render 构建 O(1) 选区查询表，避免列表渲染时反复 find / indexOf。
+ */
+export function createMessageEditorSelectionRenderLookup(
+  selection: MessageEditorSelection | null,
+) {
+  const lookup = new Map<string, MessageEditorSelectionRenderSegment>();
+  if (!selection) {
+    return lookup;
+  }
+
+  const lastBlockId = selection.blockIds.at(-1);
+  selection.segments.forEach((segment) => {
+    lookup.set(segment.blockId, {
+      ...segment,
+      showLineBreakAfter: segment.blockId !== lastBlockId,
+    });
+  });
+
+  return lookup;
+}
+
 export function getMessageEditorSelectableLength(message: MessageEditorMessage | undefined, registry: MessageEditorRegistry) {
   if (!message) {
     return 0;
@@ -54,7 +86,7 @@ function clampOffset(message: MessageEditorMessage | undefined, registry: Messag
   return Math.max(0, Math.min(offset, selectableLength));
 }
 
-function comparePoints(messageIndexByBlockId: Map<string, number>, left: MessageEditorSelectionPoint, right: MessageEditorSelectionPoint) {
+function comparePoints(messageIndexByBlockId: ReadonlyMap<string, number>, left: MessageEditorSelectionPoint, right: MessageEditorSelectionPoint) {
   const leftIndex = messageIndexByBlockId.get(left.blockId) ?? -1;
   const rightIndex = messageIndexByBlockId.get(right.blockId) ?? -1;
   if (leftIndex !== rightIndex) {
@@ -73,8 +105,41 @@ export function createMessageEditorSelection(
   anchor: MessageEditorSelectionPoint,
   focus: MessageEditorSelectionPoint,
 ): MessageEditorSelection | null {
-  const normalizedMessages = ensureMessageEditorMessages(messages);
-  const messageIndexByBlockId = new Map(normalizedMessages.map((message, index) => [getMessageEditorBlockId(message), index] as const));
+  return createMessageEditorSelectionFromDocument(
+    createMessageEditorSelectionDocument(ensureMessageEditorMessages(messages)),
+    registry,
+    anchor,
+    focus,
+  );
+}
+
+export function createMessageEditorSelectionDocument(
+  messages: MessageEditorMessage[],
+): MessageEditorSelectionDocument {
+  const normalizedMessages = messages.length > 0 ? messages : ensureMessageEditorMessages(messages);
+  const messageByBlockId = new Map<string, MessageEditorMessage>();
+  const messageIndexByBlockId = new Map<string, number>();
+  normalizedMessages.forEach((message, index) => {
+    const blockId = getMessageEditorBlockId(message);
+    messageByBlockId.set(blockId, message);
+    messageIndexByBlockId.set(blockId, index);
+  });
+  return {
+    messageByBlockId,
+    messageIndexByBlockId,
+    messages: normalizedMessages,
+  };
+}
+
+/** 使用预构建文档索引生成选区，避免 pointermove 时反复扫描整个文档。 */
+export function createMessageEditorSelectionFromDocument(
+  document: MessageEditorSelectionDocument,
+  registry: MessageEditorRegistry,
+  anchor: MessageEditorSelectionPoint,
+  focus: MessageEditorSelectionPoint,
+): MessageEditorSelection | null {
+  const normalizedMessages = document.messages;
+  const messageIndexByBlockId = document.messageIndexByBlockId;
   const anchorIndex = messageIndexByBlockId.get(anchor.blockId);
   const focusIndex = messageIndexByBlockId.get(focus.blockId);
   if (anchorIndex == null || focusIndex == null) {
@@ -95,12 +160,12 @@ export function createMessageEditorSelection(
     : { start: normalizedFocus, end: normalizedAnchor };
   const startIndex = messageIndexByBlockId.get(ordered.start.blockId)!;
   const endIndex = messageIndexByBlockId.get(ordered.end.blockId)!;
-  const selectedMessages = normalizedMessages.slice(startIndex, endIndex + 1);
-
   const segments: MessageEditorSelectionSegment[] = [];
+  const blockIds: string[] = [];
   for (let index = startIndex; index <= endIndex; index += 1) {
     const message = normalizedMessages[index];
     const blockId = getMessageEditorBlockId(message);
+    blockIds.push(blockId);
     const selectableLength = getMessageEditorSelectableLength(message, registry);
     const start = index === startIndex ? ordered.start.offset : 0;
     const end = index === endIndex ? ordered.end.offset : selectableLength;
@@ -119,7 +184,7 @@ export function createMessageEditorSelection(
     start: ordered.start,
     end: ordered.end,
     segments,
-    blockIds: selectedMessages.map(message => getMessageEditorBlockId(message)),
+    blockIds,
     multiBlock: startIndex !== endIndex,
     collapsed: normalizedAnchor.blockId === normalizedFocus.blockId && normalizedAnchor.offset === normalizedFocus.offset,
   };
@@ -206,14 +271,23 @@ export function createMessageEditorDocumentSelection(
   messages: MessageEditorMessage[],
   registry: MessageEditorRegistry,
 ): MessageEditorSelection | null {
-  const normalizedMessages = ensureMessageEditorMessages(messages);
-  const firstMessage = normalizedMessages[0];
-  const lastMessage = normalizedMessages.at(-1);
+  return createMessageEditorDocumentSelectionFromDocument(
+    createMessageEditorSelectionDocument(ensureMessageEditorMessages(messages)),
+    registry,
+  );
+}
+
+export function createMessageEditorDocumentSelectionFromDocument(
+  document: MessageEditorSelectionDocument,
+  registry: MessageEditorRegistry,
+): MessageEditorSelection | null {
+  const firstMessage = document.messages[0];
+  const lastMessage = document.messages.at(-1);
   if (!firstMessage || !lastMessage) {
     return null;
   }
 
-  return createMessageEditorSelection(normalizedMessages, registry, {
+  return createMessageEditorSelectionFromDocument(document, registry, {
     blockId: getMessageEditorBlockId(firstMessage),
     offset: 0,
   }, {

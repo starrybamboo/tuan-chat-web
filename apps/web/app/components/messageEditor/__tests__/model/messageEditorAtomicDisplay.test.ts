@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveMessageEditorGenericBlockText } from "./messageEditorAtomicDisplay";
+import { resolveMessageEditorGenericBlockText } from "../../model/messageEditorAtomicDisplay";
 
 describe("messageEditor atomic display", () => {
   it("uses the message content as a document paragraph when generic blocks have text", () => {

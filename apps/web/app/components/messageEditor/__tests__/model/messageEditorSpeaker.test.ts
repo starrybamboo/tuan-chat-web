@@ -6,10 +6,11 @@ import {
   isMessageEditorSpeakerMenuCommitKey,
   parseMessageEditorSpeakerCommand,
   resolveMessageEditorAvatarTitleLabel,
+  resolveMessageEditorSpeakerRoles,
   resolveMessageEditorSpeakerLabel,
   scoreMessageEditorSpeakerSearchCandidate,
   splitMessageEditorSpeakerCommandQuery,
-} from "./messageEditorSpeaker";
+} from "../../model/messageEditorSpeaker";
 
 describe("messageEditorSpeaker", () => {
   it("formats role and avatar title as a gal speaker label", () => {
@@ -161,5 +162,31 @@ describe("messageEditorSpeaker", () => {
     expect(keys).toEqual(expect.arrayContaining(["akari", "月月", "yueyue", "yy"]));
     expect(scoreMessageEditorSpeakerSearchCandidate({ roleName: "绯月", extra: { aliases: "Akari, 月月" } }, "akari")).toBeGreaterThan(0);
     expect(scoreMessageEditorSpeakerSearchCandidate({ roleName: "绯月", extra: { aliases: "Akari, 月月" } }, "月月")).toBeGreaterThan(0);
+  });
+
+  it("resolves speaker roles from all roles before owned fallback and deduplicates by role id", () => {
+    expect(resolveMessageEditorSpeakerRoles({
+      roomAllRoles: [
+        { roleId: 0, roleName: "无效角色", type: 0, userId: 1 },
+        { roleId: 1, roleName: "旁人", type: 0, userId: 1 },
+        { roleId: 7, roleName: "绯月", type: 0, userId: 1 },
+        { roleId: 7, roleName: "绯月（重复）", type: 0, userId: 1 },
+      ],
+      roomRolesThatUserOwn: [
+        { roleId: 9, roleName: "不会使用", type: 0, userId: 1 },
+      ],
+    })).toEqual([
+      { roleId: 1, roleName: "旁人", type: 0, userId: 1 },
+      { roleId: 7, roleName: "绯月（重复）", type: 0, userId: 1 },
+    ]);
+
+    expect(resolveMessageEditorSpeakerRoles({
+      roomAllRoles: [],
+      roomRolesThatUserOwn: [
+        { roleId: 9, roleName: "自有角色", type: 0, userId: 1 },
+      ],
+    })).toEqual([
+      { roleId: 9, roleName: "自有角色", type: 0, userId: 1 },
+    ]);
   });
 });

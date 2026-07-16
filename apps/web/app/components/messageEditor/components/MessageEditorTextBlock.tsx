@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from "react";
+import { memo, useLayoutEffect, useRef } from "react";
 
 // oxlint-disable jsx-a11y/no-static-element-interactions
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
@@ -32,6 +32,50 @@ type MessageEditorTextBlockProps = {
   textInputRef?: React.RefObject<ChatInputAreaHandle | null>;
 }
 
+type TextBlockSelectionSegment = NonNullable<MessageEditorTextBlockProps["selectionSegment"]>;
+
+/**
+ * 文本块的互斥 UI 状态。
+ *
+ * - preview：非激活块，消费 Markdown 预览结构。
+ * - editable-source：激活且可编辑，消费 ChatInputArea 管理的可编辑 DOM。
+ * - readonly-source：激活但只读，消费同步后的纯文本 DOM。
+ * - selected-source：存在跨块选区，消费原始文本和选区偏移量。
+ */
+export type TextBlockViewMode =
+  | { kind: "editable-source" }
+  | { kind: "preview" }
+  | { kind: "readonly-source" }
+  | { kind: "selected-source"; selectionSegment: TextBlockSelectionSegment };
+
+// 状态机层：把 active、readOnly、selectionSegment 收敛成唯一视图状态。
+/**
+ * 将文本块的交互输入收敛成单一视图模式，避免布尔组合散落在渲染和 DOM 同步逻辑中。
+ */
+export function resolveMessageEditorTextBlockViewState(options: {
+  active: boolean;
+  readOnly: boolean;
+  selectionSegment: TextBlockSelectionSegment | null;
+}): TextBlockViewMode {
+  if (options.selectionSegment) {
+    return {
+      kind: "selected-source",
+      selectionSegment: options.selectionSegment,
+    };
+  }
+
+  if (!options.active) {
+    return { kind: "preview" };
+  }
+
+  if (options.readOnly) {
+    return { kind: "readonly-source" };
+  }
+
+  return { kind: "editable-source" };
+}
+
+// 文本编解码层：在业务纯文本与 contentEditable DOM 结构之间转换。
 function normalizeEditableText(value: string) {
   return value.replace(/\r\n?/g, "\n").replace(/\u00A0/g, " ");
 }
@@ -73,6 +117,7 @@ function plainTextToHtml(value: string) {
   return escapeHtml(value).replace(/\r?\n/g, "<br>");
 }
 
+// 浏览器选区适配层：用纯文本偏移量保存选区，避免 DOM 重写后丢失光标。
 type EditableSelectionSnapshot = {
   end: number;
   start: number;
@@ -183,6 +228,7 @@ function restoreEditableSelection(editor: HTMLElement, snapshot: EditableSelecti
 const TEXT_SELECTION_CLASS_NAME = "rounded-sm bg-info/10 px-0.5 text-inherit ring-1 ring-inset ring-info/35 box-decoration-clone";
 const TEXT_SELECTION_EMPTY_CLASS_NAME = "block min-h-7 w-full rounded-md bg-info/10 ring-1 ring-inset ring-info/40";
 
+// 跨块选区表现层：把外部计算出的文本偏移量渲染为块内高亮片段。
 function renderSelectedLineBreak(showLineBreakAfter: boolean | undefined) {
   if (!showLineBreakAfter) {
     return null;
@@ -218,6 +264,7 @@ function renderSourceContentWithSelection(content: string, selectionSegment: { e
   );
 }
 
+// 样式派生层：根据消息类型和 Markdown 预览类型计算容器与内容样式。
 function blockClassName(message: MessageEditorMessage, previewKind: ReturnType<typeof parseMessageEditorMarkdownPreview>["kind"]) {
   const base = [
     "relative rounded-md px-0 py-0 text-base leading-7 transition",
@@ -257,7 +304,7 @@ function textContentClassName(message: MessageEditorMessage, previewKind: Return
 /**
  * 单个文本块视图。
  */
-export function MessageEditorTextBlock({
+export const MessageEditorTextBlock = memo(function MessageEditorTextBlock({
   active,
   blockId,
   message,
@@ -274,40 +321,33 @@ export function MessageEditorTextBlock({
   selectionSegment = null,
   textInputRef,
 }: MessageEditorTextBlockProps) {
+  // 数据派生：业务内容是唯一数据源，视图状态只决定如何消费和展示这份内容。
   const content = normalizeMessageEditorContent(message.content);
+  const viewState = resolveMessageEditorTextBlockViewState({
+    active,
+    readOnly,
+    selectionSegment,
+  });
+  const viewMode = viewState.kind;
+  const selectedSourceSegment = viewState.kind === "selected-source" ? viewState.selectionSegment : null;
+  const preview = parseMessageEditorMarkdownPreview(content);
+  const previewKind = message.messageType === MESSAGE_TYPE.INTRO_TEXT ? "paragraph" : preview.kind;
+
+  // DOM 引用：分别连接只读/预览 DOM、可编辑输入组件以及跨块选区注册表。
   const blockContentRef = useRef<HTMLDivElement | null>(null);
   const localTextInputRef = useRef<ChatInputAreaHandle | null>(null);
   const effectiveTextInputRef = textInputRef ?? localTextInputRef;
   const wasEditableSourceModeRef = useRef(false);
-  const sourceMode = active || selectionSegment !== null;
-  const editableSourceMode = sourceMode && active && !readOnly && selectionSegment === null;
-  const preview = parseMessageEditorMarkdownPreview(content);
-  const previewKind = message.messageType === MESSAGE_TYPE.INTRO_TEXT ? "paragraph" : preview.kind;
 
+  // readonly-source 副作用：React 不负责其子文本更新，因此显式同步纯文本 DOM。
   useLayoutEffect(() => {
     const node = blockContentRef.current;
-    if (!node || !sourceMode || editableSourceMode || selectionSegment) {
+    if (!node || viewMode !== "readonly-source") {
       return;
     }
 
     const normalizedDomText = normalizeEditableText(node.textContent ?? "");
     const alreadyPlainTextNode = node.childNodes.length === 1 && node.firstChild?.nodeType === Node.TEXT_NODE;
-    if (!readOnly && active && !selectionSegment) {
-      if (!content) {
-        if (node.childNodes.length === 1 && node.firstChild instanceof HTMLBRElement) {
-          return;
-        }
-        node.replaceChildren(document.createElement("br"));
-        return;
-      }
-
-      if (alreadyPlainTextNode && normalizedDomText === content) {
-        return;
-      }
-
-      node.replaceChildren(document.createTextNode(content));
-      return;
-    }
 
     if (!content) {
       node.replaceChildren();
@@ -319,10 +359,11 @@ export function MessageEditorTextBlock({
     }
 
     node.replaceChildren(document.createTextNode(content));
-  }, [active, content, editableSourceMode, readOnly, selectionSegment, sourceMode]);
+  }, [content, viewMode]);
 
+  // editable-source 副作用：接管 ChatInputArea DOM，同步内容、注册块节点并恢复选区。
   useLayoutEffect(() => {
-    if (!editableSourceMode) {
+    if (viewMode !== "editable-source") {
       wasEditableSourceModeRef.current = false;
       return;
     }
@@ -363,8 +404,9 @@ export function MessageEditorTextBlock({
       delete editor.dataset.meTextMode;
       registerBlockRef(blockId, null);
     };
-  }, [blockId, content, editableSourceMode, effectiveTextInputRef, registerBlockRef]);
+  }, [blockId, content, effectiveTextInputRef, registerBlockRef, viewMode]);
 
+  // 预览模型：Markdown 标记只在 preview 状态消费，source 状态始终展示原始文本。
   const contentClassName = textContentClassName(message, previewKind);
   const previewContent = previewKind === "paragraph" ? content : preview.content;
   const previewNode = (
@@ -376,6 +418,7 @@ export function MessageEditorTextBlock({
     />
   );
 
+  // 渲染层：按照状态机结果选择唯一分支，避免重新判断多组布尔条件。
   return (
     <div
       className={blockClassName(message, previewKind)}
@@ -389,9 +432,10 @@ export function MessageEditorTextBlock({
               {placeholder}
             </div>
           )}
-          {sourceMode
-            ? (editableSourceMode
+          {viewMode !== "preview"
+            ? (viewMode === "editable-source"
                 ? (
+                    /* editable-source：唯一允许用户修改业务文本的状态。 */
                     <div
                       onMouseDownCapture={() => {
                         onFocus(blockId);
@@ -422,6 +466,7 @@ export function MessageEditorTextBlock({
                     </div>
                   )
                 : (
+                    /* readonly-source / selected-source：共享 source DOM，仅选区状态额外渲染高亮。 */
                     <div
                       ref={(node) => {
                         blockContentRef.current = node;
@@ -429,14 +474,10 @@ export function MessageEditorTextBlock({
                       }}
                       data-me-block-id={blockId}
                       data-me-text-mode="source"
-                      contentEditable={!readOnly && active && selectionSegment === null}
+                      contentEditable={false}
                       suppressContentEditableWarning
                       className={contentClassName}
-                      onMouseDownCapture={() => {
-                        if (!readOnly && selectionSegment === null) {
-                          onFocus(blockId);
-                        }
-                      }}
+                      onMouseDownCapture={() => {}}
                       onFocus={() => onFocus(blockId)}
                       onBlur={() => onBlur?.(blockId)}
                       onInput={(event) => {
@@ -444,11 +485,12 @@ export function MessageEditorTextBlock({
                       }}
                       onKeyDown={event => onKeyDown(blockId, event)}
                     >
-                      {renderSourceContentWithSelection(content, selectionSegment)}
+                      {renderSourceContentWithSelection(content, selectedSourceSegment)}
                     </div>
                   )
               )
             : (
+                /* preview：展示解析后的 Markdown 结构，不暴露 source 编辑 DOM。 */
                 <div
                   ref={(node) => {
                     blockContentRef.current = node;
@@ -482,4 +524,4 @@ export function MessageEditorTextBlock({
       </div>
     </div>
   );
-}
+});

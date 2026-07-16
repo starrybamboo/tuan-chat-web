@@ -1,18 +1,100 @@
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
-import type { MessageEditorMessage } from "../messageEditorTypes";
+import type { MessageEditorMessage } from "../../messageEditorTypes";
+import type {
+  MessageEditorMutationPlan,
+  MessageEditorTransactionPlanner,
+} from "../../runtime/messageEditorTransactionPlanner";
 
 import {
   createMessageEditorTextDraft,
   getMessageEditorBlockId,
   normalizeMessageEditorDraft,
   setMessageEditorUploadedMedia,
-} from "../model/messageEditorTransforms";
-import { createMessageEditorController } from "./messageEditorController";
-import { MessageEditorEventBus } from "./messageEditorEventBus";
-import { createMessageEditorRegistry } from "./messageEditorRegistry";
+} from "../../model/messageEditorTransforms";
+import { createMessageEditorRegistry } from "../../runtime/messageEditorRegistry";
+import { createMessageEditorTransactionPlanner } from "../../runtime/messageEditorTransactionPlanner";
 
-describe("messageEditorController", () => {
+function createCommittedMessageEditorTransactionPlanner(params: {
+  getMessages: () => MessageEditorMessage[];
+  registry: Parameters<typeof createMessageEditorTransactionPlanner>[0]["registry"];
+  setMessages: (updater: (previous: MessageEditorMessage[]) => MessageEditorMessage[]) => void;
+}) {
+  const planner = createMessageEditorTransactionPlanner({
+    getMessages: params.getMessages,
+    registry: params.registry,
+  });
+  const commit = <T,>(plan: MessageEditorMutationPlan<T> | null) => {
+    if (!plan) {
+      return null;
+    }
+    params.setMessages(() => plan.messages);
+    return plan.result;
+  };
+
+  return {
+    ensureTrailingTextBlock: () => commit(planner.ensureTrailingTextBlock()),
+    getAdjacentTextBlock: (...args: Parameters<MessageEditorTransactionPlanner["getAdjacentTextBlock"]>) => planner.getAdjacentTextBlock(...args),
+    insertBlockAtPoint: (...args: Parameters<MessageEditorTransactionPlanner["insertBlockAtPoint"]>) => commit(planner.insertBlockAtPoint(...args)),
+    insertBlockAtSelection: (...args: Parameters<MessageEditorTransactionPlanner["insertBlockAtSelection"]>) => commit(planner.insertBlockAtSelection(...args)),
+    mergeBackward: (...args: Parameters<MessageEditorTransactionPlanner["mergeBackward"]>) => commit(planner.mergeBackward(...args)),
+    mergeForward: (...args: Parameters<MessageEditorTransactionPlanner["mergeForward"]>) => commit(planner.mergeForward(...args)),
+    moveBlock: (...args: Parameters<MessageEditorTransactionPlanner["moveBlock"]>) => commit(planner.moveBlock(...args)),
+    moveBlockToIndex: (...args: Parameters<MessageEditorTransactionPlanner["moveBlockToIndex"]>) => commit(planner.moveBlockToIndex(...args)),
+    removeBlock: (...args: Parameters<MessageEditorTransactionPlanner["removeBlock"]>) => commit(planner.removeBlock(...args)),
+    replaceBlockWithKind: (...args: Parameters<MessageEditorTransactionPlanner["replaceBlockWithKind"]>) => commit(planner.replaceBlockWithKind(...args)),
+    replaceSelectionText: (...args: Parameters<MessageEditorTransactionPlanner["replaceSelectionText"]>) => commit(planner.replaceSelectionText(...args)),
+    replaceSelectionTextAsBlocks: (...args: Parameters<MessageEditorTransactionPlanner["replaceSelectionTextAsBlocks"]>) => commit(planner.replaceSelectionTextAsBlocks(...args)),
+    transformSelectionText: (...args: Parameters<MessageEditorTransactionPlanner["transformSelectionText"]>) => commit(planner.transformSelectionText(...args)),
+    updateBlock: (...args: Parameters<MessageEditorTransactionPlanner["updateBlock"]>) => commit(planner.updateBlock(...args)),
+    updateTextContent: (...args: Parameters<MessageEditorTransactionPlanner["updateTextContent"]>) => commit(planner.updateTextContent(...args)),
+  };
+}
+
+describe("messageEditorTransactionPlanner", () => {
+  it("plans a declared edit transaction without mutating the current document", () => {
+    const messages = [createMessageEditorTextDraft({ content: "before" })];
+    const planner = createMessageEditorTransactionPlanner({
+      getMessages: () => messages,
+      registry: createMessageEditorRegistry(),
+    });
+
+    const plan = planner.updateTextContent(getMessageEditorBlockId(messages[0]), "after");
+
+    expect(messages[0].content).toBe("before");
+    expect(plan).toMatchObject({
+      changed: true,
+      changedBlockIds: [getMessageEditorBlockId(messages[0])],
+      mutation: "update-text-content",
+      result: undefined,
+      structureChanged: false,
+    });
+    expect(plan.messages[0].content).toBe("after");
+  });
+
+  it("preserves unchanged block references and reports no-op text input", () => {
+    const messages = [
+      createMessageEditorTextDraft({ content: "before" }),
+      createMessageEditorTextDraft({ content: "stable" }),
+    ];
+    const planner = createMessageEditorTransactionPlanner({
+      getMessages: () => messages,
+      registry: createMessageEditorRegistry(),
+    });
+
+    const changedPlan = planner.updateTextContent(getMessageEditorBlockId(messages[0]), "after");
+    const unchangedPlan = planner.updateTextContent(getMessageEditorBlockId(messages[0]), "before");
+
+    expect(changedPlan.messages[1]).toBe(messages[1]);
+    expect(unchangedPlan).toMatchObject({
+      changed: false,
+      changedBlockIds: [],
+      messages,
+      structureChanged: false,
+    });
+    expect(unchangedPlan.messages).toBe(messages);
+  });
+
   it("moves a block to a target index", () => {
     let messages: MessageEditorMessage[] = [
       createMessageEditorTextDraft({ content: "one" }),
@@ -20,8 +102,7 @@ describe("messageEditorController", () => {
       createMessageEditorTextDraft({ content: "three" }),
     ];
     const registry = createMessageEditorRegistry();
-    const controller = createMessageEditorController({
-      eventBus: new MessageEditorEventBus(),
+    const planner = createCommittedMessageEditorTransactionPlanner({
       registry,
       getMessages: () => messages,
       setMessages(updater) {
@@ -29,7 +110,7 @@ describe("messageEditorController", () => {
       },
     });
 
-    controller.moveBlockToIndex(getMessageEditorBlockId(messages[0]), 2);
+    planner.moveBlockToIndex(getMessageEditorBlockId(messages[0]), 2);
     expect(messages.map(message => message.content)).toEqual(["two", "three", "one"]);
   });
 
@@ -38,8 +119,7 @@ describe("messageEditorController", () => {
       createMessageEditorTextDraft({ content: "/" }),
     ];
     const registry = createMessageEditorRegistry();
-    const controller = createMessageEditorController({
-      eventBus: new MessageEditorEventBus(),
+    const planner = createCommittedMessageEditorTransactionPlanner({
       registry,
       getMessages: () => messages,
       setMessages(updater) {
@@ -47,7 +127,7 @@ describe("messageEditorController", () => {
       },
     });
 
-    const focus = controller.replaceBlockWithKind(getMessageEditorBlockId(messages[0]), "image");
+    const focus = planner.replaceBlockWithKind(getMessageEditorBlockId(messages[0]), "image");
 
     expect(focus).toBeNull();
     expect(messages).toHaveLength(1);
@@ -65,8 +145,7 @@ describe("messageEditorController", () => {
     })!;
     let messages: MessageEditorMessage[] = [source];
     const registry = createMessageEditorRegistry();
-    const controller = createMessageEditorController({
-      eventBus: new MessageEditorEventBus(),
+    const planner = createCommittedMessageEditorTransactionPlanner({
       registry,
       getMessages: () => messages,
       setMessages(updater) {
@@ -74,7 +153,7 @@ describe("messageEditorController", () => {
       },
     });
 
-    controller.replaceBlockWithKind(getMessageEditorBlockId(source), "image");
+    planner.replaceBlockWithKind(getMessageEditorBlockId(source), "image");
 
     expect(messages[0]).toMatchObject({
       messageType: MESSAGE_TYPE.IMG,
@@ -89,8 +168,7 @@ describe("messageEditorController", () => {
       createMessageEditorTextDraft({ content: "helloworld" }),
     ];
     const registry = createMessageEditorRegistry();
-    const controller = createMessageEditorController({
-      eventBus: new MessageEditorEventBus(),
+    const planner = createCommittedMessageEditorTransactionPlanner({
       registry,
       getMessages: () => messages,
       setMessages(updater) {
@@ -98,7 +176,7 @@ describe("messageEditorController", () => {
       },
     });
 
-    const result = controller.insertBlockAtPoint({
+    const result = planner.insertBlockAtPoint({
       blockId: getMessageEditorBlockId(messages[0]),
       offset: 5,
     }, "image");
@@ -121,30 +199,49 @@ describe("messageEditorController", () => {
     const second = createMessageEditorTextDraft({ content: "abc" });
     const messages = [first, second];
     const registry = createMessageEditorRegistry();
-    const controller = createMessageEditorController({
-      eventBus: new MessageEditorEventBus(),
+    const planner = createCommittedMessageEditorTransactionPlanner({
       registry,
       getMessages: () => messages,
       setMessages() {},
     });
 
-    expect(controller.getAdjacentTextBlock(getMessageEditorBlockId(first), 1, 5)).toEqual({
+    expect(planner.getAdjacentTextBlock(getMessageEditorBlockId(first), 1, 5)).toEqual({
       blockId: getMessageEditorBlockId(second),
       caret: 3,
     });
-    expect(controller.getAdjacentTextBlock(getMessageEditorBlockId(second), -1, 2)).toEqual({
+    expect(planner.getAdjacentTextBlock(getMessageEditorBlockId(second), -1, 2)).toEqual({
       blockId: getMessageEditorBlockId(first),
       caret: 2,
     });
   });
 
-  it("updates a block through the controller", () => {
+  it("uses block boundary defaults when no preferred offset is provided", () => {
+    const first = createMessageEditorTextDraft({ content: "123456" });
+    const second = createMessageEditorTextDraft({ content: "abc" });
+    const messages = [first, second];
+    const registry = createMessageEditorRegistry();
+    const planner = createCommittedMessageEditorTransactionPlanner({
+      registry,
+      getMessages: () => messages,
+      setMessages() {},
+    });
+
+    expect(planner.getAdjacentTextBlock(getMessageEditorBlockId(first), 1)).toEqual({
+      blockId: getMessageEditorBlockId(second),
+      caret: 0,
+    });
+    expect(planner.getAdjacentTextBlock(getMessageEditorBlockId(second), -1)).toEqual({
+      blockId: getMessageEditorBlockId(first),
+      caret: 6,
+    });
+  });
+
+  it("updates a block through the planner", () => {
     let messages: MessageEditorMessage[] = [
       createMessageEditorTextDraft({ content: "hello" }),
     ];
     const registry = createMessageEditorRegistry();
-    const controller = createMessageEditorController({
-      eventBus: new MessageEditorEventBus(),
+    const planner = createCommittedMessageEditorTransactionPlanner({
       registry,
       getMessages: () => messages,
       setMessages(updater) {
@@ -152,7 +249,7 @@ describe("messageEditorController", () => {
       },
     });
 
-    controller.updateBlock(getMessageEditorBlockId(messages[0]), message => setMessageEditorUploadedMedia({
+    planner.updateBlock(getMessageEditorBlockId(messages[0]), message => setMessageEditorUploadedMedia({
       ...message,
       messageType: MESSAGE_TYPE.FILE,
     }, {
@@ -185,8 +282,7 @@ describe("messageEditorController", () => {
       createMessageEditorTextDraft({ content: "after" }),
     ];
     const registry = createMessageEditorRegistry();
-    const controller = createMessageEditorController({
-      eventBus: new MessageEditorEventBus(),
+    const planner = createCommittedMessageEditorTransactionPlanner({
       registry,
       getMessages: () => messages,
       setMessages(updater) {
@@ -194,7 +290,7 @@ describe("messageEditorController", () => {
       },
     });
 
-    const focus = controller.removeBlock(imageBlockId);
+    const focus = planner.removeBlock(imageBlockId);
 
     expect(messages).toHaveLength(2);
     expect(messages.map(message => message.content)).toEqual(["before", "after"]);
@@ -219,8 +315,7 @@ describe("messageEditorController", () => {
       createMessageEditorTextDraft({ content: "after" }),
     ];
     const registry = createMessageEditorRegistry();
-    const controller = createMessageEditorController({
-      eventBus: new MessageEditorEventBus(),
+    const planner = createCommittedMessageEditorTransactionPlanner({
       registry,
       getMessages: () => messages,
       setMessages(updater) {
@@ -228,7 +323,7 @@ describe("messageEditorController", () => {
       },
     });
 
-    const result = controller.replaceSelectionText({
+    const result = planner.replaceSelectionText({
       anchor: {
         blockId: imageBlockId,
         offset: 0,
@@ -270,8 +365,7 @@ describe("messageEditorController", () => {
       createMessageEditorTextDraft({ content: "filled" }),
     ];
     const registry = createMessageEditorRegistry();
-    const controller = createMessageEditorController({
-      eventBus: new MessageEditorEventBus(),
+    const planner = createCommittedMessageEditorTransactionPlanner({
       registry,
       getMessages: () => messages,
       setMessages(updater) {
@@ -279,7 +373,7 @@ describe("messageEditorController", () => {
       },
     });
 
-    const firstFocus = controller.ensureTrailingTextBlock();
+    const firstFocus = planner.ensureTrailingTextBlock();
     expect(messages).toHaveLength(2);
     expect(messages[1].content).toBe("");
     expect(firstFocus).toEqual({
@@ -287,19 +381,18 @@ describe("messageEditorController", () => {
       caret: 0,
     });
 
-    const secondFocus = controller.ensureTrailingTextBlock();
+    const secondFocus = planner.ensureTrailingTextBlock();
     expect(messages).toHaveLength(2);
     expect(secondFocus).toEqual(firstFocus);
   });
 
-  it("transforms a multi-block selection through the controller", () => {
+  it("transforms a multi-block selection through the planner", () => {
     let messages: MessageEditorMessage[] = [
       createMessageEditorTextDraft({ content: "alpha" }),
       createMessageEditorTextDraft({ content: "beta" }),
     ];
     const registry = createMessageEditorRegistry();
-    const controller = createMessageEditorController({
-      eventBus: new MessageEditorEventBus(),
+    const planner = createCommittedMessageEditorTransactionPlanner({
       registry,
       getMessages: () => messages,
       setMessages(updater) {
@@ -307,7 +400,7 @@ describe("messageEditorController", () => {
       },
     });
 
-    const result = controller.transformSelectionText({
+    const result = planner.transformSelectionText({
       anchor: {
         blockId: getMessageEditorBlockId(messages[0]),
         offset: 1,
@@ -373,52 +466,4 @@ describe("messageEditorController", () => {
     });
   });
 
-  it("records selection text transforms as default history operations", () => {
-    let messages: MessageEditorMessage[] = [
-      createMessageEditorTextDraft({ content: "alpha" }),
-    ];
-    const historyKinds: Array<"default" | "typing"> = [];
-    const registry = createMessageEditorRegistry();
-    const controller = createMessageEditorController({
-      eventBus: new MessageEditorEventBus(),
-      registry,
-      getMessages: () => messages,
-      setMessages(updater, historyKind) {
-        historyKinds.push(historyKind ?? "default");
-        messages = updater(messages);
-      },
-    });
-
-    controller.transformSelectionText({
-      anchor: {
-        blockId: getMessageEditorBlockId(messages[0]),
-        offset: 1,
-      },
-      focus: {
-        blockId: getMessageEditorBlockId(messages[0]),
-        offset: 4,
-      },
-      start: {
-        blockId: getMessageEditorBlockId(messages[0]),
-        offset: 1,
-      },
-      end: {
-        blockId: getMessageEditorBlockId(messages[0]),
-        offset: 4,
-      },
-      blockIds: [getMessageEditorBlockId(messages[0])],
-      collapsed: false,
-      multiBlock: false,
-      segments: [
-        {
-          blockId: getMessageEditorBlockId(messages[0]),
-          start: 1,
-          end: 4,
-        },
-      ],
-    }, selectedText => `[${selectedText}](style=font-weight:bold)`);
-
-    expect(historyKinds).toEqual(["default"]);
-    expect(messages[0].content).toBe("a[lph](style=font-weight:bold)a");
-  });
 });
