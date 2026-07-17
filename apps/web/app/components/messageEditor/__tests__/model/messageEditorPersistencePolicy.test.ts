@@ -8,6 +8,7 @@ import type { MessageEditorMessage } from "../../messageEditorTypes";
 import {
   didMessageEditorSnapshotChangeAfterSave,
   getMessageEditorSnapshotFingerprint,
+  mergeChangedRoomMessagesIntoEditorMessages,
   mergeChangedRoomMessageRuntimeIntoEditorMessages,
   reconcileMessageEditorRuntimeBlockIds,
   resolveMessageEditorCompletedSaveState,
@@ -26,6 +27,7 @@ import {
   createMessageEditorBlockDraft,
   createMessageEditorTextDraft,
   getMessageEditorBlockId,
+  updateMessageEditorTextContent,
 } from "../../model/messageEditorTransforms";
 
 function withRuntimeMessage(
@@ -181,6 +183,43 @@ describe("messageEditorPersistencePolicy", () => {
       messages: next,
       shouldUseLocalSnapshot: false,
     })).toEqual({ kind: "none" });
+  });
+
+  it("builds the same content patch from a dirty-block change set", () => {
+    const baselineMessage = withRuntimeMessage(createMessageEditorTextDraft({ content: "旧正文" }), {
+      messageId: 11,
+      position: 1,
+      roomId: 7,
+    });
+    const nextMessage = updateMessageEditorTextContent(baselineMessage, "新正文");
+    const blockId = getMessageEditorBlockId(baselineMessage);
+    const baseline = [baselineMessage];
+    const next = [nextMessage];
+    const incremental = resolveMessageEditorPersistenceCommitPlan({
+      baselineMessages: baseline,
+      changeSet: {
+        baselineByBlockId: new Map([[blockId, baselineMessage]]),
+        currentByBlockId: new Map([[blockId, nextMessage]]),
+        currentIndexByBlockId: new Map([[blockId, 0]]),
+        dirtyBlockIds: new Set([blockId]),
+        structureChanged: false,
+      },
+      docId: "7",
+      isRoomDocument: true,
+      messages: next,
+      roomId: 7,
+      shouldUseLocalSnapshot: false,
+    });
+    const full = resolveMessageEditorPersistenceCommitPlan({
+      baselineMessages: baseline,
+      docId: "7",
+      isRoomDocument: true,
+      messages: next,
+      roomId: 7,
+      shouldUseLocalSnapshot: false,
+    });
+
+    expect(incremental).toEqual(full);
   });
 
   it("resolves save delays for local snapshots and remote room sync", () => {
@@ -397,6 +436,35 @@ describe("messageEditorPersistencePolicy", () => {
       syncId: 201,
       userId: 9,
     });
+  });
+
+  it("merges a save response without mutating the submitted history snapshot", () => {
+    const submitted = withRuntimeMessage(createMessageEditorTextDraft({ content: "submitted" }), {
+      messageId: 101,
+      position: 1,
+      roomId: 7,
+    });
+    const blockId = getMessageEditorBlockId(submitted);
+    const merged = mergeChangedRoomMessagesIntoEditorMessages({
+      changedMessages: [{
+        ...submitted,
+        content: "saved",
+        syncId: 201,
+      } as Message],
+      currentMessages: [submitted],
+      operations: [{
+        message: submitted,
+        messageId: 101,
+        op: "update",
+        position: 1,
+      }],
+    });
+
+    expect(merged[0]).not.toBe(submitted);
+    expect(merged[0].content).toBe("saved");
+    expect(getMessageEditorBlockId(merged[0])).toBe(blockId);
+    expect(submitted.content).toBe("submitted");
+    expect(submitted.syncId).toBeUndefined();
   });
 
   it("clears persisted identity when a deleted block was restored during save", () => {

@@ -174,6 +174,7 @@ describe("messageEditorPersistenceStrategies", () => {
         }],
         roomId: 7,
       },
+      submittedRevision: 1,
       submittedMessages: [submitted],
     };
     const events: string[] = [];
@@ -218,6 +219,7 @@ describe("messageEditorPersistenceStrategies", () => {
         }],
         roomId: 7,
       },
+      submittedRevision: 1,
       submittedMessages: [submitted],
     };
     const publish = vi.fn<(messages: Message[]) => Promise<void>>(async () => undefined);
@@ -251,6 +253,7 @@ describe("messageEditorPersistenceStrategies", () => {
         docId: "local-doc",
         kind: "local",
       },
+      submittedRevision: 1,
       submittedMessages: [submitted],
     };
     strategyMocks.setPersistedDocSnapshot.mockRejectedValue(new Error("disk full"));

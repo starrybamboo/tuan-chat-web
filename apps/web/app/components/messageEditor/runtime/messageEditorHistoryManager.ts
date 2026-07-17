@@ -8,7 +8,6 @@ export type MessageEditorHistoryFocus = {
 export type MessageEditorHistoryEntry = {
   focus: MessageEditorHistoryFocus | null;
   messages: MessageEditorMessage[];
-  serialized: string;
 }
 
 export type MessageEditorHistoryKind = "default" | "typing";
@@ -32,7 +31,7 @@ export class MessageEditorHistoryManager {
   private readonly typingMergeIntervalMs: number;
   private redoStack: MessageEditorHistoryEntry[] = [];
   private typingHistory: {
-    baseSerialized: string;
+    baseMessages: MessageEditorMessage[];
     blockId: string;
     lastAt: number;
   } | null = null;
@@ -65,7 +64,7 @@ export class MessageEditorHistoryManager {
     }
 
     const entry = typeof entryOrFactory === "function" ? entryOrFactory() : entryOrFactory;
-    if (this.undoStack.at(-1)?.serialized === entry.serialized) {
+    if (this.undoStack.at(-1)?.messages === entry.messages) {
       return;
     }
 
@@ -84,7 +83,7 @@ export class MessageEditorHistoryManager {
     this.redoStack = [];
     this.typingHistory = historyKind === "typing" && focusBlockId
       ? {
-          baseSerialized: entry.serialized,
+          baseMessages: entry.messages,
           blockId: focusBlockId,
           lastAt: currentTime,
         }
@@ -120,13 +119,13 @@ export class MessageEditorHistoryManager {
   snapshot() {
     return {
       redoDepth: this.redoStack.length,
-      typingBaseSerialized: this.typingHistory?.baseSerialized ?? null,
+      typingBaseBlockId: this.typingHistory?.blockId ?? null,
       undoDepth: this.undoStack.length,
     };
   }
 
   private appendIfChanged(stack: MessageEditorHistoryEntry[], entry: MessageEditorHistoryEntry) {
-    if (stack.at(-1)?.serialized === entry.serialized) {
+    if (stack.at(-1)?.messages === entry.messages) {
       return stack;
     }
     return this.appendBounded(stack, entry);
@@ -140,7 +139,7 @@ export class MessageEditorHistoryManager {
     return Boolean(
       this.typingHistory
       && this.typingHistory.blockId === blockId
-      && this.typingHistory.baseSerialized === this.undoStack.at(-1)?.serialized
+      && this.typingHistory.baseMessages === this.undoStack.at(-1)?.messages
       && currentTime - this.typingHistory.lastAt <= this.typingMergeIntervalMs,
     );
   }

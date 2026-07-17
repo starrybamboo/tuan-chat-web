@@ -529,6 +529,36 @@ describe("reconcileOptimisticRoomMessagesInList", () => {
 });
 
 describe("mergeRoomMessagesForLocalState", () => {
+  it("复用无语义变化的数组和消息引用", () => {
+    const first = msg(1, 1);
+    const second = msg(2, 2, {
+      extra: { imageMessage: { source: { fileId: 8, kind: "internal" } } } as any,
+    });
+    const current = [first, second];
+    const incoming = msg(2, 2, {
+      extra: { imageMessage: { source: { fileId: 8, kind: "internal" } } } as any,
+    });
+
+    const result = mergeRoomMessagesForLocalState(current, [incoming]);
+
+    expect(result).toBe(current);
+    expect(result[0]).toBe(first);
+    expect(result[1]).toBe(second);
+  });
+
+  it("真实更新只替换变化消息并保留其他引用", () => {
+    const first = msg(1, 1);
+    const second = msg(2, 2);
+    const current = [first, second];
+
+    const result = mergeRoomMessagesForLocalState(current, [msg(2, 2, { content: "updated" })]);
+
+    expect(result).not.toBe(current);
+    expect(result[0]).toBe(first);
+    expect(result[1]).not.toBe(second);
+    expect(result[1].message.content).toBe("updated");
+  });
+
   it("同 ID 增量缺少服务端字段时保留本地已有快照字段", () => {
     const existing = msg(10, 10, {
       annotations: ["a"],

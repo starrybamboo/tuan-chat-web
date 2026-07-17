@@ -31,6 +31,14 @@ export type MessageEditorPersistenceCommitPlan =
   | { kind: "none" }
   | { kind: "remote"; operations: RoomMessageStreamPatchOperation[]; roomId: number };
 
+export type MessageEditorPersistenceChangeSet = {
+  baselineByBlockId: ReadonlyMap<string, MessageEditorMessage>;
+  currentByBlockId: ReadonlyMap<string, MessageEditorMessage>;
+  currentIndexByBlockId: ReadonlyMap<string, number>;
+  dirtyBlockIds: ReadonlySet<string>;
+  structureChanged: boolean;
+};
+
 const MESSAGE_EDITOR_LOCAL_SAVE_DELAY_MS = 500;
 const MESSAGE_EDITOR_REMOTE_SYNC_DELAY_MS = 10000;
 
@@ -135,6 +143,7 @@ export function resolveMessageEditorPersistenceContext(params: {
  */
 export function resolveMessageEditorPersistenceCommitPlan(params: {
   baselineMessages: MessageEditorMessage[];
+  changeSet?: MessageEditorPersistenceChangeSet;
   docId?: string;
   isRoomDocument: boolean;
   messages: MessageEditorMessage[];
@@ -154,7 +163,9 @@ export function resolveMessageEditorPersistenceCommitPlan(params: {
 
   return {
     ...persistenceTarget,
-    operations: buildRoomMessagePatchOperations(params.baselineMessages, params.messages),
+    operations: params.changeSet && !params.changeSet.structureChanged
+      ? buildIncrementalRoomMessagePatchOperations(params.changeSet)
+      : buildRoomMessagePatchOperations(params.baselineMessages, params.messages),
   };
 }
 
@@ -366,6 +377,60 @@ export function toPatchOptimisticMessageInput(message: MessageEditorMessage): Pa
   };
 }
 
+/**
+ * 为内容级编辑生成 patch。结构变化会影响一段 position，调用方应改走完整 order diff。
+ */
+export function buildIncrementalRoomMessagePatchOperations(
+  changeSet: MessageEditorPersistenceChangeSet,
+): RoomMessageStreamPatchOperation[] {
+  const operations: RoomMessageStreamPatchOperation[] = [];
+  for (const blockId of changeSet.dirtyBlockIds) {
+    const baseline = changeSet.baselineByBlockId.get(blockId);
+    const message = changeSet.currentByBlockId.get(blockId);
+
+    if (!message) {
+      const messageId = baseline ? getRuntimeMessageId(baseline) : undefined;
+      if (messageId !== undefined) {
+        operations.push({ op: "delete", messageId });
+      }
+      continue;
+    }
+
+    const messageIdState = getRuntimeMessageIdState(message);
+    if (messageIdState === "optimistic") {
+      continue;
+    }
+    const messageId = getRuntimeMessageId(message);
+    const index = changeSet.currentIndexByBlockId.get(blockId) ?? 0;
+    const position = getRuntimePosition(message, index + 1);
+    if (!baseline || messageIdState === "new" || messageId === undefined) {
+      operations.push({
+        clientId: blockId,
+        message: {
+          ...message,
+          position,
+        },
+        op: "insert",
+        position,
+      });
+      continue;
+    }
+
+    if (serializeMessageEditorPatchContent(baseline) !== serializeMessageEditorPatchContent(message)) {
+      operations.push({
+        message: {
+          ...message,
+          position,
+        },
+        messageId,
+        op: "update",
+        position,
+      });
+    }
+  }
+  return operations;
+}
+
 /** 比较 baseline 与下一版编辑器消息，生成房间消息流 patch 操作。 */
 export function buildRoomMessagePatchOperations(
   baselineMessages: MessageEditorMessage[],
@@ -493,8 +558,10 @@ export function mergeChangedRoomMessagesIntoEditorMessages(params: {
       if (!changedMessage) {
         return message;
       }
-      Object.assign(message, changedMessage);
-      return message;
+      return inheritMessageEditorRuntimeBlockId(message, {
+        ...message,
+        ...changedMessage,
+      });
     });
 
   return merged;

@@ -6,7 +6,6 @@ import type { MessageEditorSelection } from "../../runtime/messageEditorSelectio
 import {
   createMessageEditorTextDraft,
   getMessageEditorBlockId,
-  serializeMessageEditorMessages,
 } from "../../model/messageEditorTransforms";
 import { createMessageEditorActions } from "../../runtime/messageEditorActions";
 import { MessageEditorHistoryManager } from "../../runtime/messageEditorHistoryManager";
@@ -16,7 +15,6 @@ function createHistoryEntry(messages: MessageEditorMessage[]) {
   return {
     focus: null,
     messages,
-    serialized: serializeMessageEditorMessages(messages),
   };
 }
 

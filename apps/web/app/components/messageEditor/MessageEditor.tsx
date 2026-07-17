@@ -88,7 +88,6 @@ import {
   getMessageEditorBlockId,
   mergeMessageEditorMediaLayouts,
   normalizeMessageEditorContent,
-  serializeMessageEditorMessages,
 } from "./model/messageEditorTransforms";
 import {
   estimateMessageEditorBlockHeight,
@@ -657,7 +656,7 @@ export default function MessageEditor({
   }, []);
 
   const resolveHistoryFocus = useCallback((sourceMessages: MessageEditorMessage[]): MessageEditorHistoryFocus | null => {
-    const sourceByBlockId = new Map(ensureMessageEditorMessages(sourceMessages).map(message => [getMessageEditorBlockId(message), message] as const));
+    const sourceByBlockId = new Map(sourceMessages.map(message => [getMessageEditorBlockId(message), message] as const));
     const clampPoint = (point: MessageEditorSelectionPoint | null | undefined): MessageEditorHistoryFocus | null => {
       if (!point) {
         return null;
@@ -702,11 +701,9 @@ export default function MessageEditor({
   }, [activeBlockId, crossBlockSelection, registry]);
 
   const createHistoryEntry = useCallback((sourceMessages: MessageEditorMessage[]): MessageEditorHistoryEntry => {
-    const normalizedMessages = ensureMessageEditorMessages(sourceMessages);
     return {
-      focus: resolveHistoryFocus(normalizedMessages),
-      messages: normalizedMessages,
-      serialized: serializeMessageEditorMessages(normalizedMessages),
+      focus: resolveHistoryFocus(sourceMessages),
+      messages: sourceMessages,
     };
   }, [resolveHistoryFocus]);
 

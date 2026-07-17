@@ -13,7 +13,10 @@ import {
   shouldIgnoreDocumentSelectionEventTarget,
   shouldStartMessageEditorAtomicBlockSelection,
 } from "../MessageEditor";
-import { createMessageEditorTextDraft } from "../model/messageEditorTransforms";
+import {
+  createMessageEditorTextDraft,
+  getMessageEditorBlockId,
+} from "../model/messageEditorTransforms";
 
 type MockElement = {
   closest?: (selector: string) => MockElement | null;
@@ -203,8 +206,9 @@ describe("messageEditor room message patch", () => {
     });
   });
 
-  it("merges changed insert responses back into the original editor block", () => {
+  it("merges changed insert responses without mutating the submitted editor block", () => {
     const current = createMessageEditorTextDraft({ content: "local" });
+    const blockId = getMessageEditorBlockId(current);
     const operations = buildRoomMessagePatchOperations([], [current]);
     const merged = mergeChangedRoomMessagesIntoEditorMessages({
       changedMessages: [
@@ -224,9 +228,11 @@ describe("messageEditor room message patch", () => {
     });
 
     expect(merged).toHaveLength(1);
-    expect(merged[0]).toBe(current);
+    expect(merged[0]).not.toBe(current);
+    expect(getMessageEditorBlockId(merged[0])).toBe(blockId);
     expect((merged[0] as MessageEditorMessage & { messageId?: number }).messageId).toBe(33);
     expect((merged[0] as MessageEditorMessage & { syncId?: number }).syncId).toBe(101);
+    expect((current as MessageEditorMessage & { messageId?: number }).messageId).toBeUndefined();
   });
 
   it("removes deleted messages and applies changed update/move responses", () => {
@@ -277,9 +283,11 @@ describe("messageEditor room message patch", () => {
     });
 
     expect(merged).toHaveLength(1);
-    expect(merged[0]).toBe(moved);
+    expect(merged[0]).not.toBe(moved);
+    expect(getMessageEditorBlockId(merged[0])).toBe(getMessageEditorBlockId(moved));
     expect((merged[0] as MessageEditorMessage & { position?: number }).position).toBe(9);
     expect((merged[0] as MessageEditorMessage & { syncId?: number }).syncId).toBe(103);
+    expect((moved as MessageEditorMessage & { position?: number }).position).toBe(2);
   });
 });
 

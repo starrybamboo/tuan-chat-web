@@ -3,14 +3,13 @@ import type { MessageEditorHistoryEntry } from "../../runtime/messageEditorHisto
 import { createMessageEditorTextDraft } from "../../model/messageEditorTransforms";
 import { MessageEditorHistoryManager } from "../../runtime/messageEditorHistoryManager";
 
-function createEntry(serialized: string, blockId = "block-a"): MessageEditorHistoryEntry {
+function createEntry(content: string, blockId = "block-a"): MessageEditorHistoryEntry {
   return {
     focus: {
       blockId,
       caret: 0,
     },
-    messages: [createMessageEditorTextDraft({ content: serialized })],
-    serialized,
+    messages: [createMessageEditorTextDraft({ content })],
   };
 }
 
@@ -18,8 +17,9 @@ describe("MessageEditorHistoryManager", () => {
   it("skips duplicate undo entries", () => {
     const history = new MessageEditorHistoryManager();
 
-    history.pushUndoEntry(createEntry("a"));
-    history.pushUndoEntry(createEntry("a"));
+    const entry = createEntry("a");
+    history.pushUndoEntry(entry);
+    history.pushUndoEntry(entry);
 
     expect(history.snapshot().undoDepth).toBe(1);
   });
@@ -34,7 +34,7 @@ describe("MessageEditorHistoryManager", () => {
 
     expect(history.snapshot()).toMatchObject({
       redoDepth: 0,
-      typingBaseSerialized: "before",
+      typingBaseBlockId: "block-a",
       undoDepth: 1,
     });
   });
@@ -88,8 +88,8 @@ describe("MessageEditorHistoryManager", () => {
     history.pushUndoEntry(createEntry("c"));
 
     expect(history.snapshot().undoDepth).toBe(2);
-    expect(history.restore("undo", createEntry("current"))?.serialized).toBe("c");
-    expect(history.restore("undo", createEntry("current-2"))?.serialized).toBe("b");
+    expect(history.restore("undo", createEntry("current"))?.messages[0].content).toBe("c");
+    expect(history.restore("undo", createEntry("current-2"))?.messages[0].content).toBe("b");
     expect(history.restore("undo", createEntry("current-3"))).toBeNull();
   });
 });

@@ -165,7 +165,10 @@ export default function useMessageEditorMessageMutations({
       commitCanonicalDocumentSnapshot(coordinator.markDocumentChanged(
         transaction.messages,
         ready,
-        { compareImmediately: transaction.historyKind !== "typing" },
+        {
+          changedBlockIds: transaction.changedBlockIds,
+          structureChanged: transaction.structureChanged,
+        },
       ));
       setSaveState("dirty");
     }

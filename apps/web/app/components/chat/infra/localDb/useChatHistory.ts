@@ -221,7 +221,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       if (roomScopedMessages.length > 0 && roomScopedMessages[0].message.roomId === currentRoomId) {
         setMessages((prevMessages) => {
           const nextMessages = mergeRoomMessagesForLocalState(prevMessages, roomScopedMessages);
-          if (JSON.stringify(prevMessages) === JSON.stringify(nextMessages)) {
+          if (prevMessages === nextMessages) {
             return prevMessages;
           }
 
@@ -335,7 +335,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         : baselineMessages;
       mergedForDb = nextMessages.find(item => item.message.messageId === nextMessage.messageId) ?? message;
 
-      if (JSON.stringify(prevMessages) === JSON.stringify(nextMessages)) {
+      if (prevMessages === nextMessages) {
         return prevMessages;
       }
 

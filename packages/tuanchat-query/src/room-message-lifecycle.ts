@@ -3,6 +3,7 @@ import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMe
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { RoomMessageStreamPatchOperation } from "@tuanchat/openapi-client/models/RoomMessageStreamPatchOperation";
 
+import { replaceEqualDeep } from "@tanstack/react-query";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 
 import { mergeRoomMessages } from "./room-message";
@@ -618,11 +619,11 @@ export function mergeRoomMessageSnapshotForLocalState(
     delete mergedMessage.tcLocalSyncState;
   }
 
-  return {
+  return replaceEqualDeep(existing, {
     ...existing,
     ...incoming,
     message: mergedMessage,
-  };
+  });
 }
 
 export function mergeRoomMessagesForLocalState(
@@ -644,7 +645,14 @@ export function mergeRoomMessagesForLocalState(
     return existing ? mergeRoomMessageSnapshotForLocalState(existing, incoming) : incoming;
   });
 
-  return reconcileOptimisticRoomMessagesInList(current, preparedIncoming);
+  const nextMessages = reconcileOptimisticRoomMessagesInList(current, preparedIncoming);
+  if (
+    nextMessages.length === current.length
+    && nextMessages.every((message, index) => message === current[index])
+  ) {
+    return current;
+  }
+  return nextMessages;
 }
 
 export function collectPersistedOptimisticDuplicateIds(messages: ChatMessageResponse[]): number[] {
