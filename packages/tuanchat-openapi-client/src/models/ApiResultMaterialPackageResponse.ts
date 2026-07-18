@@ -24,4 +24,3 @@ export type ApiResultMaterialPackageResponse = {
      */
     data?: MaterialPackageResponse;
 };
-

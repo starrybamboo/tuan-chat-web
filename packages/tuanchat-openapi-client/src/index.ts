@@ -56,6 +56,7 @@ export type { ApiResultMaterialPackageResponse } from './models/ApiResultMateria
 export type { ApiResultMediaCompleteUploadResponse } from './models/ApiResultMediaCompleteUploadResponse';
 export type { ApiResultMediaPrepareUploadResponse } from './models/ApiResultMediaPrepareUploadResponse';
 export type { ApiResultMessage } from './models/ApiResultMessage';
+export type { ApiResultMessageDirectConversationSyncResponse } from './models/ApiResultMessageDirectConversationSyncResponse';
 export type { ApiResultMessageDirectResponse } from './models/ApiResultMessageDirectResponse';
 export type { ApiResultMessageSession } from './models/ApiResultMessageSession';
 export type { ApiResultMessageSessionResponse } from './models/ApiResultMessageSessionResponse';
@@ -167,6 +168,8 @@ export type { MediaPrepareUploadResponse } from './models/MediaPrepareUploadResp
 export type { MediaSource } from './models/MediaSource';
 export type { MediaUploadTarget } from './models/MediaUploadTarget';
 export type { Message } from './models/Message';
+export type { MessageDirectConversationSyncRequest } from './models/MessageDirectConversationSyncRequest';
+export type { MessageDirectConversationSyncResponse } from './models/MessageDirectConversationSyncResponse';
 export type { MessageDirectReadUpdateRequest } from './models/MessageDirectReadUpdateRequest';
 export type { MessageDirectRecallRequest } from './models/MessageDirectRecallRequest';
 export type { MessageDirectResponse } from './models/MessageDirectResponse';

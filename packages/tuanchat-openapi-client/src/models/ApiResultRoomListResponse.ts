@@ -24,4 +24,3 @@ export type ApiResultRoomListResponse = {
      */
     data?: RoomListResponse;
 };
-

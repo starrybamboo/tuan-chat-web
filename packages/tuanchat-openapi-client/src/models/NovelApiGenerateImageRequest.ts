@@ -26,8 +26,7 @@ export type NovelApiGenerateImageRequest = {
      * 可选自定义 URL（为安全起见，服务端不会信任该字段）
      */
     url?: string;
-    infillAction?: boolean;
-    generateAction?: boolean;
     img2ImgAction?: boolean;
+    generateAction?: boolean;
+    infillAction?: boolean;
 };
-

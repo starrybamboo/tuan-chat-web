@@ -19,4 +19,3 @@ export type ClientMetadataBatchRequest = {
      */
     avatarIds?: Array<number>;
 };
-

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useGetFriendListQuery } from "api/hooks/friendQueryHooks";
 import { useGetInboxMessagePageQuery } from "api/hooks/MessageDirectQueryHooks";
+import { projectDirectMessageEvents } from "@tuanchat/domain/direct-message";
 
 import type { MessageDirectType } from "../types/messageDirect";
 
@@ -32,7 +33,10 @@ export function usePrivateMessageList({
   // 私聊列表应优先展示（头像/昵称可以逐步补齐），避免好友列表接口变慢导致左侧一直卡 loading
   const isLoading = inboxQuery.isLoading;
   const isInboxReady = inboxQuery.isSuccess;
-  const inboxMessages: MessageDirectResponse[] = useMemo(() => Array.isArray(inboxQuery.data?.data) ? inboxQuery.data.data : [], [inboxQuery.data]);
+  const inboxMessages: MessageDirectResponse[] = useMemo(() => {
+    const events = Array.isArray(inboxQuery.data?.data) ? inboxQuery.data.data : [];
+    return projectDirectMessageEvents(events);
+  }, [inboxQuery.data]);
   // 格式化私聊消息，按联系人分组
   const sortedInboxMessages = useMemo(() => {
     const contacts = new Map<number, MessageDirectResponse[]>();

@@ -32,9 +32,8 @@ import { Surface, Text } from "@/components/common/DesignLanguage";
 import { Disclosure } from "@/components/common/Disclosure";
 import { StateView } from "@/components/common/StateView";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
-import { writeFeedbackAttachmentDraft } from "@/components/feedback/feedbackAttachmentDraft";
-import { buildDiagnosticLogFile, buildRouteErrorFeedbackDraft } from "@/components/feedback/feedbackDiagnosticDraft";
-import { writeFeedbackDraft } from "@/components/feedback/feedbackDraft";
+import { buildRouteErrorFeedbackDraft } from "@/components/feedback/feedbackDiagnosticDraft";
+import { prepareDiagnosticFeedback } from "@/components/feedback/feedbackPreparation";
 import { GlobalContextProvider } from "@/components/globalContextProvider";
 import StartupNoticeCenter from "@/components/startupNotice/startupNoticeCenter";
 import { queryClient } from "@/queryClient";
@@ -42,9 +41,6 @@ import { checkAuthStatus } from "@/utils/auth/authapi";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
 import { cloudflareWebAnalytics } from "@/utils/cloudflareWebAnalytics";
 import {
-  buildDiagnosticConsoleFileContent,
-  buildDiagnosticConsoleFileName,
-  buildDiagnosticConsoleReport,
   exportDiagnosticConsoleFile,
   installDiagnosticConsoleCapture,
   recordDiagnosticConsoleEntry,
@@ -250,6 +246,7 @@ function App() {
       appToast.warning({
         title: "本地消息缓存不可用",
         description: detail.message,
+        supportIssueId: "local-message-cache-unavailable",
         details: detail.suggestion
           ? `${detail.suggestion} 不影响正常收发消息；刷新后会从服务器重新拉取历史消息。`
           : "不影响正常收发消息；刷新后会从服务器重新拉取历史消息。",
@@ -382,20 +379,13 @@ function ErrorBoundary({ error }: { error: Error }) {
   }, []);
 
   const handleOpenFeedback = React.useCallback(() => {
-    const report = buildDiagnosticConsoleReport();
-    const diagnosticFileName = buildDiagnosticConsoleFileName();
-    const diagnosticFile = buildDiagnosticLogFile(
-      diagnosticFileName,
-      buildDiagnosticConsoleFileContent(report),
-    );
-    const attachmentWritten = writeFeedbackAttachmentDraft([diagnosticFile]);
-    const draftWritten = writeFeedbackDraft(buildRouteErrorFeedbackDraft({
+    const result = prepareDiagnosticFeedback(diagnosticFileName => buildRouteErrorFeedbackDraft({
       message,
       details,
       pageUrl: typeof window === "undefined" ? undefined : window.location.href,
       diagnosticFileName,
     }));
-    if (!draftWritten || !attachmentWritten) {
+    if (!result.ok) {
       appToast.error({
         title: "反馈草稿写入失败",
         description: "请先下载诊断日志，再到反馈页手动补充错误信息。",

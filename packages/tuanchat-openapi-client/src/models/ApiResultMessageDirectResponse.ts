@@ -24,4 +24,3 @@ export type ApiResultMessageDirectResponse = {
      */
     data?: MessageDirectResponse;
 };
-

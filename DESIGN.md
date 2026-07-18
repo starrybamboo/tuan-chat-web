@@ -35,7 +35,7 @@
 
 | 组件 | 用途 | 替代的旧实现 |
 |---|---|---|
-| `Button` / `IconButton` | 统一按钮（variant/size/shape/loading/icon）；IconButton 强制 aria-label | 散写的 `className="btn ..."` |
+| `Button` / `IconButton` | 统一按钮（tone/appearance/size/shape/loading/icon）；IconButton 强制 aria-label | 散写的 `className="btn ..."` |
 | `DialogFrame` / `DialogActions` | 统一弹窗遮罩、悬浮表面、Esc、aria、操作区与进出场动效；弹窗不显示右上角 X | 各自实现的 overlay/动画/scroll-lock |
 | `ConfirmDialog` | 声明式 + 命令式 `confirm({...}): Promise<boolean>`（`ConfirmDialogProvider` 挂 `__root`） | `comfirmModel.tsx`(已删)、`window.confirm`、aiImage `HistoryConfirmModal`(薄封装) |
 | `FormField` / `ChoiceField` / `FieldGroup` / `FieldLabel` / `FieldDescription` / `FieldError` | 统一标签、说明、错误及可访问关联 | 各业务字段布局 |
@@ -43,7 +43,7 @@
 | `Checkbox` / `Radio` / `Switch` / `RangeInput` | 统一选择控件与滑杆的密度、焦点和禁用状态 | 散写的 checkbox/radio/toggle/range class |
 | `Surface` / `Text` | 三层表面与固定文字角色 | 散写的背景、边框、阴影和字号组合 |
 | `Tabs` / `DropdownMenu` / `MenuSurface` / `MenuItem` / `PopoverSurface` | 页签、菜单和轻浮层的状态、键盘与关闭行为 | 各业务自建 tabs/menu/popover |
-| `Badge` / `Tag` / `StatusIndicator` / `Divider` / `ProgressBar` / `Skeleton` / `InlineAlert` / `LoadingIndicator` | 次级控件和反馈原语 | 各模块散写 badge/indicator/tag/progress/skeleton/alert/loading |
+| `Badge` / `StatusIndicator` / `Divider` / `ProgressBar` / `Skeleton` / `InlineAlert` / `LoadingIndicator` / `appToast` / `AppToaster` | 次级控件和反馈原语 | 各模块散写 badge/indicator/progress/skeleton/alert/loading/toast |
 | `Disclosure` / `ControlGroup` | 折叠区与相邻控件组的语义、圆角和边框 | `collapse` / `join` 类结构 |
 | `StateView` | 加载、空态、错误、重试、离线、刷新和进度 | 各模块独立内容状态 |
 | `MediaFrame` / `MediaImageFrame` / `UploadDropZone` | 图片比例、裁切、占位、失败、预览、选中和上传拖放 | 各业务媒体容器与上传区域 |
@@ -117,6 +117,7 @@
 - `Skeleton` 用于结构已知的首屏与局部加载，统一 `base-content/10` 和 reduced-motion。
 - `StateView kind="empty|loading|error|offline|refreshing|progress"` 用于区域级状态；`actionLabel/onAction` 负责重试或恢复动作。
 - `ProgressBar` 用于可量化任务；局部刷新保留当前内容并在所属区域标记 `aria-busy`。
+- `InlineAlert` 用于页面流内持续可见的局部反馈；`appToast` 用于由全局 `AppToaster` 承载、自动消失的临时浮层通知。两者使用一致的四档语义外观；Toast 始终保持不透明表面，并额外保留浮层阴影、宽度、时长和进出场。
 
 ### 即时数据交互
 
@@ -129,11 +130,11 @@
 
 ### 次级控件
 
-- `Tabs` 统一选中态、两档密度、方向键、Home/End 和禁用页签跳过。
+- `Tabs` 统一互斥切换的选中态、两档密度、方向键、Home/End 和禁用页签跳过。
 - `MenuSurface` / `MenuItem` 统一菜单表面、热区、危险项和选中态；`PopoverSurface` 统一 Esc 与外部点击关闭。
 - `DropdownMenu` 统一触发器、定位、`aria-expanded`、Esc、外部点击和选择后关闭行为。
 - `PortalTooltip` 统一悬浮表面、最大宽度、延迟与 reduced-motion。
-- `Badge` 表达状态和数量，`Tag` 表达可移除对象，`Divider` 表达结构边界，`ProgressBar` 表达任务进度。
+- `Badge` 表达静态状态和数量，`Divider` 表达结构边界，`ProgressBar` 表达任务进度。
 
 ### 媒体语言
 
@@ -143,12 +144,25 @@
 - **状态**：`MediaImageFrame` 统一骨架、加载过渡、失败占位、重试、预览入口和蓝色选中框。
 - **上传**：`UploadDropZone` 统一点击、键盘、拖入、放置、禁用、文件类型说明和活动目标反馈。
 
+### 四档语义外观
+
+- **共享合约**：`SEMANTIC_APPEARANCES = solid / soft / outline / ghost` 是语义色表面的跨组件事实源；适用于 `Button`、`IconButton`、`Badge`、`CountBadge`、`InlineAlert` 与 `appToast`。
+- **强度定义**：`solid` 是完整语义色填充，`soft` 是低浓度语义色填充，`outline` 是透明内容背景加语义边框，`ghost` 不保留常驻背景与可见边框。
+- **完整性要求**：适用组件新增任何颜色时，必须同时提供四档外观，并在设计系统页展示完整矩阵。
+- **默认外观**：`Badge`、`InlineAlert` 与 `appToast` 默认 `soft`，`CountBadge` 默认 `solid`；按钮由动作层级显式选择。
+- **实心配额**：同一操作区最多出现一个 `solid`；最终危险确认使用危险色 `solid` 时，它就是该操作区唯一的实心动作。
+- **选中态独立**：`soft` 只表示次强调外观，不表示选中。页签、菜单项、当前对象等持续选中状态继续使用 `selectionClassName({ level })` 与对应 ARIA 状态。
+- **Toast 例外**：Toast 属于覆盖在业务内容上方的浮层，四档都保持不透明；其中 `outline` 只保留语义边框，`ghost` 只移除可见边框，避免背景信息干扰。
+- **不适用范围**：`ProgressBar`、`Skeleton`、`Divider`、`Tabs`、表单控件和 `StateView` 使用各自结构状态，不添加无意义的四档外观属性。
+
 ### 按钮视觉规范
 
-- **默认按钮形态**：后续所有按钮优先采用空心/轮廓样式，背景保持透明或贴合所在容器，仅用 `border-base-300`、`text-base-content`、图标与轻量 hover/focus 态表达可点击性。
-- **选中/激活态**：按钮被选中、当前页、当前筛选项或当前工具激活时，统一使用蓝色强调，并按 `tone / soft / strong / solid` 四档表达强度。持续导航定位使用亮色内描边与蓝色半透明背景，强确认或大面积主操作使用实心填充态。
-- **实现入口**：业务代码继续通过 `Button` / `IconButton` 的 `variant`、`size`、`shape`、`aria-pressed` 等参数表达状态，不直接散写 daisyUI `btn-*` 或硬编码颜色类。
-- **例外**：破坏性操作、成功/警告/错误反馈按钮可使用对应语义色，但仍应保持默认空心、选中/确认时填充的状态层级。
+- **颜色语义**：`tone="neutral|primary|success|warning|error"` 只表达操作语义，不再与填充形式绑定。
+- **强调强度**：`appearance="solid|soft|outline|ghost"` 从高到低表达关键、次强调、常规与附属操作。
+- **完整合约**：`BUTTON_TONES` 中每种颜色都必须覆盖共享的四档外观；设计系统页与测试从同一清单自动生成，不允许只新增部分外观。
+- **使用层级**：主提交、明确确认或最终危险确认使用 `solid`，推荐但非唯一动作使用 `soft`，常规操作使用 `outline`，工具栏与列表附属动作使用 `ghost`；同一操作不得仅靠颜色区分含义。
+- **实现入口**：业务代码通过 `Button` / `IconButton` 的 `tone`、`appearance`、`size`、`shape`、`aria-pressed` 等参数表达状态；旧 `variant` 仅保留兼容，不直接散写 daisyUI `btn-*` 或硬编码颜色类。
+- **状态一致性**：每种颜色都必须同时支持 `solid` 与 `outline`，并保持一致的 hover、active、focus、disabled 状态。
 
 ## 暗色模式
 

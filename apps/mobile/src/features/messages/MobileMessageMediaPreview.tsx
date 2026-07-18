@@ -1,3 +1,4 @@
+import { Galeria } from "@nandorojo/galeria";
 import {
   getFileMessageExtra,
   getImageMessageExtra,
@@ -9,7 +10,7 @@ import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { File, PauseCircle, PlayCircle } from "phosphor-react-native";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Linking, Modal, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, View } from "react-native";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
@@ -78,15 +79,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: Spacing.md,
-  },
-  modalImage: {
-    height: "100%",
-    width: "100%",
-  },
-  modalOverlay: {
-    backgroundColor: "rgba(0,0,0,0.92)",
-    flex: 1,
-    justifyContent: "center",
   },
   textBlock: {
     flex: 1,
@@ -498,7 +490,6 @@ export function MobileMessageMediaPreview({
   messageType,
 }: MobileMessageMediaPreviewProps) {
   const theme = useTheme();
-  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [activatedPlayableMediaKey, setActivatedPlayableMediaKey] = useState<string | null>(null);
   const localAttachmentPreview = getLocalAttachmentPreview(extra);
 
@@ -516,13 +507,14 @@ export function MobileMessageMediaPreview({
     const height = Math.max(96, Math.round(rawHeight * scale));
 
     return (
-      <>
-        <Pressable
-          accessibilityLabel={`查看图片 ${content?.trim() || "图片消息"}`}
-          accessibilityRole="button"
-          onPress={() => setPreviewImageUrl(fullSizeUrl)}
-        >
-          <View style={[styles.imageFrame, { height, width }]}>
+      <Galeria urls={[fullSizeUrl]}>
+        <Galeria.Image>
+          <View
+            accessible
+            accessibilityLabel={`查看图片 ${content?.trim() || "图片消息"}`}
+            accessibilityRole="imagebutton"
+            style={[styles.imageFrame, { height, width }]}
+          >
             <CachedImage
               uri={thumbUrl}
               style={[styles.image, { height, width, marginTop: 0, opacity: localAttachmentPreview ? 0.72 : 1 }]}
@@ -536,27 +528,8 @@ export function MobileMessageMediaPreview({
                 )
               : null}
           </View>
-        </Pressable>
-        <Modal
-          animationType="fade"
-          transparent
-          visible={previewImageUrl !== null}
-          onRequestClose={() => setPreviewImageUrl(null)}
-        >
-          <Pressable
-            accessibilityLabel="关闭图片预览"
-            accessibilityRole="button"
-            style={styles.modalOverlay}
-            onPress={() => setPreviewImageUrl(null)}
-          >
-            {previewImageUrl
-              ? (
-                  <CachedImage uri={previewImageUrl} style={styles.modalImage} contentFit="contain" />
-                )
-              : null}
-          </Pressable>
-        </Modal>
-      </>
+        </Galeria.Image>
+      </Galeria>
     );
   }
 

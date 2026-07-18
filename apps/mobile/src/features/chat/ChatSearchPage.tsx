@@ -1,12 +1,13 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
+import { FlashList } from "@shopify/flash-list";
 import { getMessageAuthorLabel } from "@tuanchat/domain/display-labels";
 import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 import { buildMessageSearchText } from "@tuanchat/domain/message-search";
+import { getRoomMessageLocalRenderKey } from "@tuanchat/query/room-message-lifecycle";
 import { ArrowLeft, MagnifyingGlass, X } from "phosphor-react-native";
 import { useCallback, useMemo, useState } from "react";
 import {
-  FlatList,
   Pressable,
   StyleSheet,
   TextInput,
@@ -23,6 +24,9 @@ import type { RoomRolesById } from "./chat-avatar-utils";
 import { getMobileMessageAuthorLabel, isNarratorMessage, isOutOfCharacterMessage } from "./messageAuthorLabel";
 import { MessageAvatar } from "./MessageAvatar";
 import { formatMessageDateTime } from "./mobileChatUtils";
+import { resolveChatMessageAvatarUrl, useChatAvatarMetadata } from "./useChatAvatarMetadata";
+
+const EMPTY_ROOM_ROLES_BY_ID: RoomRolesById = new Map();
 
 type MessageItem = {
   message: Message;
@@ -56,6 +60,12 @@ export function ChatSearchPage({ messages, onClose, onScrollToMessage, roomRoles
       return `${buildMessageSearchText(item.message)} ${authorLabel}`.toLocaleLowerCase("zh-CN").includes(trimmed);
     });
   }, [messages, query, roomRolesById]);
+  const filteredChatMessages = useMemo(
+    () => filteredMessages.map(item => item.message),
+    [filteredMessages],
+  );
+  const resolvedRoomRolesById = roomRolesById ?? EMPTY_ROOM_ROLES_BY_ID;
+  const avatarMetadata = useChatAvatarMetadata(filteredChatMessages, resolvedRoomRolesById);
 
   const handleClose = useCallback(() => {
     setQuery("");
@@ -70,17 +80,27 @@ export function ChatSearchPage({ messages, onClose, onScrollToMessage, roomRoles
 
   const renderItem = useCallback(({ item }: { item: MessageItem }) => {
     const msg = item.message;
+    const avatarUrl = resolveChatMessageAvatarUrl(
+      msg,
+      resolvedRoomRolesById,
+      avatarMetadata.roleAvatarFileIdByAvatarId,
+      avatarMetadata.userAvatarFileIdByUserId,
+    );
     return (
       <ChatSearchResultItem
+        avatarUrl={avatarUrl}
         message={msg}
         onSelect={handleSelect}
         roomRolesById={roomRolesById}
         theme={theme}
       />
     );
-  }, [handleSelect, roomRolesById, theme]);
+  }, [avatarMetadata.roleAvatarFileIdByAvatarId, avatarMetadata.userAvatarFileIdByUserId, handleSelect, resolvedRoomRolesById, roomRolesById, theme]);
 
-  const keyExtractor = useCallback((item: MessageItem) => String(item.message.messageId ?? 0), []);
+  const keyExtractor = useCallback((item: MessageItem, index: number) => {
+    return getRoomMessageLocalRenderKey(item.message)
+      ?? (typeof item.message.messageId === "number" ? `message:${item.message.messageId}` : `search-result:${index}`);
+  }, []);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -125,7 +145,7 @@ export function ChatSearchPage({ messages, onClose, onScrollToMessage, roomRoles
               </View>
               {filteredMessages.length > 0
                 ? (
-                    <FlatList
+                    <FlashList
                       data={filteredMessages}
                       keyExtractor={keyExtractor}
                       renderItem={renderItem}
@@ -162,13 +182,14 @@ export function ChatSearchPage({ messages, onClose, onScrollToMessage, roomRoles
 }
 
 type ChatSearchResultItemProps = {
+  avatarUrl: string | null;
   message: Message;
   onSelect: (messageId: number) => void;
   roomRolesById?: RoomRolesById;
   theme: ReturnType<typeof useTheme>;
 };
 
-function ChatSearchResultItem({ message: msg, onSelect, roomRolesById, theme }: ChatSearchResultItemProps) {
+function ChatSearchResultItem({ avatarUrl, message: msg, onSelect, roomRolesById, theme }: ChatSearchResultItemProps) {
   const isOOC = isOutOfCharacterMessage(msg);
   const authorLabel = getSearchAuthorLabel(msg, roomRolesById);
   const preview = getMessagePreviewText(msg);
@@ -185,7 +206,7 @@ function ChatSearchResultItem({ message: msg, onSelect, roomRolesById, theme }: 
     >
       <MessageAvatar
         avatarFileId={msg.avatarFileId}
-        avatarId={msg.avatarId}
+        avatarUrl={avatarUrl}
         displayName={authorLabel}
         preferUserAvatar={isOOC}
         roleId={msg.roleId}

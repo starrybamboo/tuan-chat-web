@@ -24,4 +24,3 @@ export type ApiResultCursorPageBaseResponseNotificationItemResponse = {
      */
     data?: CursorPageBaseResponseNotificationItemResponse;
 };
-

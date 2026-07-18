@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": [
+    "./packages/oxlint-config/oxlint-base.jsonc"
+  ],
+  "rules": {
+    // 根配置只检查手写脚本和共享包，不允许无边界地关闭整份文件规则。
+    "eslint-comments/no-unlimited-disable": "error",
+    // Node 脚本和共享运行时需要读取部署/构建环境变量，平台边界由代码评审保证。
+    "node/no-process-env": "off",
+    // 导入与文本清洗脚本会显式匹配控制字符，这是数据清洗能力而非可疑正则。
+    "no-control-regex": "off"
+  },
+  "ignorePatterns": [
+    // 每个应用使用自己的平台配置，避免根配置重复扫描或覆盖端侧规则。
+    "apps/desktop/**",
+    "apps/mobile/**",
+    "apps/web/**",
+    // Android 与发布目录均为生成产物。
+    "android/**",
+    // Workflow YAML 不属于 Oxlint 的 JavaScript/TypeScript 检查范围。
+    ".github/**",
+    // OpenAPI 客户端由生成器维护，质量约束施加在 schema 与生成流程上。
+    "packages/tuanchat-openapi-client/**",
+    // 补丁、发布产物和文档不由 Oxlint 处理。
+    "patches/**",
+    "release/release_smoke_*/**",
+    "**/*.md"
+  ]
+}

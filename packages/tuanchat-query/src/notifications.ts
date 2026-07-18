@@ -9,13 +9,15 @@ import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import {
+  beginOptimisticQueryTransaction,
+  optimisticQueryPatch,
+  rollbackOptimisticQueryTransaction,
+} from "./optimistic-cache";
+
 type NotificationClient = Pick<TuanChat, "notificationController">;
 type NotificationPageData = InfiniteData<ApiResultCursorPageBaseResponseNotificationItemResponse, number | undefined>;
 type NotificationUnreadCountData = ApiResultNotificationUnreadCountResponse;
-type NotificationCacheSnapshot = {
-  pageEntries: Array<[readonly unknown[], NotificationPageData | undefined]>;
-  unreadCountData: NotificationUnreadCountData | undefined;
-};
 
 export function getNotificationsQueryKey(filters: NotificationPageRequest = {}) {
   return ["notifications", filters] as const;
@@ -219,21 +221,65 @@ export function invalidateNotificationQueries(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: getNotificationsUnreadCountQueryKey() });
 }
 
-function snapshotNotificationCaches(queryClient: QueryClient): NotificationCacheSnapshot {
-  return {
-    pageEntries: queryClient.getQueriesData<NotificationPageData>({ queryKey: ["notifications"] }),
-    unreadCountData: queryClient.getQueryData<NotificationUnreadCountData>(getNotificationsUnreadCountQueryKey()),
-  };
+export function beginMarkNotificationsReadOptimisticMutation(
+  queryClient: QueryClient,
+  notificationIdList: number[],
+) {
+  const unreadIds = new Set<number>();
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<NotificationPageData>({
+      queryKey: ["notifications"],
+      exact: false,
+      update: (current, queryKey) => {
+        collectUnreadNotificationIds([[queryKey, current]], notificationIdList)
+          .forEach(notificationId => unreadIds.add(notificationId));
+        return markNotificationsReadInPageData(
+          current,
+          notificationIdList,
+          (queryKey[1] ?? {}) as NotificationPageRequest,
+        );
+      },
+    }),
+    optimisticQueryPatch<NotificationUnreadCountData>({
+      queryKey: getNotificationsUnreadCountQueryKey(),
+      update: current => updateUnreadCountData(current, count => count - unreadIds.size),
+    }),
+  ]);
 }
 
-function restoreNotificationCaches(queryClient: QueryClient, snapshot: NotificationCacheSnapshot | undefined) {
-  if (!snapshot) {
-    return;
-  }
-  for (const [queryKey, data] of snapshot.pageEntries) {
-    queryClient.setQueryData(queryKey, data);
-  }
-  queryClient.setQueryData(getNotificationsUnreadCountQueryKey(), snapshot.unreadCountData);
+export function beginMarkAllNotificationsReadOptimisticMutation(
+  queryClient: QueryClient,
+  payload: NotificationReadAllRequest = {},
+) {
+  const unreadIds = new Set<number>();
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<NotificationPageData>({
+      queryKey: ["notifications"],
+      exact: false,
+      update: (current, queryKey) => {
+        for (const page of current?.pages ?? []) {
+          for (const item of page.data?.list ?? []) {
+            const notificationId = getNotificationId(item);
+            if (notificationId != null && !item.isRead && (!payload.category || item.category === payload.category)) {
+              unreadIds.add(notificationId);
+            }
+          }
+        }
+        return markAllNotificationsReadInPageData(
+          current,
+          (queryKey[1] ?? {}) as NotificationPageRequest,
+          payload.category ?? null,
+        );
+      },
+    }),
+    optimisticQueryPatch<NotificationUnreadCountData>({
+      queryKey: getNotificationsUnreadCountQueryKey(),
+      update: current => updateUnreadCountData(
+        current,
+        count => payload.category ? count - unreadIds.size : 0,
+      ),
+    }),
+  ]);
 }
 
 export function useNotificationsInfiniteQuery(
@@ -277,15 +323,12 @@ export function useMarkNotificationsReadMutation(client: NotificationClient) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: NotificationReadRequest) => client.notificationController.markRead(payload),
-    onMutate: async (payload) => {
-      await queryClient.cancelQueries({ queryKey: ["notifications"] });
-      await queryClient.cancelQueries({ queryKey: getNotificationsUnreadCountQueryKey() });
-      const snapshot = snapshotNotificationCaches(queryClient);
-      markNotificationsReadInCaches(queryClient, payload.notificationIdList ?? []);
-      return snapshot;
-    },
-    onError: (_error, _payload, snapshot) => {
-      restoreNotificationCaches(queryClient, snapshot);
+    onMutate: payload => beginMarkNotificationsReadOptimisticMutation(
+      queryClient,
+      payload.notificationIdList ?? [],
+    ),
+    onError: (_error, _payload, transaction) => {
+      rollbackOptimisticQueryTransaction(queryClient, transaction);
     },
     onSuccess: (_result, payload) => {
       const ids = payload.notificationIdList ?? [];
@@ -302,15 +345,9 @@ export function useMarkAllNotificationsReadMutation(client: NotificationClient) 
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: NotificationReadAllRequest = {}) => client.notificationController.markAllRead(payload),
-    onMutate: async (payload = {}) => {
-      await queryClient.cancelQueries({ queryKey: ["notifications"] });
-      await queryClient.cancelQueries({ queryKey: getNotificationsUnreadCountQueryKey() });
-      const snapshot = snapshotNotificationCaches(queryClient);
-      markAllNotificationsReadInCaches(queryClient, payload);
-      return snapshot;
-    },
-    onError: (_error, _payload, snapshot) => {
-      restoreNotificationCaches(queryClient, snapshot);
+    onMutate: payload => beginMarkAllNotificationsReadOptimisticMutation(queryClient, payload),
+    onError: (_error, _payload, transaction) => {
+      rollbackOptimisticQueryTransaction(queryClient, transaction);
     },
     onSuccess: (_result, payload) => {
       markAllNotificationsReadInCaches(queryClient, payload);

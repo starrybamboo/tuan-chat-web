@@ -472,6 +472,7 @@ function RoomComposerPanelImpl({
     onClearFigure,
     onOpenFullMessageDiff,
     onCancelPoke,
+    pokeTarget,
     onSendEffect,
     onStopBgmForAll,
     setInsertAfterMessageId,

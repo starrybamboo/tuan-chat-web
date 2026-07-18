@@ -19,12 +19,11 @@ export function patchRuleCacheValue(
   if (Array.isArray(current)) {
     let changed = false;
     const next = current.flatMap((item) => {
-      if (!isRecord(item) || item.ruleId !== ruleId) {
-        return [item];
-      }
-      changed = true;
-      const patched = update(item);
-      return patched ? [patched] : [];
+      const patched = isRecord(item) && item.ruleId === ruleId
+        ? update(item)
+        : patchRuleCacheValue(item, ruleId, update);
+      changed ||= patched !== item;
+      return patched === null ? [] : [patched];
     });
     return changed ? next : current;
   }

@@ -67,8 +67,12 @@ function addFriendToList(current: FriendResponse[] | undefined, friend?: FriendR
   return [...current, friend];
 }
 
-function findFriendInCaches(queryClient: ReturnType<typeof useQueryClient>, targetUserId: number) {
-  for (const [, friends] of queryClient.getQueriesData<FriendResponse[]>({ queryKey: ["friends"] })) {
+function findFriendInCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  queryKey: readonly string[],
+  targetUserId: number,
+) {
+  for (const [, friends] of queryClient.getQueriesData<FriendResponse[]>({ queryKey })) {
     const friend = friends?.find(item => item.userId === targetUserId);
     if (friend) {
       return friend;
@@ -94,7 +98,7 @@ export function beginBlockFriendOptimisticMutation(
   queryClient: ReturnType<typeof useQueryClient>,
   targetUserId: number,
 ) {
-  const friend = findFriendInCaches(queryClient, targetUserId);
+  const friend = findFriendInCaches(queryClient, ["friends"], targetUserId);
   return beginOptimisticQueryTransaction(queryClient, [
     optimisticQueryPatch<FriendResponse[]>({
       queryKey: ["friends"],
@@ -113,11 +117,17 @@ export function beginUnblockFriendOptimisticMutation(
   queryClient: ReturnType<typeof useQueryClient>,
   targetUserId: number,
 ) {
+  const friend = findFriendInCaches(queryClient, ["blacklist"], targetUserId);
   return beginOptimisticQueryTransaction(queryClient, [
     optimisticQueryPatch<FriendResponse[]>({
       queryKey: ["blacklist"],
       exact: false,
       update: current => removeFriendFromList(current, targetUserId),
+    }),
+    optimisticQueryPatch<FriendResponse[]>({
+      queryKey: ["friends"],
+      exact: false,
+      update: current => addFriendToList(current, friend),
     }),
   ]);
 }

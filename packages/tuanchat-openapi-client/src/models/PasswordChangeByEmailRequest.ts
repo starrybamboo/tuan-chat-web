@@ -19,4 +19,3 @@ export type PasswordChangeByEmailRequest = {
      */
     newPassword: string;
 };
-

@@ -119,8 +119,6 @@ export function useAiImagePreviewState() {
     setIsHistoryExpanded,
     historyRowByKey,
     historyRowByResultMatchKey,
-    selectedResult,
-    selectedHistoryPreviewRow,
     selectedPreviewResult,
     selectedPreviewHistoryRow,
     selectedPreviewIdentityKey,
@@ -129,6 +127,5 @@ export function useAiImagePreviewState() {
     archivedHistoryRows,
     isSelectedPreviewPinned,
     previewMeta,
-    hasCurrentDisplayedImage: Boolean(selectedPreviewResult),
   };
 }

@@ -24,4 +24,3 @@ export type ApiResultUserPrivateInfoResponse = {
      */
     data?: UserPrivateInfoResponse;
 };
-

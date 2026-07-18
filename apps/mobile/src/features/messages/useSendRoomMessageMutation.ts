@@ -7,16 +7,18 @@ import {
   buildChatMessageRequestFromDraft,
 } from "@tuanchat/domain/message-draft";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
+import { extractOpenApiErrorMessage, isOpenApiResponseError } from "@tuanchat/domain/open-api-result";
 import {
   useSendMessageMutation as useSharedSendMessageMutation,
 } from "@tuanchat/query/chat";
 import {
   commitOptimisticRoomMessageInList,
   createOptimisticRoomMessage,
+  buildRoomMessageRetryRequest,
   getNextAppendPosition,
   getRoomMessageLocalRenderKey,
   mergeRoomMessagesForLocalState,
+  markFailedRoomMessage,
   removeRoomMessageFromList,
   removeRoomMessagesFromList,
 } from "@tuanchat/query/room-message-lifecycle";
@@ -25,7 +27,18 @@ import { useRef } from "react";
 import type { RoomMessagesQueryData } from "./roomMessagesQueryData";
 
 import { getMobileApiBaseUrl, mobileApiClient } from "../../lib/api";
-import { writeCachedRoomMessages } from "./mobileRoomMessageCache";
+import { createMobileOptimisticMessageId } from "../../lib/mobile-optimistic-id";
+import {
+  promotePendingRoomMessage,
+  rollbackPendingRoomMessages,
+  writeCachedRoomMessages,
+  writePendingRoomMessages,
+} from "./mobileRoomMessageCache";
+import {
+  createMobileRoomMessageRequestId,
+  MobileRoomMessageDeliveryUnknownError,
+  trySendMobileRoomMessageByWebSocket,
+} from "./mobileRoomMessageTransport";
 import {
   withStableRoomMessagePosition,
   withStableRoomMessagePositions,
@@ -33,11 +46,6 @@ import {
 import { extractRoomMessagesFromQueryData, updateRoomMessagesQueryData } from "./roomMessagesQueryData";
 import { getRoomMessagesQueryKey } from "./roomMessagesQueryKey";
 import { traceRoomMessageTiming } from "./roomMessageTimingTrace";
-import {
-  createMobileRoomMessageRequestId,
-  MobileRoomMessageDeliveryUnknownError,
-  trySendMobileRoomMessageByWebSocket,
-} from "./mobileRoomMessageTransport";
 export { withStableRoomMessagePosition, withStableRoomMessagePositions } from "./roomMessagePosition";
 
 type SendMessageContext = {
@@ -51,6 +59,17 @@ type SendMessageContext = {
 type SendDraftMessagesOptions = {
   optimisticMessages?: Array<ChatMessageResponse | null | undefined>;
 };
+
+class MobileRoomMessageRejectedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "MobileRoomMessageRejectedError";
+  }
+}
+
+function reportSentMessageCacheFailure(error: unknown): void {
+  console.warn("[useSendRoomMessageMutation] 已发送消息的磁盘缓存同步失败:", error);
+}
 
 function requirePositiveRoomId(roomId: number | null): number {
   if (!roomId || roomId <= 0) {
@@ -76,13 +95,20 @@ export function useSendRoomMessageMutation(
 ) {
   const queryClient = useQueryClient();
   const mutation = useSharedSendMessageMutation(mobileApiClient, roomId ?? -1);
-  const optimisticIdRef = useRef(-1);
+  const pendingWritePromisesRef = useRef(new Map<number, Promise<boolean>>());
   const sendAttemptIdRef = useRef(0);
 
-  const getNextOptimisticId = () => {
-    const id = optimisticIdRef.current;
-    optimisticIdRef.current -= 1;
-    return id;
+  const trackPendingWrite = (resolvedRoomId: number, optimistics: ChatMessageResponse[]) => {
+    const pendingWritePromise = writePendingRoomMessages(resolvedRoomId, optimistics).then(
+      () => true,
+      (error) => {
+        reportSentMessageCacheFailure(error);
+        return false;
+      },
+    );
+    for (const optimistic of optimistics) {
+      pendingWritePromisesRef.current.set(optimistic.message.messageId, pendingWritePromise);
+    }
   };
 
   const getCurrentMessages = (): ChatMessageResponse[] => {
@@ -107,11 +133,15 @@ export function useSendRoomMessageMutation(
       ? request.position
       : getNextAppendPosition(currentMessages);
     const optimistic = createOptimisticRoomMessage(request, {
-      optimisticId: getNextOptimisticId(),
+      optimisticId: createMobileOptimisticMessageId(),
       currentUserId,
       position,
     });
     updateQueryCache(current => mergeRoomMessagesForLocalState(current, [optimistic]));
+    const resolvedRoomId = roomId ?? -1;
+    if (resolvedRoomId > 0) {
+      trackPendingWrite(resolvedRoomId, [optimistic]);
+    }
     return optimistic;
   };
 
@@ -121,12 +151,16 @@ export function useSendRoomMessageMutation(
     const optimistics = requests.map((request) => {
       const position = typeof request.position === "number" ? request.position : nextPosition++;
       return createOptimisticRoomMessage(request, {
-        optimisticId: getNextOptimisticId(),
+        optimisticId: createMobileOptimisticMessageId(),
         currentUserId,
         position,
       });
     });
     updateQueryCache(current => mergeRoomMessagesForLocalState(current, optimistics));
+    const resolvedRoomId = roomId ?? -1;
+    if (resolvedRoomId > 0) {
+      trackPendingWrite(resolvedRoomId, optimistics);
+    }
     return optimistics;
   };
 
@@ -134,16 +168,67 @@ export function useSendRoomMessageMutation(
     updateQueryCache(current => commitOptimisticRoomMessageInList(current, optimisticId, serverMessage));
     const resolvedRoomId = roomId ?? -1;
     if (resolvedRoomId > 0) {
-      void writeCachedRoomMessages(resolvedRoomId, [{ message: serverMessage }]).catch(() => {});
+      const pendingWritePromise = pendingWritePromisesRef.current.get(optimisticId) ?? Promise.resolve(false);
+      pendingWritePromisesRef.current.delete(optimisticId);
+      void pendingWritePromise.then((wasWritten) => {
+        const confirmedMessage = { message: serverMessage };
+        const syncPromise = wasWritten
+          ? promotePendingRoomMessage(resolvedRoomId, optimisticId, confirmedMessage)
+          : writeCachedRoomMessages(resolvedRoomId, [confirmedMessage]);
+        return syncPromise.catch(reportSentMessageCacheFailure);
+      });
     }
   };
 
   const revertOptimistic = (optimisticId: number) => {
     updateQueryCache(current => removeRoomMessageFromList(current, optimisticId));
+    const resolvedRoomId = roomId ?? -1;
+    if (resolvedRoomId > 0) {
+      const pendingWritePromise = pendingWritePromisesRef.current.get(optimisticId);
+      pendingWritePromisesRef.current.delete(optimisticId);
+      void pendingWritePromise?.then((wasWritten) => {
+        return wasWritten
+          ? rollbackPendingRoomMessages(resolvedRoomId, [optimisticId]).catch(reportSentMessageCacheFailure)
+          : undefined;
+      });
+    }
   };
 
   const revertOptimisticBatch = (optimisticIds: number[]) => {
     updateQueryCache(current => removeRoomMessagesFromList(current, optimisticIds));
+    const resolvedRoomId = roomId ?? -1;
+    if (resolvedRoomId > 0) {
+      const pendingWrites = optimisticIds.map(async (optimisticId) => {
+        const pendingWritePromise = pendingWritePromisesRef.current.get(optimisticId);
+        pendingWritePromisesRef.current.delete(optimisticId);
+        return pendingWritePromise && await pendingWritePromise ? optimisticId : null;
+      });
+      void Promise.all(pendingWrites).then((writtenIds) => {
+        const idsToRollback = writtenIds.filter((optimisticId): optimisticId is number => optimisticId !== null);
+        return idsToRollback.length > 0
+          ? rollbackPendingRoomMessages(resolvedRoomId, idsToRollback).catch(reportSentMessageCacheFailure)
+          : undefined;
+      });
+    }
+  };
+
+  const markOptimisticFailed = (optimistic: ChatMessageResponse) => {
+    const failedMessage = {
+      ...optimistic,
+      message: markFailedRoomMessage(optimistic.message),
+    };
+    updateQueryCache(current => mergeRoomMessagesForLocalState(current, [failedMessage]));
+    const resolvedRoomId = roomId ?? -1;
+    if (resolvedRoomId > 0) {
+      const pendingWritePromise = pendingWritePromisesRef.current.get(optimistic.message.messageId) ?? Promise.resolve(false);
+      pendingWritePromisesRef.current.delete(optimistic.message.messageId);
+      void pendingWritePromise.then(() => writePendingRoomMessages(resolvedRoomId, [failedMessage]))
+        .catch(reportSentMessageCacheFailure);
+    }
+  };
+
+  const markOptimisticBatchFailed = (optimistics: ChatMessageResponse[]) => {
+    optimistics.forEach(markOptimisticFailed);
   };
 
   const findCommittedOptimistic = (optimistic: ChatMessageResponse) => {
@@ -174,7 +259,10 @@ export function useSendRoomMessageMutation(
       return await mutation.mutateAsync(request);
     }
     catch (error) {
-      throw new Error(extractOpenApiErrorMessage(error, "发送消息失败。"));
+      if (isOpenApiResponseError(error)) {
+        throw new MobileRoomMessageRejectedError(extractOpenApiErrorMessage(error, "发送消息失败。"));
+      }
+      throw error;
     }
   };
 
@@ -202,7 +290,7 @@ export function useSendRoomMessageMutation(
         syncId: result.message?.syncId,
       });
       if (!result.success || !result.message) {
-        throw new Error(result.error?.trim() || "发送消息失败。");
+        throw new MobileRoomMessageRejectedError(result.error?.trim() || "发送消息失败。");
       }
       return {
         data: result.message,
@@ -253,7 +341,7 @@ export function useSendRoomMessageMutation(
         commitOptimistic(optimistic.message.messageId, result.data);
       }
       else {
-        revertOptimistic(optimistic.message.messageId);
+        markOptimisticFailed(optimistic);
       }
       return result;
     }
@@ -270,8 +358,8 @@ export function useSendRoomMessageMutation(
           return { data: committed.message, success: true };
         }
       }
-      else {
-        revertOptimistic(optimistic.message.messageId);
+      else if (error instanceof MobileRoomMessageRejectedError) {
+        markOptimisticFailed(optimistic);
       }
       throw error;
     }
@@ -308,7 +396,7 @@ export function useSendRoomMessageMutation(
               continue;
             }
           }
-          else {
+          else if (error instanceof MobileRoomMessageRejectedError) {
             failedIds.push(optimistics[i].message.messageId);
           }
           throw error;
@@ -317,7 +405,7 @@ export function useSendRoomMessageMutation(
     }
     finally {
       if (failedIds.length > 0) {
-        revertOptimisticBatch(failedIds);
+        markOptimisticBatchFailed(optimistics.filter(item => failedIds.includes(item.message.messageId)));
       }
     }
 
@@ -378,7 +466,7 @@ export function useSendRoomMessageMutation(
               continue;
             }
           }
-          else {
+          else if (error instanceof MobileRoomMessageRejectedError) {
             failedIds.push(optimistic.message.messageId);
           }
           throw error;
@@ -394,7 +482,7 @@ export function useSendRoomMessageMutation(
         revertOptimisticBatch(extraOptimisticIds);
       }
       if (failedIds.length > 0) {
-        revertOptimisticBatch(failedIds);
+        markOptimisticBatchFailed(alignedOptimisticMessages.filter(item => failedIds.includes(item.message.messageId)));
       }
     }
 
@@ -455,6 +543,25 @@ export function useSendRoomMessageMutation(
     }, input);
   };
 
+  const removeFailedMessage = async (message: ChatMessageResponse["message"]) => {
+    const messageId = message.messageId;
+    if (typeof messageId !== "number" || messageId >= 0) {
+      return;
+    }
+    updateQueryCache(current => removeRoomMessageFromList(current, messageId));
+    pendingWritePromisesRef.current.delete(messageId);
+    await rollbackPendingRoomMessages(requirePositiveRoomId(roomId), [messageId]);
+  };
+
+  const retryFailedMessage = async (message: ChatMessageResponse["message"]) => {
+    const request = buildRoomMessageRetryRequest(message);
+    if (!request) {
+      throw new Error("这条消息暂时无法重新发送。");
+    }
+    await removeFailedMessage(message);
+    return sendRequest(request);
+  };
+
   const sendDiceMessage = async (input: SendMessageContext & {
     content: string;
     hidden?: boolean;
@@ -497,6 +604,8 @@ export function useSendRoomMessageMutation(
     ...mutation,
     discardLocalOptimisticMessages,
     insertLocalOptimisticMessages,
+    removeFailedMessage,
+    retryFailedMessage,
     sendCommandRequestMessage,
     sendDiceMessage,
     sendDraftMessage,

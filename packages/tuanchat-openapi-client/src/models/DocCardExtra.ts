@@ -36,4 +36,3 @@ export type DocCardExtra = {
      */
     excerpt?: string;
 };
-

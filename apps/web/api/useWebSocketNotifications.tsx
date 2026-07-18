@@ -122,7 +122,7 @@ export function useWebSocketNotifications({
   }, []);
 
   const notifyNewDirectMessage = useCallback(async (message: DirectMessageEvent, selfUserId: number) => {
-    if (message?.messageType === 10000) {
+    if (message?.messageType === 10000 || message?.messageType === 10001) {
       return;
     }
 

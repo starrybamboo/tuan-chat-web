@@ -17,15 +17,12 @@ export async function readCachedRoomMessages(roomId: number): Promise<ChatMessag
   try {
     const repository = await getMobileRoomMessageRepository();
     const messages = await repository.getMessagesByRoomId(roomId);
-    const visibleMessages = messages.filter(m =>
-      typeof m.message?.messageId === "number" && m.message.messageId > 0,
-    );
     traceRoomMessageTiming("cache.read.end", {
-      count: visibleMessages.length,
+      count: messages.length,
       durationMs: Date.now() - startedAt,
       roomId,
     });
-    return visibleMessages;
+    return messages;
   }
   catch (error) {
     traceRoomMessageTiming("cache.read.error", {
@@ -68,6 +65,34 @@ export async function writeCachedRoomMessages(roomId: number, messages: ChatMess
       && message.message.messageId > 0,
     ),
   );
+}
+
+export async function writePendingRoomMessages(roomId: number, messages: ChatMessageResponse[]) {
+  if (!isPositiveRoomId(roomId)) {
+    return;
+  }
+  const repository = await getMobileRoomMessageRepository();
+  await repository.addPendingMessages(messages.filter(message => message.message?.roomId === roomId));
+}
+
+export async function promotePendingRoomMessage(
+  roomId: number,
+  pendingMessageId: number,
+  confirmedMessage: ChatMessageResponse,
+): Promise<void> {
+  if (!isPositiveRoomId(roomId)) {
+    return;
+  }
+  const repository = await getMobileRoomMessageRepository();
+  await repository.promotePendingMessage(pendingMessageId, confirmedMessage);
+}
+
+export async function rollbackPendingRoomMessages(roomId: number, pendingMessageIds: number[]): Promise<void> {
+  if (!isPositiveRoomId(roomId)) {
+    return;
+  }
+  const repository = await getMobileRoomMessageRepository();
+  await repository.rollbackPendingMessages(pendingMessageIds);
 }
 
 export async function markCachedRoomMessagesDeleted(roomId: number, messageIds: number[]) {

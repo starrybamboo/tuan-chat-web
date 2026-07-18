@@ -11,7 +11,6 @@ import { PreviewImageDialog } from "@/components/aiImage/PreviewImageDialog";
 import { StylePickerDialog } from "@/components/aiImage/StylePickerDialog";
 import { useAiImagePageController } from "@/components/aiImage/useAiImagePageController";
 import { useHorizontalResizeDrag } from "@/components/common/customHooks/useHorizontalResizeDrag";
-import { FileInput } from "@/components/common/FormField";
 import "@/components/aiImage/aiImageRouteStyles.css";
 
 const AI_IMAGE_SIDEBAR_MIN_RATIO = 0.18;
@@ -35,18 +34,12 @@ function AiImagePage() {
     handlePageImageDragLeave,
     handlePageImageDragOver,
     handlePageImageDrop,
-    handlePickPreciseReference,
-    handlePickSourceImage,
-    handlePickVibeReferences,
     inpaintDialogProps,
     isPageImageDragOver,
     metadataImportDialogProps,
-    preciseReferenceInputRef,
     previewImageDialogProps,
     sidebarProps,
-    sourceFileInputRef,
     stylePickerDialogProps,
-    vibeReferenceInputRef,
     workspaceProps,
   } = controller;
   const layoutRef = useRef<HTMLDivElement | null>(null);
@@ -119,66 +112,13 @@ function AiImagePage() {
     <div
       className="
         ai-image-shell relative flex h-full min-h-0 w-full min-w-0 flex-col
-        overflow-hidden bg-base-100
+        overflow-hidden bg-base-200
       "
       onDragEnter={handlePageImageDragEnter}
       onDragLeave={handlePageImageDragLeave}
       onDragOver={handlePageImageDragOver}
       onDrop={handlePageImageDrop}
     >
-      <style>
-        {`
-        .ai-image-shell {
-          --ai-image-surface-radius: 0.375rem;
-        }
-
-        .ai-image-shell :where(
-          .card,
-          .tc-button,
-          .collapse,
-          .badge,
-          .join,
-          .join-item,
-          .modal-box,
-          button,
-          details,
-          summary,
-          img,
-          canvas,
-          [class*="rounded"]
-        ) {
-          border-radius: var(--ai-image-surface-radius) !important;
-        }
-
-        .ai-image-shell :where(
-          .input,
-          .select,
-          .textarea,
-          .checkbox,
-          .toggle,
-          input,
-          select,
-          textarea
-        ) {
-          border-radius: 0 !important;
-        }
-
-        .ai-image-shell :where(
-          .rounded-full,
-          [class*="rounded-full"],
-          .tc-button-circle
-        ) {
-          border-radius: 9999px !important;
-        }
-
-        @media (max-width: 767px) {
-          .ai-image-shell .ai-image-sidebar-wrapper {
-            width: 100% !important;
-            height: 50% !important;
-          }
-        }
-      `}
-      </style>
       {isPageImageDragOver
         ? (
             <div className="
@@ -187,63 +127,26 @@ function AiImagePage() {
             ">
               <div className="
                 flex size-[88px] items-center justify-center rounded-2xl
-                bg-[#242636]/78 shadow-lg
+                bg-base-content/78 shadow-lg
                 backdrop-blur-sm
               ">
                 <UploadSimpleIcon className="
-                  size-11 text-white/90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.28)]
+                  size-11 text-base-100 drop-shadow-sm
                 " weight="regular" aria-hidden="true" />
               </div>
             </div>
           )
         : null}
 
-      <FileInput
-        ref={sourceFileInputRef}
-        accept="image/*"
-        className="hidden"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (!file)
-            return;
-          void handlePickSourceImage(file, { source: "picker", imageCount: 1 });
-          event.target.value = "";
-        }}
-      />
-      <FileInput
-        ref={vibeReferenceInputRef}
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={(event) => {
-          const files = event.target.files;
-          if (!files?.length)
-            return;
-          void handlePickVibeReferences(files);
-          event.target.value = "";
-        }}
-      />
-      <FileInput
-        ref={preciseReferenceInputRef}
-        accept="image/*"
-        className="hidden"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (!file)
-            return;
-          void handlePickPreciseReference(file);
-          event.target.value = "";
-        }}
-      />
-
       <div ref={layoutRef} className="
-        flex min-h-0 flex-1 flex-col overflow-hidden bg-base-200 md:flex-row
+        ai-image-layout flex min-h-0 flex-1 flex-col overflow-hidden
+        bg-base-200 md:flex-row
       ">
         {isSidebarVisible
           ? (
               <>
                 <div
-                  className="ai-image-sidebar-wrapper relative z-20 flex min-h-0 min-w-0 shrink-0"
+                  className="ai-image-sidebar-wrapper relative z-20 flex min-h-0 min-w-0 shrink-0 p-2 pr-0"
                   style={sidebarWidth == null ? undefined : { width: `${sidebarWidth}px` }}
                 >
                   <AiImageSidebar sidebarProps={sidebarProps} />
@@ -259,10 +162,9 @@ function AiImagePage() {
                     onPointerDown={handleSidebarResizeStart}
                   >
                     <span className="
-                      mx-auto my-3 block h-[calc(100%-1.5rem)] w-px rounded-full
-                      bg-base-300/70 transition-colors
-                      group-hover:bg-base-content/25
-                      group-active:bg-base-content/35
+                      mx-auto my-3 block h-[calc(100%-1.5rem)] w-0.5
+                      rounded-full bg-base-300 transition-colors
+                      group-hover:bg-info/45 group-active:bg-info/70
                     " />
                   </button>
                 </div>

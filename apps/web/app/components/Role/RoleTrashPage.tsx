@@ -100,9 +100,9 @@ export default function RoleTrashPage() {
   const trashScope = isSpaceNpcTrash ? "spaceNpc" : "personal";
   const searchQuery = useRoleUiStore(state => state.sidebarSearchQuery);
   const spacesQuery = useGetUserActiveSpacesQuery();
-  const spaces = spacesQuery.data?.data ?? [];
+  const spaces = spacesQuery.data?.data;
   const availableSpaces = useMemo(
-    () => spaces.filter((space): space is Space & { spaceId: number } =>
+    () => (spaces ?? []).filter((space): space is Space & { spaceId: number } =>
       typeof space.spaceId === "number" && space.spaceId > 0),
     [spaces],
   );

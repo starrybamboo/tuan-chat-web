@@ -24,4 +24,3 @@ export type ApiResultMapStringRoleAbility = {
      */
     data?: Record<string, RoleAbility>;
 };
-

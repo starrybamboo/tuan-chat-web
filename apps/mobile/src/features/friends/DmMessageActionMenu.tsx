@@ -1,92 +1,43 @@
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
-import type { IconProps } from "phosphor-react-native";
+import type { ReactElement } from "react";
 
-import { ArrowBendUpLeft, Copy, Trash } from "phosphor-react-native";
-import { Pressable, StyleSheet } from "react-native";
-
-import { BottomSheetModal } from "@/components/BottomSheetModal";
-import { ThemedText } from "@/components/themed-text";
-import { Radius, Spacing } from "@/constants/theme";
-import { useTheme } from "@/hooks/use-theme";
-
-const styles = StyleSheet.create({
-  actionRow: {
-    alignItems: "center",
-    borderRadius: Radius.md,
-    flexDirection: "row",
-    gap: Spacing.lg,
-    minHeight: 48,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.lg,
-  },
-  actionLabel: {
-    flex: 1,
-    fontSize: 16,
-  },
-  dangerLabel: {
-    fontSize: 16,
-  },
-});
+import * as ContextMenu from "zeego/context-menu";
 
 export type DmMessageAction = "reply" | "copy" | "recall";
 
 type DmMessageActionMenuProps = {
+  children: ReactElement;
   currentUserId: number | null;
-  message: MessageDirectResponse | null;
+  message: MessageDirectResponse;
   onAction: (action: DmMessageAction, message: MessageDirectResponse) => void;
-  onClose: () => void;
-  visible: boolean;
 };
 
-export function DmMessageActionMenu({
-  currentUserId,
-  message,
-  onAction,
-  onClose,
-  visible,
-}: DmMessageActionMenuProps) {
-  const theme = useTheme();
+export function DmMessageActionMenu({ children, currentUserId, message, onAction }: DmMessageActionMenuProps) {
+  if (message.status === 1) {
+    return children;
+  }
 
-  if (!message)
-    return null;
-
-  const isMine = typeof currentUserId === "number" && currentUserId === message.senderId;
-  const actions: { action: DmMessageAction; Icon: React.ComponentType<IconProps>; label: string; hint: string; danger?: boolean; ownerOnly?: boolean }[] = [
-    { action: "reply", Icon: ArrowBendUpLeft, label: "回复", hint: "引用这条消息进行回复" },
-    { action: "copy", Icon: Copy, label: "复制", hint: "复制消息内容到剪贴板" },
-    { action: "recall", Icon: Trash, label: "撤回", hint: "撤回前会打开确认提示", danger: true, ownerOnly: true },
-  ];
-
-  const visibleActions = actions.filter((item) => {
-    if (item.ownerOnly && !isMine)
-      return false;
-    if (item.action === "recall" && message.status === 1)
-      return false;
-    return true;
-  });
-
+  const canRecall = typeof currentUserId === "number" && currentUserId === message.senderId;
   return (
-    <BottomSheetModal
-      backgroundColor={theme.surface}
-      handleColor={theme.border}
-      onClose={onClose}
-      visible={visible}
-    >
-      {visibleActions.map(item => (
-        <Pressable
-          key={item.action}
-          onPress={() => { onAction(item.action, message); onClose(); }}
-          style={({ pressed }) => [styles.actionRow, pressed && { backgroundColor: theme.backgroundElement }]}
-          accessibilityLabel={item.label}
-          accessibilityHint={item.hint}
-          accessibilityRole="button"
-        >
-          <item.Icon size={20} color={item.danger ? theme.danger : theme.text} />
-          <ThemedText style={item.danger ? [styles.dangerLabel, { color: theme.danger }] : styles.actionLabel}>
-            {item.label}
-          </ThemedText>
-        </Pressable>
-      ))}
-    </BottomSheetModal>
+    <ContextMenu.Root>
+      <ContextMenu.Trigger>
+        {children}
+      </ContextMenu.Trigger>
+      <ContextMenu.Content>
+        <ContextMenu.Item key="reply" onSelect={() => onAction("reply", message)}>
+          <ContextMenu.ItemTitle>回复</ContextMenu.ItemTitle>
+        </ContextMenu.Item>
+        <ContextMenu.Item key="copy" onSelect={() => onAction("copy", message)}>
+          <ContextMenu.ItemTitle>复制</ContextMenu.ItemTitle>
+        </ContextMenu.Item>
+        {canRecall
+          ? (
+              <ContextMenu.Item destructive key="recall" onSelect={() => onAction("recall", message)}>
+                <ContextMenu.ItemTitle>撤回</ContextMenu.ItemTitle>
+              </ContextMenu.Item>
+            )
+          : null}
+      </ContextMenu.Content>
+    </ContextMenu.Root>
   );
 }

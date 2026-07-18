@@ -12,6 +12,7 @@ import { extractRoomMessagesFromQueryData } from "./roomMessagesQueryData";
 import { getRoomMessagesQueryKey } from "./roomMessagesQueryKey";
 import {
   extractChatMessageResponses,
+  fetchRoomMessageByIdForRoom,
   fetchRoomMessagesWithLocalSync,
   upsertLiveRoomMessageWithGapRepair,
   upsertLiveRoomMessagesWithGapRepair,
@@ -67,6 +68,28 @@ describe("roomMessageSync", () => {
     expect(extractChatMessageResponses({ data: [message] })).toEqual([message]);
     expect(extractChatMessageResponses([message])).toEqual([message]);
     expect(extractChatMessageResponses({ data: null })).toEqual([]);
+  });
+
+  it("按 ID 补齐回复目标时只接受当前房间的成功响应", async () => {
+    const response = createRoomMessage(18, 18);
+    const client = {
+      chatController: {
+        getMessageById: vi.fn().mockResolvedValue({ data: response, success: true }),
+      },
+    };
+
+    await expect(fetchRoomMessageByIdForRoom(9, 18, client)).resolves.toEqual(response);
+    await expect(fetchRoomMessageByIdForRoom(9, 0, client)).resolves.toBeNull();
+    expect(client.chatController.getMessageById).toHaveBeenCalledTimes(1);
+
+    client.chatController.getMessageById.mockResolvedValueOnce({
+      data: createRoomMessage(19, 19, { roomId: 10 }),
+      success: true,
+    });
+    await expect(fetchRoomMessageByIdForRoom(9, 19, client)).resolves.toBeNull();
+
+    client.chatController.getMessageById.mockResolvedValueOnce({ data: response, success: false });
+    await expect(fetchRoomMessageByIdForRoom(9, 20, client)).resolves.toBeNull();
   });
 
   it("有本地 maxSyncId 时按 maxSyncId + 1 增量拉取", async () => {

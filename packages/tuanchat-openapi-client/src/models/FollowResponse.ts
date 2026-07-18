@@ -24,4 +24,3 @@ export type FollowResponse = {
      */
     avatarMediaType?: string;
 };
-

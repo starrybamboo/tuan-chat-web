@@ -6,10 +6,17 @@ import {
   CheckCircleIcon,
   CircleNotch,
   InfoIcon,
+  QuestionIcon,
   WarningCircleIcon,
   XCircleIcon,
 } from "@phosphor-icons/react";
 import toast, { Toaster } from "react-hot-toast";
+
+import type { SemanticAppearance } from "@/components/common/DesignLanguage";
+import type { SupportIssueId } from "@/components/support/supportCatalog";
+
+import { getSupportIssue } from "@/components/support/supportCatalog";
+import { openSupportCenter } from "@/components/support/supportCenterLauncher";
 
 export type AppToastTone = "success" | "error" | "warning" | "info" | "loading";
 
@@ -28,27 +35,77 @@ export type AppToastAction = {
 export type AppToastContent = {
   title: ReactNode;
   description?: ReactNode;
+  supportIssueId?: SupportIssueId;
   terms?: AppToastTerm[];
   details?: ReactNode;
   actions?: AppToastAction[];
 };
 
 export type AppToastMessage = string | AppToastContent;
-export type AppToastOptions = ToastOptions;
+export type AppToastOptions = ToastOptions & {
+  /** Toast 的强调强度；浮层始终保持不透明，避免背景内容干扰。 */
+  appearance?: SemanticAppearance;
+};
 
 const DEFAULT_TOAST_DURATION = 2500;
 const STRUCTURED_TOAST_DURATION = 6000;
+const SOFT_SURFACE_MIX = 28;
 const BASE_TOAST_STYLE: CSSProperties = {
-  background: "var(--color-base-100)",
-  border: "1px solid var(--color-base-300)",
   borderRadius: "0.5rem",
   boxShadow: "var(--shadow-xl)",
-  color: "var(--color-base-content)",
+  padding: "0.75rem",
 };
+const STRUCTURED_TOAST_WRAPPER_STYLE: CSSProperties = {
+  background: "transparent",
+  border: "none",
+  boxShadow: "none",
+  padding: 0,
+};
+
+function semanticToastSurfaceStyle({
+  colorToken,
+  contentToken,
+  borderMix,
+  appearance,
+}: {
+  colorToken: string;
+  contentToken: string;
+  borderMix: number;
+  appearance: SemanticAppearance;
+}): CSSProperties {
+  switch (appearance) {
+    case "solid":
+      return {
+        background: `var(${colorToken})`,
+        border: `1px solid var(${colorToken})`,
+        color: `var(${contentToken})`,
+      };
+    case "outline":
+      return {
+        background: "var(--color-base-100)",
+        border: `1px solid color-mix(in oklab, var(${colorToken}) 60%, var(--color-base-100))`,
+        color: `var(${colorToken})`,
+      };
+    case "ghost":
+      return {
+        background: "var(--color-base-100)",
+        border: "1px solid transparent",
+        color: `var(${colorToken})`,
+      };
+    default:
+      return {
+        background: `color-mix(in oklab, var(${colorToken}) ${SOFT_SURFACE_MIX}%, var(--color-base-100))`,
+        border: `1px solid color-mix(in oklab, var(${colorToken}) ${borderMix}%, var(--color-base-100))`,
+        color: `var(${colorToken})`,
+      };
+  }
+}
 
 const TONE_CLASS: Record<AppToastTone, {
   icon: string;
-  action: string;
+  colorToken: string;
+  contentToken: string;
+  borderMix: number;
   plainIconTheme: {
     primary: string;
     secondary: string;
@@ -57,8 +114,10 @@ const TONE_CLASS: Record<AppToastTone, {
   ariaLive: "assertive" | "polite";
 }> = {
   success: {
-    icon: "bg-base-200 text-success ring-1 ring-success/25",
-    action: "border-base-300 text-success hover:border-success/45 hover:bg-success/10",
+    icon: "text-success",
+    colorToken: "--color-success",
+    contentToken: "--color-success-content",
+    borderMix: 56,
     plainIconTheme: {
       primary: "var(--color-success)",
       secondary: "var(--color-base-100)",
@@ -67,8 +126,10 @@ const TONE_CLASS: Record<AppToastTone, {
     ariaLive: "polite",
   },
   error: {
-    icon: "bg-base-200 text-error ring-1 ring-error/25",
-    action: "border-base-300 text-error hover:border-error/45 hover:bg-error/10",
+    icon: "text-error",
+    colorToken: "--color-error",
+    contentToken: "--color-error-content",
+    borderMix: 56,
     plainIconTheme: {
       primary: "var(--color-error)",
       secondary: "var(--color-base-100)",
@@ -77,8 +138,10 @@ const TONE_CLASS: Record<AppToastTone, {
     ariaLive: "assertive",
   },
   warning: {
-    icon: "bg-base-200 text-warning ring-1 ring-warning/30",
-    action: "border-base-300 text-warning hover:border-warning/55 hover:bg-warning/10",
+    icon: "text-warning",
+    colorToken: "--color-warning",
+    contentToken: "--color-warning-content",
+    borderMix: 60,
     plainIconTheme: {
       primary: "var(--color-warning)",
       secondary: "var(--color-base-100)",
@@ -87,8 +150,10 @@ const TONE_CLASS: Record<AppToastTone, {
     ariaLive: "assertive",
   },
   info: {
-    icon: "bg-base-200 text-info ring-1 ring-info/25",
-    action: "border-base-300 text-info hover:border-info/45 hover:bg-info/10",
+    icon: "text-info",
+    colorToken: "--color-info",
+    contentToken: "--color-info-content",
+    borderMix: 56,
     plainIconTheme: {
       primary: "var(--color-info)",
       secondary: "var(--color-base-100)",
@@ -97,8 +162,10 @@ const TONE_CLASS: Record<AppToastTone, {
     ariaLive: "polite",
   },
   loading: {
-    icon: "bg-base-200 text-info ring-1 ring-info/25",
-    action: "border-base-300 text-info hover:border-info/45 hover:bg-info/10",
+    icon: "text-info",
+    colorToken: "--color-info",
+    contentToken: "--color-info-content",
+    borderMix: 56,
     plainIconTheme: {
       primary: "var(--color-info)",
       secondary: "var(--color-base-100)",
@@ -112,8 +179,8 @@ function isStructuredToastMessage(message: AppToastMessage): message is AppToast
   return typeof message !== "string";
 }
 
-function renderToneIcon(tone: AppToastTone) {
-  const className = "size-5";
+function renderToneIcon(tone: AppToastTone, appearance: SemanticAppearance = "soft") {
+  const className = `size-5 ${appearance === "solid" ? "text-current" : TONE_CLASS[tone].icon}`;
   switch (tone) {
     case "success":
       return <CheckCircleIcon className={className} weight="regular" aria-hidden="true" />;
@@ -131,34 +198,64 @@ function renderToneIcon(tone: AppToastTone) {
 export function AppToastCard({
   toastId,
   tone,
+  appearance = "soft",
   content,
 }: {
   toastId: string;
   tone: AppToastTone;
+  appearance?: SemanticAppearance;
   content: AppToastContent;
 }) {
   const toneClass = TONE_CLASS[tone];
+  const surfaceStyle = semanticToastSurfaceStyle({
+    colorToken: toneClass.colorToken,
+    contentToken: toneClass.contentToken,
+    borderMix: toneClass.borderMix,
+    appearance,
+  });
+  const supportIssue = content.supportIssueId
+    ? getSupportIssue(content.supportIssueId)
+    : null;
+
+  const openHelp = () => {
+    if (!content.supportIssueId) {
+      return;
+    }
+    toast.dismiss(toastId);
+    void openSupportCenter({
+      issueId: content.supportIssueId,
+      toastTitle: typeof content.title === "string" ? content.title : supportIssue?.title,
+      toastDescription: typeof content.description === "string" ? content.description : supportIssue?.explanation,
+    });
+  };
 
   return (
     <div
       role={toneClass.ariaRole}
       aria-live={toneClass.ariaLive}
       aria-atomic="true"
-      className="
-        pointer-events-auto w-[min(92vw,26rem)] rounded-lg border border-base-300 bg-base-100
-        p-3 text-base-content shadow-xl ring-1 ring-base-content/5
-      "
+      className="pointer-events-auto w-[min(92vw,26rem)] rounded-md border p-3 shadow-xl"
+      style={surfaceStyle}
     >
       <div className="flex items-start gap-3">
-        <div className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full ${toneClass.icon}`}>
-          {renderToneIcon(tone)}
+        <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center">
+          {renderToneIcon(tone, appearance)}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold leading-5 text-base-content">
+          <div className="text-sm font-semibold leading-5">
             {content.title}
           </div>
           {content.description
-            ? <div className="mt-1 text-sm leading-5 text-base-content/75">{content.description}</div>
+            ? <div className="mt-1 text-sm leading-5 opacity-80">{content.description}</div>
+            : null}
+
+          {supportIssue
+            ? (
+                <div className="mt-2 text-xs leading-5 opacity-75">
+                  <span className="font-medium">建议：</span>
+                  {supportIssue.suggestions[0]}
+                </div>
+              )
             : null}
 
           {content.terms?.length
@@ -181,7 +278,7 @@ export function AppToastCard({
             : null}
 
           {content.details
-            ? <div className="mt-2 text-xs leading-5 text-base-content/60">{content.details}</div>
+            ? <div className="mt-2 text-xs leading-5 opacity-70">{content.details}</div>
             : null}
 
           {content.actions?.length
@@ -192,9 +289,9 @@ export function AppToastCard({
                       key={action.label}
                       type="button"
                       className={`
-                        rounded-md border px-2 py-1 text-xs font-medium transition
+                        rounded-md border border-current/30 px-2 py-1 text-xs font-medium text-current transition-colors
+                        hover:border-current/50 hover:bg-current/10
                         focus:outline-none focus:ring-2 focus:ring-info/20
-                        ${toneClass.action}
                       `}
                       onClick={() => {
                         action.onClick();
@@ -210,19 +307,37 @@ export function AppToastCard({
               )
             : null}
         </div>
+        {supportIssue
+          ? (
+              <button
+                type="button"
+                className="flex size-8 shrink-0 items-center justify-center rounded-md text-current opacity-70 transition hover:bg-base-content/10 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-info/25"
+                aria-label="查看问题帮助"
+                title="查看问题帮助"
+                onClick={openHelp}
+              >
+                <QuestionIcon className="size-5" weight="regular" aria-hidden="true" />
+              </button>
+            )
+          : null}
       </div>
     </div>
   );
 }
 
-function getStructuredOptions(tone: AppToastTone, options?: AppToastOptions): AppToastOptions {
+function resolveToastOptions(options?: AppToastOptions) {
+  const { appearance = "soft", ...toastOptions } = options ?? {};
+  return { appearance, toastOptions };
+}
+
+function getStructuredOptions(tone: AppToastTone, options?: ToastOptions): ToastOptions {
   return {
-    duration: tone === "loading" ? Infinity : STRUCTURED_TOAST_DURATION,
+    ...options,
+    duration: options?.duration ?? (tone === "loading" ? Infinity : STRUCTURED_TOAST_DURATION),
     style: {
-      ...BASE_TOAST_STYLE,
+      ...STRUCTURED_TOAST_WRAPPER_STYLE,
       ...options?.style,
     },
-    ...options,
     ariaProps: {
       role: TONE_CLASS[tone].ariaRole,
       "aria-live": TONE_CLASS[tone].ariaLive,
@@ -231,22 +346,38 @@ function getStructuredOptions(tone: AppToastTone, options?: AppToastOptions): Ap
   };
 }
 
-function showStructuredToast(tone: AppToastTone, content: AppToastContent, options?: AppToastOptions) {
+function showStructuredToast(
+  tone: AppToastTone,
+  content: AppToastContent,
+  appearance: SemanticAppearance,
+  options?: ToastOptions,
+) {
   return toast.custom(
     (currentToast: Toast) => (
       <div className={currentToast.visible ? "animate-enter" : "animate-leave"}>
-        <AppToastCard toastId={currentToast.id} tone={tone} content={content} />
+        <AppToastCard toastId={currentToast.id} tone={tone} appearance={appearance} content={content} />
       </div>
     ),
     getStructuredOptions(tone, options),
   );
 }
 
-function getPlainOptions(tone: AppToastTone, options?: AppToastOptions): AppToastOptions {
+function getPlainOptions(
+  tone: AppToastTone,
+  appearance: SemanticAppearance,
+  options?: ToastOptions,
+): ToastOptions {
+  const toneClass = TONE_CLASS[tone];
   return {
     ...options,
     style: {
       ...BASE_TOAST_STYLE,
+      ...semanticToastSurfaceStyle({
+        colorToken: toneClass.colorToken,
+        contentToken: toneClass.contentToken,
+        borderMix: toneClass.borderMix,
+        appearance,
+      }),
       ...options?.style,
     },
     iconTheme: {
@@ -257,21 +388,22 @@ function getPlainOptions(tone: AppToastTone, options?: AppToastOptions): AppToas
 }
 
 function showToast(tone: AppToastTone, message: AppToastMessage, options?: AppToastOptions) {
+  const { appearance, toastOptions } = resolveToastOptions(options);
   if (isStructuredToastMessage(message)) {
-    return showStructuredToast(tone, message, options);
+    return showStructuredToast(tone, message, appearance, toastOptions);
   }
 
   switch (tone) {
     case "success":
-      return toast.success(message, getPlainOptions(tone, options));
+      return toast.success(message, { ...getPlainOptions(tone, appearance, toastOptions), icon: renderToneIcon(tone, appearance) });
     case "error":
-      return toast.error(message, getPlainOptions(tone, options));
+      return toast.error(message, { ...getPlainOptions(tone, appearance, toastOptions), icon: renderToneIcon(tone, appearance) });
     case "warning":
-      return toast(message, { ...getPlainOptions(tone, options), icon: <WarningCircleIcon className="size-5 text-warning" weight="regular" /> });
+      return toast(message, { ...getPlainOptions(tone, appearance, toastOptions), icon: renderToneIcon(tone, appearance) });
     case "info":
-      return toast(message, { ...getPlainOptions(tone, options), icon: <InfoIcon className="size-5 text-info" weight="regular" /> });
+      return toast(message, { ...getPlainOptions(tone, appearance, toastOptions), icon: renderToneIcon(tone, appearance) });
     case "loading":
-      return toast.loading(message, getPlainOptions(tone, options));
+      return toast.loading(message, getPlainOptions(tone, appearance, toastOptions));
   }
 }
 
@@ -292,7 +424,6 @@ export function AppToaster() {
       position="top-center"
       toastOptions={{
         duration: DEFAULT_TOAST_DURATION,
-        style: BASE_TOAST_STYLE,
       }}
     />
   );

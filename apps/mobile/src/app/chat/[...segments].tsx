@@ -15,9 +15,9 @@ function buildChatTargetPath(segments: string[]) {
 }
 
 export default function ChatDeepLinkRedirect() {
-  const searchParams = useLocalSearchParams();
-  const targetPath = useMemo(() => buildChatTargetPath(readSegments(searchParams.segments as string | string[] | undefined)), [searchParams.segments]);
+  const searchParams = useLocalSearchParams<{ segments?: string | string[] }>();
+  const targetPath = useMemo(() => buildChatTargetPath(readSegments(searchParams.segments)), [searchParams.segments]);
   const href = useMemo(() => resolveMobileNotificationRoute({ targetPath }) ?? "/(tabs)", [targetPath]);
 
-  return <Redirect href={href as any} />;
+  return <Redirect href={href} />;
 }

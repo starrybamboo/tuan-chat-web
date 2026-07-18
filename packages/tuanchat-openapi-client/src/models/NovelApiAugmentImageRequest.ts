@@ -31,4 +31,3 @@ export type NovelApiAugmentImageRequest = {
      */
     recaptcha_token?: string;
 };
-

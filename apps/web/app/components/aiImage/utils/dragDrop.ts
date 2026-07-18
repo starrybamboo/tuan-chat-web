@@ -1,6 +1,7 @@
 import type { InternalHistoryImageDragPayload } from "@/components/aiImage/types";
 
 import { INTERNAL_HISTORY_IMAGE_DRAG_MIME } from "@/components/aiImage/constants";
+import { isSupportedImageFile } from "@/components/aiImage/utils/imageData";
 
 export function extractImageFilesFromTransfer(dataTransfer: DataTransfer | null | undefined): File[] {
   if (!dataTransfer)
@@ -10,21 +11,11 @@ export function extractImageFilesFromTransfer(dataTransfer: DataTransfer | null 
     .filter(item => item.kind === "file")
     .map(item => item.getAsFile())
     .filter((file): file is File => Boolean(file))
-    .filter((file) => {
-      const type = String(file.type || "").toLowerCase();
-      if (type.startsWith("image/"))
-        return true;
-      return /\.(?:png|jpe?g|gif|webp|bmp|avif)$/i.test(file.name);
-    });
+    .filter(isSupportedImageFile);
   if (fromItems.length)
     return fromItems;
 
-  return Array.from(dataTransfer.files ?? []).filter((file) => {
-    const type = String(file.type || "").toLowerCase();
-    if (type.startsWith("image/"))
-      return true;
-    return /\.(?:png|jpe?g|gif|webp|bmp|avif)$/i.test(file.name);
-  });
+  return Array.from(dataTransfer.files ?? []).filter(isSupportedImageFile);
 }
 
 export function hasFileDrag(dataTransfer: DataTransfer | null | undefined) {

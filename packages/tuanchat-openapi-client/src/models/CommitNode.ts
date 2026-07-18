@@ -31,4 +31,3 @@ export type CommitNode = {
      */
     updateTime?: string;
 };
-

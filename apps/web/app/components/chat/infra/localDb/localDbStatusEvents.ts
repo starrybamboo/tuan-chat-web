@@ -1,8 +1,10 @@
 export const CHAT_LOCAL_DB_UNAVAILABLE_EVENT = "tuanchat:chat-local-db-unavailable";
 
 export type ChatLocalDbUnavailableReason =
+  | "missing-broadcast-channel-api"
   | "insecure-context"
   | "missing-opfs-api"
+  | "missing-web-locks-api"
   | "missing-worker-api"
   | "sqlite-wasm-worker-failed";
 

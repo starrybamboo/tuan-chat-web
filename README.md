@@ -38,9 +38,10 @@ pnpm typecheck
 pnpm typecheck:all
 pnpm encoding:check
 pnpm openapi
+pnpm openapi:sync
 ```
 
-- `pnpm dev`：启动 Vite 开发服务，默认端口 `5177`，并自动打开浏览器。
+- `pnpm dev`：以 `dev` mode 启动 Vite 开发服务，默认端口 `5177`，并自动打开浏览器。
 - `pnpm dev:force`：清理隔离的 Vite optimize deps 缓存后启动开发服务。
 - `pnpm build`：构建 Web 产物。
 - `pnpm start`：服务化运行已构建产物；运行前需要先 `pnpm build`。
@@ -48,6 +49,7 @@ pnpm openapi
 - `pnpm test:coverage`：运行同一组 Web Vitest 测试并启用 V8 覆盖率阈值，当前阈值为行、分支、函数、语句各 70%。
 - `pnpm lint` / `pnpm typecheck`：默认覆盖 repo、Web 与桌面端；需要连同移动端一起验收时使用 `pnpm lint:all` / `pnpm typecheck:all`。
 - `pnpm openapi`：从 `packages/tuanchat-openapi-client/tuanchat_OpenAPI.json` 重新生成 OpenAPI client，并执行结果守卫补丁。
+- `pnpm openapi:sync`：从当前运行的 TuanChat 后端读取 live OpenAPI，刷新两份规范快照并重新生成 client；后端默认地址为 `http://127.0.0.1:8081`，可通过 `TUANCHAT_OPENAPI_URL` 覆盖规范地址。
 
 移动端常用入口：
 
@@ -58,7 +60,7 @@ pnpm mobile:ios
 pnpm mobile:web
 pnpm mobile:typecheck
 pnpm mobile:local-apk
-pnpm mobile:emulator-apk
+pnpm mobile:debug-apk
 pnpm mobile:cloud-apk
 pnpm mobile:workflow:preview
 pnpm mobile:workflow:production
@@ -68,18 +70,19 @@ pnpm mobile:ios:bootstrap-production
 
 - `pnpm mobile:start`：启动 Expo 开发服务器，终端会显示二维码。
 - `pnpm mobile:android`：启动 Expo 开发服务器并尝试唤起 Android。
-- `pnpm mobile:emulator-apk`：面向模拟器构建、安装并启动本地 APK，默认使用 x86_64 架构。
+- `pnpm mobile:local-apk`：在本机生成连接生产 API / WebSocket 的 Release APK。
+- `pnpm mobile:debug-apk`：为本地后端调试链构建、安装并启动 Debug APK，默认使用 x86_64 架构。
 - 其余 `mobile:*` 为本地打包、发版和云端 EAS 相关入口。
 
 ## 环境变量
 
 仓库提供三个模式文件：
 
-- `.env.development`：本地开发，默认 `VITE_API_BASE_URL=http://localhost:8081`、`VITE_API_WS_URL=ws://localhost:8090`。
+- `.env.dev`：本地开发，默认 `VITE_API_BASE_URL=http://localhost:8081`、`VITE_API_WS_URL=ws://localhost:8090`。
 - `.env.test`：测试环境构建，默认直连 `https://api.tuan.chat/api`、`wss://api.tuan.chat/ws`。
 - `.env.production`：生产环境构建，默认直连 `https://api.tuan.chat/api`、`wss://api.tuan.chat/ws`。
 
-本机私有覆盖请使用 `.env.development.local`、`.env.local` 等已被 gitignore 忽略的文件。不要提交账号、密码、token 或其他敏感配置。
+本机私有覆盖请使用 `.env.dev.local`、`.env.local` 等已被 gitignore 忽略的文件。不要提交账号、密码、token 或其他敏感配置。
 
 固定约定：
 
@@ -98,13 +101,15 @@ VITE_TERRE_WS=ws://localhost:3001/api/webgalsync
 - `packages/tuanchat-domain`：纯业务规则、消息草稿、消息类型、状态指令、骰子等可复用领域逻辑。
 - `packages/tuanchat-local-db`：本地数据库相关共享逻辑。
 
-后端接口变化后，优先同步 OpenAPI JSON，再运行：
+后端接口变化后，先启动对应版本的后端，再运行：
 
 ```bash
-pnpm openapi
+pnpm openapi:sync
 ```
 
-不要手改生成产物来绕过类型或接口问题。
+该命令会同步 `packages/tuanchat-openapi-client/tuanchat_OpenAPI.json` 与 `apps/web/api/tuanchat_OpenAPI.json`，然后生成 `packages/tuanchat-openapi-client/src`。后端不可达时应直接排查连接，不要用旧快照冒充同步成功。只有规范快照已从可信后端刷新、仅需重新生成 client 时，才单独运行 `pnpm openapi`。
+
+不要手改生成产物来绕过类型或接口问题。调用 TuanChat 后端时优先使用生成客户端或 `apps/web/api` 中现有的 hook/service；文件上传、流式响应及生成客户端无法表达的请求可以保留直接调用，但需要明确鉴权、响应解包、取消和缓存边界。
 
 ## Electron
 
@@ -136,6 +141,10 @@ pnpm desktop:check:webgal
 
 Windows 下 electron-builder 首次下载 `nsis` / `winCodeSign` 可能受网络影响。可先构建 zip，再单独构建 nsis；必要时设置 `ELECTRON_BUILDER_CACHE` 或 `ELECTRON_BUILDER_BINARIES_MIRROR`。
 
+若 Windows 打包报错 `app.asar is being used by another process`，先用 `Get-CimInstance Win32_Process` 根据 `ExecutablePath` 与 `CommandLine` 找出确实引用本次输出目录的进程，只停止确认持锁的 PID，不要按进程名批量结束 Electron、WebGAL 或团剧共创进程。若 runtime 准备、校验与 `build:app` 已成功，可为 electron-builder 指定 `--config.directories.output=release_local_latest/<unique-tag>` 后单独重试，避免反复覆盖被占用的目录。
+
+交付 Windows 包前至少核对 zip 或 Setup 的路径、大小和修改时间，并确认 unpacked 目录包含 `resources/webgal-terre`、Terre 可执行文件、`assets`、`lib` 与 `public`；包内不得带入 `public/games`、`Exported_Games` 等本地用户作品。启动产物后还应确认内置 Terre 可以拉起，并会在桌面应用退出后清理子进程。
+
 ## CI/CD
 
 Web 部署：
@@ -147,16 +156,11 @@ Web 部署：
 - `.github/workflows/cd.yaml` 是 Cloudflare Pages 手动兜底部署入口。
 - `deploy_env=test` 会使用 `tuan-chat-web-test` 项目和 `test` mode。
 - `deploy_env=production` 会使用 `tuan-chat-web` 项目和 `production` mode。
-- 构建产物目录为 `dist`，部署命令使用 `wrangler pages deploy dist`。
+- `deploy_env=auto` 按实际 `source_ref` 推导环境，只接受 `dev` 或 `main`；标签、commit 或其他分支必须显式选择环境。
+- 构建产物目录为 `dist`，手动兜底流程使用不带 `--branch` 的 `wrangler pages deploy dist`，直接更新所选 Pages 项目的生产环境。
 - 线上 Web 运行时使用环境变量中的直连域名访问 API、WebSocket、TTS 与媒体资源，不再把主流量打到 Pages Functions。
 - 短连接 REST/API 的 QUIC 升级落在 Cloudflare 边缘层：公网 `tuan.chat`、`test.tuan.chat`、`api.tuan.chat` 等域名由 Cloudflare 返回 `alt-svc: h3=":443"`；源站 `24.233.10.150` 仍由 Nginx 1.24 在 80 端口反代到后端，源站 443 当前不开放。
 - Pages Functions 仅作为旧同源路径和特殊路径兜底：`public/_routes.json` 限定只有 `/api`、`/ws`、`/tts`、`/terre`、`/media`、`/avatar`、`/updates` 会触发 Functions；静态资源和 SPA fallback 保持 Pages 静态托管。
-
-Electron 增量更新：
-
-- `.github/workflows/electron-update-publish.yml` 在 `main` push 或手动触发时运行。
-- 未配置 `WEBGAL_TERRE_RELEASE_URL` 时会跳过发布。
-- 工作流构建 Windows NSIS 包，收集 `latest.yml`、`*Setup*.exe` 和 `*.blockmap`，并发布到 `https://tuan.chat/updates/` 对应目录。
 
 ## 目录结构
 

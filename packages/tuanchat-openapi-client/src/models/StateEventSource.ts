@@ -16,4 +16,3 @@ export type StateEventSource = {
      */
     parserVersion: string;
 };
-

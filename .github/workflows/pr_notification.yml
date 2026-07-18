@@ -16,7 +16,7 @@ jobs:
         env:
           FEISHU_WEBHOOK_ID: ${{ secrets.FEISHU_WEBHOOK_ID }}
           FEISHU_SECRET: ${{ secrets.FEISHU_SECRET }}
-        uses: actions/github-script@v6
+        uses: actions/github-script@v9
         with:
           script: |
             const crypto = require('crypto');

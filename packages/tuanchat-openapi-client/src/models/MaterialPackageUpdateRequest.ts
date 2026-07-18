@@ -32,4 +32,3 @@ export type MaterialPackageUpdateRequest = {
      */
     content: MaterialPackageContent;
 };
-

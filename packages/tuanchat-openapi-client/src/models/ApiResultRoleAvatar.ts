@@ -24,4 +24,3 @@ export type ApiResultRoleAvatar = {
      */
     data?: RoleAvatar;
 };
-

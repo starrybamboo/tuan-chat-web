@@ -1,3 +1,4 @@
+import * as ExpoClipboard from "expo-clipboard";
 import { Platform } from "react-native";
 
 function fallbackCopyText(text: string) {
@@ -24,6 +25,15 @@ function fallbackCopyText(text: string) {
 }
 
 export async function setStringAsync(text: string): Promise<boolean> {
+  if (Platform.OS !== "web") {
+    try {
+      await ExpoClipboard.setStringAsync(text);
+      return true;
+    }
+    catch {
+      return false;
+    }
+  }
   if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.clipboard) {
     try {
       await navigator.clipboard.writeText(text);
@@ -33,5 +43,5 @@ export async function setStringAsync(text: string): Promise<boolean> {
       return fallbackCopyText(text);
     }
   }
-  return Platform.OS === "web" ? fallbackCopyText(text) : false;
+  return fallbackCopyText(text);
 }

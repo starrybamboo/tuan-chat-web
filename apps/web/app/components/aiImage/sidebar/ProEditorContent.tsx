@@ -1,16 +1,13 @@
 import type { Dispatch, KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject, SetStateAction } from "react";
 
 import {
-  ArrowClockwise,
   CaretDownIcon,
   CaretUpIcon,
   CircleIcon,
-  FileArrowUpIcon,
   GearSixIcon,
   GenderFemaleIcon,
   GenderMaleIcon,
   PlusIcon,
-  SelectionPlusIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
 import { memo } from "react";
@@ -19,17 +16,12 @@ import type { NovelAiV45ChannelSnapshot, NovelAiV45TokenSnapshot } from "@/compo
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
 
 import { AiImageContextLimitMeter } from "@/components/aiImage/AiImageContextLimitMeter";
-import preciseReferenceIconSrc from "@/components/aiImage/assets/precise-reference.png";
-import vibeTransferIconSrc from "@/components/aiImage/assets/vibe-transfer.png";
 import { UC_PRESET_OPTIONS } from "@/components/aiImage/constants";
-import { clampIntRange, clampRange, formatSliderValue, getV4CharGridCellByCenter, V4_CHAR_GRID_CELLS } from "@/components/aiImage/helpers";
+import { clampIntRange, getV4CharGridCellByCenter, V4_CHAR_GRID_CELLS } from "@/components/aiImage/helpers";
 import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasisTextarea";
 import { NOVELAI_V45_CONTEXT_LIMIT } from "@/components/aiImage/novelaiV45TokenMeter";
-import { ReferenceActionIcon } from "@/components/aiImage/ReferenceActionIcon";
-import { RangeInput, SelectInput, Switch } from "@/components/common/FormField";
-import { MediaImage } from "@/components/common/mediaImage";
+import { SelectInput, Switch } from "@/components/common/FormField";
 import { MenuItem, MenuSurface } from "@/components/common/MenuPopover";
-import { ChevronDown } from "@/icons";
 
 export type ProEditorContentLocalProps = {
   editorPanelClassName: string;
@@ -51,18 +43,13 @@ export type ProEditorContentLocalProps = {
   activeChannelSnapshot: NovelAiV45ChannelSnapshot;
   proPromptFooterLabel?: string;
   proPromptFooterHint?: string;
-  featureUploadActionClassName: string;
   renderProInfillSection: () => ReactNode;
-  baseImagePanelClassName: string;
   baseImageHeaderClassName: string;
   baseImageControlGroupClassName: string;
   baseImageToggleButtonClassName: string;
   baseImageRangeClassName: string;
-  baseImageActionButtonClassName: string;
   strength: number;
   setStrength: (value: number) => void;
-  noise: number;
-  setNoise: (value: number) => void;
   characterAddMenuRef: RefObject<HTMLDivElement | null>;
   isCharacterAddMenuOpen: boolean;
   setIsCharacterAddMenuOpen: Dispatch<SetStateAction<boolean>>;
@@ -114,14 +101,7 @@ export const ProEditorContent = memo(({
     setUcPreset,
     sourceImageDataUrl,
     mode,
-    noise,
-    setNoise,
-    handleOpenSourceImagePicker,
-    handleOpenBaseImageInpaint,
-    handleClearSourceImage,
-    isBusy,
     proFeatureSections,
-    isNAI4,
     handleAddV4Char,
     handleMoveV4Char,
     v4UseOrder,
@@ -130,8 +110,6 @@ export const ProEditorContent = memo(({
     handleRemoveV4Char,
     v4Chars,
     handleUpdateV4Char,
-    vibeTransferDescription,
-    preciseReferenceDescription,
   } = sidebarProps;
 
   const {
@@ -154,16 +132,7 @@ export const ProEditorContent = memo(({
     activeChannelSnapshot,
     proPromptFooterLabel,
     proPromptFooterHint,
-    featureUploadActionClassName,
     renderProInfillSection,
-    baseImagePanelClassName,
-    baseImageHeaderClassName,
-    baseImageControlGroupClassName,
-    baseImageToggleButtonClassName,
-    baseImageRangeClassName,
-    baseImageActionButtonClassName,
-    strength,
-    setStrength,
     characterAddMenuRef,
     isCharacterAddMenuOpen,
     setIsCharacterAddMenuOpen,
@@ -189,8 +158,6 @@ export const ProEditorContent = memo(({
     handleToggleCharacterPositionAiChoice,
     tokenSnapshot,
     characterPromptDescription,
-    isBaseImageToolsOpen,
-    setIsBaseImageToolsOpen,
   } = local;
 
   return (
@@ -304,6 +271,7 @@ export const ProEditorContent = memo(({
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-base-content">Add Quality tags</div>
                   <Switch
+                    aria-label="Add Quality tags"
                     density="compact"
                     checked={qualityToggle}
                     onChange={e => setQualityToggle(e.target.checked)}
@@ -313,6 +281,7 @@ export const ProEditorContent = memo(({
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-base-content">Highlight Emphasis</div>
                   <Switch
+                    aria-label="Highlight Emphasis"
                     density="compact"
                     checked={highlightEmphasisEnabled}
                     onChange={e => setHighlightEmphasisEnabled(e.target.checked)}
@@ -322,6 +291,7 @@ export const ProEditorContent = memo(({
                 <div className="space-y-2">
                   <div className="text-sm font-semibold text-base-content">Undesired Content Preset</div>
                   <SelectInput
+                    aria-label="Undesired Content Preset"
                     density="compact"
                     className={`
                       ${subtleSelectClassName}
@@ -342,6 +312,7 @@ export const ProEditorContent = memo(({
           </div>
         </div>
         <HighlightEmphasisTextarea
+          aria-label={proPromptTab === "prompt" ? "Prompt" : "Undesired Content"}
           highlightEnabled={highlightEmphasisEnabled}
           surfaceClassName={highlightPromptSurfaceClassName}
           contentClassName={highlightPromptContentClassName}
@@ -392,172 +363,8 @@ export const ProEditorContent = memo(({
             ]}
           />
         </div>
-        {!sourceImageDataUrl
-          ? (
-              <div className="
-                -mx-3 -mb-3 mt-3 flex items-center justify-between border-t
-                border-base-300 bg-base-100 px-4 py-3
-              ">
-                <div className="text-[15px] text-base-content/58">
-                  Add a Base Img (Optional)
-                </div>
-                <button
-                  type="button"
-                  className={featureUploadActionClassName}
-                  aria-label="上传 Base Img"
-                  title="上传 Base Img"
-                  onClick={handleOpenSourceImagePicker}
-                >
-                  <FileArrowUpIcon className="size-5" weight="regular" />
-                </button>
-              </div>
-            )
-          : null}
         {mode === "infill" && sourceImageDataUrl
           ? renderProInfillSection()
-          : null}
-        {mode === "img2img" && sourceImageDataUrl
-          ? (
-              <div className="
-                -mx-3 -mb-3 mt-3 overflow-hidden border-t border-info/15
-                bg-linear-to-br from-info/10 via-base-100 to-base-100
-                dark:border-base-300 dark:from-base-100 dark:via-base-100
-                dark:to-base-100
-              ">
-                <div className={baseImagePanelClassName}>
-                  <MediaImage
-                    src={sourceImageDataUrl}
-                    alt="Base Img"
-                    className="
-                      absolute inset-0 h-full w-full object-cover opacity-46
-                      saturate-[1.1] contrast-110 brightness-[1.03]
-                      dark:opacity-30 dark:saturate-100 dark:contrast-100
-                      dark:brightness-100
-                    "
-                  />
-                  <div className="
-                    absolute inset-0 bg-linear-to-b from-info/12
-                    via-base-100/72 to-base-100/92
-                    dark:from-black/42 dark:via-base-100/58 dark:to-base-100/84
-                  " />
-                  <div className={baseImageHeaderClassName}>
-                    <div className="min-w-0">
-                      <div className="
-                        text-[15px] font-semibold leading-6 text-base-content
-                      ">Image2Image</div>
-                      <div className="
-                        mt-1 text-[13px] leading-5 text-base-content/58
-                      ">Transform your image.</div>
-                    </div>
-                    <div className={baseImageControlGroupClassName}>
-                      <div className="
-                        flex overflow-hidden rounded-md border border-base-300
-                        bg-base-100/86 backdrop-blur-sm
-                      ">
-                        <button
-                          type="button"
-                          className="
-                            inline-flex size-11 items-center justify-center
-                            text-base-content/70 transition
-                            hover:bg-base-200/85 hover:text-base-content
-                            focus:outline-none focus:ring-2
-                            focus:ring-info/20
-                          "
-                          aria-label="更换 Base Img"
-                          title="更换 Base Img"
-                          onClick={handleOpenSourceImagePicker}
-                        >
-                          <ArrowClockwise className="size-5" weight="regular" />
-                        </button>
-                        <span className="h-11 w-px bg-base-300" aria-hidden="true" />
-                        <button
-                          type="button"
-                          className="
-                            inline-flex size-11 items-center justify-center
-                            text-base-content/70 transition
-                            hover:bg-base-200/85 hover:text-base-content
-                            focus:outline-none focus:ring-2
-                            focus:ring-info/20
-                          "
-                          aria-label="移除 Base Img"
-                          title="移除 Base Img"
-                          onClick={handleClearSourceImage}
-                        >
-                          <TrashIcon className="size-5" weight="regular" />
-                        </button>
-                      </div>
-                      <button
-                        type="button"
-                        className={baseImageToggleButtonClassName}
-                        aria-label={isBaseImageToolsOpen ? "收起 Base Img 工具" : "展开 Base Img 工具"}
-                        title={isBaseImageToolsOpen ? "收起 Base Img 工具" : "展开 Base Img 工具"}
-                        onClick={() => setIsBaseImageToolsOpen((prev: boolean) => !prev)}
-                      >
-                        <ChevronDown className={`
-                          size-5 shrink-0 transition-transform
-                          ${isBaseImageToolsOpen ? `rotate-180` : ""}
-                        `} />
-                      </button>
-                    </div>
-                  </div>
-                  {isBaseImageToolsOpen
-                    ? (
-                        <div className="relative z-10 mt-4 space-y-4">
-                          <label className="block">
-                            <div className="
-                              flex items-center justify-between text-[13px]
-                              font-semibold leading-5 text-base-content
-                            ">
-                              <span>Strength</span>
-                              <span>{formatSliderValue(strength)}</span>
-                            </div>
-                            <RangeInput
-                              density="compact"
-                              min={0.01}
-                              max={1}
-                              step={0.01}
-                              value={strength}
-                              className={baseImageRangeClassName}
-                              onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 1, 0.7))}
-                            />
-                          </label>
-
-                          <label className="block">
-                            <div className="
-                              flex items-center justify-between text-[13px]
-                              font-semibold leading-5 text-base-content
-                            ">
-                              <span>Noise</span>
-                              <span>{formatSliderValue(noise)}</span>
-                            </div>
-                            <RangeInput
-                              density="compact"
-                              min={0}
-                              max={0.99}
-                              step={0.01}
-                              value={noise}
-                              className={baseImageRangeClassName}
-                              onChange={event => setNoise(clampRange(Number(event.target.value), 0, 0.99, 0.2))}
-                            />
-                          </label>
-
-                          <button
-                            type="button"
-                            className={baseImageActionButtonClassName}
-                            disabled={isBusy}
-                            aria-disabled={isBusy}
-                            title={isBusy ? "正在处理，请稍候" : undefined}
-                            onClick={() => void handleOpenBaseImageInpaint()}
-                          >
-                            <SelectionPlusIcon className="size-5" weight="regular" />
-                            <span>Inpaint Image</span>
-                          </button>
-                        </div>
-                      )
-                    : null}
-                </div>
-              </div>
-            )
           : null}
       </div>
 
@@ -577,7 +384,6 @@ export const ProEditorContent = memo(({
               aria-haspopup="menu"
               aria-expanded={isCharacterAddMenuOpen}
               onClick={() => setIsCharacterAddMenuOpen((prev: boolean) => !prev)}
-              disabled={!isNAI4}
             >
               <PlusIcon className="size-5" weight="regular" />
               <span>Add Character</span>
@@ -625,9 +431,8 @@ export const ProEditorContent = memo(({
           </div>
         </div>
         {proFeatureSections.characterPrompts
-          ? (isNAI4
-              ? (
-                  <div className="mt-4 space-y-3">
+          ? (
+              <div className="mt-4 space-y-3">
                     {v4Chars.map((row, idx) => {
                       const disabledUp = idx === 0 || !v4UseOrder;
                       const disabledDown = idx === v4Chars.length - 1 || !v4UseOrder;
@@ -723,6 +528,7 @@ export const ProEditorContent = memo(({
                                 </button>
                               </div>
                               <HighlightEmphasisTextarea
+                                aria-label={`Character ${idx + 1} ${activeTab === "prompt" ? "Prompt" : "Undesired Content"}`}
                                 highlightEnabled={highlightEmphasisEnabled}
                                 surfaceClassName={highlightCharSurfaceClassName}
                                 contentClassName={highlightCharContentClassName}
@@ -934,83 +740,11 @@ export const ProEditorContent = memo(({
                           </div>
                         )
                       : null}
-                  </div>
-                )
-              : <div className="mt-4 text-sm opacity-60">当前模型不支持 Character Prompts。</div>)
+              </div>
+            )
           : null}
       </div>
 
-      <div className="flex flex-col gap-3">
-        <div className="
-          rounded-md border border-base-300 bg-base-100 shadow-none
-        ">
-          <div className="flex items-center justify-between gap-4 px-4 py-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="
-                flex size-8 shrink-0 items-center justify-center
-                text-base-content/90
-              " aria-hidden="true">
-                <ReferenceActionIcon className="size-6 shrink-0" src={vibeTransferIconSrc} />
-              </div>
-              <div className="min-w-0">
-                <div className="
-                  text-[15px] font-semibold leading-6 text-base-content
-                ">Vibe Transfer</div>
-                <div className="
-                  mt-0.5 text-[13px] leading-5 text-base-content/58
-                ">{vibeTransferDescription}</div>
-              </div>
-            </div>
-            <button
-              type="button"
-              className={`
-                ${featureUploadActionClassName}
-                cursor-not-allowed opacity-45
-              `}
-              aria-label="上传 Vibe Transfer 参考图"
-              title="上传 Vibe Transfer 参考图"
-              disabled
-            >
-              <FileArrowUpIcon className="size-5" weight="regular" />
-            </button>
-          </div>
-        </div>
-
-        <div className="
-          rounded-md border border-base-300 bg-base-100 shadow-none
-        ">
-          <div className="flex items-center justify-between gap-4 px-4 py-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="
-                flex size-8 shrink-0 items-center justify-center
-                text-base-content/90
-              " aria-hidden="true">
-                <ReferenceActionIcon className="size-6 shrink-0" src={preciseReferenceIconSrc} />
-              </div>
-              <div className="min-w-0">
-                <div className="
-                  text-[15px] font-semibold leading-6 text-base-content
-                ">Precise Reference</div>
-                <div className="
-                  mt-0.5 text-[13px] leading-5 text-base-content/58
-                ">{preciseReferenceDescription}</div>
-              </div>
-            </div>
-            <button
-              type="button"
-              className={`
-                ${featureUploadActionClassName}
-                cursor-not-allowed opacity-45
-              `}
-              aria-label="上传 Precise Reference 参考图"
-              title="上传 Precise Reference 参考图"
-              disabled
-            >
-              <FileArrowUpIcon className="size-5" weight="regular" />
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 });

@@ -7,6 +7,8 @@ import "@/components/common/scrollbar.css";
 import { toastManager } from "@/components/common/toastWindow/toastWindow";
 
 export type ToastWindowOptions = {
+  /** 弹窗对辅助技术暴露的名称。 */
+  ariaLabel?: string;
   /**
    * 开启后会变成全屏，业务内容需提供明确的返回或关闭入口。
    * @default false
@@ -89,7 +91,7 @@ export function ToastWindowRenderer() {
             open
             mode="inline"
             onClose={window.onClose}
-            ariaLabel="弹窗"
+            ariaLabel={window.options.ariaLabel ?? "弹窗"}
             closeOnOverlayClick={!(fullScreen && !transparent)}
             rootClassName={window.options.rootClassName ?? ""}
             panelClassName={`

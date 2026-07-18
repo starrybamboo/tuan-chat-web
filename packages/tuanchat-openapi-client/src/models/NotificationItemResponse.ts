@@ -18,4 +18,3 @@ export type NotificationItemResponse = {
     createTime?: string;
     payload?: Record<string, any>;
 };
-

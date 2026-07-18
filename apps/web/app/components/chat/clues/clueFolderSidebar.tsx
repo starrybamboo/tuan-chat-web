@@ -25,13 +25,13 @@ import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { hasHostPrivileges, isObserverLike } from "@/components/chat/utils/memberPermissions";
 import { appToast } from "@/components/common/appToast/appToast";
 import { Button } from "@/components/common/Button";
-import { FileInput, TextArea } from "@/components/common/FormField";
 import { confirm } from "@/components/common/ConfirmDialog";
 import { DialogActions, DialogFrame } from "@/components/common/DialogFrame";
+import { FileInput, TextArea } from "@/components/common/FormField";
 import { IconButton } from "@/components/common/IconButton";
 import { MediaImage } from "@/components/common/mediaImage";
-import { StateView } from "@/components/common/StateView";
 import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
+import { StateView } from "@/components/common/StateView";
 import { useGlobalWebSocket } from "@/components/globalContextProvider";
 import { BaselineDeleteOutline, CloseIcon, FileTextIcon, SaveIcon } from "@/icons";
 import { buildChatMessageRequestFromDraft, buildMessageDraftsFromUploadedMedia } from "@/types/messageDraft";
@@ -67,6 +67,8 @@ type ClueFolderSectionProps = {
   activeMessageId?: number;
   isLoading: boolean;
   messages: ChatMessageResponse[];
+  deletingMessageId?: number | null;
+  onDeleteClue: (message: Message) => void;
   onEditClue: (message: Message) => void;
   onReorderClue: (params: ClueReorderParams) => void;
   roomId: number;
@@ -355,6 +357,20 @@ export function normalizeClueDraftContent(value: string): string {
     : value;
 }
 
+export function hasUnsavedClueChanges({
+  draftContent,
+  hasAttachment = false,
+  initialContent,
+  mode,
+}: {
+  draftContent: string;
+  hasAttachment?: boolean;
+  initialContent: string;
+  mode: "create" | "edit";
+}): boolean {
+  return draftContent !== initialContent || (mode === "create" && hasAttachment);
+}
+
 export function getClueListPreviewText(message: Message, maxLength = CLUE_LIST_PREVIEW_MAX_LENGTH): string {
   const previewText = getMessagePreviewText(message)
     .replace(/\s+/g, " ")
@@ -385,8 +401,10 @@ function getErrorMessage(result: ApiResultLike | null | undefined, fallback: str
 
 function ClueFolderSection({
   activeMessageId,
+  deletingMessageId,
   isLoading,
   messages,
+  onDeleteClue,
   onEditClue,
   onReorderClue,
   roomId,
@@ -437,134 +455,151 @@ function ClueFolderSection({
           const imagePayload = getImageMessageExtra(message.extra);
           const thumbUrl = imagePayload ? resolveMessageMediaUrl(imagePayload, "low", "image") : "";
           return (
-            <motion.button
+            <motion.div
               key={messageId}
               {...structuralListItemMotionProps({
                 index,
                 staggerDelay: 0.015,
                 maxDelay: 0.12,
               })}
-            type="button"
-            className={`
-              group/clue-card relative w-full select-none border-base-content/10 px-2.5 py-2
-              text-left transition-colors duration-150 hover:bg-base-content/5
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/45
-              ${index > 0 ? "border-t" : ""}
-              ${activeMessageId === messageId ? "bg-info/12 ring-1 ring-info/30" : ""}
-            `}
-            data-clue-message-id={messageId}
-            draggable
-            aria-label={titleText}
-            title="可拖拽排序/移动到文件夹"
-            onMouseDown={(event) => {
-              if (event.detail > 1) {
-                event.preventDefault();
-              }
-              clearActiveTextSelection();
-            }}
-            onClick={(event: MouseEvent<HTMLButtonElement>) => {
-              if (event.detail > 1) {
-                event.preventDefault();
-                return;
-              }
-              clearActiveTextSelection();
-              onEditClue(message);
-            }}
-            onDragStartCapture={(event: DragEvent<HTMLButtonElement>) => {
-              const payload = buildClueDragPayload(message);
-              const sourceMessageId = getMessageId(message);
-              event.dataTransfer.effectAllowed = "copyMove";
-              setClueRefDragData(event.dataTransfer, payload);
-              if (sourceMessageId) {
-                setDraggingClue({
-                  sourceRoomId: message.roomId,
-                  sourceMessageId,
-                });
-              }
-              setDragPreview({
-                dataTransfer: event.dataTransfer,
-                sourceElement: event.currentTarget,
-                title: "移动线索消息",
-                subtitle: "拖到目标位置或群聊",
-                variant: "message",
-              });
-            }}
-            onDragEnd={() => {
-              setDraggingClue(null);
-              setReorderState(null);
-            }}
-            onDragOver={(event: DragEvent<HTMLButtonElement>) => {
-              if (draggingClue?.sourceRoomId !== roomId || draggingClue.sourceMessageId === messageId) {
-                return;
-              }
-              event.preventDefault();
-              event.dataTransfer.dropEffect = "move";
-              const rect = event.currentTarget.getBoundingClientRect();
-              const placement: ClueDropPlacement = event.clientY < rect.top + rect.height / 2 ? "before" : "after";
-              setReorderState({ targetMessageId: messageId, placement });
-            }}
-            onDragLeave={(event: DragEvent<HTMLButtonElement>) => {
-              const relatedTarget = event.relatedTarget as Node | null;
-              if (relatedTarget && event.currentTarget.contains(relatedTarget)) {
-                return;
-              }
-              if (reorderState?.targetMessageId === messageId) {
-                setReorderState(null);
-              }
-            }}
-            onDrop={(event: DragEvent<HTMLButtonElement>) => {
-              if (draggingClue?.sourceRoomId !== roomId || !draggingClue.sourceMessageId || draggingClue.sourceMessageId === messageId) {
-                return;
-              }
-              event.preventDefault();
-              event.stopPropagation();
-              const rect = event.currentTarget.getBoundingClientRect();
-              const placement: ClueDropPlacement = event.clientY < rect.top + rect.height / 2 ? "before" : "after";
-              setDraggingClue(null);
-              setReorderState(null);
-              onReorderClue({
-                draggedMessageId: draggingClue.sourceMessageId,
-                targetMessageId: messageId,
-                placement,
-              });
-            }}
+              className={`
+                group/clue-card relative w-full border-base-content/10
+                ${index > 0 ? "border-t" : ""}
+                ${activeMessageId === messageId ? "bg-info/12 ring-1 ring-info/30" : ""}
+              `}
+              data-clue-message-id={messageId}
             >
-            {isDropTarget && (
-              <span
-                className={`
-                  pointer-events-none absolute inset-x-1 z-10 h-[2px]
-                  rounded-full bg-info shadow-[0_0_12px_hsl(var(--in)/0.55)]
-                  ${
-                  reorderState?.placement === "before" ? "-top-px" : `
-                    -bottom-px
-                  `
-                }
-                `}
-                aria-hidden="true"
-              />
-            )}
-            <span className="flex min-w-0 items-start gap-2">
-              {thumbUrl
-                ? (
-                  <MediaImage
-                    src={thumbUrl}
-                    alt=""
-                    loading="lazy"
-                    onError={(event) => {
-                      event.currentTarget.style.display = "none";
-                    }}
-                    className="size-9 shrink-0 rounded object-cover"
+              <button
+                type="button"
+                className="
+                  relative w-full select-none px-2.5 py-2 pr-11 text-left
+                  transition-colors duration-150 hover:bg-base-content/5
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/45
+                "
+                draggable
+                aria-label={titleText}
+                title="可拖拽排序/移动到文件夹"
+                onMouseDown={(event) => {
+                  if (event.detail > 1) {
+                    event.preventDefault();
+                  }
+                  clearActiveTextSelection();
+                }}
+                onClick={(event: MouseEvent<HTMLButtonElement>) => {
+                  if (event.detail > 1) {
+                    event.preventDefault();
+                    return;
+                  }
+                  clearActiveTextSelection();
+                  onEditClue(message);
+                }}
+                onDragStartCapture={(event: DragEvent<HTMLButtonElement>) => {
+                  const payload = buildClueDragPayload(message);
+                  const sourceMessageId = getMessageId(message);
+                  event.dataTransfer.effectAllowed = "copyMove";
+                  setClueRefDragData(event.dataTransfer, payload);
+                  if (sourceMessageId) {
+                    setDraggingClue({
+                      sourceRoomId: message.roomId,
+                      sourceMessageId,
+                    });
+                  }
+                  setDragPreview({
+                    dataTransfer: event.dataTransfer,
+                    sourceElement: event.currentTarget,
+                    title: "移动线索消息",
+                    subtitle: "拖到目标位置或群聊",
+                    variant: "message",
+                  });
+                }}
+                onDragEnd={() => {
+                  setDraggingClue(null);
+                  setReorderState(null);
+                }}
+                onDragOver={(event: DragEvent<HTMLButtonElement>) => {
+                  if (draggingClue?.sourceRoomId !== roomId || draggingClue.sourceMessageId === messageId) {
+                    return;
+                  }
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  const placement: ClueDropPlacement = event.clientY < rect.top + rect.height / 2 ? "before" : "after";
+                  setReorderState({ targetMessageId: messageId, placement });
+                }}
+                onDragLeave={(event: DragEvent<HTMLButtonElement>) => {
+                  const relatedTarget = event.relatedTarget as Node | null;
+                  if (relatedTarget && event.currentTarget.contains(relatedTarget)) {
+                    return;
+                  }
+                  if (reorderState?.targetMessageId === messageId) {
+                    setReorderState(null);
+                  }
+                }}
+                onDrop={(event: DragEvent<HTMLButtonElement>) => {
+                  if (draggingClue?.sourceRoomId !== roomId || !draggingClue.sourceMessageId || draggingClue.sourceMessageId === messageId) {
+                    return;
+                  }
+                  event.preventDefault();
+                  event.stopPropagation();
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  const placement: ClueDropPlacement = event.clientY < rect.top + rect.height / 2 ? "before" : "after";
+                  setDraggingClue(null);
+                  setReorderState(null);
+                  onReorderClue({
+                    draggedMessageId: draggingClue.sourceMessageId,
+                    targetMessageId: messageId,
+                    placement,
+                  });
+                }}
+              >
+                {isDropTarget && (
+                  <span
+                    className={`
+                      pointer-events-none absolute inset-x-1 z-10 h-[2px]
+                      rounded-full bg-info shadow-[0_0_12px_hsl(var(--in)/0.55)]
+                      ${reorderState?.placement === "before" ? "-top-px" : "-bottom-px"}
+                    `}
+                    aria-hidden="true"
                   />
-                )
-                : null}
-              <span className="
-                block min-w-0 overflow-hidden text-ellipsis wrap-break-word
-                text-xs/5 text-base-content/82 line-clamp-2
-              ">
-                {previewText}
-              </span>
-              </span>
-            </motion.button>
+                )}
+                <span className="flex min-w-0 items-start gap-2">
+                  {thumbUrl
+                    ? (
+                      <MediaImage
+                        src={thumbUrl}
+                        alt=""
+                        loading="lazy"
+                        onError={(event) => {
+                          event.currentTarget.style.display = "none";
+                        }}
+                        className="size-9 shrink-0 rounded object-cover"
+                      />
+                    )
+                    : null}
+                  <span className="
+                    block min-w-0 overflow-hidden text-ellipsis wrap-break-word
+                    text-xs/5 text-base-content/82 line-clamp-2
+                  ">
+                    {previewText}
+                  </span>
+                </span>
+              </button>
+              <IconButton
+                variant="ghost"
+                tone="error"
+                appearance="ghost"
+                size="xs"
+                shape="square"
+                label="删除线索"
+                disabled={deletingMessageId != null}
+                onClick={() => onDeleteClue(message)}
+                className="
+                  absolute right-1 top-1/2 z-20 -translate-y-1/2 opacity-70 transition-opacity
+                  hover:opacity-100 focus-visible:opacity-100 motion-reduce:transition-none
+                "
+                icon={<BaselineDeleteOutline className="size-4" />}
+              />
+            </motion.div>
           );
         })}
       </AnimatePresence>
@@ -594,7 +629,7 @@ export default function ClueFolderSidebar({
   const [draftContent, setDraftContent] = useState("");
   const [draftAttachment, setDraftAttachment] = useState<ClueAttachmentDraft | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingMessageId, setDeletingMessageId] = useState<number | null>(null);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const uploadUtils = useMemo(() => new UploadUtils(), []);
@@ -602,6 +637,20 @@ export default function ClueFolderSidebar({
   const room = useMemo(() => {
     return clueRoom && hasPositiveRoomId(clueRoom) ? clueRoom : null;
   }, [clueRoom]);
+  const initialDraftContent = editorState?.mode === "edit"
+    ? normalizeClueDraftContent(editorState.message.content ?? "")
+    : "";
+  const hasDraftChanges = editorState
+    ? hasUnsavedClueChanges({
+        draftContent,
+        hasAttachment: draftAttachment != null,
+        initialContent: initialDraftContent,
+        mode: editorState.mode,
+      })
+    : false;
+  const canSaveDraft = editorState != null
+    && hasDraftChanges
+    && (editorState.mode === "create" ? Boolean(draftContent.trim() || draftAttachment) : Boolean(draftContent.trim()));
   const sendMessageMutation = useSendMessageMutation(room?.roomId ?? 0);
   const updateMessageMutation = useUpdateMessageMutation();
   const deleteMessageMutation = useDeleteMessageMutation();
@@ -634,10 +683,7 @@ export default function ClueFolderSidebar({
     updateLastReadSyncId(roomId, latestSyncId);
   }, [clueHistory.latestSyncId, clueHistory.loading, room, updateLastReadSyncId]);
 
-  const closeEditor = () => {
-    if (isSaving || isDeleting) {
-      return;
-    }
+  const resetEditor = () => {
     if (draftAttachmentRef.current) {
       URL.revokeObjectURL(draftAttachmentRef.current.previewUrl);
     }
@@ -645,6 +691,25 @@ export default function ClueFolderSidebar({
     setDraftAttachment(null);
     setEditorState(null);
     setDraftContent("");
+  };
+
+  const requestCloseEditor = async () => {
+    if (isSaving) {
+      return;
+    }
+    if (hasDraftChanges) {
+      const shouldDiscard = await confirm({
+        title: "放弃未保存更改",
+        description: "关闭后，本次修改不会保存。",
+        variant: "warning",
+        confirmLabel: "放弃更改",
+        cancelLabel: "继续编辑",
+      });
+      if (!shouldDiscard) {
+        return;
+      }
+    }
+    resetEditor();
   };
 
   const openCreateEditor = () => {
@@ -1001,9 +1066,7 @@ export default function ClueFolderSidebar({
         queryClient.invalidateQueries({ queryKey: getUserMessageSessionsQueryKey() });
         appToast.success("线索已创建");
       }
-      setEditorState(null);
-      setDraftContent("");
-      clearAttachment();
+      resetEditor();
     }
     catch (error) {
       console.error("[ClueFolder] save clue failed", error);
@@ -1014,11 +1077,8 @@ export default function ClueFolderSidebar({
     }
   };
 
-  const deleteClue = async () => {
-    if (editorState?.mode !== "edit") {
-      return;
-    }
-    const messageId = getMessageId(editorState.message);
+  const deleteClue = async (message: Message) => {
+    const messageId = getMessageId(message);
     if (!messageId) {
       appToast.error("线索不存在，无法删除");
       return;
@@ -1028,7 +1088,7 @@ export default function ClueFolderSidebar({
       return;
     }
 
-    setIsDeleting(true);
+    setDeletingMessageId(messageId);
     try {
       const result = await deleteMessageMutation.mutateAsync(messageId);
       if (!isSuccess(result)) {
@@ -1042,15 +1102,13 @@ export default function ClueFolderSidebar({
       }
       queryClient.invalidateQueries({ queryKey: getUserMessageSessionsQueryKey() });
       appToast.success("线索已删除");
-      setEditorState(null);
-      setDraftContent("");
     }
     catch (error) {
       console.error("[ClueFolder] delete clue failed", error);
       appToast.error(error instanceof Error ? error.message : "删除线索失败");
     }
     finally {
-      setIsDeleting(false);
+      setDeletingMessageId(null);
     }
   };
 
@@ -1061,8 +1119,10 @@ export default function ClueFolderSidebar({
           ? (
               <ClueFolderSection
                 activeMessageId={navigationTarget?.sourceRoomId === room.roomId ? navigationTarget.sourceMessageId : undefined}
+                deletingMessageId={deletingMessageId}
                 isLoading={clueHistory.loading}
                 messages={historyMessages}
+                onDeleteClue={message => void deleteClue(message)}
                 onEditClue={openEditEditor}
                 onReorderClue={reorderClue}
                 roomId={room.roomId}
@@ -1079,7 +1139,7 @@ export default function ClueFolderSidebar({
         <DialogFrame
           open
           mode="inline"
-          onClose={closeEditor}
+          onClose={() => void requestCloseEditor()}
           ariaLabel={editorState.mode === "create" ? "新建线索" : "编辑线索"}
           rootClassName="z-10000"
           panelClassName="max-w-2xl"
@@ -1100,7 +1160,7 @@ export default function ClueFolderSidebar({
                     variant="ghost"
                     size="sm"
                     aria-label="添加线索附件"
-                    disabled={isSaving || isDeleting}
+                    disabled={isSaving}
                     onClick={() => attachmentInputRef.current?.click()}
                   >
                     <PlusIcon className="size-4" />
@@ -1205,7 +1265,7 @@ export default function ClueFolderSidebar({
               autoComplete="off"
               aria-label="线索内容"
               placeholder="写下这条线索..."
-              disabled={isSaving || isDeleting}
+              disabled={isSaving}
               onPaste={handleAttachmentPaste}
               onChange={event => handleDraftContentChange(event.target.value)}
             />
@@ -1216,41 +1276,17 @@ export default function ClueFolderSidebar({
               {CLUE_CONTENT_MAX_LENGTH}
             </div>
 
-            <DialogActions className="justify-between">
-              <div>
-                {editorState.mode === "edit" && (
-                  <Button
-                    variant="errorOutline"
-                    size="sm"
-                    disabled={isSaving || isDeleting}
-                    loading={isDeleting}
-                    onClick={deleteClue}
-                  >
-                    {!isDeleting && <BaselineDeleteOutline className="size-4" />}
-                    删除
-                  </Button>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={isSaving || isDeleting}
-                  onClick={closeEditor}
-                >
-                  取消
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  disabled={isSaving || isDeleting}
-                  loading={isSaving}
-                  onClick={saveClue}
-                >
-                  {!isSaving && <SaveIcon className="size-4" />}
-                  保存
-                </Button>
-              </div>
+            <DialogActions className="mt-3">
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={isSaving || !canSaveDraft}
+                loading={isSaving}
+                onClick={saveClue}
+              >
+                {!isSaving && <SaveIcon className="size-4" />}
+                保存
+              </Button>
             </DialogActions>
           </div>
         </DialogFrame>,

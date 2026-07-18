@@ -117,10 +117,9 @@ export function setTerrePortOverride(port: number | null): void {
   terrePortOverride = Math.floor(port);
 }
 
-export function getTerreBaseUrl(): string {
+export function getTerreBaseUrl(portOverride: number | null = getTerrePortOverride()): string {
   const base = getDefaultTerreBaseUrl();
-  const overridePort = getTerrePortOverride();
-  if (overridePort == null) {
+  if (portOverride == null) {
     return base;
   }
 
@@ -129,7 +128,7 @@ export function getTerreBaseUrl(): string {
     return base;
   }
 
-  parsed.port = String(overridePort);
+  parsed.port = String(portOverride);
   return normalizeBaseUrl(parsed.toString());
 }
 

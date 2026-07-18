@@ -1,9 +1,15 @@
 import { QueryClient } from "@tanstack/react-query";
+import { rollbackOptimisticQueryTransaction } from "@tuanchat/query/optimistic-cache";
 import { describe, expect, it, vi } from "vitest";
+
+import { FEEDBACK_ISSUE_TARGET_TYPE } from "../../app/components/feedback/feedbackTypes";
 import {
   beginDeleteCommentOptimisticMutation,
+  buildCommentChildPageQueryKey,
   buildCommentPageQueryKey,
+  buildCommentPageQueryPrefix,
   buildCommentTimelineQueryKey,
+  buildCommentTimelineQueryPrefix,
   DEFAULT_COMMENT_MAX_LEVEL,
   getNextCommentChildPageParam,
   getNextCommentPageParam,
@@ -11,8 +17,6 @@ import {
   invalidateCommentTargetQueries,
   normalizeCommentTreeQueryOptions,
 } from "./commentQueryHooks";
-import { FEEDBACK_ISSUE_TARGET_TYPE } from "../../app/components/feedback/feedbackTypes";
-import { rollbackOptimisticQueryTransaction } from "@tuanchat/query/optimistic-cache";
 
 describe("commentQueryHooks", () => {
   it("删除评论即时移出树状、子评论和时间线缓存并支持回滚", async () => {
@@ -20,7 +24,7 @@ describe("commentQueryHooks", () => {
     const target = { targetId: 11, targetType: FEEDBACK_ISSUE_TARGET_TYPE };
     const rootKey = buildCommentPageQueryKey(target);
     const timelineKey = buildCommentTimelineQueryKey(target);
-    const childKey = ["pageChildComments", target, 1, 20, 20, 2] as const;
+    const childKey = ["pageChildComments", target, 1, 20, 20, 2, 1] as const;
     const rootComment = {
       commentId: 1,
       children: [{ commentId: 2 }, { commentId: 3 }],
@@ -40,6 +44,35 @@ describe("commentQueryHooks", () => {
 
     rollbackOptimisticQueryTransaction(queryClient, transaction);
     expect(queryClient.getQueryData<any>(rootKey)?.pages[0].data[0]).toEqual(rootComment);
+  });
+
+  it("并发新写入替换乐观评论后不会被失败回滚覆盖", async () => {
+    const queryClient = new QueryClient();
+    const target = { targetId: 11, targetType: FEEDBACK_ISSUE_TARGET_TYPE };
+    const queryKey = buildCommentPageQueryKey(target);
+    queryClient.setQueryData(queryKey, { pages: [{ success: true, data: [{ commentId: 2 }] }], pageParams: [] });
+
+    const transaction = await beginDeleteCommentOptimisticMutation(queryClient, { ...target, commentId: 2 });
+    const newerData = { pages: [{ success: true, data: [{ commentId: 2, content: "newer" }] }], pageParams: [] };
+    queryClient.setQueryData(queryKey, newerData);
+    rollbackOptimisticQueryTransaction(queryClient, transaction);
+
+    expect(queryClient.getQueryData(queryKey)).toEqual(newerData);
+  });
+
+  it("会把所有影响分页结果的参数编码进评论查询键", () => {
+    const target = { targetId: 11, targetType: FEEDBACK_ISSUE_TARGET_TYPE };
+
+    expect(buildCommentPageQueryKey(target, 10, 20, 2)).not.toEqual(
+      buildCommentPageQueryKey(target, 20, 20, 2),
+    );
+    expect(buildCommentPageQueryKey(target, 10, 20, 2)).not.toEqual(
+      buildCommentPageQueryKey(target, 10, 10, 2),
+    );
+    expect(buildCommentChildPageQueryKey(target, 2, 10, 20, 2, 1)).not.toEqual(
+      buildCommentChildPageQueryKey(target, 2, 10, 20, 2, 3),
+    );
+    expect(buildCommentTimelineQueryKey(target, 10)).not.toEqual(buildCommentTimelineQueryKey(target, 20));
   });
 
   it("树状评论分页参数会钳制到后端允许范围", () => {
@@ -180,10 +213,10 @@ describe("commentQueryHooks", () => {
     });
     expect(invalidateSpy).toHaveBeenCalledTimes(4);
     expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: buildCommentPageQueryKey({ targetId: 11, targetType: FEEDBACK_ISSUE_TARGET_TYPE }),
+      queryKey: buildCommentPageQueryPrefix({ targetId: 11, targetType: FEEDBACK_ISSUE_TARGET_TYPE }),
     });
     expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: buildCommentTimelineQueryKey({ targetId: 11, targetType: FEEDBACK_ISSUE_TARGET_TYPE }),
+      queryKey: buildCommentTimelineQueryPrefix({ targetId: 11, targetType: FEEDBACK_ISSUE_TARGET_TYPE }),
     });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ["feedbackIssues"],
@@ -209,10 +242,10 @@ describe("commentQueryHooks", () => {
     });
     expect(invalidateSpy).toHaveBeenCalledTimes(2);
     expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: buildCommentPageQueryKey({ targetId: 22, targetType: "1" }),
+      queryKey: buildCommentPageQueryPrefix({ targetId: 22, targetType: "1" }),
     });
     expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: buildCommentTimelineQueryKey({ targetId: 22, targetType: "1" }),
+      queryKey: buildCommentTimelineQueryPrefix({ targetId: 22, targetType: "1" }),
     });
   });
 });

@@ -29,18 +29,19 @@ describe("generateActions", () => {
       sourceImageWidth: 1024,
       sourceImageHeight: 1024,
       maskBase64: "mask123",
-      isNAI4: true,
+      maskDataUrl: "data:image/png;base64,mask123",
+      focusedArea: { left: 100, top: 120, width: 300, height: 400 },
+      overlayOriginalImage: true,
       v4Chars: [],
       v4UseCoords: false,
       v4UseOrder: true,
-      normalizeReferenceStrengths: false,
-      vibeTransferReferences: [],
-      preciseReference: null,
     });
 
     expect(context.effectiveMode).toBe("infill");
     expect(context.effectivePrompt).toBe("1girl, city lights, cinematic lighting, bloom");
     expect(context.effectiveNegative).toBe("lowres");
+    expect(context.effectiveFocusedArea).toEqual({ left: 100, top: 120, width: 300, height: 400 });
+    expect(context.effectiveOverlayOriginalImage).toBe(true);
   });
 
   it("keeps txt2img style-tag merging unchanged", () => {
@@ -62,13 +63,9 @@ describe("generateActions", () => {
       height: 1024,
       strength: 0.6,
       noise: 0,
-      isNAI4: true,
       v4Chars: [],
       v4UseCoords: false,
       v4UseOrder: true,
-      normalizeReferenceStrengths: false,
-      vibeTransferReferences: [],
-      preciseReference: null,
     });
 
     expect(context.effectivePrompt).toBe("cinematic lighting, 1girl");

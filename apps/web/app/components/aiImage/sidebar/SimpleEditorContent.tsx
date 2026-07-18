@@ -28,7 +28,7 @@ export type SimpleEditorContentLocalProps = {
   highlightPromptSurfaceClassName: string;
   highlightPromptContentClassName: string;
   highlightEmphasisEnabled: boolean;
-  renderSimpleBaseImageSection: () => ReactNode;
+  renderSimpleInfillSection: () => ReactNode;
   handleToggleLineCommentForSimpleTags: (event: ReactKeyboardEvent<HTMLTextAreaElement>) => void;
 }
 
@@ -78,7 +78,7 @@ export const SimpleEditorContent = memo(({
     highlightPromptSurfaceClassName,
     highlightPromptContentClassName,
     highlightEmphasisEnabled,
-    renderSimpleBaseImageSection,
+    renderSimpleInfillSection,
     handleToggleLineCommentForSimpleTags,
   } = local;
 
@@ -111,12 +111,16 @@ export const SimpleEditorContent = memo(({
       </div>
 
       <div className="flex flex-col gap-0">
-        <div className={`
-          grid transition-all duration-300 ease-out
-          ${isSimpleTextEditor ? `grid-rows-[1fr] opacity-100` : `
-            grid-rows-[0fr] opacity-0
+        <div
+          aria-hidden={!isSimpleTextEditor}
+          inert={!isSimpleTextEditor}
+          className={`
+            grid transition-all duration-300 ease-out
+            ${isSimpleTextEditor ? `grid-rows-[1fr] opacity-100` : `
+              grid-rows-[0fr] opacity-0
+            `}
           `}
-        `}>
+        >
           <div className="min-h-0 overflow-hidden">
             <div className="flex w-full min-w-0 flex-col items-stretch">
               <div className={editorPanelClassName}>
@@ -159,17 +163,21 @@ export const SimpleEditorContent = memo(({
                       )
                     : null}
                 </div>
-                {renderSimpleBaseImageSection()}
+                {renderSimpleInfillSection()}
               </div>
             </div>
           </div>
         </div>
-        <div className={`
-          grid transition-all duration-300 ease-out
-          ${simpleConverted ? `grid-rows-[1fr] opacity-100` : `
-            grid-rows-[0fr] opacity-0
+        <div
+          aria-hidden={!isSimplePreviewingConverted}
+          inert={!isSimplePreviewingConverted}
+          className={`
+            grid transition-all duration-300 ease-out
+            ${isSimplePreviewingConverted ? `grid-rows-[1fr] opacity-100` : `
+              grid-rows-[0fr] opacity-0
+            `}
           `}
-        `}>
+        >
           <div className="min-h-0 overflow-hidden">
             <div className={`
               rounded-2xl border border-base-300 bg-base-100 p-3 shadow-sm
@@ -237,6 +245,7 @@ export const SimpleEditorContent = memo(({
               </div>
 
               <HighlightEmphasisTextarea
+                aria-label={simplePromptTab === "prompt" ? "候选 Base Prompt" : "候选 Undesired Content"}
                 highlightEnabled={highlightEmphasisEnabled}
                 surfaceClassName={`${highlightPromptSurfaceClassName} mt-3 min-h-28`}
                 contentClassName={`${highlightPromptContentClassName} min-h-28`}
@@ -245,7 +254,7 @@ export const SimpleEditorContent = memo(({
                 spellCheck={false}
               />
 
-              {renderSimpleBaseImageSection()}
+              {renderSimpleInfillSection()}
 
               <div className="mt-3 flex flex-wrap justify-end gap-2">
                 <Button
@@ -269,12 +278,16 @@ export const SimpleEditorContent = memo(({
           </div>
         </div>
 
-        <div className={`
-          grid transition-all duration-300 ease-out
-          ${isSimpleTagsEditor ? `grid-rows-[1fr] opacity-100` : `
-            grid-rows-[0fr] opacity-0
+        <div
+          aria-hidden={!isSimpleTagsEditor}
+          inert={!isSimpleTagsEditor}
+          className={`
+            grid transition-all duration-300 ease-out
+            ${isSimpleTagsEditor ? `grid-rows-[1fr] opacity-100` : `
+              grid-rows-[0fr] opacity-0
+            `}
           `}
-        `}>
+        >
           <div className="min-h-0 overflow-hidden">
             <div className="flex flex-col gap-2">
               <div className={editorPanelClassName}>
@@ -316,6 +329,7 @@ export const SimpleEditorContent = memo(({
                 </div>
                 <div className="relative">
                   <HighlightEmphasisTextarea
+                    aria-label={simplePromptTab === "prompt" ? "Base Prompt" : "Undesired Content"}
                     highlightEnabled={highlightEmphasisEnabled}
                     surfaceClassName={highlightPromptSurfaceClassName}
                     contentClassName={highlightPromptContentClassName}
@@ -345,7 +359,7 @@ export const SimpleEditorContent = memo(({
                       )
                     : null}
                 </div>
-                {renderSimpleBaseImageSection()}
+                {renderSimpleInfillSection()}
               </div>
             </div>
           </div>

@@ -12,4 +12,3 @@ export type PlayerRevokeRequest = {
      */
     uidList: Array<number>;
 };
-

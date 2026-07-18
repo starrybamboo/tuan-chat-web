@@ -79,10 +79,10 @@ export function DmTopTabs({ activeTab, onChangeTab }: DmTopTabsProps) {
           >
             {tab.label}
           </ThemedText>
-          {activeTab === tab.key && (
-            <View style={[styles.activeIndicator, { backgroundColor: theme.accent }]} />
-          )}
-          {tab.showBadge && <View style={styles.badge} />}
+          {activeTab === tab.key
+            ? <View style={[styles.activeIndicator, { backgroundColor: theme.accent }]} />
+            : null}
+          {tab.showBadge ? <View style={styles.badge} /> : null}
         </Pressable>
       ))}
     </View>

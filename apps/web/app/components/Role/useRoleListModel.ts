@@ -125,10 +125,10 @@ export function useRoleTrashModel({
     enabled: enabled && scope === "spaceNpc",
   });
   const trashQuery = scope === "spaceNpc" ? spaceNpcTrashQuery : personalTrashQuery;
-  const deletedRoleList = trashQuery.data?.data?.list ?? [];
+  const deletedRoleList = trashQuery.data?.data?.list;
 
   const roles = useMemo(() => {
-    return deletedRoleList.map(mapUserRoleToRole);
+    return (deletedRoleList ?? []).map(mapUserRoleToRole);
   }, [deletedRoleList]);
 
   return {

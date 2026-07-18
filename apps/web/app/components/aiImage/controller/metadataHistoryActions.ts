@@ -1,12 +1,10 @@
 import type {
   HistoryRowClickMode,
   MetadataImportSelectionState,
-  PreciseReferenceRow,
   ProFeatureSectionKey,
   ResolutionSelection,
   UiMode,
   V4CharEditorRow,
-  VibeTransferReferenceRow,
 } from "@/components/aiImage/types";
 import type { AiImageHistoryMode, AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
 import type { NovelAiImageMetadataResult } from "@/utils/media/novelaiImageMetadata";
@@ -16,6 +14,8 @@ import {
   DEFAULT_PRO_FEATURE_SECTION_OPEN,
   DEFAULT_PRO_IMAGE_SETTINGS,
   DEFAULT_SIMPLE_IMAGE_SETTINGS,
+  DEFAULT_INPAINT_NOISE,
+  DEFAULT_INPAINT_STRENGTH,
   NOVELAI_FREE_FIXED_IMAGE_COUNT,
   NOVELAI_FREE_MAX_IMAGE_AREA,
   NOVELAI_FREE_MAX_STEPS,
@@ -26,31 +26,20 @@ import {
   clampRange,
   cleanImportedPromptText,
   createProFeatureSectionState,
-  extensionFromDataUrl,
   getClosestValidImageSize,
   getNovelAiImageArea,
   makeStableId,
   resolveImportedValue,
 } from "@/components/aiImage/helpers";
 
-const DEFAULT_INPAINT_STRENGTH = 1;
-const DEFAULT_INPAINT_NOISE = 0;
-
 type ProFeatureSectionsState = Record<ProFeatureSectionKey, boolean>;
-type ApplyModeStrengthAndNoise = (
+type ApplyInfillStrengthAndNoise = (
   targetUiMode: UiMode,
   targetMode: AiImageHistoryMode | undefined,
   nextStrength: number | undefined,
   nextNoise: number | undefined,
 ) => void;
 type InferResolutionSelection = (width: number, height: number) => ResolutionSelection;
-type RestoreSourceImageForUi = (targetUiMode: UiMode, args: {
-  dataUrl?: string | null;
-  name: string;
-  width?: number | null;
-  height?: number | null;
-}) => boolean;
-
 type SimpleMetadataControls = {
   setSimpleConverted: (value: NovelAiNl2TagsResult | null) => void;
   setSimpleConvertedFromText: (value: string) => void;
@@ -72,7 +61,6 @@ type ProMetadataControls = {
   setProWidth: (value: number) => void;
   setProHeight: (value: number) => void;
   setProResolutionSelection: (value: ResolutionSelection) => void;
-  setProImageCount: (value: number) => void;
   setProSteps: (value: number) => void;
   setProScale: (value: number) => void;
   setProSampler: (value: string) => void;
@@ -80,9 +68,8 @@ type ProMetadataControls = {
   setProCfgRescale: (value: number) => void;
   setProUcPreset: (value: number) => void;
   setProQualityToggle: (value: boolean) => void;
+  setProCfgDelay: (value: boolean) => void;
   setProDynamicThresholding: (value: boolean) => void;
-  setProSmea: (value: boolean) => void;
-  setProSmeaDyn: (value: boolean) => void;
   setProFeatureSectionOpen: (section: ProFeatureSectionKey, open: boolean) => void;
   setProFeatureSections: (value: ProFeatureSectionsState) => void;
 };
@@ -94,18 +81,12 @@ type CharacterMetadataControls = {
   setCharPromptTabs: (value: Record<string, "prompt" | "negative">) => void;
 };
 
-type ReferenceMetadataControls = {
-  setVibeTransferReferences: (value: VibeTransferReferenceRow[]) => void;
-  setPreciseReference: (value: PreciseReferenceRow | null) => void;
-};
-
 type SharedMetadataControls = {
   setIsPageImageDragOver: (value: boolean) => void;
   setUiMode: (value: UiMode) => void;
   setSelectedHistoryPreviewKey: (value: string | null) => void;
   clearSourceImageForUi: (value: UiMode) => void;
-  restoreSourceImageForUi: RestoreSourceImageForUi;
-  applyModeStrengthAndNoise: ApplyModeStrengthAndNoise;
+  applyInfillStrengthAndNoise: ApplyInfillStrengthAndNoise;
   inferResolutionSelection: InferResolutionSelection;
   showSuccessToast: (message: string) => void;
 };
@@ -125,11 +106,10 @@ export function applyImportedMetadataAction(args: {
   metadata: NovelAiImageMetadataResult;
   selection: MetadataImportSelectionState;
   current: ImportedMetadataContext;
-  shared: Pick<SharedMetadataControls, "setIsPageImageDragOver" | "setUiMode" | "clearSourceImageForUi" | "applyModeStrengthAndNoise" | "inferResolutionSelection">;
+  shared: Pick<SharedMetadataControls, "setIsPageImageDragOver" | "setUiMode" | "clearSourceImageForUi" | "applyInfillStrengthAndNoise" | "inferResolutionSelection">;
   simple: Pick<SimpleMetadataControls, "setSimpleConverted" | "setSimpleConvertedFromText" | "setSimplePromptTab" | "setSimpleSeed" | "setSimpleWidth" | "setSimpleHeight" | "setSimpleResolutionSelection">;
-  pro: Pick<ProMetadataControls, "setPrompt" | "setNegativePrompt" | "setProSeed" | "setProWidth" | "setProHeight" | "setProResolutionSelection" | "setProImageCount" | "setProSteps" | "setProScale" | "setProSampler" | "setProNoiseSchedule" | "setProCfgRescale" | "setProUcPreset" | "setProQualityToggle" | "setProDynamicThresholding" | "setProSmea" | "setProSmeaDyn" | "setProFeatureSectionOpen">;
+  pro: Pick<ProMetadataControls, "setPrompt" | "setNegativePrompt" | "setProSeed" | "setProWidth" | "setProHeight" | "setProResolutionSelection" | "setProSteps" | "setProScale" | "setProSampler" | "setProNoiseSchedule" | "setProCfgRescale" | "setProUcPreset" | "setProQualityToggle" | "setProCfgDelay" | "setProDynamicThresholding" | "setProFeatureSectionOpen">;
   characters: CharacterMetadataControls;
-  references: ReferenceMetadataControls;
 }) {
   const {
     metadata,
@@ -139,7 +119,6 @@ export function applyImportedMetadataAction(args: {
     simple,
     pro,
     characters,
-    references,
   } = args;
 
   shared.setIsPageImageDragOver(false);
@@ -189,7 +168,7 @@ export function applyImportedMetadataAction(args: {
         cleanImports,
         settings.mode === "infill" ? DEFAULT_INPAINT_NOISE : DEFAULT_SIMPLE_IMAGE_SETTINGS.noise,
       );
-      shared.applyModeStrengthAndNoise("simple", settings.mode, importedStrength ?? undefined, importedNoise ?? undefined);
+      shared.applyInfillStrengthAndNoise("simple", settings.mode, importedStrength ?? undefined, importedNoise ?? undefined);
     }
 
     return;
@@ -199,11 +178,6 @@ export function applyImportedMetadataAction(args: {
 
   if (selection.settings) {
     shared.clearSourceImageForUi("pro");
-    references.setVibeTransferReferences([]);
-    references.setPreciseReference(null);
-    pro.setProFeatureSectionOpen("baseImage", false);
-    pro.setProFeatureSectionOpen("vibeTransfer", false);
-    pro.setProFeatureSectionOpen("preciseReference", false);
   }
 
   if (selection.prompt && settings.prompt != null)
@@ -230,7 +204,6 @@ export function applyImportedMetadataAction(args: {
     pro.setProWidth(normalizedImportedSize.width);
     pro.setProHeight(normalizedImportedSize.height);
     pro.setProResolutionSelection(shared.inferResolutionSelection(normalizedImportedSize.width, normalizedImportedSize.height));
-    pro.setProImageCount(NOVELAI_FREE_FIXED_IMAGE_COUNT);
 
     const importedSteps = resolveImportedValue(settings.steps, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.steps);
     if (importedSteps != null)
@@ -260,17 +233,13 @@ export function applyImportedMetadataAction(args: {
     if (importedQualityToggle != null)
       pro.setProQualityToggle(Boolean(importedQualityToggle));
 
+    const importedCfgDelay = resolveImportedValue(settings.cfgDelay, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.cfgDelay);
+    if (importedCfgDelay != null)
+      pro.setProCfgDelay(Boolean(importedCfgDelay));
+
     const importedDynamicThresholding = resolveImportedValue(settings.dynamicThresholding, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.dynamicThresholding);
     if (importedDynamicThresholding != null)
       pro.setProDynamicThresholding(Boolean(importedDynamicThresholding));
-
-    const importedSmea = resolveImportedValue(settings.smea, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.smea);
-    if (importedSmea != null)
-      pro.setProSmea(Boolean(importedSmea));
-
-    const importedSmeaDyn = resolveImportedValue(settings.smeaDyn, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.smeaDyn);
-    if (importedSmeaDyn != null)
-      pro.setProSmeaDyn(Boolean(importedSmeaDyn));
 
     const importedStrength = resolveImportedValue(
       settings.strength,
@@ -282,7 +251,7 @@ export function applyImportedMetadataAction(args: {
       cleanImports,
       settings.mode === "infill" ? DEFAULT_INPAINT_NOISE : DEFAULT_PRO_IMAGE_SETTINGS.noise,
     );
-    shared.applyModeStrengthAndNoise("pro", settings.mode, importedStrength ?? undefined, importedNoise ?? undefined);
+    shared.applyInfillStrengthAndNoise("pro", settings.mode, importedStrength ?? undefined, importedNoise ?? undefined);
 
     const importedV4UseCoords = resolveImportedValue(settings.v4UseCoords, cleanImports, false);
     if (importedV4UseCoords != null)
@@ -292,11 +261,6 @@ export function applyImportedMetadataAction(args: {
     if (importedV4UseOrder != null)
       characters.setV4UseOrder(Boolean(importedV4UseOrder));
 
-    if (cleanImports || (settings.vibeTransferReferences?.length ?? 0) > 0)
-      references.setVibeTransferReferences([]);
-
-    if (cleanImports || settings.preciseReference)
-      references.setPreciseReference(null);
   }
 
   if (selection.characters) {
@@ -330,11 +294,10 @@ export function applyHistorySettingsAction(args: {
   uiMode: UiMode;
   samplerOptions: readonly string[];
   noiseScheduleOptions: readonly string[];
-  shared: Pick<SharedMetadataControls, "setSelectedHistoryPreviewKey" | "showSuccessToast" | "restoreSourceImageForUi" | "clearSourceImageForUi" | "applyModeStrengthAndNoise" | "inferResolutionSelection">;
+  shared: Pick<SharedMetadataControls, "setSelectedHistoryPreviewKey" | "showSuccessToast" | "clearSourceImageForUi" | "applyInfillStrengthAndNoise" | "inferResolutionSelection">;
   simple: Pick<SimpleMetadataControls, "setSimpleSeed" | "setSimpleText" | "setSimpleConverted" | "setSimpleConvertedFromText" | "setSimplePrompt" | "setSimpleNegativePrompt" | "setSimpleEditorMode" | "setSimplePromptTab" | "setSimpleWidth" | "setSimpleHeight" | "setSimpleResolutionSelection">;
-  pro: Pick<ProMetadataControls, "setPrompt" | "setNegativePrompt" | "setProSeed" | "setProFeatureSections" | "setProWidth" | "setProHeight" | "setProResolutionSelection" | "setProImageCount" | "setProSteps" | "setProScale" | "setProSampler" | "setProNoiseSchedule" | "setProCfgRescale" | "setProUcPreset" | "setProQualityToggle" | "setProDynamicThresholding" | "setProSmea" | "setProSmeaDyn">;
+  pro: Pick<ProMetadataControls, "setPrompt" | "setNegativePrompt" | "setProSeed" | "setProFeatureSections" | "setProWidth" | "setProHeight" | "setProResolutionSelection" | "setProSteps" | "setProScale" | "setProSampler" | "setProNoiseSchedule" | "setProCfgRescale" | "setProUcPreset" | "setProQualityToggle" | "setProCfgDelay" | "setProDynamicThresholding">;
   characters: CharacterMetadataControls;
-  references: ReferenceMetadataControls;
 }) {
   const {
     row,
@@ -346,7 +309,6 @@ export function applyHistorySettingsAction(args: {
     simple,
     pro,
     characters,
-    references,
   } = args;
 
   const importSettings = clickMode === "settings" || clickMode === "settings-with-seed";
@@ -365,12 +327,7 @@ export function applyHistorySettingsAction(args: {
   }
 
   const normalizedSize = getClosestValidImageSize(row.width, row.height);
-  const restoredSourceImage = shared.restoreSourceImageForUi(uiMode, {
-    dataUrl: row.sourceDataUrl,
-    name: `history_${row.seed}.${extensionFromDataUrl(row.sourceDataUrl || row.dataUrl)}`,
-    width: row.width,
-    height: row.height,
-  });
+  shared.clearSourceImageForUi(uiMode);
 
   if (uiMode === "simple") {
     simple.setSimpleText("");
@@ -383,7 +340,7 @@ export function applyHistorySettingsAction(args: {
     simple.setSimpleWidth(normalizedSize.width);
     simple.setSimpleHeight(normalizedSize.height);
     simple.setSimpleResolutionSelection(shared.inferResolutionSelection(normalizedSize.width, normalizedSize.height));
-    shared.applyModeStrengthAndNoise(
+    shared.applyInfillStrengthAndNoise(
       "simple",
       row.mode,
       resolveImportedValue(row.strength, true, row.mode === "infill" ? DEFAULT_INPAINT_STRENGTH : DEFAULT_SIMPLE_IMAGE_SETTINGS.strength) ?? undefined,
@@ -395,7 +352,6 @@ export function applyHistorySettingsAction(args: {
 
     const successParts = [
       importSeed ? "已应用历史设置和 seed。" : "已应用历史设置。",
-      restoredSourceImage && row.mode === "infill" ? "已为局部重绘恢复底图。" : "",
     ];
     shared.showSuccessToast(successParts.filter(Boolean).join(" "));
     return;
@@ -408,9 +364,6 @@ export function applyHistorySettingsAction(args: {
     (row.steps ?? NOVELAI_FREE_MAX_STEPS) > NOVELAI_FREE_MAX_STEPS ? "step count" : "",
     getNovelAiImageArea(row.width, row.height) > NOVELAI_FREE_MAX_IMAGE_AREA ? "oversized resolution" : "",
   ].filter(Boolean);
-
-  if (!restoredSourceImage)
-    shared.clearSourceImageForUi("pro");
 
   pro.setPrompt(row.prompt);
   pro.setNegativePrompt(row.negativePrompt);
@@ -434,13 +387,8 @@ export function applyHistorySettingsAction(args: {
     }, {}),
   );
 
-  references.setVibeTransferReferences([]);
-  references.setPreciseReference(null);
   pro.setProFeatureSections(createProFeatureSectionState({
-    baseImage: restoredSourceImage,
     characterPrompts: restoredChars.length > 0 ? true : DEFAULT_PRO_FEATURE_SECTION_OPEN.characterPrompts,
-    vibeTransfer: false,
-    preciseReference: false,
   }));
 
   if (importSeed)
@@ -449,7 +397,6 @@ export function applyHistorySettingsAction(args: {
   pro.setProWidth(normalizedSize.width);
   pro.setProHeight(normalizedSize.height);
   pro.setProResolutionSelection(shared.inferResolutionSelection(normalizedSize.width, normalizedSize.height));
-  pro.setProImageCount(NOVELAI_FREE_FIXED_IMAGE_COUNT);
   pro.setProSteps(clampIntRange(
     resolveImportedValue(row.steps, true, DEFAULT_PRO_IMAGE_SETTINGS.steps) ?? DEFAULT_PRO_IMAGE_SETTINGS.steps,
     1,
@@ -477,10 +424,9 @@ export function applyHistorySettingsAction(args: {
     DEFAULT_PRO_IMAGE_SETTINGS.ucPreset,
   ));
   pro.setProQualityToggle(resolveImportedValue(row.qualityToggle, true, DEFAULT_PRO_IMAGE_SETTINGS.qualityToggle) ?? DEFAULT_PRO_IMAGE_SETTINGS.qualityToggle);
+  pro.setProCfgDelay(resolveImportedValue(row.cfgDelay, true, DEFAULT_PRO_IMAGE_SETTINGS.cfgDelay) ?? DEFAULT_PRO_IMAGE_SETTINGS.cfgDelay);
   pro.setProDynamicThresholding(resolveImportedValue(row.dynamicThresholding, true, DEFAULT_PRO_IMAGE_SETTINGS.dynamicThresholding) ?? DEFAULT_PRO_IMAGE_SETTINGS.dynamicThresholding);
-  pro.setProSmea(resolveImportedValue(row.smea, true, DEFAULT_PRO_IMAGE_SETTINGS.smea) ?? DEFAULT_PRO_IMAGE_SETTINGS.smea);
-  pro.setProSmeaDyn(resolveImportedValue(row.smeaDyn, true, DEFAULT_PRO_IMAGE_SETTINGS.smeaDyn) ?? DEFAULT_PRO_IMAGE_SETTINGS.smeaDyn);
-  shared.applyModeStrengthAndNoise(
+  shared.applyInfillStrengthAndNoise(
     "pro",
     row.mode,
     resolveImportedValue(row.strength, true, row.mode === "infill" ? DEFAULT_INPAINT_STRENGTH : DEFAULT_PRO_IMAGE_SETTINGS.strength) ?? undefined,
@@ -489,7 +435,6 @@ export function applyHistorySettingsAction(args: {
 
   const successParts = [
     importSeed ? "已应用历史设置和 seed。" : "已应用历史设置。",
-    restoredSourceImage && row.mode === "infill" ? "已为局部重绘恢复底图。" : "",
     droppedPaidSettings.length ? `已跳过免费档不兼容设置：${droppedPaidSettings.join("、")}。` : "",
   ];
   shared.showSuccessToast(successParts.filter(Boolean).join(" "));

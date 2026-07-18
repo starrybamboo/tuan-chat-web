@@ -23,4 +23,3 @@ export type CounterOperationDTO = {
      */
     value?: number;
 };
-

@@ -4,6 +4,26 @@
   scrollbar-color: transparent transparent;
 }
 
+.ai-image-shell {
+  isolation: isolate;
+}
+
+.ai-image-layout {
+  background-color: color-mix(in oklab, var(--tc-surface-canvas) 96%, var(--color-info));
+}
+
+.ai-image-workbench-surface {
+  background-color: var(--tc-surface-canvas);
+}
+
+@media (max-width: 767px) {
+  .ai-image-shell .ai-image-sidebar-wrapper {
+    width: 100% !important;
+    height: 52% !important;
+    padding-right: 0.5rem;
+  }
+}
+
 .ai-image-fade-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;

@@ -4,6 +4,7 @@ import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
 
 type SqliteWorkerRequest =
   | { id: number; type: "all"; sql: string; params?: SqlValue[] }
+  | { id: number; type: "close" }
   | { id: number; type: "exec"; sql: string }
   | { id: number; type: "run"; sql: string; params?: SqlValue[] };
 
@@ -14,12 +15,17 @@ type SqliteWorkerResponse =
   | { id: number; ok: false; error: string };
 
 type Sqlite3Database = {
+  close: () => void;
   exec: (options: {
     bind?: SqlValue[];
     returnValue?: "resultRows";
     rowMode?: "object";
     sql: string;
   }) => Array<Record<string, SqlValue>>;
+};
+
+type OpfsSAHPoolUtil = {
+  pauseVfs: () => void;
 };
 
 type Sqlite3Static = {
@@ -30,7 +36,7 @@ type Sqlite3Static = {
     directory?: string;
     initialCapacity?: number;
     name?: string;
-  }) => Promise<unknown>;
+  }) => Promise<OpfsSAHPoolUtil>;
   oo1: {
     DB: new (filename?: string, flags?: string, vfs?: string) => Sqlite3Database;
   };
@@ -42,6 +48,7 @@ const SQLITE_SAHPOOL_VFS_NAME = "tuanchat-opfs-sahpool";
 const SQLITE_SAHPOOL_INITIAL_CAPACITY = 12;
 
 let dbPromise: Promise<Sqlite3Database> | null = null;
+let sahPoolUtil: OpfsSAHPoolUtil | null = null;
 
 function normalizeParams(params: SqlValue[] | undefined): SqlValue[] {
   return params ?? [];
@@ -50,7 +57,7 @@ function normalizeParams(params: SqlValue[] | undefined): SqlValue[] {
 async function getDatabase(): Promise<Sqlite3Database> {
   dbPromise ??= (async () => {
     const sqlite3 = await sqlite3InitModule() as Sqlite3Static;
-    await sqlite3.installOpfsSAHPoolVfs({
+    sahPoolUtil = await sqlite3.installOpfsSAHPoolVfs({
       directory: SQLITE_SAHPOOL_DIRECTORY,
       initialCapacity: SQLITE_SAHPOOL_INITIAL_CAPACITY,
       name: SQLITE_SAHPOOL_VFS_NAME,
@@ -63,6 +70,29 @@ async function getDatabase(): Promise<Sqlite3Database> {
     return new sqlite3.oo1.DB(SQLITE_FILE_NAME, "c", SQLITE_SAHPOOL_VFS_NAME);
   })();
   return dbPromise;
+}
+
+async function closeDatabase(): Promise<void> {
+  const pendingDatabase = dbPromise;
+  dbPromise = null;
+  let database: Sqlite3Database | null = null;
+
+  if (pendingDatabase) {
+    try {
+      database = await pendingDatabase;
+    }
+    catch {
+      // 初始化失败时仍需继续释放 VFS 已取得的文件句柄。
+    }
+  }
+
+  try {
+    database?.close();
+  }
+  finally {
+    sahPoolUtil?.pauseVfs();
+    sahPoolUtil = null;
+  }
 }
 
 function runOperation(db: Sqlite3Database, operation: SqliteWorkerWriteRequest): void {
@@ -79,6 +109,11 @@ function runOperation(db: Sqlite3Database, operation: SqliteWorkerWriteRequest):
 
 async function handleRequest(request: SqliteWorkerRequest): Promise<SqliteWorkerResponse> {
   try {
+    if (request.type === "close") {
+      await closeDatabase();
+      return { id: request.id, ok: true };
+    }
+
     const db = await getDatabase();
     if (request.type === "all") {
       const rows = db.exec({

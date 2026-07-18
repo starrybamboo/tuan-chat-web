@@ -1,7 +1,6 @@
 import {
   ArrowLeftIcon,
   ClipboardTextIcon,
-  FrameCornersIcon,
   UploadSimpleIcon,
   XIcon,
 } from "@phosphor-icons/react";
@@ -9,9 +8,8 @@ import { useRef } from "react";
 
 import type { AiImagePreviewPaneProps } from "@/components/aiImage/preview/types";
 
-import { DIRECTOR_EMOTION_OPTIONS, DIRECTOR_TOOL_OPTIONS, isDirectorToolDisabled } from "@/components/aiImage/constants";
-import { EmptyPreviewPlaceholder } from "@/components/aiImage/preview/EmptyPreviewPlaceholder";
-import { FileInput, SelectInput, TextInput } from "@/components/common/FormField";
+import { DIRECTOR_TOOL_OPTIONS } from "@/components/aiImage/constants";
+import { FileInput, TextInput } from "@/components/common/FormField";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ChevronDown, SharpDownload } from "@/icons";
 
@@ -28,10 +26,7 @@ export function DirectorWorkspace({
   directorOutputPreview,
   directorColorizePrompt,
   directorColorizeDefry,
-  directorEmotion,
-  directorEmotionExtraPrompt,
   onToggleDirectorTools,
-  onRunDirectorInputUpscale,
   onPickDirectorSourceImages,
   onSelectDirectorSourceItem,
   onRemoveDirectorSourceItem,
@@ -42,14 +37,11 @@ export function DirectorWorkspace({
   onDirectorImageDrop,
   onDirectorColorizePromptChange,
   onDirectorColorizeDefryChange,
-  onDirectorEmotionChange,
-  onDirectorEmotionExtraPromptChange,
   onActiveDirectorToolChange,
   onRunDirectorTool,
   onCopyDirectorInputImage,
   onCopyDirectorOutputImage,
   onDownloadDirectorOutputImage,
-  formatDirectorEmotionLabel,
 }: AiImagePreviewPaneProps) {
   const directorUploadInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -64,7 +56,6 @@ export function DirectorWorkspace({
   const directorCornerPillClassName = "inline-flex items-center rounded-md border border-base-300 bg-base-100/96 px-3 py-2 text-[11px] font-medium text-base-content/72 shadow-sm";
   const directorDefryOptions = [0, 1, 2, 3, 4, 5] as const;
   const directorDisplayedOutput = directorOutputPreview ?? selectedPreviewResult;
-  const isActiveDirectorToolDisabled = isDirectorToolDisabled(activeDirectorTool);
 
   const handleDirectorSidebarDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -230,7 +221,7 @@ export function DirectorWorkspace({
                 ? <MediaImage src={directorInputPreview.dataUrl} className="
                   max-h-full max-w-full object-contain
                 " alt="director-input" />
-                : <EmptyPreviewPlaceholder />}
+                : null}
               {directorInputPreview
                 ? (
                     <>
@@ -246,16 +237,6 @@ export function DirectorWorkspace({
                           onClick={() => void onCopyDirectorInputImage()}
                         >
                           <ClipboardTextIcon className="size-[18px]" weight="regular" />
-                        </button>
-                        <button
-                          type="button"
-                          className={directorCornerButtonClassName}
-                          title="Upscale disabled"
-                          aria-label="Upscale disabled"
-                          disabled
-                          onClick={() => void onRunDirectorInputUpscale()}
-                        >
-                          <FrameCornersIcon className="size-[18px]" weight="regular" />
                         </button>
                       </div>
                       <div className={`
@@ -279,7 +260,7 @@ export function DirectorWorkspace({
                 ? <MediaImage src={directorDisplayedOutput.dataUrl} className="
                   max-h-full max-w-full object-contain
                 " alt="director-output" />
-                : <EmptyPreviewPlaceholder />}
+                : null}
               {directorDisplayedOutput
                 ? (
                     <>
@@ -424,53 +405,12 @@ export function DirectorWorkspace({
             )
           : null}
 
-        {directorTool.parameterMode === "emotion"
-          ? (
-              <div className={`
-                mb-3 grid gap-3
-                ${directorFrameClassName}
-                xl:grid-cols-[180px_minmax(0,1fr)]
-              `}>
-                <label className="min-w-0">
-                  <div className="
-                    mb-2 text-[11px] font-medium uppercase tracking-[0.18em]
-                    text-base-content/55
-                  ">Emotion</div>
-                  <SelectInput
-                    className="h-10"
-                    value={directorEmotion}
-                    disabled={isBusy}
-                    onChange={event => onDirectorEmotionChange(event.target.value as typeof directorEmotion)}
-                  >
-                    {DIRECTOR_EMOTION_OPTIONS.map(item => (
-                      <option key={item} value={item}>{formatDirectorEmotionLabel(item)}</option>
-                    ))}
-                  </SelectInput>
-                </label>
-                <label className="min-w-0">
-                  <div className="
-                    mb-2 text-[11px] font-medium uppercase tracking-[0.18em]
-                    text-base-content/55
-                  ">Prompt</div>
-                  <TextInput
-                    type="text"
-                    className="h-10"
-                    value={directorEmotionExtraPrompt}
-                    disabled={isBusy}
-                    onChange={event => onDirectorEmotionExtraPromptChange(event.target.value)}
-                  />
-                </label>
-              </div>
-            )
-          : null}
-
         <div className={`
           flex flex-wrap items-center gap-2
           ${directorFrameClassName}
         `}>
           {DIRECTOR_TOOL_OPTIONS.map((tool) => {
             const isActive = activeDirectorTool === tool.id;
-            const isDisabled = isDirectorToolDisabled(tool.id);
             return (
               <button
                 key={tool.id}
@@ -478,19 +418,17 @@ export function DirectorWorkspace({
                 className={`
                   ${directorToolButtonClassName}
                   ${
-                  isDisabled
-                    ? "cursor-not-allowed bg-base-300/55 text-base-content/50"
-                    : isActive
-                      ? "bg-warning text-warning-content"
-                      : `
-                        bg-transparent text-base-content/82
-                        hover:bg-base-300 hover:text-base-content
-                      `
+                  isActive
+                    ? "bg-warning text-warning-content"
+                    : `
+                      bg-transparent text-base-content/82
+                      hover:bg-base-300 hover:text-base-content
+                    `
                 }
                 `}
-                title={isDisabled ? "Remove BG disabled" : tool.description}
+                title={tool.description}
                 aria-pressed={isActive}
-                disabled={isBusy || isDisabled}
+                disabled={isBusy}
                 onClick={() => onActiveDirectorToolChange(tool.id)}
               >
                 {tool.label}
@@ -514,7 +452,7 @@ export function DirectorWorkspace({
               disabled:bg-warning/18 disabled:text-warning/40
               disabled:shadow-none
             "
-            disabled={!directorInputPreview || isBusy || isActiveDirectorToolDisabled}
+            disabled={!directorInputPreview || isBusy}
             onClick={() => void onRunDirectorTool()}
           >
             <span>{pendingPreviewAction === activeDirectorTool ? "Transforming..." : "Transform"}</span>

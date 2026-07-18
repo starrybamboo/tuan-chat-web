@@ -1,13 +1,11 @@
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 
-import {
-  markDirectMessageRecalledData,
-  upsertDirectInboxMessagesData,
-} from "@tuanchat/query/direct-message";
+import { upsertDirectInboxMessagesData } from "@tuanchat/query/direct-message";
 
 import type { LocalDbSqliteDriver } from "./index";
 
 export const DIRECT_MESSAGES_TABLE_NAME = "direct_messages";
+export const DIRECT_MESSAGE_PENDING_TABLE_NAME = "direct_message_pending";
 
 export const DIRECT_MESSAGE_SCHEMA_SQL = [
   `CREATE TABLE IF NOT EXISTS ${DIRECT_MESSAGES_TABLE_NAME} (
@@ -24,6 +22,16 @@ export const DIRECT_MESSAGE_SCHEMA_SQL = [
     ON ${DIRECT_MESSAGES_TABLE_NAME} (current_user_id, contact_id, sync_id, message_id)`,
   `CREATE INDEX IF NOT EXISTS direct_messages_user_sync_idx
     ON ${DIRECT_MESSAGES_TABLE_NAME} (current_user_id, sync_id)`,
+  `CREATE TABLE IF NOT EXISTS ${DIRECT_MESSAGE_PENDING_TABLE_NAME} (
+    current_user_id INTEGER NOT NULL,
+    contact_id INTEGER NOT NULL,
+    pending_message_id INTEGER NOT NULL,
+    payload_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (current_user_id, pending_message_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS direct_message_pending_user_contact_idx
+    ON ${DIRECT_MESSAGE_PENDING_TABLE_NAME} (current_user_id, contact_id, pending_message_id)`,
 ] as const;
 
 export type DirectMessageRecord = {
@@ -41,12 +49,14 @@ export type DirectMessageReadWindowOptions = {
 };
 
 export type DirectMessageRepository = {
+  addPendingMessage: (currentUserId: number, message: MessageDirectResponse) => Promise<void>;
   clearUserMessages: (currentUserId: number) => Promise<void>;
   getMessagesByContact: (currentUserId: number, contactId: number, options?: DirectMessageReadWindowOptions) => Promise<MessageDirectResponse[]>;
+  getMaxSyncIdByContact: (currentUserId: number, contactId: number) => Promise<number>;
   getMessagesByUser: (currentUserId: number, options?: DirectMessageReadWindowOptions) => Promise<MessageDirectResponse[]>;
-  markMessagesRecalled: (currentUserId: number, messageIds: number[]) => Promise<void>;
+  promotePendingMessage: (currentUserId: number, pendingMessageId: number, confirmedMessage: MessageDirectResponse) => Promise<void>;
+  rollbackPendingMessage: (currentUserId: number, pendingMessageId: number) => Promise<void>;
   upsertMessages: (currentUserId: number, messages: MessageDirectResponse[]) => Promise<void>;
-  upsertReadLine: (currentUserId: number, contactId: number, syncId: number) => Promise<void>;
 };
 
 function toFiniteNumber(value: unknown): number | null {
@@ -55,14 +65,6 @@ function toFiniteNumber(value: unknown): number | null {
 
 function isPositiveId(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value > 0;
-}
-
-function normalizeIds(ids: number[]): number[] {
-  return Array.from(new Set((ids ?? []).filter(id => Number.isInteger(id))));
-}
-
-function createPlaceholders(count: number): string {
-  return Array.from({ length: count }, () => "?").join(", ");
 }
 
 function normalizeReadLimit(limit: number | null | undefined): number | null {
@@ -93,6 +95,7 @@ export function normalizeDirectMessagesForStorage(
 
   return upsertDirectInboxMessagesData(undefined, messages).filter((message) => {
     return Number.isInteger(message.messageId)
+      && message.messageId! > 0
       && getDirectContactId(message, currentUserId) !== null;
   });
 }
@@ -143,23 +146,6 @@ export function fromDirectMessageRecords(
   );
 }
 
-function createReadLineMessageId(_currentUserId: number, contactId: number): number {
-  return -contactId;
-}
-
-function createReadLineMessage(currentUserId: number, contactId: number, syncId: number): MessageDirectResponse {
-  return {
-    createTime: new Date().toISOString(),
-    messageId: createReadLineMessageId(currentUserId, contactId),
-    messageType: 10000,
-    receiverId: contactId,
-    senderId: currentUserId,
-    status: 0,
-    syncId,
-    userId: currentUserId,
-  };
-}
-
 export function createDirectMessageRepository(driver: LocalDbSqliteDriver): DirectMessageRepository {
   let schemaReadyPromise: Promise<void> | null = null;
 
@@ -172,27 +158,31 @@ export function createDirectMessageRepository(driver: LocalDbSqliteDriver): Dire
     await schemaReadyPromise;
   }
 
-  async function inTransaction<T>(task: () => Promise<T>): Promise<T> {
+  async function inTransaction<T>(task: (transactionDriver: LocalDbSqliteDriver) => Promise<T>): Promise<T> {
     if (driver.transaction) {
       return driver.transaction(task);
     }
-    return task();
+    return task(driver);
   }
 
-  async function upsertPreparedMessages(currentUserId: number, messages: MessageDirectResponse[]) {
+  async function upsertPreparedMessages(
+    currentUserId: number,
+    messages: MessageDirectResponse[],
+    transactionDriver?: LocalDbSqliteDriver,
+  ) {
     if (!isPositiveId(currentUserId) || messages.length === 0) {
       return;
     }
 
     await ensureSchema();
-    await inTransaction(async () => {
+    const write = async (writeDriver: LocalDbSqliteDriver) => {
       for (const message of messages) {
         const record = toDirectMessageRecord(currentUserId, message);
         if (!record) {
           continue;
         }
 
-        await driver.run(
+        await writeDriver.run(
           `INSERT OR REPLACE INTO ${DIRECT_MESSAGES_TABLE_NAME}
             (current_user_id, contact_id, message_id, sync_id, status, payload_json, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -207,17 +197,38 @@ export function createDirectMessageRepository(driver: LocalDbSqliteDriver): Dire
           ],
         );
       }
-    });
+    };
+    if (transactionDriver) {
+      await write(transactionDriver);
+      return;
+    }
+    await inTransaction(write);
   }
 
   return {
+    async addPendingMessage(currentUserId, message) {
+      const record = toDirectMessageRecord(currentUserId, message);
+      if (!record || record.message_id >= 0) {
+        return;
+      }
+      await ensureSchema();
+      await driver.run(
+        `INSERT OR REPLACE INTO ${DIRECT_MESSAGE_PENDING_TABLE_NAME}
+          (current_user_id, contact_id, pending_message_id, payload_json, updated_at)
+          VALUES (?, ?, ?, ?, ?)`,
+        [record.current_user_id, record.contact_id, record.message_id, record.payload_json, record.updated_at],
+      );
+    },
     async clearUserMessages(currentUserId) {
       if (!isPositiveId(currentUserId)) {
         return;
       }
 
       await ensureSchema();
-      await driver.run(`DELETE FROM ${DIRECT_MESSAGES_TABLE_NAME} WHERE current_user_id = ?`, [currentUserId]);
+      await inTransaction(async (transactionDriver) => {
+        await transactionDriver.run(`DELETE FROM ${DIRECT_MESSAGES_TABLE_NAME} WHERE current_user_id = ?`, [currentUserId]);
+        await transactionDriver.run(`DELETE FROM ${DIRECT_MESSAGE_PENDING_TABLE_NAME} WHERE current_user_id = ?`, [currentUserId]);
+      });
     },
 
     async getMessagesByContact(currentUserId, contactId, options = {}) {
@@ -235,7 +246,27 @@ export function createDirectMessageRepository(driver: LocalDbSqliteDriver): Dire
           ${limit == null ? "" : "LIMIT ?"}`,
         limit == null ? [currentUserId, contactId] : [currentUserId, contactId, limit],
       );
-      return fromDirectMessageRecords(rows);
+      const pendingRows = await driver.all<Pick<DirectMessageRecord, "payload_json">>(
+        `SELECT payload_json FROM ${DIRECT_MESSAGE_PENDING_TABLE_NAME}
+          WHERE current_user_id = ? AND contact_id = ?`,
+        [currentUserId, contactId],
+      );
+      return fromDirectMessageRecords([...rows, ...pendingRows]);
+    },
+
+    async getMaxSyncIdByContact(currentUserId, contactId) {
+      if (!isPositiveId(currentUserId) || !isPositiveId(contactId)) {
+        return 0;
+      }
+      await ensureSchema();
+      const rows = await driver.all<{ max_sync_id: number | null }>(
+        `SELECT MAX(sync_id) AS max_sync_id
+          FROM ${DIRECT_MESSAGES_TABLE_NAME}
+          WHERE current_user_id = ? AND contact_id = ?`,
+        [currentUserId, contactId],
+      );
+      const maxSyncId = rows[0]?.max_sync_id;
+      return typeof maxSyncId === "number" && Number.isFinite(maxSyncId) ? maxSyncId : 0;
     },
 
     async getMessagesByUser(currentUserId, options = {}) {
@@ -253,45 +284,43 @@ export function createDirectMessageRepository(driver: LocalDbSqliteDriver): Dire
           ${limit == null ? "" : "LIMIT ?"}`,
         limit == null ? [currentUserId] : [currentUserId, limit],
       );
-      return fromDirectMessageRecords(rows);
+      const pendingRows = await driver.all<Pick<DirectMessageRecord, "payload_json">>(
+        `SELECT payload_json FROM ${DIRECT_MESSAGE_PENDING_TABLE_NAME} WHERE current_user_id = ?`,
+        [currentUserId],
+      );
+      return fromDirectMessageRecords([...rows, ...pendingRows]);
     },
 
-    async markMessagesRecalled(currentUserId, messageIds) {
-      if (!isPositiveId(currentUserId)) {
+    async promotePendingMessage(currentUserId, pendingMessageId, confirmedMessage) {
+      if (!isPositiveId(currentUserId) || !Number.isInteger(pendingMessageId) || pendingMessageId >= 0) {
         return;
       }
-      const ids = normalizeIds(messageIds);
-      if (ids.length === 0) {
-        return;
-      }
-
       await ensureSchema();
-      const rows = await driver.all<Pick<DirectMessageRecord, "payload_json">>(
-        `SELECT payload_json
-          FROM ${DIRECT_MESSAGES_TABLE_NAME}
-          WHERE current_user_id = ? AND message_id IN (${createPlaceholders(ids.length)})`,
-        [currentUserId, ...ids],
+      await inTransaction(async (transactionDriver) => {
+        await transactionDriver.run(
+          `DELETE FROM ${DIRECT_MESSAGE_PENDING_TABLE_NAME}
+            WHERE current_user_id = ? AND pending_message_id = ?`,
+          [currentUserId, pendingMessageId],
+        );
+        await upsertPreparedMessages(currentUserId, [confirmedMessage], transactionDriver);
+      });
+    },
+
+    async rollbackPendingMessage(currentUserId, pendingMessageId) {
+      if (!isPositiveId(currentUserId) || !Number.isInteger(pendingMessageId) || pendingMessageId >= 0) {
+        return;
+      }
+      await ensureSchema();
+      await driver.run(
+        `DELETE FROM ${DIRECT_MESSAGE_PENDING_TABLE_NAME}
+          WHERE current_user_id = ? AND pending_message_id = ?`,
+        [currentUserId, pendingMessageId],
       );
-      const recalledMessages = markDirectMessageRecalledData(fromDirectMessageRecords(rows), ids[0]);
-      const nextMessages = ids.slice(1).reduce(
-        (messages, messageId) => markDirectMessageRecalledData(messages, messageId),
-        recalledMessages,
-      );
-      await upsertPreparedMessages(currentUserId, nextMessages ?? []);
     },
 
     async upsertMessages(currentUserId, messages) {
       await upsertPreparedMessages(currentUserId, normalizeDirectMessagesForStorage(currentUserId, messages));
     },
 
-    async upsertReadLine(currentUserId, contactId, syncId) {
-      if (!isPositiveId(currentUserId) || !isPositiveId(contactId) || syncId <= 0) {
-        return;
-      }
-
-      await upsertPreparedMessages(currentUserId, [
-        createReadLineMessage(currentUserId, contactId, syncId),
-      ]);
-    },
   };
 }

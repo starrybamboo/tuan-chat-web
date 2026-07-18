@@ -4,8 +4,11 @@ import {
 import {
   collectPersistedOptimisticDuplicateIds,
   commitOptimisticRoomMessageInList,
+  isLocalRoomMessage,
   isOptimisticRoomMessage,
+  markOptimisticRoomMessage,
   mergeRoomMessagesForLocalState,
+  rollbackOptimisticRoomMessagesInList,
 } from "@tuanchat/query/room-message-lifecycle";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -24,10 +27,6 @@ type IncomingRoomMessageGapParams = {
   incomingMessages: ChatMessageResponse[];
   latestHistorySyncId?: number;
 };
-
-function getPersistableRoomMessages(messages: ChatMessageResponse[]): ChatMessageResponse[] {
-  return messages.filter(message => !isOptimisticRoomMessage(message.message));
-}
 
 function shouldPhysicallyDeleteLocalMessage(messageId: number): boolean {
   return messageId < 0;
@@ -110,6 +109,11 @@ export type UseChatHistoryReturn = {
   error: Error | null;
   addOrUpdateMessage: (message: ChatMessageResponse) => Promise<void>;
   addOrUpdateMessages: (messages: ChatMessageResponse[]) => Promise<void>;
+  applyOptimisticMessages: (messages: ChatMessageResponse[]) => ChatMessageResponse[];
+  rollbackOptimisticMessages: (
+    optimisticMessages: ChatMessageResponse[],
+    previousMessages: ChatMessageResponse[],
+  ) => void;
   removeMessageById: (messageId: number) => Promise<void>;
   replaceMessageById: (fromMessageId: number, message: ChatMessageResponse) => Promise<void>;
   resolveMessageId: (messageId: number) => number;
@@ -236,15 +240,15 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         });
       }
 
-      const persistableMessages = getPersistableRoomMessages(newMessages);
-      if (persistableMessages.length === 0) {
-        return;
-      }
-
-      // 异步将服务端已确认消息批量存入数据库；pending 乐观消息只保留在当前渲染态。
+      // SQLite 只持久化服务端确认投影与负 ID 发送 pending；编辑、移动、删除的乐观态只留在内存。
       try {
         const db = await loadChatHistoryDb();
-        await db.addOrUpdateMessagesBatch(persistableMessages);
+        const pendingMessages = newMessages.filter(message => isLocalRoomMessage(message.message));
+        const confirmedMessages = newMessages.filter(message => !isLocalRoomMessage(message.message));
+        await db.addPendingRoomMessages(pendingMessages);
+        if (confirmedMessages.length > 0) {
+          await db.addOrUpdateMessagesBatch(confirmedMessages);
+        }
         const duplicateIds = collectPersistedOptimisticDuplicateIds(
           mergeRoomMessagesForLocalState(messagesRawRef.current, newMessages),
         );
@@ -259,6 +263,34 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     },
     [], // ← 移除依赖，使用 ref 代替
   );
+
+  const applyOptimisticMessages = useCallback((newMessages: ChatMessageResponse[]) => {
+    const currentRoomId = roomIdRef.current;
+    const roomScopedMessages = newMessages.filter(message => message.message.roomId === currentRoomId);
+    if (roomScopedMessages.length === 0) {
+      return [];
+    }
+    const optimisticMessages = roomScopedMessages.map(message => ({
+      ...message,
+      message: markOptimisticRoomMessage(message.message),
+    }));
+    setMessages(prevMessages => mergeRoomMessagesForLocalState(prevMessages, optimisticMessages));
+    return optimisticMessages;
+  }, []);
+
+  const rollbackOptimisticMessages = useCallback((
+    optimisticMessages: ChatMessageResponse[],
+    previousMessages: ChatMessageResponse[],
+  ) => {
+    if (optimisticMessages.length === 0) {
+      return;
+    }
+    setMessages(currentMessages => rollbackOptimisticRoomMessagesInList(
+      currentMessages,
+      optimisticMessages,
+      previousMessages,
+    ));
+  }, []);
 
   /**
    * 添加或更新单条消息（作为批量操作的便捷封装）
@@ -352,9 +384,11 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     try {
       const db = await loadChatHistoryDb();
       if (fromMessageId !== nextMessage.messageId) {
-        await db.deleteMessagesByIds([fromMessageId]);
+        await db.promotePendingRoomMessage(fromMessageId, mergedForDb);
       }
-      await db.addOrUpdateMessagesBatch([mergedForDb]);
+      else {
+        await db.addOrUpdateMessagesBatch([mergedForDb]);
+      }
     }
     catch (err) {
       setError(err as Error);
@@ -574,6 +608,8 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     error,
     addOrUpdateMessage, // 用于单条消息
     addOrUpdateMessages, // 用于批量消息
+    applyOptimisticMessages,
+    rollbackOptimisticMessages,
     removeMessageById,
     replaceMessageById,
     resolveMessageId,

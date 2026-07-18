@@ -3,12 +3,12 @@ import type { RoleAvatarVariant } from "api";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 
 import { appToast } from "@/components/common/appToast/appToast";
-import { Button } from "@/components/common/Button";
-import { DialogActions, DialogFrame } from "@/components/common/DialogFrame";
-import { FileInput, Radio, SelectInput, TextInput } from "@/components/common/FormField";
+import { FileInput } from "@/components/common/FormField";
 import { normalizeImageFileOrNull } from "@/utils/media/mediaMime";
 
+import { VariantAssignmentDialog } from "../sprite/Tabs/VariantAssignmentDialog";
 import { dispatchAvatarUploadTask } from "./avatarUploadDispatch";
+import { resolvePendingAvatarUpload } from "./avatarUploadTargetDialog";
 
 export type UploadVariantTarget =
   | { mode: "none" }
@@ -21,7 +21,7 @@ export type AvatarUploadFilesContext = {
 }
 
 type UploadVariantTargetDraft = {
-  mode: "none" | "existing" | "new";
+  mode: "none" | "existing";
   variantId: string;
   name: string;
 }
@@ -42,11 +42,6 @@ type CharacterCopperProps = {
 function normalizeVariantId(value: unknown): number | undefined {
   const id = Number(value);
   return Number.isFinite(id) && id > 0 ? Math.floor(id) : undefined;
-}
-
-function getVariantDisplayName(variant: RoleAvatarVariant | undefined) {
-  const id = normalizeVariantId(variant?.variantId);
-  return String(variant?.name ?? "").trim() || `立绘组 ${id ?? ""}`;
 }
 
 function createUploadBatchKey() {
@@ -89,6 +84,7 @@ export function CharacterCopper({
 
   const [pendingUploadFiles, setPendingUploadFiles] = useState<File[] | null>(null);
   const [variantTargetDialogOpen, setVariantTargetDialogOpen] = useState(false);
+  const [variantTargetDialogMode, setVariantTargetDialogMode] = useState<"select" | "create">("select");
   const [variantTargetDraft, setVariantTargetDraft] = useState<UploadVariantTargetDraft>(() => ({
     mode: "none",
     variantId: "",
@@ -120,20 +116,13 @@ export function CharacterCopper({
       variantId: defaultId ? String(defaultId) : "",
       name: `立绘组 ${variantGroups.length + 1}`,
     });
+    setVariantTargetDialogMode("select");
     setVariantTargetDialogOpen(true);
   }, [defaultVariantId, lockedVariantGroup?.variantId, variantGroups.length]);
 
   const resolveVariantTargetDraft = useCallback((): UploadVariantTarget | null => {
     if (variantTargetDraft.mode === "none") {
       return { mode: "none" };
-    }
-    if (variantTargetDraft.mode === "new") {
-      const name = variantTargetDraft.name.trim();
-      if (!name) {
-        appToast.error("请输入立绘组名称");
-        return null;
-      }
-      return { mode: "new", name };
     }
     const variantId = normalizeVariantId(variantTargetDraft.variantId);
     if (!variantId) {
@@ -192,25 +181,46 @@ export function CharacterCopper({
     )();
   }, [externalFiles, externalFilesBatchId, handleFiles, onExternalFilesHandled]);
 
-  const handleConfirmVariantTarget = useCallback(() => {
-    const files = pendingUploadFiles;
-    if (!files?.length) {
+  const completePendingUpload = useCallback((target: UploadVariantTarget) => {
+    const submission = resolvePendingAvatarUpload(pendingUploadFiles, target);
+    if (!submission) {
       setVariantTargetDialogOpen(false);
-      return;
-    }
-    const target = resolveVariantTargetDraft();
-    if (!target) {
       return;
     }
     setVariantTargetDialogOpen(false);
     setPendingUploadFiles(null);
-    void beginUploadFlow(files, target);
-  }, [beginUploadFlow, pendingUploadFiles, resolveVariantTargetDraft]);
+    setVariantTargetDialogMode("select");
+    void beginUploadFlow(submission.files, submission.target);
+  }, [beginUploadFlow, pendingUploadFiles]);
+
+  const handleConfirmVariantTarget = useCallback(() => {
+    const target = resolveVariantTargetDraft();
+    if (target) {
+      completePendingUpload(target);
+    }
+  }, [completePendingUpload, resolveVariantTargetDraft]);
+
+  const handleSkipVariantTarget = useCallback(() => {
+    completePendingUpload({ mode: "none" });
+  }, [completePendingUpload]);
 
   const handleCancelVariantTarget = useCallback(() => {
     setVariantTargetDialogOpen(false);
     setPendingUploadFiles(null);
+    setVariantTargetDialogMode("select");
   }, []);
+
+  const handleVariantTargetSelection = useCallback((variantId: number | null) => {
+    setVariantTargetDraft(prev => (
+      variantId == null
+        ? { ...prev, mode: "none", variantId: "" }
+        : { ...prev, mode: "existing", variantId: String(variantId) }
+    ));
+  }, []);
+
+  const handleConfirmNewVariantTarget = useCallback((name: string) => {
+    completePendingUpload({ mode: "new", name });
+  }, [completePendingUpload]);
 
   return (
     <div className={wrapperClassName || ""}>
@@ -239,119 +249,25 @@ export function CharacterCopper({
         {children}
       </div>
 
-      <DialogFrame
+      <VariantAssignmentDialog
         open={variantTargetDialogOpen}
-        mode="inline"
+        mode={variantTargetDialogMode}
         onClose={handleCancelVariantTarget}
-        ariaLabel="选择头像上传目标"
-        closeButtonLabel="关闭上传目标选择"
-        panelClassName="w-[92vw] max-w-md"
-      >
-            <h3 className="text-lg font-bold">
-              {pendingUploadFiles && pendingUploadFiles.length > 1 ? "批量上传头像" : "上传头像"}
-            </h3>
-            <p className="mt-2 text-sm text-base-content/70">
-              选择本次上传的立绘组归属，确认后进入统一校正流程。
-            </p>
-            <div className="mt-4 space-y-3">
-              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-base-300 px-3 py-2">
-                <Radio
-                  density="compact"
-                  checked={variantTargetDraft.mode === "none"}
-                  onChange={() => setVariantTargetDraft(prev => ({ ...prev, mode: "none" }))}
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium">不绑定立绘组</span>
-                  <span className="block text-xs text-base-content/60">只创建独立头像和立绘</span>
-                </span>
-              </label>
-
-              <label className="block rounded-md border border-base-300 px-3 py-2">
-                <span className="flex cursor-pointer items-center gap-3">
-                  <Radio
-                    density="compact"
-                    checked={variantTargetDraft.mode === "existing"}
-                    onChange={() => setVariantTargetDraft(prev => ({
-                      ...prev,
-                      mode: "existing",
-                      variantId: prev.variantId || String(normalizeVariantId(defaultVariantId) ?? ""),
-                    }))}
-                    disabled={variantGroups.length === 0}
-                  />
-                  <span className="text-sm font-medium">绑定到已有立绘组</span>
-                </span>
-                <SelectInput
-                  density="compact"
-                  className="mt-2"
-                  value={variantTargetDraft.variantId}
-                  onChange={(event) => {
-                    const variantId = event.currentTarget.value;
-                    setVariantTargetDraft(prev => ({
-                      ...prev,
-                      mode: "existing",
-                      variantId,
-                    }));
-                  }}
-                  disabled={variantTargetDraft.mode !== "existing" || variantGroups.length === 0}
-                >
-                  <option value="">选择立绘组</option>
-                  {variantGroups.map((variant) => {
-                    const id = normalizeVariantId(variant.variantId);
-                    if (!id) {
-                      return null;
-                    }
-                    return (
-                      <option key={id} value={id}>
-                        {getVariantDisplayName(variant)}
-                      </option>
-                    );
-                  })}
-                </SelectInput>
-              </label>
-
-              <label className="block rounded-md border border-base-300 px-3 py-2">
-                <span className="flex cursor-pointer items-center gap-3">
-                  <Radio
-                    density="compact"
-                    checked={variantTargetDraft.mode === "new"}
-                    onChange={() => setVariantTargetDraft(prev => ({ ...prev, mode: "new" }))}
-                  />
-                  <span className="text-sm font-medium">新建立绘组</span>
-                </span>
-                <TextInput
-                  density="compact"
-                  className="mt-2"
-                  type="text"
-                  name="avatar_variant_group_name"
-                  autoComplete="off"
-                  aria-label="立绘组名称"
-                  value={variantTargetDraft.name}
-                  onChange={(event) => {
-                    const name = event.currentTarget.value;
-                    setVariantTargetDraft(prev => ({
-                      ...prev,
-                      mode: "new",
-                      name,
-                    }));
-                  }}
-                  disabled={variantTargetDraft.mode !== "new"}
-                  placeholder="立绘组 1"
-                />
-              </label>
-            </div>
-            <DialogActions>
-              <Button type="button" variant="ghost" onClick={handleCancelVariantTarget}>
-                取消
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                onClick={handleConfirmVariantTarget}
-              >
-                继续校正
-              </Button>
-            </DialogActions>
-      </DialogFrame>
+        selectedCount={pendingUploadFiles?.length ?? 0}
+        variants={variantGroups}
+        selectedVariantId={variantTargetDraft.mode === "existing"
+          ? normalizeVariantId(variantTargetDraft.variantId) ?? null
+          : null}
+        onSelectVariant={handleVariantTargetSelection}
+        onConfirmSelection={handleConfirmVariantTarget}
+        confirmSelectionLabel="继续校正"
+        cancelSelectionLabel="暂不分组"
+        onCancelSelection={handleSkipVariantTarget}
+        onRequestCreate={() => setVariantTargetDialogMode("create")}
+        onBackToSelection={() => setVariantTargetDialogMode("select")}
+        initialVariantName={variantTargetDraft.name}
+        onConfirmCreate={handleConfirmNewVariantTarget}
+      />
     </div>
   );
 }

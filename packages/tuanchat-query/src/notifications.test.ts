@@ -6,6 +6,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  beginMarkNotificationsReadOptimisticMutation,
   getNotificationsQueryKey,
   getNotificationsUnreadCountQueryKey,
   invalidateNotificationQueries,
@@ -16,6 +17,7 @@ import {
   prependNotificationToCaches,
   prependNotificationToPageData,
 } from "./notifications";
+import { rollbackOptimisticQueryTransaction } from "./optimistic-cache";
 
 type NotificationData = InfiniteData<ApiResultCursorPageBaseResponseNotificationItemResponse, number | undefined>;
 
@@ -154,6 +156,20 @@ describe("notification cache helpers", () => {
 
     expect(queryClient.getQueryData<ReturnType<typeof unreadCountData>>(getNotificationsUnreadCountQueryKey())?.data?.unreadCount).toBe(0);
     expect(queryClient.getQueryData<NotificationData>(getNotificationsQueryKey({ pageSize: 20 }))?.pages[0].data?.list.map(item => item.isRead)).toEqual([true, true]);
+  });
+
+  it("通知失败回滚不会覆盖并发推送后的较新缓存", async () => {
+    const queryClient = new QueryClient();
+    const queryKey = getNotificationsQueryKey({ pageSize: 20 });
+    queryClient.setQueryData(queryKey, pageData([notification(1)]));
+    queryClient.setQueryData(getNotificationsUnreadCountQueryKey(), unreadCountData(1));
+
+    const transaction = await beginMarkNotificationsReadOptimisticMutation(queryClient, [1]);
+    const pushedData = pageData([notification(2), notification(1, { isRead: true })]);
+    queryClient.setQueryData(queryKey, pushedData);
+    rollbackOptimisticQueryTransaction(queryClient, transaction);
+
+    expect(queryClient.getQueryData(queryKey)).toEqual(pushedData);
   });
 
   it("失效通知查询时会同时校准列表和未读数", () => {

@@ -24,4 +24,3 @@ export type ApiResultMapStringRoomRoleListResponse = {
      */
     data?: Record<string, RoomRoleListResponse>;
 };
-

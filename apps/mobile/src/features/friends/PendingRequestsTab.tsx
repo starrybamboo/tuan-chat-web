@@ -1,7 +1,8 @@
 import type { FriendReqResponse } from "@tuanchat/openapi-client/models/FriendReqResponse";
 
+import { FlashList } from "@shopify/flash-list";
 import { useCallback } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
@@ -165,7 +166,7 @@ export function PendingRequestsTab({
 
   if (embedded) {
     return (
-      <FlatList
+      <FlashList
         data={isPending ? [] : requests}
         contentContainerStyle={styles.listContent}
         keyExtractor={item => `embedded-request:${item.id ?? item.fromId ?? "unknown"}`}
@@ -177,7 +178,7 @@ export function PendingRequestsTab({
   }
 
   return (
-    <FlatList
+    <FlashList
       data={isPending ? [] : requests}
       contentContainerStyle={styles.listContent}
       keyExtractor={item => `request:${item.id ?? item.fromId ?? "unknown"}`}

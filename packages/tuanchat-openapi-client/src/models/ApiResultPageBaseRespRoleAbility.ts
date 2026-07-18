@@ -24,4 +24,3 @@ export type ApiResultPageBaseRespRoleAbility = {
      */
     data?: PageBaseRespRoleAbility;
 };
-

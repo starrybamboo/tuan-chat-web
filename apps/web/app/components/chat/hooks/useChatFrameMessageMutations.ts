@@ -1,15 +1,14 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { PatchMessagesRequest } from "@tuanchat/query/chat";
-import { appToast } from "@/components/common/appToast/appToast";
 
 import { useCallback } from "react";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 
 import { useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type {
-
   ApiResultListMessage,
   ApiResultMessage,
   ChatMessageResponse,
@@ -65,9 +64,9 @@ export default function useChatFrameMessageMutations({
         }
       : null;
 
-    if (optimisticDeletedMessage) {
-      roomContext.chatHistory?.addOrUpdateMessage(optimisticDeletedMessage);
-    }
+    const appliedOptimisticMessages = optimisticDeletedMessage
+      ? roomContext.chatHistory?.applyOptimisticMessages([optimisticDeletedMessage]) ?? []
+      : [];
 
     deleteMessageMutation.mutate(messageId, {
       onSuccess: (response) => {
@@ -101,9 +100,10 @@ export default function useChatFrameMessageMutations({
       },
       onError: (error) => {
         console.error("删除消息失败", error);
-        if (targetMessage) {
-          roomContext.chatHistory?.addOrUpdateMessage(targetMessage);
-        }
+        roomContext.chatHistory?.rollbackOptimisticMessages(
+          appliedOptimisticMessages,
+          targetMessage ? [targetMessage] : [],
+        );
         appToast.error("删除消息失败，已恢复原消息");
       },
     });
@@ -129,9 +129,9 @@ export default function useChatFrameMessageMutations({
       },
     }));
 
-    if (optimisticDeletedMessages.length > 0) {
-      void roomContext.chatHistory?.addOrUpdateMessages(optimisticDeletedMessages);
-    }
+    const appliedOptimisticMessages = roomContext.chatHistory?.applyOptimisticMessages(
+      optimisticDeletedMessages,
+    ) ?? [];
 
     const operations: RoomMessageStreamPatchOperation[] = normalizedMessageIds.map(messageId => ({
       op: "delete",
@@ -165,9 +165,7 @@ export default function useChatFrameMessageMutations({
       },
       onError: (error) => {
         console.error("批量删除消息失败", error);
-        if (targetMessages.length > 0) {
-          void roomContext.chatHistory?.addOrUpdateMessages(targetMessages);
-        }
+        roomContext.chatHistory?.rollbackOptimisticMessages(appliedOptimisticMessages, targetMessages);
         appToast.error("批量删除消息失败，已恢复原消息");
       },
     });
@@ -217,7 +215,7 @@ export default function useChatFrameMessageMutations({
           }
         : { message } as ChatMessageResponse;
     });
-    void roomContext.chatHistory?.addOrUpdateMessages(optimisticResponses);
+    const appliedOptimisticMessages = roomContext.chatHistory?.applyOptimisticMessages(optimisticResponses) ?? [];
 
     const operations: RoomMessageStreamPatchOperation[] = pendingUpdates.map(message => ({
       op: "update",
@@ -241,9 +239,7 @@ export default function useChatFrameMessageMutations({
       onError: (error) => {
         console.error("批量更新消息失败", error);
         const rollbackMessages = Array.from(existingResponseById.values());
-        if (rollbackMessages.length > 0) {
-          void roomContext.chatHistory?.addOrUpdateMessages(rollbackMessages);
-        }
+        roomContext.chatHistory?.rollbackOptimisticMessages(appliedOptimisticMessages, rollbackMessages);
         appToast.error("批量更新消息失败，已恢复原内容");
       },
     });
@@ -267,15 +263,13 @@ export default function useChatFrameMessageMutations({
       });
     }
 
-    if (existingResponse) {
-      roomContext.chatHistory?.addOrUpdateMessage({
+    const optimisticResponses = existingResponse
+      ? [{
         ...existingResponse,
         message,
-      });
-    }
-    else {
-      roomContext.chatHistory?.addOrUpdateMessage({ message });
-    }
+      }]
+      : [{ message } as ChatMessageResponse];
+    const appliedOptimisticMessages = roomContext.chatHistory?.applyOptimisticMessages(optimisticResponses) ?? [];
 
     updateMessageMutation.mutate(message, {
       onSuccess: (response) => {
@@ -290,9 +284,10 @@ export default function useChatFrameMessageMutations({
       },
       onError: (error) => {
         console.error("更新消息失败", error);
-        if (existingResponse) {
-          roomContext.chatHistory?.addOrUpdateMessage(existingResponse);
-        }
+        roomContext.chatHistory?.rollbackOptimisticMessages(
+          appliedOptimisticMessages,
+          existingResponse ? [existingResponse] : [],
+        );
         appToast.error("更新消息失败，已恢复原内容");
       },
     });

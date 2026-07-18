@@ -1,9 +1,10 @@
 import type { LayoutChangeEvent } from "react-native";
 
+import { Galeria } from "@nandorojo/galeria";
 import { router, useLocalSearchParams } from "expo-router";
 import { CaretLeft } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CachedImage } from "@/components/CachedImage";
@@ -20,7 +21,7 @@ import { useRoleAvatarsQuery } from "@/features/roles/useRoleAvatarsQuery";
 import { useCreateRoleMutation, useDeleteRoleMutation, useUpdateRoleMutation } from "@/features/roles/useRoleMutations";
 import { useAddRoomRoleMutation } from "@/features/roles/useRoomRolesQuery";
 import { useTheme } from "@/hooks/use-theme";
-import { avatarThumbUrl } from "@/lib/media-url";
+import { avatarThumbUrl, mediaFileUrl } from "@/lib/media-url";
 import { readMobileKeyValue, writeMobileKeyValue } from "@/lib/mobile-key-value-storage";
 
 const DESCRIPTION_INPUT_MIN_HEIGHT = 38;
@@ -161,29 +162,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xxl,
     paddingVertical: Spacing.md,
   },
-  previewOverlay: {
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.78)",
-    flex: 1,
-    justifyContent: "center",
-    padding: Spacing.xxl,
-  },
-  previewImage: {
-    borderRadius: Radius.xl,
-    height: "72%",
-    width: "92%",
-  },
-  previewFallback: {
-    alignItems: "center",
-    backgroundColor: "#6366f1",
-    justifyContent: "center",
-  },
-  previewCloseButton: {
-    borderRadius: Radius.md,
-    marginTop: Spacing.xl,
-    paddingHorizontal: Spacing.xxl,
-    paddingVertical: Spacing.md,
-  },
 });
 
 export default function RoleEditScreen() {
@@ -210,7 +188,6 @@ export default function RoleEditScreen() {
   const [roleType, setRoleType] = useState<number>(existingRole?.type ?? 0);
   const [selectedAvatarId, setSelectedAvatarId] = useState<number | null>(existingRole?.avatarId ?? null);
   const [selectedRuleId, setSelectedRuleId] = useState<number | null>(DEFAULT_ROLE_EDIT_RULE_ID);
-  const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
   const [descriptionInputHeight, setDescriptionInputHeight] = useState(DESCRIPTION_INPUT_MIN_HEIGHT);
   const hydratedRoleIdRef = useRef<number | "create" | null>(null);
 
@@ -225,11 +202,16 @@ export default function RoleEditScreen() {
     return found?.avatarFileId ?? existingRole?.avatarFileId ?? null;
   }, [selectedAvatarId, avatarsQuery.data, existingRole?.avatarFileId]);
   const avatarThumbSrc = avatarThumbUrl(displayAvatarFileId);
+  const avatarPreviewSrc = displayAvatarFileId ? mediaFileUrl(displayAvatarFileId, "image", "original") : "";
 
   const createMutation = useCreateRoleMutation();
   const updateMutation = useUpdateRoleMutation();
   const deleteMutation = useDeleteRoleMutation();
   const addRoomRoleMutation = useAddRoomRoleMutation();
+  const { mutateAsync: createRole } = createMutation;
+  const { mutateAsync: updateRole } = updateMutation;
+  const { mutateAsync: deleteRoles } = deleteMutation;
+  const { mutateAsync: addRoomRole } = addRoomRoleMutation;
   const isSaving = createMutation.isPending || updateMutation.isPending || addRoomRoleMutation.isPending;
   const isDeleting = deleteMutation.isPending;
 
@@ -239,7 +221,7 @@ export default function RoleEditScreen() {
       return;
     }
 
-    router.replace(ROLE_LIST_ROUTE as any);
+    router.replace(ROLE_LIST_ROUTE);
   }, []);
 
   useEffect(() => {
@@ -333,7 +315,7 @@ export default function RoleEditScreen() {
     }
     try {
       if (isCreating) {
-        const result = await createMutation.mutateAsync({
+        const result = await createRole({
           roleName: roleName.trim(),
           description: description.trim(),
           type: roleType,
@@ -343,7 +325,7 @@ export default function RoleEditScreen() {
           throw new Error(result.errMsg?.trim() || "创建角色失败");
         }
         if (addToRoomId !== null) {
-          await addRoomRoleMutation.mutateAsync({
+          await addRoomRole({
             roomId: addToRoomId,
             roleIdList: [createdRoleId],
           });
@@ -354,7 +336,7 @@ export default function RoleEditScreen() {
           Alert.alert("无法保存", "角色参数无效，请返回后重试。");
           return;
         }
-        await updateMutation.mutateAsync({
+        await updateRole({
           roleId,
           roleName: roleName.trim(),
           description: description.trim(),
@@ -363,10 +345,10 @@ export default function RoleEditScreen() {
       }
       closeRoleEdit();
     }
-    catch (e: any) {
-      Alert.alert("保存失败", e?.message ?? "请稍后重试");
+    catch (error) {
+      Alert.alert("保存失败", error instanceof Error ? error.message : "请稍后重试");
     }
-  }, [addRoomRoleMutation, addToRoomId, roleName, description, roleType, roleId, isCreating, selectedAvatarId, createMutation, updateMutation, isSaving, closeRoleEdit]);
+  }, [addRoomRole, addToRoomId, closeRoleEdit, createRole, description, isCreating, isSaving, roleId, roleName, roleType, selectedAvatarId, updateRole]);
 
   const handleDelete = useCallback(async () => {
     if (roleId === null)
@@ -378,16 +360,16 @@ export default function RoleEditScreen() {
         style: "destructive",
         onPress: async () => {
           try {
-            await deleteMutation.mutateAsync([roleId]);
+            await deleteRoles([roleId]);
             closeRoleEdit();
           }
-          catch (e: any) {
-            Alert.alert("删除失败", e?.message ?? "请稍后重试");
+          catch (error) {
+            Alert.alert("删除失败", error instanceof Error ? error.message : "请稍后重试");
           }
         },
       },
     ]);
-  }, [roleId, deleteMutation, closeRoleEdit]);
+  }, [closeRoleEdit, deleteRoles, roleId]);
 
   if (isInvalidRoleRoute) {
     return (
@@ -481,35 +463,48 @@ export default function RoleEditScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Role Avatar Header */}
-          {!isCreating && (
-            <View style={styles.profileHeader}>
-              <Pressable
-                onPress={() => setAvatarPreviewVisible(true)}
-                accessibilityLabel="查看角色头像大图"
-                accessibilityRole="button"
-                style={[
-                  styles.roleAvatarButton,
-                  { borderColor: theme.border, borderStyle: "dashed", borderWidth: StyleSheet.hairlineWidth, boxShadow: "none", outlineWidth: 0 },
-                ]}
-              >
-                {avatarThumbSrc
-                  ? (
-                      <CachedImage
-                        uri={avatarThumbSrc}
-                        style={styles.roleAvatar}
-                        contentFit="cover"
-                      />
-                    )
-                  : (
+          {!isCreating
+            ? (
+                <View style={styles.profileHeader}>
+              {avatarThumbSrc && avatarPreviewSrc
+                ? (
+                    <Galeria urls={[avatarPreviewSrc]}>
+                      <Galeria.Image>
+                        <View
+                          accessible
+                          accessibilityLabel="查看角色头像大图"
+                          accessibilityRole="imagebutton"
+                          style={[
+                            styles.roleAvatarButton,
+                            { borderColor: theme.border, borderStyle: "dashed", borderWidth: StyleSheet.hairlineWidth, boxShadow: "none", outlineWidth: 0 },
+                          ]}
+                        >
+                          <CachedImage
+                            uri={avatarThumbSrc}
+                            style={styles.roleAvatar}
+                            contentFit="cover"
+                          />
+                        </View>
+                      </Galeria.Image>
+                    </Galeria>
+                  )
+                : (
+                    <View
+                      style={[
+                        styles.roleAvatarButton,
+                        { borderColor: theme.border, borderStyle: "dashed", borderWidth: StyleSheet.hairlineWidth },
+                      ]}
+                    >
                       <View style={styles.roleAvatarFallback}>
                         <ThemedText style={{ color: "#fff", fontSize: 28, fontWeight: "700" }}>
                           {(roleName || "R").slice(0, 1).toUpperCase()}
                         </ThemedText>
                       </View>
-                    )}
-              </Pressable>
-            </View>
-          )}
+                    </View>
+                  )}
+                </View>
+              )
+            : null}
 
           {/* Basic Info */}
           <View style={[styles.basicInfoSection, !isCreating && styles.basicInfoAfterAvatar]}>
@@ -537,8 +532,9 @@ export default function RoleEditScreen() {
                 maxLength={140}
               />
             </View>
-            {isCreating && (
-              <View>
+            {isCreating
+              ? (
+                  <View>
                 <ThemedText type="small" themeColor="textSecondary" style={{ marginBottom: Spacing.sm }}>
                   角色类型
                 </ThemedText>
@@ -560,8 +556,9 @@ export default function RoleEditScreen() {
                     </ThemedText>
                   </Pressable>
                 </View>
-              </View>
-            )}
+                  </View>
+                )
+              : null}
           </View>
 
           {/* Avatar Selector */}
@@ -598,38 +595,6 @@ export default function RoleEditScreen() {
               )
             : null}
         </ScrollView>
-        <Modal
-          visible={avatarPreviewVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setAvatarPreviewVisible(false)}
-        >
-          <Pressable
-            style={styles.previewOverlay}
-            onPress={() => setAvatarPreviewVisible(false)}
-            accessibilityLabel="关闭头像预览"
-            accessibilityRole="button"
-          >
-            {avatarThumbSrc
-              ? (
-                  <CachedImage
-                    uri={avatarThumbSrc}
-                    style={styles.previewImage}
-                    contentFit="contain"
-                  />
-                )
-              : (
-                  <View style={[styles.previewImage, styles.previewFallback]}>
-                    <ThemedText style={{ color: "#fff", fontSize: 48, fontWeight: "700" }}>
-                      {(roleName || "R").slice(0, 1).toUpperCase()}
-                    </ThemedText>
-                  </View>
-                )}
-            <View style={[styles.previewCloseButton, { backgroundColor: theme.backgroundElement }]}>
-              <ThemedText themeColor="accent">关闭</ThemedText>
-            </View>
-          </Pressable>
-        </Modal>
       </SafeAreaView>
     </ThemedView>
   );

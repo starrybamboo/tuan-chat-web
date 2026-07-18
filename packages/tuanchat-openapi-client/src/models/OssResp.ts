@@ -16,4 +16,3 @@ export type OssResp = {
      */
     uploadHeaders?: Record<string, string>;
 };
-

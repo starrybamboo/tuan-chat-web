@@ -1,0 +1,52 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": [
+    "../../packages/oxlint-config/oxlint-base.jsonc"
+  ],
+  "rules": {
+    // Expo 公开环境变量通过 process.env.EXPO_PUBLIC_* 注入，这是平台规定的读取方式。
+    "node/no-process-env": "off"
+  },
+  "overrides": [
+    {
+      // Mobile 同时包含 Expo/React Native 源码、测试和少量 CommonJS 原生配置桥接代码。
+      "files": [
+        "**/*.{js,jsx,ts,tsx}"
+      ],
+      "rules": {
+        // Expo config plugin 与原生桥接仍需 require；迁移为 ESM 取决于上游工具支持。
+        "typescript/no-require-imports": "off",
+        // Vitest mock 的类型通常可推断，强制每个 mock 写泛型会增加测试噪音。
+        "vitest/require-mock-type-parameters": "off",
+        // 生产代码允许 warn/error 进入原生日志；普通调试输出仍会告警。
+        "no-console": [
+          "warn",
+          {
+            "allow": [
+              "warn",
+              "error"
+            ]
+          }
+        ],
+        // React Compiler 的高误报规则先以 warning 观察，待存量清零后再升级为 error。
+        "react-hooks-js/immutability": "warn",
+        "react-hooks-js/preserve-manual-memoization": "warn",
+        "react-hooks-js/purity": "warn",
+        "react-hooks-js/refs": "warn",
+        "react-hooks-js/set-state-in-effect": "warn",
+        "react-hooks-js/static-components": "warn"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    // Expo 缓存、导出目录和临时文件均为工具产物。
+    ".expo/**",
+    ".expo-export-web/**",
+    ".tmp/**",
+    // 原生工程由 Expo prebuild/config plugin 生成，不直接对生成结果 lint。
+    "android/**",
+    "ios/**",
+    // 应用内脚本包含平台 CLI/config glue，使用根脚本规则会产生不准确的 React 告警。
+    "scripts/**"
+  ]
+}

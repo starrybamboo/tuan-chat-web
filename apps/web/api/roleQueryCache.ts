@@ -1,19 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
-import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
-export type RoleListQuerySnapshot = Array<{
-  queryKey: readonly unknown[];
-  data: unknown;
-}>;
-
-export type RoleAvatarListQuerySnapshot = {
-  queryKey: readonly unknown[];
-  data: unknown;
-} | null;
-
 export type UserRoleCacheRecord = UserRole;
-export type RoleAvatarCacheRecord = RoleAvatar;
 
 export type RoleAvatarFieldPatch = {
   roleId: number;
@@ -38,10 +26,6 @@ function hasPatchRoleId(role?: RoleAvatarFieldPatch | null): role is RoleAvatarF
 
 function hasAvatarId(role?: UserRoleCacheRecord | null): role is UserRoleCacheRecord & { avatarId: number } {
   return typeof role?.avatarId === "number" && role.avatarId > 0;
-}
-
-function hasPositiveId(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
 function omitUndefinedFields<T extends Record<string, unknown>>(record: T): Partial<T> {
@@ -178,11 +162,6 @@ function upsertUserRoleList(list: UserRoleCacheRecord[], role: UserRoleCacheReco
   return sortUserRoles(next);
 }
 
-function removeUserRoleList(list: UserRoleCacheRecord[], roleIds: Set<number>): UserRoleCacheRecord[] {
-  const next = list.filter(role => !roleIds.has(role.roleId ?? 0));
-  return next.length === list.length ? list : next;
-}
-
 function updatePageList(page: any, list: UserRole[], totalRecords: number): any {
   if (!page?.data || !Array.isArray(page.data.list)) {
     return page;
@@ -230,12 +209,15 @@ function updateRoleListCacheData(
 
   if (data && Array.isArray(data.list)) {
     const nextList = updateList(data.list);
+    const totalRecords = Math.max(
+      0,
+      Number(data.totalRecords ?? data.list.length) + nextList.length - data.list.length,
+    );
     return {
       ...(old as any),
       data: {
         ...data,
-        totalRecords: nextList.length,
-        isLast: true,
+        totalRecords,
         list: nextList,
       },
     };
@@ -245,68 +227,18 @@ function updateRoleListCacheData(
   if (Array.isArray(pages)) {
     const flattened = pages.flatMap((page: any) => page?.data?.list ?? []);
     const nextList = updateList(flattened);
+    const previousTotalRecords = pages.reduce(
+      (total: number, page: any) => Math.max(total, Number(page?.data?.totalRecords ?? 0)),
+      flattened.length,
+    );
+    const totalRecords = Math.max(0, previousTotalRecords + nextList.length - flattened.length);
     return {
       ...(old as any),
-      pages: pages.map((page: any) => updatePageList(page, nextList, nextList.length)),
+      pages: pages.map((page: any) => updatePageList(page, nextList, totalRecords)),
     };
   }
 
   return old;
-}
-
-function updateRoleAvatarListCacheData(
-  old: unknown,
-  updateList: (list: RoleAvatarCacheRecord[]) => RoleAvatarCacheRecord[],
-): unknown {
-  if (!old) {
-    return old;
-  }
-
-  if (Array.isArray(old)) {
-    return updateList(old);
-  }
-
-  if (typeof old !== "object") {
-    return old;
-  }
-
-  const data = (old as any).data;
-  if (Array.isArray(data)) {
-    return {
-      ...(old as any),
-      data: updateList(data),
-    };
-  }
-
-  return old;
-}
-
-function snapshotUserRoleListQueries(queryClient: QueryClient): RoleListQuerySnapshot {
-  return queryClient
-    .getQueryCache()
-    .findAll({ predicate: query => isUserRoleListQueryKey(query.queryKey) })
-    .map(query => ({
-      queryKey: query.queryKey,
-      data: queryClient.getQueryData(query.queryKey),
-    }));
-}
-
-function roleAvatarListQueryKey(roleId: number): readonly ["getRoleAvatars", number] {
-  return ["getRoleAvatars", roleId];
-}
-
-function snapshotRoleAvatarListQuery(
-  queryClient: QueryClient,
-  roleId?: number | null,
-): RoleAvatarListQuerySnapshot {
-  if (!hasPositiveId(roleId)) {
-    return null;
-  }
-  const queryKey = roleAvatarListQueryKey(roleId);
-  return {
-    queryKey,
-    data: queryClient.getQueryData(queryKey),
-  };
 }
 
 export function upsertUserRoleListQueryCache(queryClient: QueryClient, role?: UserRoleCacheRecord | null): void {
@@ -388,112 +320,5 @@ export function patchRoomRoleAvatarFieldsInListQueryCache(
           };
         }),
       ));
-  });
-}
-
-export async function optimisticRemoveRoleAvatarsFromListQueryCache(
-  queryClient: QueryClient,
-  roleId: number | undefined | null,
-  avatarIds: number[],
-): Promise<RoleAvatarListQuerySnapshot> {
-  if (!hasPositiveId(roleId)) {
-    return null;
-  }
-
-  const validAvatarIds = Array.from(new Set(avatarIds.filter(hasPositiveId)));
-  if (validAvatarIds.length === 0) {
-    return null;
-  }
-
-  const queryKey = roleAvatarListQueryKey(roleId);
-  await queryClient.cancelQueries({ queryKey });
-  const snapshot = snapshotRoleAvatarListQuery(queryClient, roleId);
-  const avatarIdSet = new Set(validAvatarIds);
-
-  queryClient.setQueryData(queryKey, old => updateRoleAvatarListCacheData(
-    old,
-    list => list.filter(avatar => !avatarIdSet.has(avatar.avatarId ?? 0)),
-  ));
-
-  return snapshot;
-}
-
-export async function optimisticPatchRoleAvatarTitleInListQueryCache(
-  queryClient: QueryClient,
-  roleId: number | undefined | null,
-  avatarId: number | undefined | null,
-  title: string,
-): Promise<RoleAvatarListQuerySnapshot> {
-  if (!hasPositiveId(roleId) || !hasPositiveId(avatarId)) {
-    return null;
-  }
-
-  const queryKey = roleAvatarListQueryKey(roleId);
-  await queryClient.cancelQueries({ queryKey });
-  const snapshot = snapshotRoleAvatarListQuery(queryClient, roleId);
-
-  queryClient.setQueryData(queryKey, old => updateRoleAvatarListCacheData(
-    old,
-    list => list.map((avatar) => {
-      if (avatar.avatarId !== avatarId) {
-        return avatar;
-      }
-      return {
-        ...avatar,
-        avatarTitle: {
-          ...avatar.avatarTitle,
-          label: title,
-        },
-      };
-    }),
-  ));
-
-  return snapshot;
-}
-
-export function rollbackRoleAvatarListQueryCache(
-  queryClient: QueryClient,
-  snapshot?: RoleAvatarListQuerySnapshot,
-): void {
-  if (!snapshot) {
-    return;
-  }
-  queryClient.setQueryData(snapshot.queryKey, snapshot.data);
-}
-
-export async function optimisticRemoveUserRolesFromListQueryCache(
-  queryClient: QueryClient,
-  roleIds: number[],
-): Promise<RoleListQuerySnapshot> {
-  const validRoleIds = Array.from(new Set(roleIds.filter(roleId => Number.isFinite(roleId) && roleId > 0)));
-  if (validRoleIds.length === 0) {
-    return [];
-  }
-
-  await Promise.all([
-    queryClient.cancelQueries({ queryKey: ["getUserRolesByType"] }),
-    queryClient.cancelQueries({ queryKey: ["getUserRolesByTypes"] }),
-    queryClient.cancelQueries({ queryKey: ["getUserRoles"] }),
-  ]);
-
-  const snapshots = snapshotUserRoleListQueries(queryClient);
-  const roleIdSet = new Set(validRoleIds);
-
-  snapshots.forEach(({ queryKey }) => {
-    queryClient.setQueryData(queryKey, old => updateRoleListCacheData(
-      old,
-      list => removeUserRoleList(list, roleIdSet),
-    ));
-  });
-
-  return snapshots;
-}
-
-export function rollbackUserRoleListQueryCache(
-  queryClient: QueryClient,
-  snapshots?: RoleListQuerySnapshot,
-): void {
-  snapshots?.forEach(({ queryKey, data }) => {
-    queryClient.setQueryData(queryKey, data);
   });
 }

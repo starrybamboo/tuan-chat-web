@@ -1,4 +1,9 @@
-import { getDirectMessagePreviewText } from "@tuanchat/domain/direct-message";
+import { ArrowClockwiseIcon, TrashSimpleIcon } from "@phosphor-icons/react";
+import {
+  getDirectMessagePreviewText,
+  isFailedDirectMessage,
+  isOptimisticDirectMessage,
+} from "@tuanchat/domain/direct-message";
 
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import BetterImg from "@/components/common/betterImg";
@@ -13,6 +18,8 @@ type MessageBubbleProps = {
   replyMessage?: MessageDirectResponse | null;
   isOwn: boolean; // 是否是自己的消息
   groupedWithPrevious?: boolean;
+  onRemoveFailed?: () => void;
+  onRetryFailed?: () => void;
 }
 
 function formatMessageTimeLabel(createTime?: string | null) {
@@ -55,9 +62,18 @@ function MessageAvatar({ name, fileId }: { name?: string; fileId?: number }) {
   );
 }
 
-export default function MessageBubble({ message, replyMessage = null, isOwn, groupedWithPrevious = false }: MessageBubbleProps) {
+export default function MessageBubble({
+  message,
+  replyMessage = null,
+  isOwn,
+  groupedWithPrevious = false,
+  onRemoveFailed,
+  onRetryFailed,
+}: MessageBubbleProps) {
   const messageTimeLabel = formatMessageTimeLabel(message.createTime || null);
   const isRecalled = message.status === 1;
+  const isFailed = isOwn && isFailedDirectMessage(message);
+  const isSending = isOwn && isOptimisticDirectMessage(message);
   const showReplyPreview = !isRecalled && typeof message.replyMessageId === "number" && message.replyMessageId > 0;
 
   // 渲染消息内容（文本/图片/视频）
@@ -137,6 +153,7 @@ export default function MessageBubble({ message, replyMessage = null, isOwn, gro
     <div
       key={message.messageId}
       data-message-id={message.messageId}
+      data-local-sync-state={isFailed ? "failed" : isSending ? "optimistic" : undefined}
       className={[
         "group/message flex items-end gap-2",
         isOwn ? "justify-end" : "justify-start",
@@ -187,6 +204,39 @@ export default function MessageBubble({ message, replyMessage = null, isOwn, gro
             group-hover/message:opacity-100 group-hover/message:translate-y-0
           ">
             {messageTimeLabel}
+          </div>
+        )}
+        {isSending && (
+          <div className="mt-1 pr-1 text-xs text-base-content/45" aria-live="polite">
+            发送中
+          </div>
+        )}
+        {isFailed && (
+          <div className="mt-1 flex items-center justify-end gap-1.5 pr-1 text-xs text-error">
+            <span>发送失败</span>
+            {onRetryFailed && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 hover:bg-error/10"
+                title="重新发送"
+                aria-label="重新发送失败私聊消息"
+                onClick={onRetryFailed}
+              >
+                <ArrowClockwiseIcon className="size-3.5" />
+                重试
+              </button>
+            )}
+            {onRemoveFailed && (
+              <button
+                type="button"
+                className="inline-flex size-6 items-center justify-center rounded-md hover:bg-error/10"
+                title="删除失败私聊消息"
+                aria-label="删除失败私聊消息"
+                onClick={onRemoveFailed}
+              >
+                <TrashSimpleIcon className="size-3.5" />
+              </button>
+            )}
           </div>
         )}
       </div>

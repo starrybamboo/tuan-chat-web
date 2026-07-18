@@ -56,9 +56,13 @@ describe("friend query helpers", () => {
     rollbackOptimisticQueryTransaction(queryClient, blockTransaction);
     expect(queryClient.getQueryData<any[]>(["friends", { pageNo: 1 }])).toEqual([friend, { userId: 8 }]);
 
+    queryClient.setQueryData(["friends", { pageNo: 1 }], [{ userId: 8 }]);
     queryClient.setQueryData(["blacklist", { pageNo: 1 }], [friend]);
-    await beginUnblockFriendOptimisticMutation(queryClient, 7);
+    const unblockTransaction = await beginUnblockFriendOptimisticMutation(queryClient, 7);
     expect(queryClient.getQueryData<any[]>(["blacklist", { pageNo: 1 }])).toEqual([]);
+    expect(queryClient.getQueryData<any[]>(["friends", { pageNo: 1 }])).toEqual([{ userId: 8 }, friend]);
+    rollbackOptimisticQueryTransaction(queryClient, unblockTransaction);
+    expect(queryClient.getQueryData<any[]>(["blacklist", { pageNo: 1 }])).toEqual([friend]);
 
     const deleteTransaction = await beginDeleteFriendOptimisticMutation(queryClient, 7);
     expect(queryClient.getQueryData<any[]>(["friends", { pageNo: 1 }])).toEqual([{ userId: 8 }]);

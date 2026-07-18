@@ -44,6 +44,22 @@ describe("role optimistic cache", () => {
     expect(queryClient.getQueryData<any>(["getRole", 7])?.data).toEqual(role);
   });
 
+  it("角色更新失败回滚不会覆盖并发到达的新详情", async () => {
+    const queryClient = new QueryClient();
+    const queryKey = ["getRole", 7] as const;
+    queryClient.setQueryData(queryKey, { success: true, data: role });
+
+    const transaction = await beginRoleUpdateOptimisticMutation(queryClient, {
+      roleId: 7,
+      roleName: "乐观角色",
+    });
+    const newerData = { success: true, data: { ...role, roleName: "推送角色" } };
+    queryClient.setQueryData(queryKey, newerData);
+    rollbackOptimisticQueryTransaction(queryClient, transaction);
+
+    expect(queryClient.getQueryData(queryKey)).toEqual(newerData);
+  });
+
   it("删除角色即时移出活动列表并加入回收站", async () => {
     const queryClient = new QueryClient();
     queryClient.setQueryData(["getUserRolesByTypes", 1, 0, 1], [role]);

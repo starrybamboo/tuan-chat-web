@@ -847,11 +847,12 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     setRenderPortExpanded(prev => !prev);
   }, []);
   const webgalEditorUrl = useMemo(() => {
+    const terreBaseUrl = getTerreBaseUrl(terrePort);
     return buildWebGALEditorUrl({
       previewUrl: realtimePreviewUrl,
       fallbackGameName: `realtime_${spaceId}`,
-      terreBaseUrl: getTerreBaseUrl(),
-    }) ?? `${getTerreBaseUrl()}/#/game/realtime_${spaceId}`;
+      terreBaseUrl,
+    }) ?? `${terreBaseUrl}/#/game/realtime_${spaceId}`;
   }, [realtimePreviewUrl, spaceId, terrePort]);
 
   return (

@@ -9,14 +9,9 @@ export type {
 } from "./mobileRoomRoleSelectionState";
 
 const ROOM_ROLE_SELECTION_STORAGE_SCOPE = "mobile-room-role-selection-v1";
-const memorySelectionByUserAndRoom = new Map<string, MobileRoomRoleSelectionSnapshot>();
 
 function getRoomRoleSelectionKey(roomId: number) {
   return `room:${roomId}`;
-}
-
-function getMemorySelectionKey(roomId: number, userId: number | null | undefined) {
-  return `${Number.isInteger(userId) && Number(userId) > 0 ? Number(userId) : 0}:${roomId}`;
 }
 
 function isValidRoomId(roomId: number | null | undefined): roomId is number {
@@ -31,11 +26,6 @@ export async function readMobileRoomRoleSelection(
     return null;
   }
 
-  const cached = memorySelectionByUserAndRoom.get(getMemorySelectionKey(roomId, userId));
-  if (cached) {
-    return cached;
-  }
-
   const entry = await readMobileKeyValue<MobileRoomRoleSelectionSnapshot>(
     getRoomRoleSelectionKey(roomId),
     {
@@ -47,9 +37,7 @@ export async function readMobileRoomRoleSelection(
     return null;
   }
 
-  const snapshot = normalizeMobileRoomRoleSelectionSnapshot(entry.value);
-  memorySelectionByUserAndRoom.set(getMemorySelectionKey(roomId, userId), snapshot);
-  return snapshot;
+  return normalizeMobileRoomRoleSelectionSnapshot(entry.value);
 }
 
 export async function writeMobileRoomRoleSelection(params: {
@@ -70,8 +58,6 @@ export async function writeMobileRoomRoleSelection(params: {
     customRoleName: params.customRoleName,
     roleId: params.roleId,
   });
-  memorySelectionByUserAndRoom.set(getMemorySelectionKey(params.roomId, params.userId), snapshot);
-
   await writeMobileKeyValue(
     getRoomRoleSelectionKey(params.roomId),
     snapshot,

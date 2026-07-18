@@ -1,9 +1,11 @@
 import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
+import type { SharedValue } from "react-native-reanimated";
 
+import { FlashList } from "@shopify/flash-list";
 import { Prohibit, Trash } from "phosphor-react-native";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
-import { Swipeable } from "react-native-gesture-handler";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, TextInput, View } from "react-native";
+import ReanimatedSwipeable, { type SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
@@ -53,10 +55,138 @@ type AllFriendsTabProps = {
   onStartChat: (userId: number) => void;
 };
 
+type FriendSwipeableRowProps = {
+  friend: FriendResponse;
+  isBlocking: boolean;
+  onBlockFriend: (userId: number) => void;
+  onDeleteFriend: (userId: number) => void;
+  onStartChat: (userId: number) => void;
+  onSwipeableClose: (swipeable: SwipeableMethods | null) => void;
+  onSwipeableWillOpen: (swipeable: SwipeableMethods | null) => void;
+};
+
+function FriendSwipeableRow({
+  friend,
+  isBlocking,
+  onBlockFriend,
+  onDeleteFriend,
+  onStartChat,
+  onSwipeableClose,
+  onSwipeableWillOpen,
+}: FriendSwipeableRowProps) {
+  const theme = useTheme();
+  const swipeableRef = useRef<SwipeableMethods | null>(null);
+  const userId = friend.userId;
+  const avatarUrl = avatarThumbUrl(friend.avatarFileId);
+
+  const handleDelete = useCallback((swipeable: SwipeableMethods) => {
+    swipeable.close();
+    if (typeof userId !== "number") {
+      return;
+    }
+    Alert.alert("删除好友", `确定要删除好友 ${friend.username ?? ""} 吗？`, [
+      { text: "取消", style: "cancel" },
+      { text: "删除", style: "destructive", onPress: () => onDeleteFriend(userId) },
+    ]);
+  }, [friend.username, onDeleteFriend, userId]);
+
+  const handleBlock = useCallback((swipeable: SwipeableMethods) => {
+    swipeable.close();
+    if (typeof userId !== "number") {
+      return;
+    }
+    Alert.alert("拉黑好友", `确定要拉黑「${friend.username ?? userId}」吗？拉黑后将自动解除好友关系。`, [
+      { text: "取消", style: "cancel" },
+      { text: "拉黑", style: "destructive", onPress: () => onBlockFriend(userId) },
+    ]);
+  }, [friend.username, onBlockFriend, userId]);
+
+  const renderRightActions = useCallback((
+    _progress: SharedValue<number>,
+    _translation: SharedValue<number>,
+    swipeable: SwipeableMethods,
+  ) => (
+    <View style={styles.swipeActions}>
+      <Pressable
+        accessibilityLabel="拉黑"
+        accessibilityRole="button"
+        disabled={isBlocking || typeof userId !== "number"}
+        onPress={() => handleBlock(swipeable)}
+        style={[styles.swipeBtn, { backgroundColor: theme.textSecondary, opacity: isBlocking ? 0.5 : 1 }]}
+      >
+        <Prohibit size={20} color="#fff" />
+        <ThemedText style={{ color: "#fff", fontSize: 11, marginTop: 2 }}>拉黑</ThemedText>
+      </Pressable>
+      <Pressable
+        accessibilityLabel={`删除好友 ${friend.username ?? ""}`}
+        accessibilityRole="button"
+        disabled={typeof userId !== "number"}
+        onPress={() => handleDelete(swipeable)}
+        style={[
+          styles.swipeBtn,
+          { backgroundColor: theme.danger, opacity: typeof userId === "number" ? 1 : 0.5 },
+        ]}
+      >
+        <Trash size={20} color="#fff" />
+        <ThemedText style={{ color: "#fff", fontSize: 11, marginTop: 2 }}>删除</ThemedText>
+      </Pressable>
+    </View>
+  ), [friend.username, handleBlock, handleDelete, isBlocking, theme.danger, theme.textSecondary, userId]);
+
+  const handlePress = useCallback(() => {
+    if (typeof userId === "number") {
+      onStartChat(userId);
+    }
+  }, [onStartChat, userId]);
+
+  const handleSwipeableWillOpen = useCallback(() => {
+    onSwipeableWillOpen(swipeableRef.current);
+  }, [onSwipeableWillOpen]);
+
+  const handleSwipeableClose = useCallback(() => {
+    onSwipeableClose(swipeableRef.current);
+  }, [onSwipeableClose]);
+
+  return (
+    <ReanimatedSwipeable
+      ref={swipeableRef}
+      enabled={typeof userId === "number"}
+      onSwipeableClose={handleSwipeableClose}
+      onSwipeableWillOpen={handleSwipeableWillOpen}
+      overshootRight={false}
+      renderRightActions={renderRightActions}
+    >
+      <Pressable
+        accessibilityLabel={`和 ${friend.username ?? `用户 #${userId ?? "-"}`} 聊天`}
+        accessibilityRole="button"
+        disabled={typeof userId !== "number"}
+        onPress={handlePress}
+        style={[styles.friendRow, { backgroundColor: theme.backgroundElement }]}
+      >
+        <ContactListAvatar
+          colorSeed={userId}
+          displayName={friend.username}
+          labelFontSize={13}
+          size={AVATAR_SIZE}
+          uri={avatarUrl}
+        />
+        <View style={styles.friendInfo}>
+          <ThemedText numberOfLines={1}>{friend.username ?? `用户 #${userId ?? "-"}`}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            ID:
+            {" "}
+            {userId ?? "-"}
+          </ThemedText>
+        </View>
+      </Pressable>
+    </ReanimatedSwipeable>
+  );
+}
+
 export function AllFriendsTab({ friends, isPending, onDeleteFriend, onBlockFriend, isBlocking, onStartChat }: AllFriendsTabProps) {
   const theme = useTheme();
   const [searchText, setSearchText] = useState("");
-  const openSwipeableRef = useRef<Swipeable | null>(null);
+  const openSwipeableRef = useRef<SwipeableMethods | null>(null);
 
   const filteredFriends = useMemo(() => {
     const query = searchText.trim().toLowerCase();
@@ -70,90 +200,41 @@ export function AllFriendsTab({ friends, isPending, onDeleteFriend, onBlockFrien
     );
   }, [friends, searchText]);
 
-  const handleDelete = useCallback((friend: FriendResponse) => {
-    openSwipeableRef.current?.close();
-    Alert.alert("删除好友", `确定要删除好友 ${friend.username ?? ""} 吗？`, [
-      { text: "取消", style: "cancel" },
-      { text: "删除", style: "destructive", onPress: () => onDeleteFriend(friend.userId!) },
-    ]);
-  }, [onDeleteFriend]);
+  const handleSwipeableWillOpen = useCallback((swipeable: SwipeableMethods | null) => {
+    if (!swipeable) {
+      return;
+    }
+    if (openSwipeableRef.current && openSwipeableRef.current !== swipeable) {
+      openSwipeableRef.current.close();
+    }
+    openSwipeableRef.current = swipeable;
+  }, []);
 
-  const handleBlock = useCallback((friend: FriendResponse) => {
-    openSwipeableRef.current?.close();
-    Alert.alert("拉黑好友", `确定要拉黑「${friend.username ?? friend.userId}」吗？拉黑后将自动解除好友关系。`, [
-      { text: "取消", style: "cancel" },
-      { text: "拉黑", style: "destructive", onPress: () => onBlockFriend(friend.userId!) },
-    ]);
-  }, [onBlockFriend]);
-
-  const renderRightActions = useCallback((friend: FriendResponse) => (
-    <View style={styles.swipeActions}>
-      <Pressable
-        onPress={() => handleBlock(friend)}
-        disabled={isBlocking}
-        style={[styles.swipeBtn, { backgroundColor: theme.textSecondary, opacity: isBlocking ? 0.5 : 1 }]}
-        accessibilityLabel="拉黑"
-        accessibilityRole="button"
-      >
-        <Prohibit size={20} color="#fff" />
-        <ThemedText style={{ color: "#fff", fontSize: 11, marginTop: 2 }}>拉黑</ThemedText>
-      </Pressable>
-      <Pressable
-        onPress={() => handleDelete(friend)}
-        style={[styles.swipeBtn, { backgroundColor: theme.danger }]}
-        accessibilityLabel={`删除好友 ${friend.username}`}
-        accessibilityRole="button"
-      >
-        <Trash size={20} color="#fff" />
-        <ThemedText style={{ color: "#fff", fontSize: 11, marginTop: 2 }}>删除</ThemedText>
-      </Pressable>
-    </View>
-  ), [handleBlock, handleDelete, isBlocking, theme.danger, theme.textSecondary]);
+  const handleSwipeableClose = useCallback((swipeable: SwipeableMethods | null) => {
+    if (openSwipeableRef.current === swipeable) {
+      openSwipeableRef.current = null;
+    }
+  }, []);
 
   const renderFriend = useCallback(({ item: friend }: { item: FriendResponse }) => {
-    const url = avatarThumbUrl(friend.avatarFileId);
     return (
-      <Swipeable
-        renderRightActions={() => renderRightActions(friend)}
-        overshootRight={false}
-        onSwipeableOpen={() => { openSwipeableRef.current?.close(); }}
-        ref={(ref) => {
-          if (ref) {
-            openSwipeableRef.current = ref;
-          }
-        }}
-      >
-        <Pressable
-          onPress={() => onStartChat(friend.userId!)}
-          style={[styles.friendRow, { backgroundColor: theme.backgroundElement }]}
-          accessibilityLabel={`和 ${friend.username} 聊天`}
-          accessibilityRole="button"
-        >
-          <ContactListAvatar
-            colorSeed={friend.userId}
-            displayName={friend.username}
-            labelFontSize={13}
-            size={AVATAR_SIZE}
-            uri={url}
-          />
-          <View style={styles.friendInfo}>
-            <ThemedText numberOfLines={1}>{friend.username ?? `用户 #${friend.userId}`}</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              ID:
-              {" "}
-              {friend.userId}
-            </ThemedText>
-          </View>
-        </Pressable>
-      </Swipeable>
+      <FriendSwipeableRow
+        friend={friend}
+        isBlocking={isBlocking ?? false}
+        onBlockFriend={onBlockFriend}
+        onDeleteFriend={onDeleteFriend}
+        onStartChat={onStartChat}
+        onSwipeableClose={handleSwipeableClose}
+        onSwipeableWillOpen={handleSwipeableWillOpen}
+      />
     );
-  }, [onStartChat, renderRightActions, theme.backgroundElement]);
+  }, [handleSwipeableClose, handleSwipeableWillOpen, isBlocking, onBlockFriend, onDeleteFriend, onStartChat]);
 
   return (
-    <FlatList
+    <FlashList
       data={isPending ? [] : filteredFriends}
       contentContainerStyle={styles.listContent}
-      keyExtractor={friend => `friend:${friend.userId ?? friend.username ?? "unknown"}`}
+      keyExtractor={(friend, index) => `friend:${friend.userId ?? friend.username ?? index}`}
       renderItem={renderFriend}
       ListHeaderComponent={(
         <TextInput

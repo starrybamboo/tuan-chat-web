@@ -4,18 +4,28 @@ import {
   ArrowRightIcon,
   CheckIcon,
   DotsThreeIcon,
-  FloppyDiskIcon,
   PaletteIcon,
   TrashIcon,
   UserIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
+import { appToast } from "@/components/common/appToast/appToast";
 import { Avatar } from "@/components/common/Avatar";
-import { Button } from "@/components/common/Button";
-import { ControlGroup } from "@/components/common/ControlGroup";
-import { Surface, Text, textLinkClassName } from "@/components/common/DesignLanguage";
+import {
+  BUTTON_APPEARANCES,
+  BUTTON_TONES,
+  Button,
+  type ButtonTone,
+} from "@/components/common/Button";
+import {
+  SEMANTIC_APPEARANCES,
+  Surface,
+  Text,
+  textLinkClassName,
+  type SemanticAppearance,
+} from "@/components/common/DesignLanguage";
 import { DialogActions, DialogFrame } from "@/components/common/DialogFrame";
 import { Disclosure } from "@/components/common/Disclosure";
 import {
@@ -40,9 +50,11 @@ import {
   InlineAlert,
   LoadingIndicator,
   ProgressBar,
+  STATUS_APPEARANCES,
+  STATUS_TONES,
   Skeleton,
   StatusIndicator,
-  Tag,
+  type StatusTone,
 } from "@/components/common/StatusPrimitives";
 import { Tabs } from "@/components/common/Tabs";
 import {
@@ -61,13 +73,44 @@ const PREVIEW_TABS = [
   { value: "a11y", label: "可访问性", disabled: true },
 ] as const;
 
+const BUTTON_TONE_LABEL: Record<ButtonTone, string> = {
+  neutral: "中性操作",
+  primary: "主要操作",
+  success: "成功操作",
+  warning: "警告操作",
+  error: "危险操作",
+};
+
+const APPEARANCE_LABEL: Record<SemanticAppearance, string> = {
+  solid: "实心填色",
+  soft: "柔和填色",
+  outline: "镂空轮廓",
+  ghost: "幽灵低强调",
+};
+
+const STATUS_TONE_LABEL: Record<StatusTone, string> = {
+  neutral: "中性",
+  info: "信息",
+  success: "成功",
+  warning: "警告",
+  error: "错误",
+};
+
+const STATUS_ALERT_COPY: Record<StatusTone, string> = {
+  neutral: "当前状态保持不变。",
+  info: "颜色与动作语义保持稳定。",
+  success: "更改已保存。",
+  warning: "当前内容仍有未发布修改。",
+  error: "保存失败，请检查网络状态。",
+};
+
 function TokenCode({ children }: { children: ReactNode }) {
   return <code className="font-mono text-supporting text-base-content/55">{children}</code>;
 }
 
 function SectionHeading({ id, title, eyebrow }: { id: string; title: string; eyebrow: string }) {
   return (
-    <div className="mb-5 flex scroll-mt-32 items-end justify-between gap-4" id={id}>
+    <div className="mb-5 flex scroll-mt-6 items-end justify-between gap-4" id={id}>
       <div>
         <Text as="div" variant="data" className="mb-1 uppercase tracking-[0.16em] text-info">{eyebrow}</Text>
         <Text as="h2" variant="sectionTitle" id={`${id}-heading`}>{title}</Text>
@@ -248,15 +291,25 @@ function SurfaceAndTypeSpecimens() {
 function ActionSpecimens() {
   return (
     <SpecimenSection id="actions" title="动作层级" eyebrow="04 · ACTION">
-      <SpecimenRow label="按钮语义" token="Button / variant">
+      {BUTTON_APPEARANCES.map(appearance => (
+        <SpecimenRow
+          key={appearance}
+          label={APPEARANCE_LABEL[appearance]}
+          token={`tone / appearance="${appearance}"`}
+        >
+          <div className="flex flex-wrap gap-3">
+            {BUTTON_TONES.map(tone => (
+              <Button key={tone} tone={tone} appearance={appearance}>{BUTTON_TONE_LABEL[tone]}</Button>
+            ))}
+          </div>
+        </SpecimenRow>
+      ))}
+      <SpecimenRow label="强度用法" token="solid / soft / outline / ghost">
         <div className="flex flex-wrap gap-3">
-          <Button variant="primary" icon={<FloppyDiskIcon weight="regular" />}>保存更改</Button>
-          <Button variant="outline">次级操作</Button>
-          <Button variant="ghost">轻量操作</Button>
-          <Button variant="success">确认完成</Button>
-          <Button variant="warning">检查风险</Button>
-          <Button variant="error" icon={<TrashIcon weight="regular" />}>删除</Button>
-          <Button variant="errorOutline">危险次级</Button>
+          <Button tone="primary" appearance="solid">关键操作</Button>
+          <Button tone="primary" appearance="soft">次强调操作</Button>
+          <Button tone="neutral" appearance="outline">常规操作</Button>
+          <Button tone="neutral" appearance="ghost">工具栏操作</Button>
         </div>
       </SpecimenRow>
       <SpecimenRow label="密度与形状" token="compact / default">
@@ -271,11 +324,6 @@ function ActionSpecimens() {
         <div className="flex flex-wrap gap-3">
           <Button variant="primary" loading>正在保存</Button>
           <Button variant="outline" disabled>暂不可用</Button>
-          <ControlGroup>
-            <Button variant="outline">左侧</Button>
-            <Button variant="outline">中间</Button>
-            <Button variant="outline">右侧</Button>
-          </ControlGroup>
         </div>
       </SpecimenRow>
     </SpecimenSection>
@@ -395,26 +443,90 @@ function FeedbackSpecimens() {
 
   return (
     <SpecimenSection id="feedback" title="状态与反馈" eyebrow="06 · FEEDBACK">
-      <SpecimenRow label="状态标记" token="Badge / CountBadge / Tag">
-        <div className="flex flex-wrap items-center gap-3">
-          <Badge>中性</Badge>
-          <Badge tone="info">信息</Badge>
-          <Badge tone="success">成功</Badge>
-          <Badge tone="warning">警告</Badge>
-          <Badge tone="error">错误</Badge>
-          <Badge tone="info" appearance="outline">描边</Badge>
-          <Badge tone="success" appearance="ghost">轻量</Badge>
-          <CountBadge>12</CountBadge>
-          <Tag>线索</Tag>
-          <Tag selected>已选标签</Tag>
+      {STATUS_APPEARANCES.map(appearance => (
+        <SpecimenRow
+          key={`badge-${appearance}`}
+          label={`状态标记 · ${APPEARANCE_LABEL[appearance]}`}
+          token={`Badge / CountBadge / ${appearance}`}
+        >
+          <div className="flex flex-wrap items-center gap-3">
+            {STATUS_TONES.map((tone, index) => (
+              <div key={tone} data-status-pair={`${tone}-${appearance}`} className="flex items-center gap-2">
+                <Badge tone={tone} appearance={appearance}>{STATUS_TONE_LABEL[tone]}</Badge>
+                <CountBadge tone={tone} appearance={appearance}>{index + 1}</CountBadge>
+              </div>
+            ))}
+          </div>
+        </SpecimenRow>
+      ))}
+      {STATUS_APPEARANCES.map(appearance => (
+        <SpecimenRow
+          key={`alert-${appearance}`}
+          label={`就地反馈 · ${APPEARANCE_LABEL[appearance]}`}
+          token={`InlineAlert / ${appearance}`}
+        >
+          <div className="grid gap-3 lg:grid-cols-2">
+            {STATUS_TONES.map(tone => (
+              <InlineAlert
+                key={tone}
+                data-status-pair={`${tone}-${appearance}`}
+                tone={tone}
+                appearance={appearance}
+                icon={tone === "success"
+                  ? <CheckIcon className="size-icon-default" />
+                  : tone === "info"
+                    ? <PaletteIcon className="size-icon-default" />
+                    : tone === "neutral"
+                      ? undefined
+                      : <WarningCircleIcon className="size-icon-default" />}
+              >
+                {STATUS_ALERT_COPY[tone]}
+              </InlineAlert>
+            ))}
+          </div>
+        </SpecimenRow>
+      ))}
+      <SpecimenRow label="浮层通知" token="appToast / AppToaster">
+        <div className="flex flex-wrap gap-3">
+          <Button tone="neutral" appearance="outline" onClick={() => appToast.info("信息已更新。")}>信息 Toast</Button>
+          <Button tone="success" appearance="outline" onClick={() => appToast.success("更改已保存。")}>成功 Toast</Button>
+          <Button tone="warning" appearance="outline" onClick={() => appToast.warning("当前内容仍有未发布修改。")}>警告 Toast</Button>
+          <Button tone="error" appearance="outline" onClick={() => appToast.error("保存失败，请检查网络状态。")}>错误 Toast</Button>
+          <Button
+            tone="primary"
+            appearance="solid"
+            onClick={() => appToast.success({
+              title: "反馈已提交",
+              description: "后续处理进度会显示在反馈中心。",
+            })}
+          >
+            结构化 Toast
+          </Button>
+          <Button
+            tone="error"
+            appearance="outline"
+            onClick={() => appToast.error({
+              title: "当前空间已归档",
+              description: "归档后仅主持人可继续发言。",
+              supportIssueId: "space-archived",
+            })}
+          >
+            问题帮助 Toast
+          </Button>
         </div>
       </SpecimenRow>
-      <SpecimenRow label="就地反馈" token="InlineAlert">
-        <div className="grid gap-3 lg:grid-cols-2">
-          <InlineAlert tone="info" icon={<PaletteIcon className="size-icon-default" />}>颜色与动作语义保持稳定。</InlineAlert>
-          <InlineAlert tone="success" icon={<CheckIcon className="size-icon-default" />}>更改已保存。</InlineAlert>
-          <InlineAlert tone="warning" icon={<WarningCircleIcon className="size-icon-default" />}>当前内容仍有未发布修改。</InlineAlert>
-          <InlineAlert tone="error" icon={<WarningCircleIcon className="size-icon-default" />}>保存失败，请检查网络状态。</InlineAlert>
+      <SpecimenRow label="浮层通知 · 四档强度" token="AppToastOptions.appearance">
+        <div className="flex flex-wrap gap-3">
+          {SEMANTIC_APPEARANCES.map(appearance => (
+            <Button
+              key={appearance}
+              tone="primary"
+              appearance={appearance}
+              onClick={() => appToast.info(`${APPEARANCE_LABEL[appearance]} Toast`, { appearance })}
+            >
+              {APPEARANCE_LABEL[appearance]}
+            </Button>
+          ))}
         </div>
       </SpecimenRow>
       <SpecimenRow label="进度与加载" token="ProgressBar / LoadingIndicator">
@@ -517,18 +629,31 @@ function NavigationSpecimens() {
 
 /** 开发环境的 Web 端 token 与公共原语视觉合约页。 */
 export function DesignSystemPage() {
+  const scrollViewportRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToSection = (sectionId: string) => {
+    const viewport = scrollViewportRef.current;
+    const target = document.getElementById(sectionId);
+    if (!viewport || !target || !viewport.contains(target)) {
+      return;
+    }
+    const viewportRect = viewport.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    viewport.scrollTo({ top: viewport.scrollTop + targetRect.top - viewportRect.top - 24 });
+  };
+
   return (
     <main
       data-design-system-page="true"
-      className="min-h-full bg-base-200 text-base-content"
+      className="flex h-full min-h-0 flex-col overflow-hidden bg-base-200 text-base-content"
     >
-      <div className="grid h-1.5 grid-cols-4" aria-hidden="true">
+      <div className="grid h-1.5 shrink-0 grid-cols-4" aria-hidden="true">
         <span className="bg-info" />
         <span className="bg-success" />
         <span className="bg-warning" />
         <span className="bg-error" />
       </div>
-      <header className="sticky top-0 z-20 border-b border-base-300 bg-base-100/95 backdrop-blur">
+      <header className="z-20 shrink-0 border-b border-base-300 bg-base-100/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center px-4 py-4 sm:px-6 lg:px-8">
           <div className="min-w-0">
             <div className="mb-1 flex items-center gap-2">
@@ -540,24 +665,32 @@ export function DesignSystemPage() {
         </div>
         <nav className="mx-auto flex max-w-7xl gap-5 overflow-x-auto px-4 pb-3 sm:px-6 lg:px-8" aria-label="页面区块">
           {DESIGN_SYSTEM_SECTIONS.map(section => (
-            <a key={section.id} href={`#${section.id}`} className={textLinkClassName("shrink-0 text-sm font-medium")}>
+            <button
+              key={section.id}
+              type="button"
+              aria-controls={section.id}
+              className={textLinkClassName("shrink-0 cursor-pointer text-sm font-medium")}
+              onClick={() => scrollToSection(section.id)}
+            >
               {section.label}
-            </a>
+            </button>
           ))}
         </nav>
       </header>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <ColorSpecimens />
-        <FoundationSpecimens />
-        <SurfaceAndTypeSpecimens />
-        <ActionSpecimens />
-        <FormSpecimens />
-        <FeedbackSpecimens />
-        <NavigationSpecimens />
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-base-300 py-8">
-          <Text variant="supporting">Source · app.css + components/common</Text>
-          <TokenCode>DEV ONLY</TokenCode>
-        </footer>
+      <div ref={scrollViewportRef} className="min-h-0 flex-1 overflow-y-auto scroll-smooth motion-reduce:scroll-auto">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <ColorSpecimens />
+          <FoundationSpecimens />
+          <SurfaceAndTypeSpecimens />
+          <ActionSpecimens />
+          <FormSpecimens />
+          <FeedbackSpecimens />
+          <NavigationSpecimens />
+          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-base-300 py-8">
+            <Text variant="supporting">Source · app.css + components/common</Text>
+            <TokenCode>DEV ONLY</TokenCode>
+          </footer>
+        </div>
       </div>
     </main>
   );

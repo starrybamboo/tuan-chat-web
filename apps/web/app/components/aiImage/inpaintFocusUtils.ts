@@ -1,37 +1,31 @@
+import type { InpaintFocusRect } from "@/components/aiImage/types";
+
 import {
   base64DataUrl,
   base64ToBytes,
   dataUrlToBase64,
 } from "@/components/aiImage/helpers";
 import {
+  buildBinaryMaskGrid,
+  dilateMaskGrid,
+  renderMaskGridToRgba,
+  resolveNovelAiMaskBufferSize,
+} from "@/components/aiImage/inpaintMaskUtils";
+import {
   embedNovelAiMetadataIntoPngBytes,
   extractNovelAiMetadataFromPngBytes,
   extractNovelAiMetadataFromStealthPixels,
 } from "@/utils/media/novelaiImageMetadata";
 
-export type FocusedMaskBounds = {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-  width: number;
-  height: number;
-};
-
-export type FocusedCropRect = {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-};
+export type FocusedCropRect = InpaintFocusRect;
 
 export type FocusedTargetSize = {
   width: number;
   height: number;
 };
 
-export type PreparedFocusedInpaintPayload = {
-  cropRect: FocusedCropRect;
+export type PreparedInpaintPayload = {
+  cropRect: FocusedCropRect | null;
   targetSize: FocusedTargetSize;
   sourceImageBase64: string;
   maskBase64: string;
@@ -39,9 +33,9 @@ export type PreparedFocusedInpaintPayload = {
 
 const FOCUSED_TARGET_AREA = 1024 * 1024;
 const FOCUSED_MAX_DIMENSION = 1024;
-const FOCUSED_PADDING_MIN = 96;
-const FOCUSED_PADDING_RATIO = 0.75;
-const MASK_ACTIVE_THRESHOLD = 8;
+const MASK_ACTIVE_THRESHOLD = 155;
+const COMPOSITE_MASK_DILATION_RADIUS = 4;
+const COMPOSITE_MASK_BLUR_PX = 20;
 
 function loadImage(dataUrl: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -62,54 +56,51 @@ function roundToMultipleOf64(value: number, fallback: number) {
   return Math.max(64, Math.round(value / 64) * 64);
 }
 
-export function findFocusedMaskBounds(data: Uint8ClampedArray, width: number, height: number) {
-  let minX = width;
-  let minY = height;
-  let maxX = -1;
-  let maxY = -1;
-
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const index = (y * width + x) * 4;
-      const active = Math.max(data[index], data[index + 1], data[index + 2], data[index + 3]) >= MASK_ACTIVE_THRESHOLD;
-      if (!active)
-        continue;
-      minX = Math.min(minX, x);
-      minY = Math.min(minY, y);
-      maxX = Math.max(maxX, x);
-      maxY = Math.max(maxY, y);
-    }
-  }
-
-  if (maxX < minX || maxY < minY)
+export function normalizeInpaintFocusRect(
+  rect: InpaintFocusRect | null | undefined,
+  imageWidth: number,
+  imageHeight: number,
+) {
+  if (!rect || imageWidth <= 0 || imageHeight <= 0)
     return null;
 
-  return {
-    left: minX,
-    top: minY,
-    right: maxX,
-    bottom: maxY,
-    width: maxX - minX + 1,
-    height: maxY - minY + 1,
-  } satisfies FocusedMaskBounds;
-}
-
-export function resolveFocusedCropRect(bounds: FocusedMaskBounds, imageWidth: number, imageHeight: number) {
-  const maxSpan = Math.max(bounds.width, bounds.height);
-  const padding = Math.max(FOCUSED_PADDING_MIN, Math.round(maxSpan * FOCUSED_PADDING_RATIO));
-  const desiredWidth = clamp(bounds.width + padding * 2, 64, imageWidth);
-  const desiredHeight = clamp(bounds.height + padding * 2, 64, imageHeight);
-  const centerX = bounds.left + bounds.width / 2;
-  const centerY = bounds.top + bounds.height / 2;
-  const left = clamp(Math.round(centerX - desiredWidth / 2), 0, Math.max(0, imageWidth - desiredWidth));
-  const top = clamp(Math.round(centerY - desiredHeight / 2), 0, Math.max(0, imageHeight - desiredHeight));
-
+  const left = clamp(Math.floor(rect.left), 0, imageWidth - 1);
+  const top = clamp(Math.floor(rect.top), 0, imageHeight - 1);
+  const right = clamp(Math.ceil(rect.left + rect.width), left + 1, imageWidth);
+  const bottom = clamp(Math.ceil(rect.top + rect.height), top + 1, imageHeight);
   return {
     left,
     top,
-    width: desiredWidth,
-    height: desiredHeight,
-  } satisfies FocusedCropRect;
+    width: right - left,
+    height: bottom - top,
+  } satisfies InpaintFocusRect;
+}
+
+export function resolveInpaintFocusRectFromPoints(
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+  imageWidth: number,
+  imageHeight: number,
+) {
+  const left = Math.min(start.x, end.x);
+  const top = Math.min(start.y, end.y);
+  const width = Math.abs(end.x - start.x);
+  const height = Math.abs(end.y - start.y);
+  if (width < 1 || height < 1)
+    return null;
+  return normalizeInpaintFocusRect({ left, top, width, height }, imageWidth, imageHeight);
+}
+
+export function resolveInpaintCompositeMaskGrid(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  overlayOriginalImage: boolean,
+) {
+  const authoredMask = buildBinaryMaskGrid(data, MASK_ACTIVE_THRESHOLD);
+  return overlayOriginalImage
+    ? authoredMask
+    : dilateMaskGrid(authoredMask, width, height, COMPOSITE_MASK_DILATION_RADIUS);
 }
 
 export function resolveFocusedTargetSize(cropWidth: number, cropHeight: number) {
@@ -181,29 +172,46 @@ async function preserveCompositeNovelAiMetadata(args: {
   }
 }
 
-export async function prepareFocusedInpaintPayload(args: {
+function createOpaqueRequestMask(canvas: HTMLCanvasElement) {
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context)
+    throw new Error("无法读取 Inpaint 请求蒙版。");
+
+  const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+  for (let index = 0; index < imageData.data.length; index += 4) {
+    const value = imageData.data[index + 3] >= MASK_ACTIVE_THRESHOLD ? 255 : 0;
+    imageData.data[index] = value;
+    imageData.data[index + 1] = value;
+    imageData.data[index + 2] = value;
+    imageData.data[index + 3] = 255;
+  }
+  context.putImageData(imageData, 0, 0);
+}
+
+export async function prepareInpaintPayload(args: {
   sourceDataUrl: string;
   maskDataUrl: string;
+  focusedArea?: InpaintFocusRect | null;
+  requestWidth: number;
+  requestHeight: number;
 }) {
   const sourceImage = await loadImage(args.sourceDataUrl);
   const maskImage = await loadImage(args.maskDataUrl);
   const imageWidth = sourceImage.naturalWidth;
   const imageHeight = sourceImage.naturalHeight;
-
-  const maskCanvas = document.createElement("canvas");
-  maskCanvas.width = imageWidth;
-  maskCanvas.height = imageHeight;
-  const maskContext = maskCanvas.getContext("2d", { willReadFrequently: true });
-  if (!maskContext)
-    throw new Error("无法读取 Focused Inpaint 蒙版。");
-  maskContext.drawImage(maskImage, 0, 0, imageWidth, imageHeight);
-  const maskPixels = maskContext.getImageData(0, 0, imageWidth, imageHeight);
-  const bounds = findFocusedMaskBounds(maskPixels.data, imageWidth, imageHeight);
-  if (!bounds)
-    return null;
-
-  const cropRect = resolveFocusedCropRect(bounds, imageWidth, imageHeight);
-  const targetSize = resolveFocusedTargetSize(cropRect.width, cropRect.height);
+  const focusedArea = normalizeInpaintFocusRect(args.focusedArea, imageWidth, imageHeight);
+  const cropRect = focusedArea ?? {
+    left: 0,
+    top: 0,
+    width: imageWidth,
+    height: imageHeight,
+  };
+  const targetSize = focusedArea
+    ? resolveFocusedTargetSize(cropRect.width, cropRect.height)
+    : {
+        width: roundToMultipleOf64(args.requestWidth, imageWidth),
+        height: roundToMultipleOf64(args.requestHeight, imageHeight),
+      };
 
   const sourceCanvas = document.createElement("canvas");
   sourceCanvas.width = targetSize.width;
@@ -229,10 +237,11 @@ export async function prepareFocusedInpaintPayload(args: {
   croppedMaskCanvas.height = targetSize.height;
   const croppedMaskContext = croppedMaskCanvas.getContext("2d");
   if (!croppedMaskContext)
-    throw new Error("无法裁剪 Focused Inpaint 蒙版。");
-  croppedMaskContext.imageSmoothingEnabled = true;
+    throw new Error("无法裁剪 Inpaint 蒙版。");
+  croppedMaskContext.clearRect(0, 0, targetSize.width, targetSize.height);
+  croppedMaskContext.imageSmoothingEnabled = false;
   croppedMaskContext.drawImage(
-    maskCanvas,
+    maskImage,
     cropRect.left,
     cropRect.top,
     cropRect.width,
@@ -242,65 +251,136 @@ export async function prepareFocusedInpaintPayload(args: {
     targetSize.width,
     targetSize.height,
   );
+  createOpaqueRequestMask(croppedMaskCanvas);
 
   return {
-    cropRect,
+    cropRect: focusedArea,
     targetSize,
     sourceImageBase64: canvasToPngBase64(sourceCanvas),
     maskBase64: canvasToPngBase64(croppedMaskCanvas),
-  } satisfies PreparedFocusedInpaintPayload;
+  } satisfies PreparedInpaintPayload;
 }
 
-export async function compositeFocusedInpaintResult(args: {
+async function buildCompositeMaskCanvas(args: {
+  maskDataUrl: string;
+  width: number;
+  height: number;
+  overlayOriginalImage: boolean;
+}) {
+  const maskImage = await loadImage(args.maskDataUrl);
+  const lowResolutionSize = resolveNovelAiMaskBufferSize(args.width, args.height);
+  const lowResolutionCanvas = document.createElement("canvas");
+  lowResolutionCanvas.width = lowResolutionSize.width;
+  lowResolutionCanvas.height = lowResolutionSize.height;
+  const lowResolutionContext = lowResolutionCanvas.getContext("2d", { willReadFrequently: true });
+  if (!lowResolutionContext)
+    throw new Error("无法读取 Inpaint 合成蒙版。");
+  lowResolutionContext.clearRect(0, 0, lowResolutionCanvas.width, lowResolutionCanvas.height);
+  lowResolutionContext.imageSmoothingEnabled = false;
+  lowResolutionContext.drawImage(maskImage, 0, 0, lowResolutionCanvas.width, lowResolutionCanvas.height);
+
+  const lowResolutionPixels = lowResolutionContext.getImageData(0, 0, lowResolutionCanvas.width, lowResolutionCanvas.height);
+  const compositeMask = resolveInpaintCompositeMaskGrid(
+    lowResolutionPixels.data,
+    lowResolutionCanvas.width,
+    lowResolutionCanvas.height,
+    args.overlayOriginalImage,
+  );
+  const binaryMaskPixels = lowResolutionContext.createImageData(lowResolutionCanvas.width, lowResolutionCanvas.height);
+  binaryMaskPixels.data.set(renderMaskGridToRgba(compositeMask));
+  lowResolutionContext.putImageData(binaryMaskPixels, 0, 0);
+
+  const scaledMaskCanvas = document.createElement("canvas");
+  scaledMaskCanvas.width = args.width;
+  scaledMaskCanvas.height = args.height;
+  const scaledMaskContext = scaledMaskCanvas.getContext("2d");
+  if (!scaledMaskContext)
+    throw new Error("无法缩放 Inpaint 合成蒙版。");
+  scaledMaskContext.imageSmoothingEnabled = false;
+  scaledMaskContext.drawImage(lowResolutionCanvas, 0, 0, args.width, args.height);
+  if (args.overlayOriginalImage)
+    return scaledMaskCanvas;
+
+  const featheredMaskCanvas = document.createElement("canvas");
+  featheredMaskCanvas.width = args.width;
+  featheredMaskCanvas.height = args.height;
+  const featheredMaskContext = featheredMaskCanvas.getContext("2d");
+  if (!featheredMaskContext)
+    throw new Error("无法羽化 Inpaint 合成蒙版。");
+  featheredMaskContext.fillStyle = "#000";
+  featheredMaskContext.fillRect(0, 0, args.width, args.height);
+  if ("filter" in featheredMaskContext)
+    featheredMaskContext.filter = `blur(${COMPOSITE_MASK_BLUR_PX}px)`;
+  featheredMaskContext.drawImage(scaledMaskCanvas, 0, 0);
+  if ("filter" in featheredMaskContext)
+    featheredMaskContext.filter = "none";
+  return featheredMaskCanvas;
+}
+
+export async function compositeInpaintResult(args: {
   sourceDataUrl: string;
-  generatedCropDataUrl: string;
+  generatedDataUrl: string;
   fullMaskDataUrl: string;
-  cropRect: FocusedCropRect;
+  cropRect: FocusedCropRect | null;
+  overlayOriginalImage: boolean;
 }) {
   const sourceImage = await loadImage(args.sourceDataUrl);
-  const generatedCropImage = await loadImage(args.generatedCropDataUrl);
-  const fullMaskImage = await loadImage(args.fullMaskDataUrl);
+  const generatedImage = await loadImage(args.generatedDataUrl);
+  const outputWidth = args.cropRect ? sourceImage.naturalWidth : generatedImage.naturalWidth;
+  const outputHeight = args.cropRect ? sourceImage.naturalHeight : generatedImage.naturalHeight;
+  const destinationRect = args.cropRect ?? {
+    left: 0,
+    top: 0,
+    width: outputWidth,
+    height: outputHeight,
+  };
 
   const outputCanvas = document.createElement("canvas");
-  outputCanvas.width = sourceImage.naturalWidth;
-  outputCanvas.height = sourceImage.naturalHeight;
+  outputCanvas.width = outputWidth;
+  outputCanvas.height = outputHeight;
   const outputContext = outputCanvas.getContext("2d", { willReadFrequently: true });
   if (!outputContext)
-    throw new Error("无法合成 Focused Inpaint 结果。");
+    throw new Error("无法合成 Inpaint 结果。");
   outputContext.drawImage(sourceImage, 0, 0, outputCanvas.width, outputCanvas.height);
 
   const cropCanvas = document.createElement("canvas");
-  cropCanvas.width = args.cropRect.width;
-  cropCanvas.height = args.cropRect.height;
+  cropCanvas.width = destinationRect.width;
+  cropCanvas.height = destinationRect.height;
   const cropContext = cropCanvas.getContext("2d", { willReadFrequently: true });
   if (!cropContext)
-    throw new Error("无法读取 Focused Inpaint 结果。");
+    throw new Error("无法读取 Inpaint 结果。");
   cropContext.imageSmoothingEnabled = true;
-  cropContext.drawImage(generatedCropImage, 0, 0, cropCanvas.width, cropCanvas.height);
+  cropContext.drawImage(generatedImage, 0, 0, cropCanvas.width, cropCanvas.height);
 
+  const fullMaskCanvas = await buildCompositeMaskCanvas({
+    maskDataUrl: args.fullMaskDataUrl,
+    width: outputWidth,
+    height: outputHeight,
+    overlayOriginalImage: args.overlayOriginalImage,
+  });
   const maskCanvas = document.createElement("canvas");
-  maskCanvas.width = args.cropRect.width;
-  maskCanvas.height = args.cropRect.height;
+  maskCanvas.width = destinationRect.width;
+  maskCanvas.height = destinationRect.height;
   const maskContext = maskCanvas.getContext("2d", { willReadFrequently: true });
   if (!maskContext)
-    throw new Error("无法读取 Focused Inpaint 蒙版。");
+    throw new Error("无法读取 Inpaint 蒙版。");
   maskContext.imageSmoothingEnabled = true;
   maskContext.drawImage(
-    fullMaskImage,
-    args.cropRect.left,
-    args.cropRect.top,
-    args.cropRect.width,
-    args.cropRect.height,
+    fullMaskCanvas,
+    destinationRect.left,
+    destinationRect.top,
+    destinationRect.width,
+    destinationRect.height,
     0,
     0,
-    args.cropRect.width,
-    args.cropRect.height,
+    destinationRect.width,
+    destinationRect.height,
   );
 
-  const sourceCrop = outputContext.getImageData(args.cropRect.left, args.cropRect.top, args.cropRect.width, args.cropRect.height);
-  const generatedCrop = cropContext.getImageData(0, 0, args.cropRect.width, args.cropRect.height);
-  const maskCrop = maskContext.getImageData(0, 0, args.cropRect.width, args.cropRect.height);
-  const blended = outputContext.createImageData(args.cropRect.width, args.cropRect.height);
+  const sourceCrop = outputContext.getImageData(destinationRect.left, destinationRect.top, destinationRect.width, destinationRect.height);
+  const generatedCrop = cropContext.getImageData(0, 0, destinationRect.width, destinationRect.height);
+  const maskCrop = maskContext.getImageData(0, 0, destinationRect.width, destinationRect.height);
+  const blended = outputContext.createImageData(destinationRect.width, destinationRect.height);
 
   for (let index = 0; index < blended.data.length; index += 4) {
     const alpha = maskCrop.data[index] / 255;
@@ -310,11 +390,11 @@ export async function compositeFocusedInpaintResult(args: {
     blended.data[index + 3] = 255;
   }
 
-  outputContext.putImageData(blended, args.cropRect.left, args.cropRect.top);
+  outputContext.putImageData(blended, destinationRect.left, destinationRect.top);
   const compositedDataUrl = outputCanvas.toDataURL("image/png");
   return await preserveCompositeNovelAiMetadata({
     compositedDataUrl,
-    generatedCropDataUrl: args.generatedCropDataUrl,
+    generatedCropDataUrl: args.generatedDataUrl,
     sourceDataUrl: args.sourceDataUrl,
   });
 }

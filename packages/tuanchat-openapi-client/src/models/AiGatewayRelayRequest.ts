@@ -19,4 +19,3 @@ export type AiGatewayRelayRequest = {
      */
     prompt: string;
 };
-

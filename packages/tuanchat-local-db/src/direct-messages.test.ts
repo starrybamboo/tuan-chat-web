@@ -2,7 +2,7 @@ import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/Mess
 import type { Database, SqlValue } from "sql.js";
 
 import initSqlJs from "sql.js";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { LocalDbSqliteDriver } from "./index";
 
@@ -56,7 +56,7 @@ async function createMemoryDriver(): Promise<LocalDbSqliteDriver> {
     });
   }
 
-  return {
+  const driver: LocalDbSqliteDriver = {
     all: async (sql, params = []) => mapRows(db, sql, params as SqlValue[]),
     exec: async (sql) => {
       db.run(sql);
@@ -67,7 +67,7 @@ async function createMemoryDriver(): Promise<LocalDbSqliteDriver> {
     transaction: async (task) => {
       db.run("BEGIN TRANSACTION");
       try {
-        const result = await task();
+        const result = await task(driver);
         db.run("COMMIT");
         return result;
       }
@@ -77,9 +77,34 @@ async function createMemoryDriver(): Promise<LocalDbSqliteDriver> {
       }
     },
   };
+  return driver;
 }
 
 describe("tuanchat local db direct messages", () => {
+  it("事务写入只使用 transaction-scoped driver", async () => {
+    const scopedRun = vi.fn<LocalDbSqliteDriver["run"]>(async () => undefined);
+    const transactionDriver: LocalDbSqliteDriver = {
+      all: async () => [],
+      exec: async () => undefined,
+      run: scopedRun,
+    };
+    const rootDriver: LocalDbSqliteDriver = {
+      all: async () => {
+        throw new Error("事务内不应使用根 driver");
+      },
+      exec: async () => undefined,
+      run: async () => {
+        throw new Error("事务内不应使用根 driver");
+      },
+      transaction: task => task(transactionDriver),
+    };
+    const repository = createDirectMessageRepository(rootDriver);
+
+    await repository.upsertMessages(7, [createDirectMessage(1)]);
+
+    expect(scopedRun).toHaveBeenCalledTimes(1);
+  });
+
   it("暴露 direct message schema", () => {
     const schema = DIRECT_MESSAGE_SCHEMA_SQL.join("\n");
 
@@ -154,27 +179,51 @@ describe("tuanchat local db direct messages", () => {
 
     expect((await repository.getMessagesByContact(7, 42, { limit: 2 })).map(item => item.messageId)).toEqual([2, 3]);
     expect((await repository.getMessagesByUser(7, { limit: 2 })).map(item => item.messageId)).toEqual([3, 4]);
+    expect(await repository.getMaxSyncIdByContact(7, 42)).toBe(3);
+    expect(await repository.getMaxSyncIdByContact(7, 99)).toBe(4);
   });
 
-  it("repository 会持久化撤回状态和本地已读线", async () => {
+  it("repository 会保留撤回和已读这两类确认事件", async () => {
     const repository = createDirectMessageRepository(await createMemoryDriver());
 
     await repository.upsertMessages(7, [
       createDirectMessage(1),
       createDirectMessage(2),
+      createDirectMessage(3, { messageType: 10001, replyMessageId: 2, syncId: 3 }),
+      createDirectMessage(4, { messageType: 10000, receiverId: 42, replyMessageId: 1, senderId: 7, syncId: 4 }),
     ]);
-    await repository.markMessagesRecalled(7, [2]);
-    await repository.upsertReadLine(7, 42, 8);
 
     const messages = await repository.getMessagesByContact(7, 42);
 
     expect(messages.map(item => [item.messageId, item.status, item.messageType, item.syncId])).toEqual([
       [1, 0, 1, 1],
-      [2, 1, 1, 2],
-      [-42, 0, 10000, 8],
+      [2, 0, 1, 2],
+      [3, 0, 10001, 3],
+      [4, 0, 10000, 4],
     ]);
 
     await repository.clearUserMessages(7);
     expect(await repository.getMessagesByUser(7)).toEqual([]);
+  });
+
+  it("pending overlay 在确认前覆盖读取视图，确认或回滚时不会污染 confirmed projection", async () => {
+    const repository = createDirectMessageRepository(await createMemoryDriver());
+    const pending = createDirectMessage(-1, { syncId: 9001 });
+    const confirmed = createDirectMessage(9, { syncId: 9 });
+
+    await repository.upsertMessages(7, [createDirectMessage(1)]);
+    await repository.addPendingMessage(7, pending);
+    expect((await repository.getMessagesByContact(7, 42)).map(item => item.messageId)).toEqual([1, -1]);
+
+    await repository.addPendingMessage(7, { ...pending, tcLocalSyncState: "failed" } as MessageDirectResponse);
+    expect((await repository.getMessagesByContact(7, 42)).find(item => item.messageId === -1))
+      .toMatchObject({ tcLocalSyncState: "failed" });
+
+    await repository.promotePendingMessage(7, -1, confirmed);
+    expect((await repository.getMessagesByContact(7, 42)).map(item => item.messageId)).toEqual([1, 9]);
+
+    await repository.addPendingMessage(7, pending);
+    await repository.rollbackPendingMessage(7, -1);
+    expect((await repository.getMessagesByContact(7, 42)).map(item => item.messageId)).toEqual([1, 9]);
   });
 });

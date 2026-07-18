@@ -14,6 +14,11 @@ allowBuilds:
 
 overrides:
   "@electron/node-gyp": "10.2.0-electron.1"
+  "framer-motion": "12.42.2"
   "minimatch@<3.1.4": "3.1.5"
   "rollup": "^4.59.0"
   "shell-quote": "^1.8.4"
+
+peerDependencyRules:
+  allowedVersions:
+    "@react-native-menu/menu": "2.0.0"

@@ -24,4 +24,3 @@ export type ApiResultRepository = {
      */
     data?: Repository;
 };
-

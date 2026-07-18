@@ -1,3 +1,5 @@
+import type { InpaintFocusRect } from "@/components/aiImage/types";
+
 import { loadChatHistoryDb } from "@/components/chat/infra/localDb/chatHistoryDbLoader";
 
 export type AiImageHistoryMode = "txt2img" | "img2img" | "infill";
@@ -37,11 +39,14 @@ export type AiImageHistoryRow = {
   cfgRescale?: number;
   ucPreset?: number;
   qualityToggle?: boolean;
+  cfgDelay?: boolean;
   dynamicThresholding?: boolean;
   smea?: boolean;
   smeaDyn?: boolean;
   strength?: number;
   noise?: number;
+  inpaintFocusedArea?: InpaintFocusRect | null;
+  overlayOriginalImage?: boolean;
 
   v4Chars?: AiImageHistoryV4Char[];
   v4UseCoords?: boolean;

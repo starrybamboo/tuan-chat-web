@@ -6,7 +6,6 @@ import type {
   DirectorToolOption,
   GeneratedImageItem,
   InternalHistoryImageDragPayload,
-  NovelAiEmotion,
 } from "@/components/aiImage/types";
 import type { AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
 
@@ -16,6 +15,7 @@ import {
   buildDirectorToolHistoryRow,
   dataUrlToBase64,
   generatedItemKey,
+  isSupportedImageFile,
   makeStableId,
   mimeFromFilename,
   readFileAsBytes,
@@ -63,7 +63,7 @@ export async function pickDirectorSourceImagesAction(args: {
   setDirectorSourcePreview: Dispatch<SetStateAction<GeneratedImageItem | null>>;
   setDirectorOutputPreview: Dispatch<SetStateAction<GeneratedImageItem | null>>;
 }) {
-  const fileList = Array.from(args.files).filter(file => file.type.startsWith("image/") || file.name);
+  const fileList = Array.from(args.files).filter(isSupportedImageFile);
   if (!fileList.length) {
     args.showErrorToast("请先选择至少一张图片。");
     return;
@@ -114,17 +114,13 @@ export async function runDirectorToolAction(args: {
   directorInputPreview: GeneratedImageItem | null;
   directorTool: DirectorToolOption;
   activeDirectorTool: DirectorToolId;
-  isDirectorToolDisabled: (toolId: DirectorToolId) => boolean;
   showErrorToast: (message: string) => void;
   setError: (value: string) => void;
   setPendingPreviewAction: Dispatch<SetStateAction<ActivePreviewAction>>;
   setDirectorOutputPreview: Dispatch<SetStateAction<GeneratedImageItem | null>>;
   augmentNovelImageViaProxy: AugmentNovelImageViaProxy;
   directorColorizePrompt: string;
-  directorEmotionExtraPrompt: string;
   directorColorizeDefry: number;
-  directorEmotionDefry: number;
-  directorEmotion: NovelAiEmotion;
   readImageSize: (dataUrl: string) => Promise<{ width: number; height: number }>;
   model: string;
   historyRowByResultMatchKey: Map<string, AiImageHistoryRow>;
@@ -137,11 +133,6 @@ export async function runDirectorToolAction(args: {
 }) {
   if (!args.directorInputPreview)
     return;
-
-  if (args.isDirectorToolDisabled(args.activeDirectorTool)) {
-    args.showErrorToast(`${args.directorTool.label} 当前不可用。`);
-    return;
-  }
 
   const imageBase64 = dataUrlToBase64(args.directorInputPreview.dataUrl);
   if (!imageBase64) {
@@ -161,15 +152,10 @@ export async function runDirectorToolAction(args: {
       height: args.directorInputPreview.height,
       prompt: args.directorTool.parameterMode === "colorize"
         ? args.directorColorizePrompt
-        : args.directorTool.parameterMode === "emotion"
-          ? args.directorEmotionExtraPrompt
-          : undefined,
+        : undefined,
       defry: args.directorTool.parameterMode === "colorize"
         ? args.directorColorizeDefry
-        : args.directorTool.parameterMode === "emotion"
-          ? args.directorEmotionDefry
-          : undefined,
-      emotion: args.directorTool.parameterMode === "emotion" ? args.directorEmotion : undefined,
+        : undefined,
     });
     const nextDataUrl = response.dataUrls[0];
     if (!nextDataUrl)

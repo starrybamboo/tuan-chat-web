@@ -1,10 +1,11 @@
+import { Galeria } from "@nandorojo/galeria";
 import { buildAccountInviteRegisterUrl } from "@tuanchat/domain/account-invite";
 import { router } from "expo-router";
-import { useState } from "react";
+import { CameraIcon } from "phosphor-react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -40,7 +41,20 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { gap: Spacing.xxl, paddingBottom: 120, paddingHorizontal: Spacing.xl, paddingTop: Spacing.xxl },
   profileHeader: { alignItems: "center", gap: Spacing.lg },
+  avatarContainer: { height: AVATAR_SIZE, position: "relative", width: AVATAR_SIZE },
   avatar: { borderRadius: Radius.full, height: AVATAR_SIZE, width: AVATAR_SIZE },
+  avatarAction: {
+    alignItems: "center",
+    borderRadius: Radius.full,
+    borderWidth: 2,
+    bottom: 0,
+    height: 38,
+    justifyContent: "center",
+    position: "absolute",
+    right: 0,
+    width: 38,
+    zIndex: 1,
+  },
   avatarFallback: { alignItems: "center", backgroundColor: "#6366f1", borderRadius: Radius.full, height: AVATAR_SIZE, justifyContent: "center", width: AVATAR_SIZE },
   card: { borderRadius: Radius.lg, gap: Spacing.lg, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.xl },
   cardTitle: { marginBottom: Spacing.sm },
@@ -59,8 +73,10 @@ export default function ProfileScreen() {
   const currentUserQuery = useCurrentUserQuery();
   const user = currentUserQuery.data?.data;
   const userId = user?.userId ?? session?.userId ?? null;
+  const displayUsername = user?.username ?? session?.username;
 
   const updateMutation = useUpdateProfileMutation();
+  const { mutateAsync: updateProfile } = updateMutation;
   const notifPrefs = useNotificationPreferences();
   const { notificationPermissionStatus, refreshNotificationPermissionStatus } = useMobileNotificationSession();
 
@@ -68,11 +84,18 @@ export default function ProfileScreen() {
   const [editUsername, setEditUsername] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [avatarUploading, setAvatarUploading] = useState(false);
-  const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
   const [inviteShareFeedback, setInviteShareFeedback] = useState("");
+  const inviteShareFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (inviteShareFeedbackTimerRef.current) {
+      clearTimeout(inviteShareFeedbackTimerRef.current);
+      inviteShareFeedbackTimerRef.current = null;
+    }
+  }, []);
 
   const startEditing = () => {
-    setEditUsername(user?.username ?? "");
+    setEditUsername(displayUsername ?? "");
     setEditDescription(user?.description ?? "");
     setEditing(true);
   };
@@ -81,15 +104,15 @@ export default function ProfileScreen() {
     if (!userId)
       return;
     try {
-      await updateMutation.mutateAsync({
+      await updateProfile({
         userId,
         username: editUsername.trim() || undefined,
         description: editDescription.trim() || undefined,
       });
       setEditing(false);
     }
-    catch (e: any) {
-      Alert.alert("保存失败", e?.message ?? "请稍后重试");
+    catch (error) {
+      Alert.alert("保存失败", error instanceof Error ? error.message : "请稍后重试");
     }
   };
 
@@ -106,17 +129,16 @@ export default function ProfileScreen() {
       if (!avatarFileId) {
         throw new Error("头像上传失败。");
       }
-      await updateMutation.mutateAsync({
+      await updateProfile({
         userId,
         username: user?.username,
         description: user?.description,
         gender: user?.gender,
         avatarFileId,
       });
-      await currentUserQuery.refetch();
     }
-    catch (e: any) {
-      Alert.alert("更换头像失败", e?.message ?? "请稍后重试");
+    catch (error) {
+      Alert.alert("更换头像失败", error instanceof Error ? error.message : "请稍后重试");
     }
     finally {
       setAvatarUploading(false);
@@ -128,10 +150,16 @@ export default function ProfileScreen() {
   const inviteCode = user?.inviteCode ?? "";
   const inviteRegisterLink = buildAccountInviteRegisterUrl(inviteCode, "https://tuan.chat");
 
-  const showInviteShareFeedback = (message: string) => {
+  const showInviteShareFeedback = useCallback((message: string) => {
+    if (inviteShareFeedbackTimerRef.current) {
+      clearTimeout(inviteShareFeedbackTimerRef.current);
+    }
     setInviteShareFeedback(message);
-    setTimeout(setInviteShareFeedback, 1800, "");
-  };
+    inviteShareFeedbackTimerRef.current = setTimeout(() => {
+      inviteShareFeedbackTimerRef.current = null;
+      setInviteShareFeedback("");
+    }, 1800);
+  }, []);
 
   const handleShareInviteLink = async () => {
     if (!inviteRegisterLink) {
@@ -154,8 +182,8 @@ export default function ProfileScreen() {
       });
       showInviteShareFeedback("已打开分享");
     }
-    catch (e: any) {
-      Alert.alert("分享失败", e?.message ?? "请稍后重试");
+    catch (error) {
+      Alert.alert("分享失败", error instanceof Error ? error.message : "请稍后重试");
     }
   };
 
@@ -177,35 +205,51 @@ export default function ProfileScreen() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           {/* Profile Header */}
           <View style={[styles.profileHeader]}>
-            <Pressable
-              accessibilityLabel="查看头像预览"
-              accessibilityRole="button"
-              accessibilityState={{ disabled: !avatarThumbSrc }}
-              disabled={!avatarThumbSrc}
-              onPress={() => avatarThumbSrc && setAvatarPreviewVisible(true)}
-            >
-              {avatarThumbSrc
+            <View style={styles.avatarContainer}>
+              {avatarThumbSrc && avatarPreviewSrc
                 ? (
-                    <CachedImage uri={avatarThumbSrc} style={styles.avatar} />
+                    <Galeria urls={[avatarPreviewSrc]}>
+                      <Galeria.Image>
+                        <View accessible accessibilityLabel="查看头像预览" accessibilityRole="imagebutton">
+                          <CachedImage uri={avatarThumbSrc} style={styles.avatar} />
+                        </View>
+                      </Galeria.Image>
+                    </Galeria>
                   )
                 : (
                     <View style={styles.avatarFallback}>
                       <ThemedText style={{ color: "#fff", fontSize: 28, fontWeight: "700" }}>
-                        {(user?.username ?? "U").slice(0, 1).toUpperCase()}
+                        {(displayUsername ?? "U").slice(0, 1).toUpperCase()}
                       </ThemedText>
                     </View>
                   )}
-            </Pressable>
+              <Pressable
+                accessibilityLabel={avatarThumbSrc ? "更换头像" : "上传头像"}
+                accessibilityRole="button"
+                accessibilityState={{ busy: avatarUploading, disabled: avatarUploading || !userId }}
+                disabled={avatarUploading || !userId}
+                onPress={() => void handlePickAvatar()}
+                style={({ pressed }) => [
+                  styles.avatarAction,
+                  { backgroundColor: theme.accent, borderColor: theme.surface },
+                  pressed && { opacity: 0.72 },
+                ]}
+              >
+                {avatarUploading
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <CameraIcon color="#fff" size={19} weight="bold" />}
+              </Pressable>
+            </View>
             {avatarUploading
               ? (
                   <ThemedText type="caption" themeColor="textSecondary">正在上传头像…</ThemedText>
                 )
               : null}
-            <ThemedText type="title">{user?.username ?? "加载中…"}</ThemedText>
+            <ThemedText type="title">{displayUsername ?? "加载中…"}</ThemedText>
             {user?.description
               ? (
                   <ThemedText themeColor="textSecondary">{user.description}</ThemedText>
@@ -220,7 +264,7 @@ export default function ProfileScreen() {
               遇到问题时可以在这里查看运行日志并分享给开发者
             </ThemedText>
             <Pressable
-              onPress={() => router.push("/feedback" as any)}
+              onPress={() => router.push("/feedback")}
               style={[styles.saveButton, { backgroundColor: theme.backgroundSelected }]}
             >
               <ThemedText>查看日志 / 反馈问题</ThemedText>
@@ -304,7 +348,7 @@ export default function ProfileScreen() {
                   <View style={{ gap: Spacing.md }}>
                     <View style={[styles.saveButton, { backgroundColor: theme.backgroundSelected, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }]}>
                       <ThemedText themeColor="textSecondary">用户名</ThemedText>
-                      <ThemedText>{user?.username ?? "-"}</ThemedText>
+                      <ThemedText>{displayUsername ?? "-"}</ThemedText>
                     </View>
                     <View
                       style={[styles.saveButton, { backgroundColor: theme.backgroundSelected, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }]}
@@ -373,39 +417,6 @@ export default function ProfileScreen() {
           </Pressable>
         </ScrollView>
 
-        {/* Avatar Preview Modal */}
-        <Modal
-          visible={avatarPreviewVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setAvatarPreviewVisible(false)}
-        >
-          <Pressable
-            accessibilityLabel="关闭头像预览"
-            accessibilityRole="button"
-            style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.9)", alignItems: "center", justifyContent: "center" }}
-            onPress={() => setAvatarPreviewVisible(false)}
-          >
-            {avatarPreviewSrc
-              ? (
-                  <CachedImage
-                    accessibilityLabel="当前头像预览"
-                    uri={avatarPreviewSrc}
-                    style={{ width: 280, height: 280, borderRadius: Radius.lg }}
-                    contentFit="cover"
-                  />
-                )
-              : null}
-            <Pressable
-              accessibilityLabel="更换头像"
-              accessibilityRole="button"
-              onPress={() => { setAvatarPreviewVisible(false); void handlePickAvatar(); }}
-              style={[styles.saveButton, { borderWidth: 1, borderColor: "rgba(255,255,255,0.5)", backgroundColor: "transparent", marginTop: Spacing.xxl, paddingHorizontal: Spacing.xxl }]}
-            >
-              <ThemedText style={{ color: "rgba(255,255,255,0.8)" }}>更换头像</ThemedText>
-            </Pressable>
-          </Pressable>
-        </Modal>
       </SafeAreaView>
     </ThemedView>
   );

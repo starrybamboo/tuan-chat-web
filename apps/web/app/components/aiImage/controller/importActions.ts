@@ -43,12 +43,10 @@ export async function importSourceImageBytesAction(args: {
   name: string;
   source?: ImageImportSource;
   imageCount?: number;
-  target?: "img2img";
   uiMode: UiMode;
   setError: (value: string) => void;
   setIsPageImageDragOver: (value: boolean) => void;
   readImageSize: (dataUrl: string) => Promise<{ width: number; height: number }>;
-  applySourceImageForUi: (uiMode: UiMode, sourceImage: ImportedSourceImagePayload, successMessage?: string) => void;
   setPendingMetadataImport: (value: PendingMetadataImportState | null) => void;
   defaultMetadataImportSelection: MetadataImportSelectionState;
   setMetadataImportSelection: (value: MetadataImportSelectionState) => void;
@@ -85,14 +83,6 @@ export async function importSourceImageBytesAction(args: {
     height: imageSize?.height,
   } satisfies ImportedSourceImagePayload;
 
-  if (args.target === "img2img") {
-    args.applySourceImageForUi(args.uiMode, sourceImage, "已设置 Base Img。");
-    return;
-  }
-
-  if ((args.imageCount ?? 1) > 1)
-    return;
-
   args.setPendingMetadataImport({
     sourceImage,
     metadata: importedMetadata,
@@ -114,14 +104,13 @@ export async function importSourceImageBytesAction(args: {
 
 export async function importSourceFileAction(args: {
   file: File;
-  options?: { source?: ImageImportSource; imageCount?: number; target?: "img2img" };
+  options?: { source?: ImageImportSource; imageCount?: number };
   importSourceImageBytes: (args: {
     bytes: Uint8Array;
     mime: string;
     name: string;
     source?: ImageImportSource;
     imageCount?: number;
-    target?: "img2img";
   }) => Promise<void>;
 }) {
   const bytes = await readFileAsBytes(args.file);
@@ -131,6 +120,5 @@ export async function importSourceFileAction(args: {
     name: args.file.name,
     source: args.options?.source,
     imageCount: args.options?.imageCount,
-    target: args.options?.target,
   });
 }

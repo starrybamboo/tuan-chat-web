@@ -1,5 +1,7 @@
+import type { ApiResultFriendCheckResponse } from "@tuanchat/openapi-client/models/ApiResultFriendCheckResponse";
 import type { ReactNode } from "react";
 
+import { extractOpenApiErrorMessage, unwrapOpenApiResultData } from "@tuanchat/domain/open-api-result";
 import { useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
@@ -13,6 +15,7 @@ import { avatarThumbUrl } from "@/lib/media-url";
 import { useCheckFriendMutation, useSendFriendRequestMutation } from "./useFriendMutations";
 
 type SearchMode = "id" | "username";
+type FriendStatus = "blocked" | "friend" | "none" | "pending";
 
 const AVATAR_SIZE = 44;
 const AVATAR_COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#06b6d4", "#3b82f6"];
@@ -83,17 +86,36 @@ type AddFriendTabProps = {
   pendingRequestsContent?: ReactNode;
 };
 
+function resolveFriendCheckResult(result: ApiResultFriendCheckResponse): {
+  description: string | null;
+  status: FriendStatus;
+} {
+  const data = unwrapOpenApiResultData(result, "查询好友状态失败", "好友状态响应无效");
+  if (data.isFriend === true) {
+    return { description: data.statusDesc ?? null, status: "friend" };
+  }
+  if (data.status === 3) {
+    return { description: data.statusDesc ?? null, status: "blocked" };
+  }
+  if (data.status === 1) {
+    return { description: data.statusDesc ?? null, status: "pending" };
+  }
+  return { description: data.statusDesc ?? null, status: "none" };
+}
+
 export function AddFriendTab({ pendingRequestsContent }: AddFriendTabProps = {}) {
   const theme = useTheme();
   const [searchMode, setSearchMode] = useState<SearchMode>("id");
   const [addUserId, setAddUserId] = useState("");
   const [verifyMsg, setVerifyMsg] = useState("");
-  const [friendStatus, setFriendStatus] = useState<string | null>(null);
+  const [friendStatus, setFriendStatus] = useState<FriendStatus | null>(null);
   const [searchedUser, setSearchedUser] = useState<SearchedUser | null>(null);
   const [statusDesc, setStatusDesc] = useState<string | null>(null);
 
   const checkFriendMutation = useCheckFriendMutation();
   const sendRequestMutation = useSendFriendRequestMutation();
+  const { mutateAsync: checkFriend } = checkFriendMutation;
+  const { mutateAsync: sendFriendRequest } = sendRequestMutation;
 
   const canSendRequest = friendStatus !== null
     && friendStatus !== "friend"
@@ -101,7 +123,7 @@ export function AddFriendTab({ pendingRequestsContent }: AddFriendTabProps = {})
     && friendStatus !== "pending"
     && searchedUser != null;
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: FriendStatus) => {
     switch (status) {
       case "friend": return { bg: theme.accentMuted, text: theme.accent };
       case "blocked": return { bg: theme.dangerMuted, text: theme.danger };
@@ -110,7 +132,7 @@ export function AddFriendTab({ pendingRequestsContent }: AddFriendTabProps = {})
     }
   };
 
-  const getStatusLabel = (status: string): string => {
+  const getStatusLabel = (status: FriendStatus): string => {
     if (statusDesc)
       return statusDesc;
     switch (status) {
@@ -120,23 +142,6 @@ export function AddFriendTab({ pendingRequestsContent }: AddFriendTabProps = {})
       case "none": return "非好友";
       default: return status;
     }
-  };
-
-  const parseCheckResult = (res: any) => {
-    const data = res?.data ?? res;
-    const isFriendVal = data?.isFriend === true;
-    const status = data?.status;
-    const desc = data?.statusDesc;
-
-    setStatusDesc(desc ?? null);
-
-    if (isFriendVal)
-      return "friend";
-    if (status === 3)
-      return "blocked";
-    if (status === 1)
-      return "pending";
-    return "none";
   };
 
   const handleCheckFriend = async () => {
@@ -161,13 +166,15 @@ export function AddFriendTab({ pendingRequestsContent }: AddFriendTabProps = {})
           return;
         }
         setSearchedUser({ userId: userData.userId, username: userData.username, avatarFileId: userData.avatarFileId });
-        const res = await checkFriendMutation.mutateAsync(id);
-        setFriendStatus(parseCheckResult(res));
+        const result = resolveFriendCheckResult(await checkFriend(id));
+        setFriendStatus(result.status);
+        setStatusDesc(result.description);
       }
-      catch {
+      catch (error) {
         setSearchedUser(null);
         setFriendStatus(null);
-        Alert.alert("查询失败", "无法查询该用户状态");
+        setStatusDesc(null);
+        Alert.alert("查询失败", extractOpenApiErrorMessage(error, "无法查询该用户状态"));
       }
     }
     else {
@@ -181,13 +188,15 @@ export function AddFriendTab({ pendingRequestsContent }: AddFriendTabProps = {})
           return;
         }
         setSearchedUser({ userId: userData.userId, username: userData.username, avatarFileId: userData.avatarFileId });
-        const res = await checkFriendMutation.mutateAsync(userData.userId);
-        setFriendStatus(parseCheckResult(res));
+        const result = resolveFriendCheckResult(await checkFriend(userData.userId));
+        setFriendStatus(result.status);
+        setStatusDesc(result.description);
       }
-      catch {
+      catch (error) {
         setSearchedUser(null);
         setFriendStatus(null);
-        Alert.alert("查询失败", "无法查询该用户状态");
+        setStatusDesc(null);
+        Alert.alert("查询失败", extractOpenApiErrorMessage(error, "无法查询该用户状态"));
       }
     }
   };
@@ -202,7 +211,7 @@ export function AddFriendTab({ pendingRequestsContent }: AddFriendTabProps = {})
       return;
     }
     try {
-      await sendRequestMutation.mutateAsync({ targetUserId: searchedUser.userId, verifyMsg: verifyMsg.trim() });
+      await sendFriendRequest({ targetUserId: searchedUser.userId, verifyMsg: verifyMsg.trim() });
       Alert.alert("成功", "好友请求已发送");
       setAddUserId("");
       setVerifyMsg("");
@@ -210,9 +219,8 @@ export function AddFriendTab({ pendingRequestsContent }: AddFriendTabProps = {})
       setSearchedUser(null);
       setStatusDesc(null);
     }
-    catch (e: any) {
-      const msg = e?.body?.errMsg || e?.message || "发送失败";
-      Alert.alert("失败", msg);
+    catch (error) {
+      Alert.alert("失败", extractOpenApiErrorMessage(error, "发送失败"));
     }
   };
 
@@ -279,8 +287,9 @@ export function AddFriendTab({ pendingRequestsContent }: AddFriendTabProps = {})
 
       {pendingRequestsContent}
 
-      {searchedUser && (
-        <View style={[styles.resultCard, { backgroundColor: theme.backgroundElement }]}>
+      {searchedUser
+        ? (
+            <View style={[styles.resultCard, { backgroundColor: theme.backgroundElement }]}>
           {avatarThumbUrl(searchedUser.avatarFileId)
             ? (
                 <CachedImage uri={avatarThumbUrl(searchedUser.avatarFileId)} style={styles.avatar} />
@@ -301,25 +310,31 @@ export function AddFriendTab({ pendingRequestsContent }: AddFriendTabProps = {})
               {" "}
               {searchedUser.userId}
             </ThemedText>
-            {friendStatus && (
-              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(friendStatus).bg }]}>
-                <ThemedText style={{ color: getStatusColor(friendStatus).text, fontSize: 11 }}>
-                  {getStatusLabel(friendStatus)}
-                </ThemedText>
-              </View>
-            )}
+              {friendStatus
+                ? (
+                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(friendStatus).bg }]}>
+                      <ThemedText style={{ color: getStatusColor(friendStatus).text, fontSize: 11 }}>
+                        {getStatusLabel(friendStatus)}
+                      </ThemedText>
+                    </View>
+                  )
+                : null}
+            </View>
           </View>
-        </View>
-      )}
+          )
+        : null}
 
-      {friendStatus === "blocked" && (
-        <ThemedText type="small" themeColor="textSecondary" style={{ marginTop: Spacing.sm }}>
-          已拉黑，无法发送好友申请
-        </ThemedText>
-      )}
+      {friendStatus === "blocked"
+        ? (
+            <ThemedText type="small" themeColor="textSecondary" style={{ marginTop: Spacing.sm }}>
+              已拉黑，无法发送好友申请
+            </ThemedText>
+          )
+        : null}
 
-      {canSendRequest && (
-        <>
+      {canSendRequest
+        ? (
+            <>
           <View style={[styles.inputRow, { marginTop: Spacing.lg }]}>
             <ThemedText type="small" themeColor="textSecondary">验证消息</ThemedText>
             <TextInput
@@ -343,20 +358,23 @@ export function AddFriendTab({ pendingRequestsContent }: AddFriendTabProps = {})
               {sendRequestMutation.isPending ? "发送中..." : "发送好友请求"}
             </ThemedText>
           </Pressable>
-        </>
-      )}
+            </>
+          )
+        : null}
 
-      {friendStatus === "pending" && (
-        <Pressable
-          disabled
-          style={[styles.actionBtn, { backgroundColor: theme.backgroundElement, minHeight: 44, marginTop: Spacing.lg }]}
-          accessibilityLabel="已申请"
-        >
-          <ThemedText style={{ color: theme.textSecondary, fontWeight: "600" }}>
-            已申请
-          </ThemedText>
-        </Pressable>
-      )}
+      {friendStatus === "pending"
+        ? (
+            <Pressable
+              disabled
+              style={[styles.actionBtn, { backgroundColor: theme.backgroundElement, minHeight: 44, marginTop: Spacing.lg }]}
+              accessibilityLabel="已申请"
+            >
+              <ThemedText style={{ color: theme.textSecondary, fontWeight: "600" }}>
+                已申请
+              </ThemedText>
+            </Pressable>
+          )
+        : null}
     </ScrollView>
   );
 }

@@ -1,8 +1,9 @@
 import type { CommandInfo } from "@tuanchat/domain/command-request";
 
+import { FlashList } from "@shopify/flash-list";
 import { filterCommandCatalog, getCommandCatalog } from "@tuanchat/domain/command-catalog";
 import { memo, useCallback, useMemo } from "react";
-import { FlatList, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
@@ -14,9 +15,10 @@ import { getCommandQuery } from "./mobileCommandQuery";
 const styles = StyleSheet.create({
   panel: {
     borderRadius: Radius.md,
+    borderCurve: "continuous",
     borderWidth: 1,
     bottom: "100%",
-    elevation: 20,
+    boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.24)",
     left: Spacing.md,
     marginBottom: Spacing.sm,
     overflow: "hidden",
@@ -29,6 +31,7 @@ const styles = StyleSheet.create({
   },
   item: {
     borderRadius: Radius.sm,
+    borderCurve: "continuous",
     gap: 2,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
@@ -117,7 +120,7 @@ function MobileCommandPanelInner({ draftMessage, maxHeight, onSelectCommand, rul
   const panelMaxHeight = resolveCommandPanelMaxHeight(maxHeight);
 
   return (
-    <FlatList
+    <FlashList
       data={commands}
       keyExtractor={commandKeyExtractor}
       keyboardShouldPersistTaps="handled"

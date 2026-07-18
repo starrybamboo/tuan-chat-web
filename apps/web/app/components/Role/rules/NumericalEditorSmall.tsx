@@ -3,6 +3,7 @@ import {
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
 import { useEffect, useReducer, useRef, useState } from "react";
+
 import { appToast } from "@/components/common/appToast/appToast";
 import { Button } from "@/components/common/Button";
 
@@ -256,7 +257,6 @@ export default function NumericalEditorSmall({
                     className="min-h-5 rounded-full px-2 text-xs"
                     title={`编辑字段 ${key}，当前值 ${String(value)}`}
                     aria-label={`编辑字段 ${key}，当前值 ${String(value)}`}
-                    aria-pressed={editingKey === key}
                   >
                     {key}
                     {" "}

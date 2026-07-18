@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 
 import { buildBaseArchiveMessageIndex } from "@/components/chat/message/diff/messageVersionDiff";
-
-import type { ChatMessageResponse } from "../../../../../api";
 
 import { tuanchat } from "../../../../../api/instance";
 
@@ -17,57 +16,35 @@ export default function useRoomBaseArchiveMessages(
   baseArchiveCommitId: number | null | undefined,
   enabled: boolean,
 ): UseRoomBaseArchiveMessagesResult {
-  const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-
-  useEffect(() => {
-    if (!enabled || roomId <= 0 || !baseArchiveCommitId) {
-      queueMicrotask(() => setMessages([]));
-      queueMicrotask(() => setLoading(false));
-      queueMicrotask(() => setError(null));
-      return;
-    }
-
-    let cancelled = false;
-    queueMicrotask(() => setLoading(true));
-    queueMicrotask(() => setError(null));
-
-    tuanchat.chatController.getHistoryMessages({
-      roomId,
-      syncId: 0,
-      commitId: baseArchiveCommitId,
-    })
-      .then((response) => {
-        if (cancelled) {
-          return;
-        }
-        setMessages(Array.isArray(response?.data) ? response.data : []);
-      })
-      .catch((nextError: unknown) => {
-        if (cancelled) {
-          return;
-        }
-        console.error("[message-version-diff] Failed to load base archive messages", nextError);
-        setMessages([]);
-        setError(nextError);
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
+  const validCommitId = typeof baseArchiveCommitId === "number" && baseArchiveCommitId > 0
+    ? baseArchiveCommitId
+    : -1;
+  const queryEnabled = enabled && roomId > 0 && validCommitId > 0;
+  const archiveMessagesQuery = useQuery({
+    queryKey: roomBaseArchiveMessagesQueryKey(roomId, validCommitId),
+    queryFn: async () => {
+      const response = await tuanchat.chatController.getHistoryMessages({
+        roomId,
+        syncId: 0,
+        commitId: validCommitId,
       });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [baseArchiveCommitId, enabled, roomId]);
-
-  const baseMessageByArchiveId = useMemo(() => buildBaseArchiveMessageIndex(messages), [messages]);
+      return Array.isArray(response.data) ? response.data : [];
+    },
+    enabled: queryEnabled,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+  const baseMessageByArchiveId = useMemo(() => {
+    const messages = queryEnabled ? (archiveMessagesQuery.data ?? []) : [];
+    return buildBaseArchiveMessageIndex(messages);
+  }, [archiveMessagesQuery.data, queryEnabled]);
 
   return {
     baseMessageByArchiveId,
-    loading,
-    error,
+    loading: queryEnabled && archiveMessagesQuery.isPending,
+    error: queryEnabled ? archiveMessagesQuery.error : null,
   };
+}
+
+export function roomBaseArchiveMessagesQueryKey(roomId: number, baseArchiveCommitId: number) {
+  return ["roomBaseArchiveMessages", roomId, baseArchiveCommitId] as const;
 }

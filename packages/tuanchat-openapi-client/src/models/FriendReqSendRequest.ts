@@ -15,4 +15,3 @@ export type FriendReqSendRequest = {
      */
     verifyMsg: string;
 };
-

@@ -19,4 +19,3 @@ export type MediaCompleteUploadFailedTarget = {
      */
     retryable?: boolean;
 };
-

@@ -28,4 +28,3 @@ export type PageBaseRespRuleResponse = {
      */
     list?: Array<RuleResponse>;
 };
-

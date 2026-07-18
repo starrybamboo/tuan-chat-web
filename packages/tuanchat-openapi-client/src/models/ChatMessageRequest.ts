@@ -49,4 +49,3 @@ export type ChatMessageRequest = {
      */
     extra: MessageExtra;
 };
-

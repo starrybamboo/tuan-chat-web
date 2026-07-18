@@ -30,4 +30,3 @@ export type RoleAvatarVariant = {
     createTime?: string;
     updateTime?: string;
 };
-

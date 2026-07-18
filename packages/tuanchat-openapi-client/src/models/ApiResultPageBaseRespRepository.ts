@@ -24,4 +24,3 @@ export type ApiResultPageBaseRespRepository = {
      */
     data?: PageBaseRespRepository;
 };
-

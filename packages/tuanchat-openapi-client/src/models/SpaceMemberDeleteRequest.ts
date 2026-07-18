@@ -12,4 +12,3 @@ export type SpaceMemberDeleteRequest = {
      */
     userIdList: Array<number>;
 };
-

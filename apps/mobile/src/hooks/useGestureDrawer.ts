@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useWindowDimensions } from "react-native";
 import { Gesture } from "react-native-gesture-handler";
 import {
@@ -22,10 +22,10 @@ export function useGestureDrawer() {
   const rightDrawerWidth = resolveRightDrawerWidth(windowWidth);
   const translateX = useSharedValue(0);
   const context = useSharedValue(0);
-  const axisConfig = getGestureDrawerAxisConfig();
-  const snapPoints = getRightDrawerSnapPoints(rightDrawerWidth);
+  const axisConfig = useMemo(getGestureDrawerAxisConfig, []);
+  const snapPoints = useMemo(() => getRightDrawerSnapPoints(rightDrawerWidth), [rightDrawerWidth]);
 
-  const panGesture = Gesture.Pan()
+  const panGesture = useMemo(() => Gesture.Pan()
     .activeOffsetX(axisConfig.activeOffsetX)
     .failOffsetY(axisConfig.failOffsetY)
     .onStart(() => {
@@ -43,7 +43,7 @@ export function useGestureDrawer() {
       const currentPosition = translateX.get();
       const destination = snapPoint(currentPosition, e.velocityX, snapPoints);
       translateX.set(withSpring(destination, SPRING_CONFIG));
-    });
+    }), [axisConfig.activeOffsetX, axisConfig.failOffsetY, context, rightDrawerWidth, snapPoints, translateX]);
 
   const close = useCallback(() => {
     translateX.set(withSpring(0, SPRING_CONFIG));

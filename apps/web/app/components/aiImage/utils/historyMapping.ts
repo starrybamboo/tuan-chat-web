@@ -33,7 +33,7 @@ export function buildDirectorToolHistoryRow(args: {
   const sourceHistoryRow = args.sourceHistoryRow ?? null;
   return {
     createdAt: args.createdAt ?? Date.now(),
-    mode: sourceHistoryRow?.mode ?? "img2img",
+    mode: sourceHistoryRow?.mode ?? "txt2img",
     model: args.output.model,
     seed: args.output.seed,
     width: args.output.width,
@@ -48,7 +48,10 @@ export function buildDirectorToolHistoryRow(args: {
     cfgRescale: sourceHistoryRow?.cfgRescale,
     ucPreset: sourceHistoryRow?.ucPreset,
     qualityToggle: sourceHistoryRow?.qualityToggle,
+    cfgDelay: sourceHistoryRow?.cfgDelay,
     dynamicThresholding: sourceHistoryRow?.dynamicThresholding,
+    inpaintFocusedArea: sourceHistoryRow?.inpaintFocusedArea,
+    overlayOriginalImage: sourceHistoryRow?.overlayOriginalImage,
     smea: sourceHistoryRow?.smea,
     smeaDyn: sourceHistoryRow?.smeaDyn,
     strength: sourceHistoryRow?.strength,

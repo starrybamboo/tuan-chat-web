@@ -46,11 +46,10 @@ describe("buildRoomListItems", () => {
     ]);
   });
 
-  it("没有 sidebarTree 时回退到默认频道分类", () => {
+  it("没有 sidebarTree 时回退到移动端房间分类", () => {
     const items = buildRoomListItems({
       collapsedSections: {},
       currentSpaceId: 10,
-      onCreateRoom: () => {},
       rooms: [
         { roomId: 1, name: "全员", roomType: 2 } as any,
       ],
@@ -60,9 +59,24 @@ describe("buildRoomListItems", () => {
     });
 
     expect(items).toMatchObject([
-      { type: "section", label: "频道" },
+      { type: "section", label: "房间" },
       { type: "room", room: { roomId: 1 } },
-      { type: "create-room" },
     ]);
+  });
+
+  it("保留刚创建且尚未包含房间的空分类", () => {
+    const items = buildRoomListItems({
+      collapsedSections: {},
+      currentSpaceId: 10,
+      rooms: [],
+      roomsIsError: false,
+      roomsIsPending: false,
+      sidebarTree: {
+        schemaVersion: 2,
+        categories: [{ categoryId: "cat:empty", name: "待整理", items: [] }],
+      },
+    });
+
+    expect(items).toMatchObject([{ type: "section", label: "待整理" }]);
   });
 });

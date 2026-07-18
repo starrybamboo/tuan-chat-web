@@ -15,6 +15,7 @@ const MAX_ENTRIES = 300;
 const LOG_EXPORT_DIR_NAME = "feedback-logs";
 const entries: LogEntry[] = [];
 const consoleProxy = globalThis.console;
+let globalHandlersInstalled = false;
 
 function push(entry: LogEntry) {
   entries.push(entry);
@@ -131,6 +132,11 @@ export function clearLogs(): void {
 }
 
 export function installGlobalHandlers(): void {
+  if (globalHandlersInstalled) {
+    return;
+  }
+  globalHandlersInstalled = true;
+
   const originalConsoleError = consoleProxy.error;
   consoleProxy.error = (...args: unknown[]) => {
     push({

@@ -1,19 +1,22 @@
-import type { ApiResultListCommentVO } from "@tuanchat/openapi-client/models/ApiResultListCommentVO";
-import type { ApiResultListCommentTimelineVO } from "@tuanchat/openapi-client/models/ApiResultListCommentTimelineVO";
 import type { QueryClient } from "@tanstack/react-query";
-import {useInfiniteQuery, useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
-import {tuanchat} from "../instance";
-import type {CommentPageRequest} from "@tuanchat/openapi-client/models/CommentPageRequest";
-import type {CommentChildPageRequest} from "@tuanchat/openapi-client/models/CommentChildPageRequest";
+import type { ApiResultListCommentTimelineVO } from "@tuanchat/openapi-client/models/ApiResultListCommentTimelineVO";
+import type { ApiResultListCommentVO } from "@tuanchat/openapi-client/models/ApiResultListCommentVO";
 import type {CommentAddRequest} from "@tuanchat/openapi-client/models/CommentAddRequest";
+import type {CommentChildPageRequest} from "@tuanchat/openapi-client/models/CommentChildPageRequest";
+import type {CommentPageRequest} from "@tuanchat/openapi-client/models/CommentPageRequest";
 import type {CommentTimelinePageRequest} from "@tuanchat/openapi-client/models/CommentTimelinePageRequest";
-import { FEEDBACK_ISSUE_TARGET_TYPE } from "@/components/feedback/feedbackTypes";
-import { FEEDBACK_ISSUES_QUERY_KEY, feedbackIssueDetailQueryKey } from "../feedbackQueryCache";
+
+import {useInfiniteQuery, useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {
     beginOptimisticQueryTransaction,
     optimisticQueryPatch,
     rollbackOptimisticQueryTransaction,
 } from "@tuanchat/query/optimistic-cache";
+
+import { FEEDBACK_ISSUE_TARGET_TYPE } from "@/components/feedback/feedbackTypes";
+
+import { FEEDBACK_ISSUES_QUERY_KEY, feedbackIssueDetailQueryKey } from "../feedbackQueryCache";
+import {tuanchat} from "../instance";
 
 const COMMENT_PAGE_QUERY_KEY = ["pageComments"] as const;
 const COMMENT_CHILD_PAGE_QUERY_KEY = ["pageChildComments"] as const;
@@ -35,29 +38,51 @@ function normalizeCommentTargetInfo(targetInfo: CommentTargetInfo): CommentTarge
     };
 }
 
-export function buildCommentPageQueryKey(targetInfo: CommentTargetInfo) {
+export function buildCommentPageQueryPrefix(targetInfo: CommentTargetInfo) {
     return [...COMMENT_PAGE_QUERY_KEY, normalizeCommentTargetInfo(targetInfo)] as const;
 }
 
-function buildCommentChildPageQueryKey(
+export function buildCommentPageQueryKey(
+    targetInfo: CommentTargetInfo,
+    pageSize: number = 10,
+    childLimit: number = DEFAULT_COMMENT_CHILD_LIMIT,
+    maxLevel: number = DEFAULT_COMMENT_MAX_LEVEL,
+) {
+    const normalizedOptions = normalizeCommentTreeQueryOptions(childLimit, maxLevel);
+    return [
+        ...buildCommentPageQueryPrefix(targetInfo),
+        pageSize,
+        normalizedOptions.childLimit,
+        normalizedOptions.maxLevel,
+    ] as const;
+}
+
+export function buildCommentChildPageQueryKey(
     targetInfo: CommentTargetInfo,
     parentCommentId: number,
     pageSize: number,
     childLimit: number,
     maxLevel: number,
+    initialPageNo: number,
 ) {
+    const normalizedOptions = normalizeCommentTreeQueryOptions(childLimit, maxLevel);
     return [
         ...COMMENT_CHILD_PAGE_QUERY_KEY,
         normalizeCommentTargetInfo(targetInfo),
         parentCommentId,
         pageSize,
-        childLimit,
-        maxLevel,
+        normalizedOptions.childLimit,
+        normalizedOptions.maxLevel,
+        initialPageNo,
     ] as const;
 }
 
-export function buildCommentTimelineQueryKey(targetInfo: CommentTargetInfo) {
+export function buildCommentTimelineQueryPrefix(targetInfo: CommentTargetInfo) {
     return [...COMMENT_TIMELINE_QUERY_KEY, normalizeCommentTargetInfo(targetInfo)] as const;
+}
+
+export function buildCommentTimelineQueryKey(targetInfo: CommentTargetInfo, pageSize: number = 20) {
+    return [...buildCommentTimelineQueryPrefix(targetInfo), pageSize] as const;
 }
 
 export function normalizeCommentTreeQueryOptions(childLimit: number, maxLevel: number) {
@@ -145,8 +170,8 @@ export async function invalidateCommentTargetQueries(queryClient: QueryClient, t
     const normalizedTargetInfo = normalizeCommentTargetInfo(targetInfo);
     queryClient.removeQueries({ queryKey: [...COMMENT_CHILD_PAGE_QUERY_KEY, normalizedTargetInfo] });
     await Promise.all([
-        queryClient.invalidateQueries({ queryKey: buildCommentPageQueryKey(normalizedTargetInfo) }),
-        queryClient.invalidateQueries({ queryKey: buildCommentTimelineQueryKey(normalizedTargetInfo) }),
+        queryClient.invalidateQueries({ queryKey: buildCommentPageQueryPrefix(normalizedTargetInfo) }),
+        queryClient.invalidateQueries({ queryKey: buildCommentTimelineQueryPrefix(normalizedTargetInfo) }),
     ]);
 
     if (!isFeedbackCommentTarget(normalizedTargetInfo)) {
@@ -208,7 +233,7 @@ export function beginDeleteCommentOptimisticMutation(queryClient: QueryClient, p
     const target = normalizeCommentTargetInfo(payload);
     return beginOptimisticQueryTransaction(queryClient, [
         optimisticQueryPatch<unknown>({
-            queryKey: buildCommentPageQueryKey(target),
+            queryKey: buildCommentPageQueryPrefix(target),
             exact: false,
             update: current => removeCommentFromCacheValue(current, payload.commentId),
         }),
@@ -218,7 +243,7 @@ export function beginDeleteCommentOptimisticMutation(queryClient: QueryClient, p
             update: current => removeCommentFromCacheValue(current, payload.commentId),
         }),
         optimisticQueryPatch<unknown>({
-            queryKey: buildCommentTimelineQueryKey(target),
+            queryKey: buildCommentTimelineQueryPrefix(target),
             exact: false,
             update: current => removeCommentFromCacheValue(current, payload.commentId),
         }),
@@ -255,7 +280,12 @@ export function useGetCommentPageInfiniteQuery(
 ) {
     const normalizedOptions = normalizeCommentTreeQueryOptions(childLimit, maxLevel);
     return useInfiniteQuery({
-        queryKey: buildCommentPageQueryKey(targetInfo),
+        queryKey: buildCommentPageQueryKey(
+            targetInfo,
+            pageSize,
+            normalizedOptions.childLimit,
+            normalizedOptions.maxLevel,
+        ),
         queryFn: async ({ pageParam }) => {
             return tuanchat.commentController.pageComments(pageParam);
         },
@@ -296,6 +326,7 @@ export function useGetCommentChildPageInfiniteQuery(
             pageSize,
             normalizedOptions.childLimit,
             normalizedOptions.maxLevel,
+            initialPageNo,
         ),
         queryFn: async ({ pageParam }) => {
             return tuanchat.commentController.pageChildComments(pageParam);
@@ -327,7 +358,7 @@ export function useGetCommentChildPageInfiniteQuery(
 
 export function useGetCommentTimelineInfiniteQuery(targetInfo: CommentTargetInfo, pageSize: number = 20) {
     return useInfiniteQuery({
-        queryKey: buildCommentTimelineQueryKey(targetInfo),
+        queryKey: buildCommentTimelineQueryKey(targetInfo, pageSize),
         queryFn: async ({ pageParam }) => {
             return tuanchat.commentController.pageTimelineComments(pageParam);
         },

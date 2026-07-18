@@ -1,7 +1,4 @@
-import type {
-  NovelAiDirectorRequestType,
-  NovelAiEmotion,
-} from "@/components/aiImage/types";
+import type { NovelAiDirectorRequestType } from "@/components/aiImage/types";
 
 import { resolveBackendAugmentImageUrl } from "@/components/aiImage/api/backendUrls";
 import { requestNovelAiBinaryViaProxy } from "@/components/aiImage/api/requestBinary";
@@ -10,7 +7,7 @@ import {
   sanitizeNovelAiTagInput,
 } from "@/components/aiImage/helpers";
 
-export type NovelAiDirectorToolPayload = {
+type NovelAiDirectorToolPayload = {
   req_type: NovelAiDirectorRequestType;
   use_new_shared_trial: true;
   image: string;
@@ -18,7 +15,6 @@ export type NovelAiDirectorToolPayload = {
   height: number;
   prompt?: string;
   defry?: number;
-  emotion?: NovelAiEmotion;
 };
 
 export function buildNovelAiDirectorToolPayload(args: {
@@ -28,7 +24,6 @@ export function buildNovelAiDirectorToolPayload(args: {
   height: number;
   prompt?: string;
   defry?: number;
-  emotion?: NovelAiEmotion;
 }) {
   const payload: NovelAiDirectorToolPayload = {
     req_type: args.requestType,
@@ -42,8 +37,6 @@ export function buildNovelAiDirectorToolPayload(args: {
     payload.prompt = prompt;
   if (Number.isFinite(args.defry))
     payload.defry = clampIntRange(Number(args.defry), 0, 5, 0);
-  if (args.emotion)
-    payload.emotion = args.emotion;
   return payload;
 }
 
@@ -54,7 +47,6 @@ export async function augmentNovelImageViaProxy(args: {
   height: number;
   prompt?: string;
   defry?: number;
-  emotion?: NovelAiEmotion;
 }) {
   const imageBase64 = String(args.imageBase64 || "").trim();
   if (!imageBase64)
@@ -67,7 +59,6 @@ export async function augmentNovelImageViaProxy(args: {
     height: args.height,
     prompt: args.prompt,
     defry: args.defry,
-    emotion: args.emotion,
   });
 
   const requestUrl = resolveBackendAugmentImageUrl();

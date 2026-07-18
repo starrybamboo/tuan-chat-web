@@ -30,6 +30,7 @@ export function hasMetadataSettingsPayload(settings: NovelAiImportedSettings) {
     || settings.cfgRescale != null
     || settings.ucPreset != null
     || settings.qualityToggle != null
+    || settings.cfgDelay != null
     || settings.dynamicThresholding != null
     || settings.smea != null
     || settings.smeaDyn != null
@@ -37,8 +38,6 @@ export function hasMetadataSettingsPayload(settings: NovelAiImportedSettings) {
     || settings.noise != null
     || settings.v4UseCoords != null
     || settings.v4UseOrder != null
-    || (settings.vibeTransferReferences?.length ?? 0) > 0
-    || settings.preciseReference != null
   );
 }
 

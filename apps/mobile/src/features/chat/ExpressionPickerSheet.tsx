@@ -1,8 +1,9 @@
 import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 
+import { FlashList } from "@shopify/flash-list";
 import * as ImageManipulator from "expo-image-manipulator";
-import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { memo, useCallback, useMemo, useState } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 
 import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
 
@@ -53,19 +54,17 @@ const styles = StyleSheet.create({
     maxWidth: 240,
     textAlign: "center",
   },
-  scrollContent: {
-    paddingBottom: Spacing.md,
+  list: {
+    maxHeight: 360,
   },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: GRID_GAP,
+  listContent: {
+    paddingBottom: Spacing.md,
   },
   item: {
     alignItems: "center",
-    borderRadius: Radius.md,
-    overflow: "hidden",
-    width: STICKER_SIZE,
+    justifyContent: "center",
+    paddingBottom: GRID_GAP,
+    width: "100%",
   },
   sticker: {
     borderRadius: Radius.md,
@@ -82,6 +81,41 @@ type ExpressionPickerSheetProps = {
 
 type StickerWithFileId = Sticker & { fileId: number };
 
+type StickerTileProps = {
+  onClose: () => void;
+  onSelect: (sticker: Sticker) => void;
+  sticker: StickerWithFileId;
+};
+
+const StickerTile = memo(function StickerTile({ onClose, onSelect, sticker }: StickerTileProps) {
+  const label = sticker.name?.trim() || `表情 ${sticker.stickerId ?? sticker.fileId}`;
+  const mediaType = sticker.mediaType?.trim() || "image";
+  const handlePress = useCallback(() => {
+    onSelect(sticker);
+    onClose();
+  }, [onClose, onSelect, sticker]);
+
+  return (
+    <Pressable
+      accessibilityHint="点按发送该表情"
+      accessibilityLabel={`发送表情 ${label}`}
+      accessibilityRole="button"
+      onPress={handlePress}
+      style={styles.item}
+    >
+      <CachedImage
+        uri={mediaFileUrl(sticker.fileId, mediaType === "image" ? "image" : "other", "medium")}
+        contentFit="contain"
+        style={styles.sticker}
+      />
+    </Pressable>
+  );
+});
+
+function getStickerKey(sticker: StickerWithFileId) {
+  return `sticker:${sticker.stickerId ?? sticker.fileId}`;
+}
+
 export function ExpressionPickerSheet({
   onClose,
   onSelectExpression,
@@ -94,8 +128,13 @@ export function ExpressionPickerSheet({
   const [uploadStatusMessage, setUploadStatusMessage] = useState<string | null>(null);
   const userStickersQuery = useUserStickersQuery(visible);
   const createStickerMutation = useCreateStickerMutation();
-  const stickers = (userStickersQuery.data?.data ?? [])
-    .filter((sticker): sticker is StickerWithFileId => typeof sticker.fileId === "number" && sticker.fileId > 0);
+  const { refetch: refetchUserStickers } = userStickersQuery;
+  const { mutateAsync: createSticker } = createStickerMutation;
+  const stickers = useMemo(
+    () => (userStickersQuery.data?.data ?? [])
+      .filter((sticker): sticker is StickerWithFileId => typeof sticker.fileId === "number" && sticker.fileId > 0),
+    [userStickersQuery.data?.data],
+  );
 
   const handlePickSticker = useCallback(async () => {
     if (uploading || cropSource) {
@@ -119,12 +158,12 @@ export function ExpressionPickerSheet({
             throw new Error("表情包上传失败。");
           }
 
-          await createStickerMutation.mutateAsync(buildStickerCreateRequest(
+          await createSticker(buildStickerCreateRequest(
             { fileName: picked.fileName, mimeType: "image/webp" },
             { ...uploadedImage, fileName: picked.fileName },
           ));
           setUploadStatusMessage("上传完成，正在刷新");
-          await userStickersQuery.refetch();
+          await refetchUserStickers();
         }
         finally {
           setUploading(false);
@@ -141,7 +180,7 @@ export function ExpressionPickerSheet({
     catch (error) {
       setUploadErrorMessage(getStickerUploadErrorMessage(error));
     }
-  }, [createStickerMutation, cropSource, uploading, userStickersQuery]);
+  }, [createSticker, cropSource, refetchUserStickers, uploading]);
 
   const handleCropCancel = useCallback(() => {
     if (!uploading) {
@@ -174,9 +213,9 @@ export function ExpressionPickerSheet({
         throw new Error("表情包上传失败。");
       }
 
-      await createStickerMutation.mutateAsync(buildStickerCreateRequest(croppedAttachment, uploadedImage));
+      await createSticker(buildStickerCreateRequest(croppedAttachment, uploadedImage));
       setUploadStatusMessage("上传完成，正在刷新");
-      await userStickersQuery.refetch();
+      await refetchUserStickers();
       setCropSource(null);
     }
     catch (error) {
@@ -186,7 +225,54 @@ export function ExpressionPickerSheet({
     finally {
       setUploading(false);
     }
-  }, [createStickerMutation, cropSource, userStickersQuery]);
+  }, [createSticker, cropSource, refetchUserStickers]);
+
+  const renderSticker = useCallback(
+    ({ item }: { item: StickerWithFileId }) => (
+      <StickerTile onClose={onClose} onSelect={onSelectExpression} sticker={item} />
+    ),
+    [onClose, onSelectExpression],
+  );
+  const stickerListHeight = Math.min(
+    360,
+    Math.max(120, Math.ceil(stickers.length / 3) * (STICKER_SIZE + GRID_GAP)),
+  );
+  const emptyContent = userStickersQuery.isPending
+    ? (
+        <View style={styles.emptyState}>
+          <ActivityIndicator color={theme.textSecondary} size="small" />
+        </View>
+      )
+    : userStickersQuery.isError
+      ? (
+          <View style={styles.emptyState}>
+            <ThemedText themeColor="textSecondary" type="small">表情包加载失败</ThemedText>
+          </View>
+        )
+      : (
+          <View style={styles.emptyAction}>
+            <SquareUploadButton
+              accessibilityLabel="上传表情包"
+              borderColor={theme.accent}
+              disabled={uploading || !!cropSource}
+              onPress={() => void handlePickSticker()}
+              size={72}
+            >
+              {uploading
+                ? <ActivityIndicator color={theme.accent} size="small" />
+                : <ThemedText themeColor="accent" type="small">+</ThemedText>}
+            </SquareUploadButton>
+            <ThemedText themeColor="textSecondary" type="small">
+              {uploading ? "正在上传表情包..." : "还没有可用的表情包，点加号上传"}
+            </ThemedText>
+            {uploadErrorMessage
+              ? <ThemedText style={[styles.feedbackText, { color: theme.danger }]}>{uploadErrorMessage}</ThemedText>
+              : null}
+            {uploadStatusMessage && !uploadErrorMessage
+              ? <ThemedText style={[styles.feedbackText, { color: theme.success }]}>{uploadStatusMessage}</ThemedText>
+              : null}
+          </View>
+        );
 
   return (
     <BottomSheetModal
@@ -197,79 +283,17 @@ export function ExpressionPickerSheet({
     >
       <ThemedText style={styles.title}>表情</ThemedText>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {userStickersQuery.isPending
-          ? (
-              <View style={styles.emptyState}>
-                <ActivityIndicator color={theme.textSecondary} size="small" />
-              </View>
-            )
-          : userStickersQuery.isError
-            ? (
-                <View style={styles.emptyState}>
-                  <ThemedText themeColor="textSecondary" type="small">表情包加载失败</ThemedText>
-                </View>
-              )
-            : stickers.length === 0
-              ? (
-                  <View style={styles.emptyAction}>
-                    <SquareUploadButton
-                      accessibilityLabel="上传表情包"
-                      borderColor={theme.accent}
-                      disabled={uploading || !!cropSource}
-                      onPress={() => void handlePickSticker()}
-                      size={72}
-                    >
-                      {uploading
-                        ? <ActivityIndicator color={theme.accent} size="small" />
-                        : <ThemedText themeColor="accent" type="small">+</ThemedText>}
-                    </SquareUploadButton>
-                    <ThemedText themeColor="textSecondary" type="small">
-                      {uploading ? "正在上传表情包..." : "还没有可用的表情包，点加号上传"}
-                    </ThemedText>
-                    {uploadErrorMessage
-                      ? (
-                          <ThemedText style={[styles.feedbackText, { color: theme.danger }]}>
-                            {uploadErrorMessage}
-                          </ThemedText>
-                        )
-                      : null}
-                    {uploadStatusMessage && !uploadErrorMessage
-                      ? (
-                          <ThemedText style={[styles.feedbackText, { color: theme.success }]}>
-                            {uploadStatusMessage}
-                          </ThemedText>
-                        )
-                      : null}
-                  </View>
-                )
-              : (
-                  <View style={styles.grid}>
-                    {stickers.map((sticker) => {
-                      const stickerMediaType = sticker.mediaType?.trim() || "image";
-                      return (
-                        <Pressable
-                          key={sticker.stickerId ?? sticker.fileId}
-                          accessibilityHint="点按发送该表情"
-                          accessibilityLabel={`发送表情 ${sticker.name?.trim() || `表情 ${sticker.stickerId ?? sticker.fileId}`}`}
-                          accessibilityRole="button"
-                          onPress={() => {
-                            onSelectExpression(sticker);
-                            onClose();
-                          }}
-                          style={styles.item}
-                        >
-                          <CachedImage
-                            uri={mediaFileUrl(sticker.fileId, stickerMediaType === "image" ? "image" : "other", "medium")}
-                            contentFit="contain"
-                            style={styles.sticker}
-                          />
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                )}
-      </ScrollView>
+      <FlashList
+        contentContainerStyle={styles.listContent}
+        data={stickers}
+        drawDistance={STICKER_SIZE * 4}
+        keyExtractor={getStickerKey}
+        ListEmptyComponent={emptyContent}
+        numColumns={3}
+        renderItem={renderSticker}
+        showsVerticalScrollIndicator={false}
+        style={[styles.list, { height: stickerListHeight }]}
+      />
       <AvatarCropModal
         visible={!!cropSource}
         imageUri={cropSource?.uri ?? ""}

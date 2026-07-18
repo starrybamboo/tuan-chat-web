@@ -1,13 +1,13 @@
 import type { FocusEvent, KeyboardEvent } from "react";
-import { appToast } from "@/components/common/appToast/appToast";
 
+import { PlusIcon } from "@phosphor-icons/react";
 import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { Button } from "@/components/common/Button";
+import { appToast } from "@/components/common/appToast/appToast";
 import { TextArea, TextInput } from "@/components/common/FormField";
 import { IconButton } from "@/components/common/IconButton";
 
@@ -504,19 +504,18 @@ export default function PerformanceEditor({
                     placeholder="新增字段内容"
                     className={`${tableTextareaClassName} px-11`}
                   />
-                  <Button
-                    variant="primary"
+                  <IconButton
+                    tone="primary"
+                    appearance="solid"
+                    shape="square"
                     size="xs"
                     onClick={handleAddDraftField}
                     disabled={!addKeyDraft.trim()}
-                    className="
-                      absolute right-2 top-1/2 size-6 min-h-6
-                      -translate-y-1/2 p-0
-                    "
+                    className="absolute right-2 top-1/2 -translate-y-1/2"
                     title="添加字段"
-                  >
-                    +
-                  </Button>
+                    label="添加字段"
+                    icon={<PlusIcon weight="bold" aria-hidden="true" />}
+                  />
                 </td>
               </tr>
             </tbody>

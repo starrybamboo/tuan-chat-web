@@ -23,4 +23,3 @@ export type ApiResultBoolean = {
      */
     data?: boolean;
 };
-

@@ -7,6 +7,7 @@
     "./chat": "./src/chat.ts",
     "./clue-folder": "./src/clue-folder.ts",
     "./direct-message": "./src/direct-message.ts",
+    "./direct-message-conversation-sync": "./src/direct-message-conversation-sync.ts",
     "./friends": "./src/friends.ts",
     "./message-sessions": "./src/message-sessions.ts",
     "./members": "./src/members.ts",

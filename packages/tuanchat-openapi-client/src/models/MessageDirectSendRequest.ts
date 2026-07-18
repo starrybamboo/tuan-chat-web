@@ -28,4 +28,3 @@ export type MessageDirectSendRequest = {
      */
     extra: MessageExtra;
 };
-

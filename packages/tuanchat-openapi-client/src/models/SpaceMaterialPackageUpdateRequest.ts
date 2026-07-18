@@ -32,4 +32,3 @@ export type SpaceMaterialPackageUpdateRequest = {
      */
     content: MaterialPackageContent;
 };
-

@@ -529,7 +529,7 @@ async function prepareMediaUpload(
       mimeType,
       contentType: mimeType,
       hasNovelAiMetadata: false,
-      metadata: metadata as any,
+      metadata,
     });
     if (!result.success || !result.data?.fileId || !result.data.mediaType) {
       throw new Error(result.errMsg || "准备媒体上传失败。");

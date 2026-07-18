@@ -1,6 +1,6 @@
 import type { MutableRefObject, TextareaHTMLAttributes } from "react";
 
-import { useCallback, useEffect, useId, useLayoutEffect, useRef } from "react";
+import { useCallback, useId } from "react";
 
 import { TextArea } from "@/components/common/FormField";
 
@@ -131,15 +131,6 @@ function resolveSegmentTone(weight: number): { level: 0 | 1 | 2 | 3; tone: Segme
   return { tone: "neutral", level: 0 };
 }
 
-function createSegmentClassName(segment: EmphasisSegment) {
-  if (segment.kind === "comment")
-    return COMMENT_CLASS_NAME;
-  if (segment.kind === "numeric-close")
-    return NUMERIC_CLOSE_CLASS_NAME;
-
-  return SEGMENT_CLASS_MAP[segment.tone][segment.level][segment.kind === "syntax" ? "syntax" : "text"];
-}
-
 function resolveSegmentClassName(kind: SegmentKind, tone: SegmentTone, level: 0 | 1 | 2 | 3) {
   if (kind === "comment")
     return COMMENT_CLASS_NAME;
@@ -189,7 +180,7 @@ export function parseNovelAiSegments(value: string) {
       && kind !== "numeric-close"
       && previousSegment.tone === tone
       && previousSegment.level === level
-      && createSegmentClassName(previousSegment) === nextClassName
+      && resolveSegmentClassName(previousSegment.kind, previousSegment.tone, previousSegment.level) === nextClassName
     ) {
       previousSegment.text += text;
       return;
@@ -279,83 +270,41 @@ export function HighlightEmphasisTextarea({
   "aria-label": ariaLabel,
   ...textareaProps
 }: HighlightEmphasisTextareaProps) {
-  const overlayContentRef = useRef<HTMLDivElement | null>(null);
-  const internalTextareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const previousHeightRef = useRef(0);
   const textareaId = useId();
   const stringValue = typeof value === "string" ? value : String(value ?? "");
   const segments = parseNovelAiSegments(stringValue);
 
   const handleTextareaRef = useCallback((node: HTMLTextAreaElement | null) => {
-    internalTextareaRef.current = node;
     if (textareaRef)
       textareaRef.current = node;
   }, [textareaRef]);
 
-  useLayoutEffect(() => {
-    const textarea = internalTextareaRef.current;
-    if (!textarea)
-      return;
-
-    textarea.style.height = "0px";
-    const nextHeight = Math.max(textarea.scrollHeight, textarea.rows ? textarea.rows * 24 : 0);
-    if (previousHeightRef.current !== nextHeight) {
-      previousHeightRef.current = nextHeight;
-      textarea.style.height = `${nextHeight}px`;
-      return;
-    }
-    textarea.style.height = `${nextHeight}px`;
-  }, [contentClassName, stringValue]);
-
-  useEffect(() => {
-    const textarea = internalTextareaRef.current;
-    if (!textarea || typeof ResizeObserver !== "function")
-      return;
-
-    const observer = new ResizeObserver(() => {
-      textarea.style.height = "0px";
-      const nextHeight = Math.max(textarea.scrollHeight, textarea.rows ? textarea.rows * 24 : 0);
-      if (previousHeightRef.current === nextHeight) {
-        textarea.style.height = `${nextHeight}px`;
-        return;
-      }
-      previousHeightRef.current = nextHeight;
-      textarea.style.height = `${nextHeight}px`;
-    });
-
-    observer.observe(textarea);
-    return () => observer.disconnect();
-  }, []);
-
   return (
-    <div className={surfaceClassName}>
-      {highlightEnabled
-        ? (
-            <div aria-hidden="true" className="
-              pointer-events-none absolute inset-0 overflow-hidden
-            ">
-              <div
-                ref={overlayContentRef}
-                className={`
-                  ${contentClassName}
-                  min-h-full whitespace-pre-wrap break-words
-                `}
-              >
-                {segments.length
-                  ? segments.map((segment, index) => (
-                      <span key={`${index}-${segment.kind}`} className={createSegmentClassName(segment)}>
-                        {segment.text}
-                      </span>
-                    ))
-                  : <span className="
-                    text-base-content/28
-                    dark:text-base-content/28
-                  ">{placeholder ?? ""}</span>}
-                {stringValue.endsWith("\n") ? "\n " : null}
-              </div>
-            </div>
-          )
-        : null}
+    <div className={`${surfaceClassName} grid`}>
+      <div
+        aria-hidden="true"
+        className={`
+          pointer-events-none col-start-1 row-start-1 overflow-hidden
+          ${highlightEnabled ? "visible" : "invisible"}
+        `}
+      >
+        <div className={`
+          ${contentClassName}
+          min-h-full whitespace-pre-wrap break-words
+        `}>
+          {segments.length
+            ? segments.map((segment, index) => (
+                <span key={`${index}-${segment.kind}`} className={resolveSegmentClassName(segment.kind, segment.tone, segment.level)}>
+                  {segment.text}
+                </span>
+              ))
+            : <span className="
+              text-base-content/28
+              dark:text-base-content/28
+            ">{placeholder ?? ""}</span>}
+          {stringValue.endsWith("\n") ? "\n " : null}
+        </div>
+      </div>
 
       <TextArea
         {...textareaProps}
@@ -369,9 +318,9 @@ export function HighlightEmphasisTextarea({
         placeholder={highlightEnabled ? "" : placeholder}
         className={`
           ${contentClassName}
-          whitespace-pre-wrap break-words relative z-10 block w-full !min-h-0 resize-none
-          overflow-hidden bg-transparent
-          focus:outline-none focus:ring-2 focus:ring-info/30
+          relative z-10 col-start-1 row-start-1 block h-full w-full resize-none
+          whitespace-pre-wrap break-words overflow-hidden bg-transparent
+          focus:outline-none focus:ring-0 focus:shadow-none
           ${
           highlightEnabled
             ? `

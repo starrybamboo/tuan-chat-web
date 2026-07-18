@@ -24,4 +24,3 @@ export type ApiResultPageBaseRespSpaceMaterialPackageResponse = {
      */
     data?: PageBaseRespSpaceMaterialPackageResponse;
 };
-

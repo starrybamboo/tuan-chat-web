@@ -4,9 +4,11 @@ import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { IconProps } from "phosphor-react-native";
 import type { ComponentType } from "react";
 
+import { FlashList } from "@shopify/flash-list";
 import { CaretDown, ImageSquare, PaperPlaneTilt, PencilSimple, Smiley, X, XCircle } from "phosphor-react-native";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import * as DropdownMenu from "zeego/dropdown-menu";
 
 import type { MobilePokeComposerTarget } from "@/features/chat/mobilePokeTemplateStorage";
 import type { MobileChatStatusType } from "@/features/messages/mobileChatStatus";
@@ -56,14 +58,14 @@ export type MobileVisibleChatStatus = {
 function resolveChatStatusTone(status: MobileChatStatusType, theme: ReturnType<typeof useTheme>) {
   switch (status) {
     case "input":
-      return { color: theme.accent, selectedBackground: theme.accentMuted };
+      return { color: theme.accent };
     case "wait":
-      return { color: theme.warning, selectedBackground: "rgba(210, 153, 34, 0.16)" };
+      return { color: theme.warning };
     case "leave":
-      return { color: theme.danger, selectedBackground: theme.dangerMuted };
+      return { color: theme.danger };
     case "idle":
     default:
-      return { color: theme.textSecondary, selectedBackground: theme.backgroundElement };
+      return { color: theme.textSecondary };
   }
 }
 
@@ -222,46 +224,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     lineHeight: 12,
   },
-  statusMenu: {
-    borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    bottom: "100%",
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-    padding: Spacing.md,
-    position: "absolute",
-    right: Spacing.md,
-    width: 188,
-    zIndex: 20,
-  },
-  statusOption: {
-    alignItems: "center",
-    borderRadius: Radius.md,
-    flexDirection: "row",
-    gap: Spacing.md,
-    minHeight: 42,
-    overflow: "hidden",
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  statusOptionAccent: {
-    borderRadius: Radius.full,
-    height: 28,
-    width: 3,
-  },
-  statusOptionText: {
-    flex: 1,
-    minWidth: 0,
-  },
-  statusOptionLabel: {
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 17,
-  },
-  statusOptionDescription: {
-    fontSize: 11,
-    lineHeight: 14,
-  },
   input: {
     borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
@@ -413,7 +375,6 @@ function ChatComposerInner({
   const theme = useTheme();
   const inputRef = useRef<TextInput>(null);
   const [inputHeight, setInputHeight] = useState(COMPOSER_MIN_HEIGHT);
-  const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const [composerHeight, setComposerHeight] = useState(0);
 
   const canSend = draftMessage.trim().length > 0 || messageAttachments.length > 0;
@@ -500,12 +461,12 @@ function ChatComposerInner({
 
   const handleContentSizeChange = useCallback((event: { nativeEvent: { contentSize: { height: number } } }) => {
     const nextHeight = resolveComposerInputHeight(event.nativeEvent.contentSize.height);
-    setInputHeight(prev => (prev === nextHeight ? prev : nextHeight));
+    setInputHeight(nextHeight);
   }, []);
 
   const handleComposerLayout = useCallback((event: { nativeEvent: { layout: { height: number } } }) => {
     const nextHeight = Math.ceil(event.nativeEvent.layout.height);
-    setComposerHeight(prev => (prev === nextHeight ? prev : nextHeight));
+    setComposerHeight(nextHeight);
   }, []);
 
   const handlePickImageAttachment = useCallback(() => {
@@ -513,19 +474,18 @@ function ChatComposerInner({
   }, [onPickAttachment]);
 
   const handleSelectChatStatus = useCallback((status: MobileChatStatusType) => {
-    setIsStatusMenuOpen(false);
     onChangeChatStatus?.(status);
   }, [onChangeChatStatus]);
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      enabled={Platform.OS === "ios"}
-      style={styles.composerWrapper}
+      behavior={Platform.OS === "ios" ? "padding" : "position"}
+      enabled
+      style={[styles.composerWrapper, { backgroundColor: theme.background }]}
     >
       {showMentionList && filteredMentionRoles.length > 0
         ? (
-            <FlatList
+            <FlashList
               data={filteredMentionRoles}
               keyExtractor={mentionRoleKeyExtractor}
               keyboardShouldPersistTaps="handled"
@@ -547,51 +507,6 @@ function ChatComposerInner({
         : null}
 
       <View onLayout={handleComposerLayout} style={[styles.container, { paddingBottom: Spacing.md + safeAreaBottomInset }]}>
-        {isStatusMenuOpen && onChangeChatStatus
-          ? (
-              <View
-                style={[
-                  styles.statusMenu,
-                  {
-                    backgroundColor: theme.surfaceOverlay,
-                    borderColor: theme.border,
-                  },
-                ]}
-              >
-                {CHAT_STATUS_OPTIONS.map((option) => {
-                  const selected = option.value === myChatStatus;
-                  const tone = resolveChatStatusTone(option.value, theme);
-                  return (
-                    <Pressable
-                      key={option.value}
-                      accessibilityLabel={`切换聊天状态为${option.label}`}
-                      accessibilityRole="button"
-                      onPress={() => handleSelectChatStatus(option.value)}
-                      style={({ pressed }) => [
-                        styles.statusOption,
-                        { backgroundColor: selected ? tone.selectedBackground : pressed ? theme.backgroundElement : "transparent" },
-                      ]}
-                    >
-                      <View style={[styles.statusOptionAccent, { backgroundColor: tone.color, opacity: selected ? 1 : 0.55 }]} />
-                      <View style={styles.statusOptionText}>
-                        <ThemedText style={[styles.statusOptionLabel, { color: tone.color }]}>
-                          {option.label}
-                        </ThemedText>
-                        <ThemedText
-                          themeColor="textSecondary"
-                          numberOfLines={1}
-                          style={styles.statusOptionDescription}
-                        >
-                          {option.description}
-                        </ThemedText>
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            )
-          : null}
-
         {visibleOtherChatStatuses.length > 0
           ? (
               <ScrollView
@@ -620,39 +535,7 @@ function ChatComposerInner({
             )
           : null}
 
-        {pokeTarget
-          ? (
-              <View
-                style={[
-                  styles.editBar,
-                  {
-                    backgroundColor: "rgba(236, 72, 153, 0.10)",
-                    borderColor: "#ec4899",
-                  },
-                ]}
-              >
-                <View style={[styles.editIcon, { backgroundColor: "#ec4899" }]}>
-                  <ThemedText style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>戳</ThemedText>
-                </View>
-                <View style={styles.editText}>
-                  <ThemedText style={[styles.editTitle, { color: "#ec4899" }]}>戳一戳</ThemedText>
-                  <ThemedText style={[styles.editPreview, { color: theme.textSecondary }]} numberOfLines={1}>
-                    {pokeTarget.initiatorRoleName}
-                    {" → "}
-                    {pokeTarget.targetRoleName}
-                  </ThemedText>
-                </View>
-                <Pressable
-                  accessibilityLabel="取消戳一戳"
-                  accessibilityRole="button"
-                  hitSlop={8}
-                  onPress={onCancelPoke}
-                >
-                  <X size={16} color={theme.textSecondary} />
-                </Pressable>
-              </View>
-            )
-          : editingMessage
+        {editingMessage
           ? (
               <View
                 style={[
@@ -690,7 +573,27 @@ function ChatComposerInner({
             )
           : null}
 
-        {anchorMessage
+        {pokeTarget
+          ? (
+              <View style={[styles.replyBar, { backgroundColor: theme.accentMuted, borderLeftColor: theme.accent }]}>
+                <ThemedText type="small" style={styles.replyText} numberOfLines={1}>
+                  戳一戳
+                  {" · "}
+                  {pokeTarget.initiatorRoleName}
+                  {" → "}
+                  {pokeTarget.targetRoleName}
+                </ThemedText>
+                <Pressable
+                  accessibilityLabel="取消戳一戳"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={onCancelPoke}
+                >
+                  <X size={14} color={theme.textSecondary} />
+                </Pressable>
+              </View>
+            )
+          : anchorMessage
           ? (
               <View style={[styles.replyBar, { backgroundColor: theme.accentMuted, borderLeftColor: theme.accent }]}>
                 <ThemedText type="small" style={styles.replyText} numberOfLines={1}>
@@ -831,27 +734,42 @@ function ChatComposerInner({
 
           {onChangeChatStatus
             ? (
-                <Pressable
-                  accessibilityLabel="切换聊天状态"
-                  accessibilityRole="button"
-                  onPress={() => setIsStatusMenuOpen(open => !open)}
-                  style={[
-                    styles.statusTriggerButton,
-                  ]}
-                >
-                  <ThemedText
-                    style={[
-                      styles.statusTriggerLabel,
-                      { color: currentStatusTone.color },
-                    ]}
-                  >
-                    {currentStatusOption.label}
-                  </ThemedText>
-                  <CaretDown
-                    color={currentStatusTone.color}
-                    size={12}
-                  />
-                </Pressable>
+                <DropdownMenu.Root>
+                  <DropdownMenu.Trigger>
+                    <Pressable
+                      accessibilityLabel="切换聊天状态"
+                      accessibilityRole="button"
+                      style={styles.statusTriggerButton}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.statusTriggerLabel,
+                          { color: currentStatusTone.color },
+                        ]}
+                      >
+                        {currentStatusOption.label}
+                      </ThemedText>
+                      <CaretDown
+                        color={currentStatusTone.color}
+                        size={12}
+                      />
+                    </Pressable>
+                  </DropdownMenu.Trigger>
+                  <DropdownMenu.Content>
+                    {CHAT_STATUS_OPTIONS.map(option => (
+                      <DropdownMenu.Item
+                        key={option.value}
+                        onSelect={() => handleSelectChatStatus(option.value)}
+                        textValue={option.label}
+                      >
+                        <DropdownMenu.ItemTitle>{option.label}</DropdownMenu.ItemTitle>
+                        <DropdownMenu.ItemSubtitle>
+                          {option.value === myChatStatus ? `当前状态 · ${option.description}` : option.description}
+                        </DropdownMenu.ItemSubtitle>
+                      </DropdownMenu.Item>
+                    ))}
+                  </DropdownMenu.Content>
+                </DropdownMenu.Root>
               )
             : null}
 

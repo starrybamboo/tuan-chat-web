@@ -4,27 +4,26 @@ import { useCallback } from "react";
 
 import type {
   ActivePreviewAction,
+  AiImageGenerationMode,
   DirectorToolId,
   DirectorToolOption,
   GeneratedImageItem,
-  NovelAiEmotion,
-  PreciseReferenceRow,
+  InpaintFocusRect,
   UiMode,
   V4CharEditorRow,
-  VibeTransferReferenceRow,
 } from "@/components/aiImage/types";
-import type { AiImageHistoryMode, AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
+import type { AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
 
-import { isDirectorToolDisabled } from "@/components/aiImage/constants";
+import { DEFAULT_IMAGE_MODEL, DEFAULT_PRO_IMAGE_SETTINGS } from "@/components/aiImage/constants";
 import { runDirectorToolAction } from "@/components/aiImage/controller/directorActions";
 import {
   buildGenerateContext,
   buildHistoryRowsFromGenerateResult,
   finalizeGenerateResult,
-  resolveFocusedGenerateContext,
+  resolveInpaintGenerateContext,
   validateGenerateContext,
 } from "@/components/aiImage/controller/generateActions";
-import { generatedItemKey, getNovelAiFreeOnlyMessage, resolveInpaintModel } from "@/components/aiImage/helpers";
+import { generatedItemKey, resolveInpaintModel } from "@/components/aiImage/helpers";
 
 type GenerateNovelImageViaProxy = typeof import("@/components/aiImage/api").generateNovelImageViaProxy;
 type AugmentNovelImageViaProxy = typeof import("@/components/aiImage/api").augmentNovelImageViaProxy;
@@ -32,9 +31,8 @@ type AddAiImageHistoryBatch = typeof import("@/utils/aiImageHistoryDb").addAiIma
 
 type UseAiImageGenerationActionsOptions = {
   uiMode: UiMode;
-  mode: AiImageHistoryMode;
+  mode: AiImageGenerationMode;
   model: string;
-  isNAI4: boolean;
   isDirectorToolsOpen: boolean;
   selectedPreviewResult: GeneratedImageItem | null;
   prompt: string;
@@ -56,37 +54,29 @@ type UseAiImageGenerationActionsOptions = {
   cfgRescale: number;
   ucPreset: number;
   qualityToggle: boolean;
+  cfgDelay: boolean;
   dynamicThresholding: boolean;
-  smea: boolean;
-  smeaDyn: boolean;
-  currentImg2imgStrength: number;
-  currentImg2imgNoise: number;
   currentInfillStrength: number;
   currentInfillNoise: number;
+  infillFocusedArea: InpaintFocusRect | null;
+  overlayOriginalImage: boolean;
   sourceImageBase64: string;
   sourceImageDataUrl: string;
   sourceImageSize: { width: number; height: number } | null;
+  infillMaskDataUrl: string;
   v4Chars: V4CharEditorRow[];
   v4UseCoords: boolean;
   v4UseOrder: boolean;
-  normalizeReferenceStrengths: boolean;
-  vibeTransferReferences: VibeTransferReferenceRow[];
-  preciseReference: PreciseReferenceRow | null;
   activeStyleTags: string[];
   activeStyleNegativeTags: string[];
   directorInputPreview: GeneratedImageItem | null;
   directorTool: DirectorToolOption;
   activeDirectorTool: DirectorToolId;
   directorColorizePrompt: string;
-  directorEmotionExtraPrompt: string;
   directorColorizeDefry: number;
-  directorEmotionDefry: number;
-  directorEmotion: NovelAiEmotion;
   historyRowByResultMatchKey: Map<string, AiImageHistoryRow>;
   readImageSize: (dataUrl: string) => Promise<{ width: number; height: number }>;
   resolveInfillMaskBase64ForUi: (targetUiMode: UiMode) => string;
-  resolveSeparatedInfillMaskBase64ForUi: (targetUiMode: UiMode) => Promise<string>;
-  resolveBlendInfillMaskDataUrlForUi: (targetUiMode: UiMode) => Promise<string>;
   setIsDirectorToolsOpen: Dispatch<SetStateAction<boolean>>;
   setError: (value: string) => void;
   setLoading: (value: boolean) => void;
@@ -111,7 +101,6 @@ export function useAiImageGenerationActions({
   uiMode,
   mode,
   model,
-  isNAI4,
   isDirectorToolsOpen,
   selectedPreviewResult,
   prompt,
@@ -133,37 +122,29 @@ export function useAiImageGenerationActions({
   cfgRescale,
   ucPreset,
   qualityToggle,
+  cfgDelay,
   dynamicThresholding,
-  smea,
-  smeaDyn,
-  currentImg2imgStrength,
-  currentImg2imgNoise,
   currentInfillStrength,
   currentInfillNoise,
+  infillFocusedArea,
+  overlayOriginalImage,
   sourceImageBase64,
   sourceImageDataUrl,
   sourceImageSize,
+  infillMaskDataUrl,
   v4Chars,
   v4UseCoords,
   v4UseOrder,
-  normalizeReferenceStrengths,
-  vibeTransferReferences,
-  preciseReference,
   activeStyleTags,
   activeStyleNegativeTags,
   directorInputPreview,
   directorTool,
   activeDirectorTool,
   directorColorizePrompt,
-  directorEmotionExtraPrompt,
   directorColorizeDefry,
-  directorEmotionDefry,
-  directorEmotion,
   historyRowByResultMatchKey,
   readImageSize,
   resolveInfillMaskBase64ForUi,
-  resolveSeparatedInfillMaskBase64ForUi,
-  resolveBlendInfillMaskDataUrlForUi,
   setIsDirectorToolsOpen,
   setError,
   setLoading,
@@ -209,28 +190,18 @@ export function useAiImageGenerationActions({
     setIsDirectorToolsOpen,
   ]);
 
-  const handleRunUpscale = useCallback(() => {
-    if (!selectedPreviewResult)
-      return;
-    showErrorToast(getNovelAiFreeOnlyMessage("放大功能暂不可用。"));
-  }, [selectedPreviewResult, showErrorToast]);
-
   const handleRunDirectorTool = useCallback(async () => {
     await runDirectorToolAction({
       directorInputPreview,
       directorTool,
       activeDirectorTool,
-      isDirectorToolDisabled,
       showErrorToast,
       setError,
       setPendingPreviewAction,
       setDirectorOutputPreview,
       augmentNovelImageViaProxy,
       directorColorizePrompt,
-      directorEmotionExtraPrompt,
       directorColorizeDefry,
-      directorEmotionDefry,
-      directorEmotion,
       readImageSize,
       model,
       historyRowByResultMatchKey,
@@ -247,9 +218,6 @@ export function useAiImageGenerationActions({
     augmentNovelImageViaProxy,
     directorColorizeDefry,
     directorColorizePrompt,
-    directorEmotion,
-    directorEmotionDefry,
-    directorEmotionExtraPrompt,
     directorInputPreview,
     directorTool,
     historyRowByResultMatchKey,
@@ -269,7 +237,7 @@ export function useAiImageGenerationActions({
   const runGenerate = useCallback(async (args?: {
     prompt?: string;
     negativePrompt?: string;
-    mode?: AiImageHistoryMode;
+    mode?: AiImageGenerationMode;
     sourceImageBase64?: string;
     sourceImageDataUrl?: string;
     sourceImageWidth?: number;
@@ -301,40 +269,35 @@ export function useAiImageGenerationActions({
       activeStyleNegativeTags,
       width: args?.width ?? width,
       height: args?.height ?? height,
-      strength: args?.strength ?? (targetMode === "infill" ? currentInfillStrength : currentImg2imgStrength),
-      noise: args?.noise ?? (targetMode === "infill" ? currentInfillNoise : currentImg2imgNoise),
+      strength: args?.strength ?? (targetMode === "infill" ? currentInfillStrength : DEFAULT_PRO_IMAGE_SETTINGS.strength),
+      noise: args?.noise ?? (targetMode === "infill" ? currentInfillNoise : DEFAULT_PRO_IMAGE_SETTINGS.noise),
       sourceImageBase64: args?.sourceImageBase64 ?? sourceImageBase64,
       sourceImageDataUrl: args?.sourceImageDataUrl ?? sourceImageDataUrl,
       sourceImageWidth: args?.sourceImageWidth ?? sourceImageSize?.width,
       sourceImageHeight: args?.sourceImageHeight ?? sourceImageSize?.height,
       maskBase64: args?.maskBase64 ?? (targetMode === "infill" ? resolveInfillMaskBase64ForUi(uiMode) : undefined),
-      isNAI4,
+      maskDataUrl: targetMode === "infill" ? infillMaskDataUrl : undefined,
+      focusedArea: targetMode === "infill" ? infillFocusedArea : null,
+      overlayOriginalImage: targetMode === "infill" ? overlayOriginalImage : false,
       v4Chars,
       v4UseCoords,
       v4UseOrder,
-      normalizeReferenceStrengths,
-      vibeTransferReferences,
-      preciseReference,
     });
 
     setError("");
     setLoading(true);
 
     try {
-      validateGenerateContext({ context, steps });
-
-      const focusedContext = await resolveFocusedGenerateContext({
+      const focusedContext = await resolveInpaintGenerateContext({
         context,
         maskBase64: args?.maskBase64,
-        uiMode,
-        resolveSeparatedInfillMaskBase64ForUi,
-        resolveBlendInfillMaskDataUrlForUi,
       });
+      validateGenerateContext({ context, inpaintContext: focusedContext, steps });
 
       if (context.effectiveMode === "infill" && typeof window !== "undefined" && window.electronAPI?.saveAiImageDebugBundle) {
         const requestBody = {
           mode: context.effectiveMode,
-          model: resolveInpaintModel(model),
+          model: resolveInpaintModel(DEFAULT_IMAGE_MODEL),
           width: focusedContext.requestWidth,
           height: focusedContext.requestHeight,
           strength: context.effectiveStrength,
@@ -349,7 +312,8 @@ export function useAiImageGenerationActions({
           dynamicThresholding,
           sourceImageWidth: focusedContext.requestSourceImageWidth,
           sourceImageHeight: focusedContext.requestSourceImageHeight,
-          focusedCropRect: focusedContext.focusedInpaint?.cropRect,
+          focusedCropRect: focusedContext.preparedInpaint?.cropRect,
+          overlayOriginalImage: context.effectiveOverlayOriginalImage,
         };
         void window.electronAPI.saveAiImageDebugBundle({
           category: "infill",
@@ -374,9 +338,6 @@ export function useAiImageGenerationActions({
         v4Chars: context.v4CharsPayload,
         v4UseCoords: context.v4UseCoordsPayload,
         v4UseOrder: context.v4UseOrderPayload,
-        vibeTransferReferences: context.vibeTransferPayload,
-        preciseReference: context.preciseReferencePayload,
-        model,
         width: focusedContext.requestWidth,
         height: focusedContext.requestHeight,
         imageCount: context.effectiveImageCount,
@@ -386,10 +347,10 @@ export function useAiImageGenerationActions({
         noiseSchedule,
         cfgRescale,
         ucPreset,
-        smea,
-        smeaDyn,
         qualityToggle,
+        cfgDelay,
         dynamicThresholding,
+        overlayOriginalImage: context.effectiveOverlayOriginalImage,
         seed: seedValue,
       });
 
@@ -420,10 +381,8 @@ export function useAiImageGenerationActions({
         cfgRescale,
         ucPreset,
         qualityToggle,
+        cfgDelay,
         dynamicThresholding,
-        smea,
-        smeaDyn,
-        preciseReference,
         toolLabel: args?.toolLabel,
         batchId: finalized.batchId,
       });
@@ -448,29 +407,25 @@ export function useAiImageGenerationActions({
     activeStyleTags,
     addAiImageHistoryBatch,
     cfgRescale,
-    currentImg2imgNoise,
-    currentImg2imgStrength,
+    cfgDelay,
     currentInfillNoise,
     currentInfillStrength,
+    infillFocusedArea,
+    infillMaskDataUrl,
     dynamicThresholding,
     generateNovelImageViaProxy,
     height,
     infillAppendPrompt,
-    isNAI4,
     mode,
-    model,
     negativePrompt,
     noiseSchedule,
-    normalizeReferenceStrengths,
-    preciseReference,
+    overlayOriginalImage,
     proInfillNegativePrompt,
     proInfillPrompt,
     prompt,
     qualityToggle,
     refreshHistory,
-    resolveBlendInfillMaskDataUrlForUi,
     resolveInfillMaskBase64ForUi,
-    resolveSeparatedInfillMaskBase64ForUi,
     scale,
     seed,
     setError,
@@ -485,8 +440,6 @@ export function useAiImageGenerationActions({
     simpleInfillPrompt,
     simpleNegativePrompt,
     simplePrompt,
-    smea,
-    smeaDyn,
     sourceImageBase64,
     sourceImageDataUrl,
     sourceImageSize,
@@ -496,14 +449,12 @@ export function useAiImageGenerationActions({
     v4Chars,
     v4UseCoords,
     v4UseOrder,
-    vibeTransferReferences,
     width,
     sampler,
   ]);
 
   return {
     handleToggleDirectorTools,
-    handleRunUpscale,
     handleRunDirectorTool,
     runGenerate,
   };

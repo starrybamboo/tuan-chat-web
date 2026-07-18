@@ -209,7 +209,7 @@ function EditableMessageContent({
       editContentRef.current = extractPlainText(editorRef.current);
     },
     getPlainText: () => extractPlainText(editorRef.current),
-  }), [chatInputRef]);
+  }), []);
 
   const startEditing = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     if (canEdit) {

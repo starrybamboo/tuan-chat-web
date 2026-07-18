@@ -440,7 +440,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
   const mapConfigUpdateChainRef = useRef<Promise<void>>(Promise.resolve());
   const suppressNextTokenClickRef = useRef(false);
 
-  const roomRoles = roomContext.roomAllRoles ?? [];
+  const roomRoles = useMemo(() => roomContext.roomAllRoles ?? [], [roomContext.roomAllRoles]);
 
   const mapQuery = useQuery({
     queryKey: roomDndMapQueryKey(roomId),
@@ -462,12 +462,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
 
   useEffect(() => {
     setDraftMapConfig(effectiveMapConfig ? { ...effectiveMapConfig } : null);
-  }, [
-    effectiveMapConfig?.gridColor,
-    effectiveMapConfig?.gridCols,
-    effectiveMapConfig?.gridRows,
-    effectiveMapConfig?.mapFileId,
-  ]);
+  }, [effectiveMapConfig]);
 
   const editableMapConfig = draftMapConfig ?? effectiveMapConfig;
   const gridRows = editableMapConfig?.gridRows ?? DEFAULT_GRID_ROWS;

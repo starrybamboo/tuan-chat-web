@@ -5,6 +5,8 @@ import type { NovelAiImageMetadataResult } from "@/utils/media/novelaiImageMetad
 
 export type UiMode = "simple" | "pro";
 
+export type AiImageGenerationMode = "txt2img" | "infill";
+
 export type V4CharGender = "female" | "male" | "other";
 
 export type V4PromptCenter = {
@@ -23,30 +25,6 @@ export type V4CharEditorRow = {
   id: string;
   gender?: V4CharGender;
 } & V4CharPayload;
-
-export type VibeTransferReferencePayload = {
-  imageBase64: string;
-  strength: number;
-  informationExtracted: number;
-};
-
-export type VibeTransferReferenceRow = {
-  id: string;
-  dataUrl: string;
-  lockInformationExtracted?: boolean;
-  name: string;
-} & VibeTransferReferencePayload;
-
-export type PreciseReferencePayload = {
-  imageBase64: string;
-  strength: number;
-  informationExtracted: number;
-};
-
-export type PreciseReferenceRow = {
-  dataUrl: string;
-  name: string;
-} & PreciseReferencePayload;
 
 export type GeneratedImageItem = {
   dataUrl: string;
@@ -94,6 +72,15 @@ export type InpaintDialogSource = {
   prompt: string;
   negativePrompt: string;
   strength: number;
+  focusedArea: InpaintFocusRect | null;
+  overlayOriginalImage: boolean;
+};
+
+export type InpaintFocusRect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
 };
 
 export type InpaintSubmitPayload = {
@@ -101,6 +88,8 @@ export type InpaintSubmitPayload = {
   negativePrompt: string;
   strength: number;
   maskDataUrl: string;
+  focusedArea: InpaintFocusRect | null;
+  overlayOriginalImage: boolean;
 };
 
 export type PendingMetadataImportState = {
@@ -111,39 +100,10 @@ export type PendingMetadataImportState = {
 };
 
 export type NovelAiDirectorRequestType
-  = | "bg-removal"
-    | "declutter"
-    | "declutter-keep-bubbles"
+  = | "declutter"
     | "lineart"
     | "sketch"
-    | "colorize"
-    | "emotion";
-
-export type NovelAiEmotion
-  = | "neutral"
-    | "happy"
-    | "sad"
-    | "angry"
-    | "scared"
-    | "surprised"
-    | "tired"
-    | "excited"
-    | "nervous"
-    | "thinking"
-    | "confused"
-    | "shy"
-    | "disgusted"
-    | "smug"
-    | "bored"
-    | "laughing"
-    | "irritated"
-    | "aroused"
-    | "embarrassed"
-    | "worried"
-    | "love"
-    | "determined"
-    | "hurt"
-    | "playful";
+    | "colorize";
 
 export type MetadataImportSelectionState = {
   prompt: boolean;
@@ -158,16 +118,16 @@ export type MetadataImportSelectionState = {
 export type HistoryRowClickMode = "preview" | "settings" | "seed" | "settings-with-seed";
 
 export type ResolutionSelection = ResolutionPreset["id"] | "custom";
-export type ProFeatureSectionKey = "baseImage" | "characterPrompts" | "vibeTransfer" | "preciseReference";
-export type DirectorToolId = "removeBackground" | "declutter" | "lineArt" | "sketch" | "colorize" | "emotion";
-export type ActivePreviewAction = "" | "upscale" | DirectorToolId;
+export type ProFeatureSectionKey = "characterPrompts";
+export type DirectorToolId = "declutter" | "lineArt" | "sketch" | "colorize";
+export type ActivePreviewAction = "" | DirectorToolId;
 
 export type DirectorToolOption = {
   id: DirectorToolId;
   label: string;
   description: string;
   requestType: NovelAiDirectorRequestType;
-  parameterMode: "none" | "colorize" | "emotion";
+  parameterMode: "none" | "colorize";
 };
 
 export type CurrentResultCard = {

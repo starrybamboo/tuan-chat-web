@@ -28,4 +28,3 @@ export type PageBaseRespFollowResponse = {
      */
     list?: Array<FollowResponse>;
 };
-

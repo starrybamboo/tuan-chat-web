@@ -2,6 +2,7 @@ import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMe
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 
+import { FlashList } from "@shopify/flash-list";
 import { useQueryClient } from "@tanstack/react-query";
 import { getClueFolderMeta, getClueFolderRoomName } from "@tuanchat/domain/clue-folder";
 import { getClueCardRenderData } from "@tuanchat/domain/message-render-data";
@@ -9,7 +10,7 @@ import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { getMaxRoomMessageSyncId, markRoomSessionReadInCache, useUpdateRoomReadPositionMutation } from "@tuanchat/query";
 import { useJoinPublicClueFolderMutation } from "@tuanchat/query/clue-folder";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
@@ -94,15 +95,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.xl,
   },
+  joinRetryButton: {
+    alignSelf: "center",
+    borderRadius: Radius.md,
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
 });
 
 const CLUE_MESSAGES_STALE_TIME_MS = 60_000;
-const CLUE_INITIAL_RENDER_COUNT = 10;
-const CLUE_RENDER_BATCH_SIZE = 8;
-const CLUE_WINDOW_SIZE = 7;
 
 function getMessageKey(message: Message, index: number) {
   return `clue:${message.messageId ?? message.syncId ?? index}`;
+}
+
+function getClueMessageType(message: Message): string | number {
+  return message.messageType ?? "unknown";
 }
 
 function getClueText(message: Message) {
@@ -137,7 +146,7 @@ function MobileClueFolderMessagesInner({ currentUserId, currentRoleId, currentRo
   const messagesQuery = useRoomMessagesQuery(roomId, {
     staleTime: CLUE_MESSAGES_STALE_TIME_MS,
   });
-  const updateReadPosition = useUpdateRoomReadPositionMutation(mobileApiClient);
+  const { mutate: updateReadPosition } = useUpdateRoomReadPositionMutation(mobileApiClient);
   const { editMessage } = useEditRoomMessageMutation(roomId);
   const { deleteMessage } = useDeleteRoomMessageMutation(roomId);
   const sendRoomMessageMutation = useSendRoomMessageMutation(currentRoomId, currentUserId ?? 0, currentRoomMessages);
@@ -169,7 +178,7 @@ function MobileClueFolderMessagesInner({ currentUserId, currentRoleId, currentRo
     }
     lastReadSyncIdRef.current = targetSyncId;
     markRoomSessionReadInCache(queryClient, roomId, targetSyncId);
-    updateReadPosition.mutate({ roomId, syncId: targetSyncId });
+    updateReadPosition({ roomId, syncId: targetSyncId });
   }, [messagesQuery.messages, queryClient, roomId, updateReadPosition]);
 
   const closeEditor = useCallback(() => {
@@ -370,15 +379,13 @@ function MobileClueFolderMessagesInner({ currentUserId, currentRoleId, currentRo
   if (messages.length > 0) {
     return (
       <>
-        <FlatList
+        <FlashList
           data={messages}
+          getItemType={getClueMessageType}
           style={styles.list}
           contentContainerStyle={styles.listContent}
           keyExtractor={getMessageKey}
           renderItem={renderClueMessage}
-          initialNumToRender={CLUE_INITIAL_RENDER_COUNT}
-          maxToRenderPerBatch={CLUE_RENDER_BATCH_SIZE}
-          windowSize={CLUE_WINDOW_SIZE}
         />
         {actionError && !editingMessage
           ? <ThemedText style={styles.stateText} themeColor="textSecondary">{actionError}</ThemedText>
@@ -416,8 +423,12 @@ function MobileCluePanelInner({ clueRooms, currentUserId, currentRoleId, current
   const visibleFolders = clueRooms;
   const [firstFolder] = visibleFolders;
   const [selectedFolderRoomId, setSelectedFolderRoomId] = useState<number | null>(firstFolder?.roomId ?? null);
-  const joinPublicClueFolderMutation = useJoinPublicClueFolderMutation(mobileApiClient);
+  const {
+    isPending: isJoiningPublicClueFolder,
+    mutateAsync: joinPublicClueFolder,
+  } = useJoinPublicClueFolderMutation(mobileApiClient);
   const joinAttemptedSpaceIdRef = useRef<number | null>(null);
+  const [joinPublicFolderError, setJoinPublicFolderError] = useState<string | null>(null);
   const activeRoomId = visibleFolders.some(room => room.roomId === selectedFolderRoomId)
     ? selectedFolderRoomId
     : firstFolder?.roomId ?? null;
@@ -426,6 +437,22 @@ function MobileCluePanelInner({ clueRooms, currentUserId, currentRoleId, current
   const handleSelectFolder = useCallback((roomId: number | null | undefined) => {
     setSelectedFolderRoomId(roomId ?? null);
   }, []);
+  const handleJoinPublicFolder = useCallback(async () => {
+    if (!spaceId || spaceId <= 0) {
+      return;
+    }
+
+    setJoinPublicFolderError(null);
+    try {
+      await joinPublicClueFolder(spaceId);
+    }
+    catch (error) {
+      setJoinPublicFolderError(getErrorMessage(error, "同步公共线索失败。"));
+    }
+  }, [joinPublicClueFolder, spaceId]);
+  const handleRetryJoinPublicFolder = useCallback(() => {
+    void handleJoinPublicFolder();
+  }, [handleJoinPublicFolder]);
 
   useEffect(() => {
     if (!spaceId || spaceId <= 0 || hasPublicFolder || joinAttemptedSpaceIdRef.current === spaceId) {
@@ -433,16 +460,29 @@ function MobileCluePanelInner({ clueRooms, currentUserId, currentRoleId, current
     }
 
     joinAttemptedSpaceIdRef.current = spaceId;
-    void joinPublicClueFolderMutation.mutateAsync(spaceId)
-      .catch(() => undefined);
-  }, [hasPublicFolder, joinPublicClueFolderMutation, spaceId]);
+    void handleJoinPublicFolder();
+  }, [handleJoinPublicFolder, hasPublicFolder, spaceId]);
 
   if (visibleFolders.length === 0) {
     return (
       <View style={styles.container}>
         <ThemedText style={styles.stateText} themeColor="textSecondary">
-          {joinPublicClueFolderMutation.isPending ? "同步公共线索…" : "暂无线索"}
+          {isJoiningPublicClueFolder
+            ? "同步公共线索…"
+            : joinPublicFolderError ?? "暂无线索"}
         </ThemedText>
+        {joinPublicFolderError
+          ? (
+              <Pressable
+                accessibilityLabel="重试同步公共线索"
+                accessibilityRole="button"
+                onPress={handleRetryJoinPublicFolder}
+                style={[styles.joinRetryButton, { backgroundColor: theme.backgroundElement }]}
+              >
+                <ThemedText type="smallBold" themeColor="accent">重试</ThemedText>
+              </Pressable>
+            )
+          : null}
       </View>
     );
   }

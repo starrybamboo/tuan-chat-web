@@ -9,4 +9,3 @@ export type ChatMessageResponse = {
      */
     message: Message;
 };
-

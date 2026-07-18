@@ -3,6 +3,9 @@ import type { HTMLAttributes, ReactNode } from "react";
 import { createElement, forwardRef } from "react";
 
 export type InterfaceDensity = "compact" | "default";
+/** 具有语义色表面的组件共同支持的四档强调强度。 */
+export const SEMANTIC_APPEARANCES = ["solid", "soft", "outline", "ghost"] as const;
+export type SemanticAppearance = typeof SEMANTIC_APPEARANCES[number];
 export type SelectionLevel = "tone" | "soft" | "strong" | "solid";
 export type SurfaceLevel = "canvas" | "content" | "floating" | "inset";
 export type TextRole =

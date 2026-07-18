@@ -19,4 +19,3 @@ export type FeedPageRequest = {
      */
     userId?: number;
 };
-

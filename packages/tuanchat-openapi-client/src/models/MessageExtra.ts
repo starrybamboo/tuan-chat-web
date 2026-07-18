@@ -32,4 +32,3 @@ export type MessageExtra = {
     stateEvent?: StateEventExtra;
     poke?: PokeExtra;
 };
-

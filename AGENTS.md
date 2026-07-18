@@ -9,13 +9,13 @@
 
 ## 任务完成要求
 
+- 新增、修改、修复或评审本仓库测试时，使用工作区 skill `$tuanchat-frontend-test-guard`。
 - 在任务被视为完成前，必须根据本轮实际修改范围运行对应验收命令，并在答复中说明结果。
 - 测试验收遵循根 `D:\A_collection\AGENTS.md` 的“先定向、后扩大”规则；工具或技能提供的全量命令遵循同一范围判断。
 - 修改 Web / Electron / 根应用代码（含 `app`、`api`、`electron`、根构建配置）时，先运行相关 Vitest 目标、相关 lint/typecheck 命令或更小范围验收；共享基础逻辑、构建配置、跨模块契约、发布流程或用户明确要求完整验收时，再运行 `pnpm test`、`pnpm lint`、`pnpm typecheck` 全量组合。
 - 修改移动端代码（`apps/mobile`）时，先运行受影响范围的 mobile lint/typecheck/test；改动影响共享业务逻辑或测试覆盖范围时，再补充对应 Vitest 目标并按影响面扩大。
 - 修改共享包（`packages` 下非生成代码）时，先运行受影响包相关测试；共享逻辑影响 Web 或移动端调用方时，再补充对应端的定向 lint/typecheck/test。
 - 新增或修改测试时，先运行新增测试及直接相关测试；测试文件的变更本身不触发 `pnpm test` 全量执行。
-- 单个测试命令超过 2 分钟仍无结果时，停止等待并记录状态，改用更小范围命令；完整验收需要用户明确授权。
 - 仅修改文档、说明或不会影响运行时的配置时，运行与文件类型对应的轻量验收命令；文本文件至少运行编码或格式相关检查。
 - 如果对应验收命令因既有无关问题失败，必须在答复中明确失败命令、失败位置，以及是否与本轮修改相关。
 - 常用入口以根 `package.json` 为准：Web 可用 `pnpm dev` / `pnpm web:dev`、`pnpm lint:web`、`pnpm typecheck:web`、`pnpm test`；移动端可用 `pnpm mobile:start`、`pnpm lint:mobile`、`pnpm typecheck:mobile`；Electron 可用 `pnpm electron:dev`、`pnpm electron:build`。
@@ -43,17 +43,20 @@
 
 ## React 与状态管理
 
+- 编写、评审或重构本仓库 React 代码时，使用工作区 skill `$tuanchat-react-best-practices`；不要使用面向 Next.js、RSC 或 Server Actions 的 `build-web-apps:react-best-practices` / `vercel-react-best-practices`。
 - 避免 React 最大更新深度和 `useSyncExternalStore` 循环；在 `useEffect` 写回状态前先做相等性判断。
 - 对对象和数组比较时，优先按 id、长度或关键字段判断，避免每次渲染都触发 `setState`。
 - 避免 Zustand 选择器返回新对象；需要组合字段时用 `shallow`，或拆成多个选择器。
 - store 的 set 和更新函数在没有变化时应返回旧 state 或 prev，避免订阅者反复触发更新。
 - `useSearchParamsState` 的 `defaultValue` 必须是稳定引用；默认值会变化时传 `shortenUrl=false`，避免 URL 和默认值来回写。
 - 新增 React Query hook 前先全局搜索既有 hook、query key 与 selector；mutation 成功后按既有 query key 失效对应缓存，避免维护第二份业务真相。
+- 新建或修改组件时，只要涉及服务端状态变更，就必须评估乐观更新；除非操作极其重要、失败风险较高，或乐观更新与可靠回滚明显难以实现，否则默认使用 React Query 缓存完成乐观更新、并发安全回滚和 settled 后校准。选择不做乐观更新时，应在相关代码或交付说明中明确原因。
 
 ## 目录与生成代码
 
 - `apps/web/app` 是 Web 业务源码根；页面、组件、hooks、工具函数应按现有模块归属放置，不要新建平行的 `src2`、`V2` 或重复目录。
-- `apps/web/api` 与 `packages/tuanchat-openapi-client` 包含 OpenAPI 产物；不要手改生成代码。接口变化应先更新后端 OpenAPI 或 OpenAPI JSON，再运行 `pnpm openapi`。
+- `packages/tuanchat-openapi-client/src` 是 OpenAPI 生成代码，规范快照位于 `packages/tuanchat-openapi-client/tuanchat_OpenAPI.json` 与 `apps/web/api/tuanchat_OpenAPI.json`；不要手改生成代码。后端接口变化后运行 `pnpm openapi:sync` 从当前 live 后端同步两份快照并重新生成；仅在快照已可信更新时单独运行 `pnpm openapi`。
+- 访问 TuanChat 后端时优先使用生成客户端或现有手写 hook/service。新增直接 `fetch` / `tuanchat.request.request` 前，先确认它属于文件上传、流式响应或生成客户端无法表达的调用，并核对鉴权、响应解包、取消与缓存语义；第三方 URL 和静态资源请求不受此限制。
 - `packages` 下共享逻辑要保持端无关；引入 Web、Electron、Expo 或 DOM 专属依赖前，先确认调用方边界。
 
 ## 媒体图片展示
@@ -74,9 +77,11 @@
 
 ## 移动端本地联调
 
+- 命令名中的 `mobile:local-apk` 表示“在本机构建 APK”，该包固定连接生产 API / WebSocket；不要把它解释为本地后端联调入口。
+- 本地后端调试链使用 `pnpm mobile:debug-apk` 安装 Debug APK，再配合 `pnpm mobile:start:local-backend` 启动 Metro 和本地后端环境变量。
 - 排查移动端登录、聊天、WebSocket、首条消息发送或跨端推送问题时，优先让 Web 与移动端共同连接本地 `TuanChat` 后端，避开线上人机校验和生产网络变量。
-- Android 本地后端联调使用 `adb reverse`：先执行 `D:\AndroidSdk\platform-tools\adb.exe reverse tcp:8081 tcp:8081`，需要本地 WebSocket 时再执行 `D:\AndroidSdk\platform-tools\adb.exe reverse tcp:8090 tcp:8090`。
-- 移动端 Expo 环境变量使用 `EXPO_PUBLIC_TUANCHAT_API_BASE_URL=http://127.0.0.1:8081` 与 `EXPO_PUBLIC_TUANCHAT_API_WS_URL=ws://127.0.0.1:8090`；这里的 `127.0.0.1` 是设备侧 localhost，由 `adb reverse` 转发到电脑本机。
+- 默认模拟器调试链使用 `EXPO_PUBLIC_TUANCHAT_API_BASE_URL=http://10.0.2.2:8081` 与 `EXPO_PUBLIC_TUANCHAT_API_WS_URL=ws://10.0.2.2:8090`；`10.0.2.2` 是 Android 模拟器访问宿主机的固定网关。
+- 真机调试才使用 `adb reverse` 与设备侧 `127.0.0.1`；API、WebSocket 和 Metro 分别按需反向转发 `8081`、`8090`、`8082`。
 - 只有验证线上环境特有行为、线上账号权限或生产网关问题时，才把移动端切回 `https://api.tuan.chat/api` / `wss://api.tuan.chat/ws`。
 
 ## 文档要求
@@ -98,7 +103,7 @@
 - WebGAL / Terre 联动改造必须优先复用 WebGAL 原生机制，包括脚本命令、`setVar` 变量系统、资源目录、场景回放和已有 UI 渲染语义；只有原生机制无法表达需求时才允许扩展。
 - WebGAL / Terre / 团剧共创联动的本地迭代不要求兼容历史版本或旧脚本语法；当新语法或新数据模型更清晰时，优先直接更新生成端、解析端和文档/测试，不为已废弃写法长期保留兼容分支。
 - WebGAL 舞台不是普通响应式页面：运行时 `#root` 固定为 2560x1440 设计稿尺寸，再由 `index.html` 根据窗口/全屏状态对整个 root 做 `transform: scale(...)`。因此 WebGAL 引擎内覆盖层、战斗地图、骰子 UI、悬浮面板等应优先使用设计稿像素或相对 WebGAL root 的百分比布局，不要把 `vw` / `vh` 当作最终视觉尺寸。
-- Terre 连接地址在所有环境统一固定为：`VITE_TERRE_URL=http://localhost:3001`、`VITE_TERRE_WS=ws://localhost:3001/api/webgalsync`；除非用户明确要求，否则禁止修改这两个变量，包括 `.env.development`、`.env.production`、`.env.test` 与 CI/CD 注入值。
+- Terre 连接地址在所有环境统一固定为：`VITE_TERRE_URL=http://localhost:3001`、`VITE_TERRE_WS=ws://localhost:3001/api/webgalsync`；除非用户明确要求，否则禁止修改这两个变量，包括 `.env.dev`、`.env.production`、`.env.test` 与 CI/CD 注入值。
 
 ## 其他约束
 

@@ -24,4 +24,3 @@ export type ApiResultCursorPageBaseResponseFeedWithStatsResponse = {
      */
     data?: CursorPageBaseResponseFeedWithStatsResponse;
 };
-

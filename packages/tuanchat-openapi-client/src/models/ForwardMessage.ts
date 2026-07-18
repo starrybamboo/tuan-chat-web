@@ -9,4 +9,3 @@ export type ForwardMessage = {
      */
     messageList?: Array<ChatMessageResponse>;
 };
-

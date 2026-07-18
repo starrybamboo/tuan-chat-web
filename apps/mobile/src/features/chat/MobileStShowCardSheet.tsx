@@ -1,13 +1,18 @@
+import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { X } from "phosphor-react-native";
 import { useCallback, useRef, useState } from "react";
-import { FlatList, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
+import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
-import type { StShowCardModel, StShowCardSection } from "../../components/common/dicer/cmdExe/stShowCard";
+import type {
+  StShowCardModel,
+  StShowCardRow,
+  StShowCardSection,
+} from "../../components/common/dicer/cmdExe/stShowCard";
 
 const styles = StyleSheet.create({
   closeButton: {
@@ -91,6 +96,9 @@ const styles = StyleSheet.create({
   sectionRows: {
     paddingHorizontal: Spacing.lg,
   },
+  sectionRowsList: {
+    flex: 1,
+  },
   sheet: {
     borderTopLeftRadius: Radius.md,
     borderTopRightRadius: Radius.md,
@@ -102,11 +110,62 @@ type MobileStShowCardSheetProps = {
   onClose: () => void;
 };
 
+type StShowCardSectionPageProps = {
+  backgroundColor: string;
+  borderColor: string;
+  pageWidth: number;
+  section: StShowCardSection;
+};
+
+function StShowCardSectionPage({
+  backgroundColor,
+  borderColor,
+  pageWidth,
+  section,
+}: StShowCardSectionPageProps) {
+  const rowCount = section.rows.length;
+  const renderRow = useCallback(({ item: row, index }: { item: StShowCardRow; index: number }) => (
+    <View
+      style={[
+        styles.row,
+        { borderBottomColor: borderColor },
+        index === rowCount - 1 ? { borderBottomWidth: 0 } : null,
+      ]}
+    >
+      <ThemedText style={styles.rowKey}>{row.key}</ThemedText>
+      <ThemedText style={styles.rowValue} type="smallBold">{row.value}</ThemedText>
+    </View>
+  ), [borderColor, rowCount]);
+
+  return (
+    <View style={[styles.sectionPage, { width: pageWidth }]}>
+      <View style={[styles.section, { backgroundColor, borderColor }]}>
+        <View style={[styles.sectionHeader, { borderBottomColor: borderColor }]}>
+          <ThemedText type="smallBold">{section.title}</ThemedText>
+          <ThemedText themeColor="textSecondary" type="caption">
+            {rowCount}
+            {" 项"}
+          </ThemedText>
+        </View>
+        <FlashList
+          contentContainerStyle={styles.sectionRows}
+          data={section.rows}
+          keyExtractor={row => row.key}
+          nestedScrollEnabled
+          renderItem={renderRow}
+          showsVerticalScrollIndicator={false}
+          style={styles.sectionRowsList}
+        />
+      </View>
+    </View>
+  );
+}
+
 export function MobileStShowCardSheet({ model, onClose }: MobileStShowCardSheetProps) {
   const theme = useTheme();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
-  const carouselRef = useRef<FlatList<StShowCardSection>>(null);
+  const carouselRef = useRef<FlashListRef<StShowCardSection>>(null);
   const sections = model?.sections ?? [];
   const totalRows = sections.reduce((total, section) => total + section.rows.length, 0);
   const pageWidth = Math.max(280, windowWidth - Spacing.xl * 2);
@@ -125,43 +184,13 @@ export function MobileStShowCardSheet({ model, onClose }: MobileStShowCardSheetP
     setActiveSectionIndex(index);
   }, [pageWidth]);
 
-  const getSectionLayout = useCallback((_: ArrayLike<StShowCardSection> | null | undefined, index: number) => ({
-    index,
-    length: pageWidth,
-    offset: pageWidth * index,
-  }), [pageWidth]);
-
   const renderSectionCard = useCallback(({ item: section }: { item: StShowCardSection }) => (
-    <View style={[styles.sectionPage, { width: pageWidth }]}>
-      <View
-        style={[styles.section, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
-      >
-        <View style={[styles.sectionHeader, { borderBottomColor: theme.border }]}>
-          <ThemedText type="smallBold">{section.title}</ThemedText>
-          <ThemedText themeColor="textSecondary" type="caption">
-            {section.rows.length}
-            {" 项"}
-          </ThemedText>
-        </View>
-        <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
-          <View style={styles.sectionRows}>
-            {section.rows.map((row, index) => (
-              <View
-                key={`${section.title}-${row.key}`}
-                style={[
-                  styles.row,
-                  { borderBottomColor: theme.border },
-                  index === section.rows.length - 1 && { borderBottomWidth: 0 },
-                ]}
-              >
-                <ThemedText style={styles.rowKey}>{row.key}</ThemedText>
-                <ThemedText style={styles.rowValue} type="smallBold">{row.value}</ThemedText>
-              </View>
-            ))}
-          </View>
-        </ScrollView>
-      </View>
-    </View>
+    <StShowCardSectionPage
+      backgroundColor={theme.backgroundElement}
+      borderColor={theme.border}
+      pageWidth={pageWidth}
+      section={section}
+    />
   ), [pageWidth, theme.backgroundElement, theme.border]);
 
   if (!model) {
@@ -235,10 +264,9 @@ export function MobileStShowCardSheet({ model, onClose }: MobileStShowCardSheetP
                     {pageCount}
                   </ThemedText>
                 </View>
-                <FlatList
+                <FlashList
                   ref={carouselRef}
                   data={sections}
-                  getItemLayout={getSectionLayout}
                   horizontal
                   keyExtractor={section => section.title}
                   onMomentumScrollEnd={handleScrollEnd}

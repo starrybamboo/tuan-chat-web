@@ -6,7 +6,7 @@ import { canCopyMessageToClueFolder } from "@tuanchat/domain/clue-folder";
 import { canDeleteRoomMessage, canEditRoomMessage, canReplyRoomMessage } from "@tuanchat/domain/message-action-permissions";
 import { ArrowBendUpLeft, CheckCircle, Copy, HandTap, Lightbulb, PaperPlaneTilt, PencilSimple, Trash } from "phosphor-react-native";
 import { useCallback, useState } from "react";
-import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
+import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
@@ -26,12 +26,16 @@ const POINTER_INSET = 12;
 
 const styles = StyleSheet.create({
   backdrop: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 20,
   },
   menu: {
     borderRadius: Radius.md,
     borderCurve: "continuous",
-    elevation: 8,
+    boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.18)",
     flexDirection: "row",
     flexWrap: "wrap",
     gap: Spacing.lg,
@@ -39,10 +43,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.lg,
     position: "absolute",
-    shadowColor: "#000",
-    shadowOffset: { height: 4, width: 0 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
   },
   actionRow: {
     alignItems: "center",
@@ -172,18 +172,12 @@ export function MessageActionMenu({
   });
   const handleMenuLayout = useCallback((event: LayoutChangeEvent) => {
     const nextHeight = event.nativeEvent.layout.height;
-    setMenuHeight(currentHeight => currentHeight === nextHeight ? currentHeight : nextHeight);
+    setMenuHeight(nextHeight);
   }, []);
 
   return (
-    <Modal
-      animationType="fade"
-      onRequestClose={onClose}
-      statusBarTranslucent
-      transparent
-      visible={visible}
-    >
-      <Pressable accessible={false} style={styles.backdrop} onPress={onClose}>
+    <View style={styles.overlay} pointerEvents={visible ? "auto" : "none"}>
+      <Pressable accessible={false} style={styles.backdrop} onPress={onClose} />
         <View
           onLayout={handleMenuLayout}
           style={[
@@ -224,7 +218,6 @@ export function MessageActionMenu({
             ]}
           />
         </View>
-      </Pressable>
-    </Modal>
+    </View>
   );
 }

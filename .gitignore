@@ -160,12 +160,11 @@ web_modules/
 
 # dotenv environment variable files
 .env
-.env.development.local
+.env.dev.local
 .env.test.local
 .env.production.local
 .env.local
 # extra
-.env.development
 #.env.production  //由于要自动构建
 
 

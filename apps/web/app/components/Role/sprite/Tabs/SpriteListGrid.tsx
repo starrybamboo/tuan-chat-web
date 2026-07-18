@@ -1,21 +1,19 @@
+import type { RoleAvatar, RoleAvatarVariant } from "api";
 import type { ReactNode } from "react";
 
-import { CaretDownIcon, CaretRightIcon, CheckCircleIcon, ImageSquareIcon } from "@phosphor-icons/react";
-import { AnimatePresence, motion } from "motion/react";
+import { CaretRightIcon, CheckCircleIcon, ChecksIcon, ImageSquareIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
+import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useCallback, useRef, useState } from "react";
-
-import type { RoleAvatar, RoleAvatarVariant } from "api";
 
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { FileInput } from "@/components/common/FormField";
+import { IconButton } from "@/components/common/IconButton";
 import { MediaImage } from "@/components/common/mediaImage";
-import PortalTooltip from "@/components/common/portalTooltip";
-import { Badge, CountBadge } from "@/components/common/StatusPrimitives";
 import { CollapsibleMotion } from "@/components/common/motion/CollapsibleMotion";
-import { structuralListItemMotionProps } from "@/components/common/motion/listItemMotion";
+import PortalTooltip from "@/components/common/portalTooltip";
 import { BaselineDeleteOutline } from "@/icons";
-import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
 
 import type { AvatarUploadFilesContext } from "../../RoleInfoCard/AvatarUploadCropper";
 import type { Role } from "../../types";
@@ -70,6 +68,8 @@ type SpriteListGridProps = {
   isMultiSelectMode: boolean;
   /** 多选状态变化回调（必须） */
   onMultiSelectChange: (selectedIndices: Set<number>, isMultiSelectMode: boolean) => void;
+  /** 删除当前多选的头像 */
+  onDeleteSelected?: () => void;
   /** 可选：直接指定 grid-template-columns，确保网格列数生效 */
   gridTemplateColumns?: string;
   /** 是否按头像分类分组展示 */
@@ -152,6 +152,7 @@ export function SpriteListGrid({
   selectedIndices,
   isMultiSelectMode,
   onMultiSelectChange,
+  onDeleteSelected,
   gridTemplateColumns,
   groupByCategory = false,
   uploadVariantId,
@@ -161,6 +162,7 @@ export function SpriteListGrid({
   onAvatarDragStart,
   onAvatarDragEnd,
 }: SpriteListGridProps) {
+  const shouldReduceMotion = useReducedMotion();
   // 管理模式下启用上传和删除功能
   const isManageMode = mode === "manage";
   const showUpload = isManageMode;
@@ -281,6 +283,10 @@ export function SpriteListGrid({
     });
   }, []);
 
+  const handleToggleCategorySelectionMode = useCallback(() => {
+    onMultiSelectChange(new Set(), !isMultiSelectMode);
+  }, [isMultiSelectMode, onMultiSelectChange]);
+
   // Determine if delete button should be shown (not when only 1 avatar remains)
   const canDelete = (totalAvatarsCount ?? avatars.length) > 1;
   const canShowTileTools = isManageMode && !isMultiSelectMode && (Boolean(onReplaceAvatarSource) || canDelete);
@@ -312,10 +318,9 @@ export function SpriteListGrid({
     const isAvatarDraggable = Boolean(onAvatarDragStart);
 
     return (
-      <motion.div
+      <div
         key={avatar.avatarId}
         className={`min-w-0 flex flex-col ${isSelected ? "relative z-10" : ""}`}
-        {...structuralListItemMotionProps()}
       >
         <div className="group/avatar-tile relative w-full overflow-visible">
           <button
@@ -435,14 +440,13 @@ export function SpriteListGrid({
                 }
               `}
             >
-              {isCurrentAvatar
-                ? (
+            {isCurrentAvatar
+              ? (
                     <span
                       className="
                         inline-flex h-6 items-center gap-1 rounded-full
                         bg-neutral/80 px-2 text-[11px] font-medium text-neutral-content
                         shadow-sm ring-1 ring-white/20 backdrop-blur
-                        transition-transform duration-150
                       "
                       aria-label="当前默认头像"
                     >
@@ -581,7 +585,7 @@ export function SpriteListGrid({
             title: canEditName ? "双击修改头像标题" : avatarName,
           }}
         />
-      </motion.div>
+      </div>
     );
   };
 
@@ -794,7 +798,6 @@ export function SpriteListGrid({
                 {categoryGroups.map((group, groupIndex) => {
                   const uploadTargetId = `category-${groupIndex}`;
                   const isCollapsed = collapsedCategories.has(group.category);
-                  const selectedInGroupCount = group.items.filter(item => selectedIndices.has(item.index)).length;
                   return (
                     <section
                       key={group.category}
@@ -832,37 +835,72 @@ export function SpriteListGrid({
                         setDroppedBatchId(Date.now());
                       }}
                     >
-                      <button
-                        type="button"
-                        className="
-                          flex w-full min-w-0 items-center justify-between gap-2
-                          rounded-md px-1.5 py-1 text-xs text-base-content/70
-                          hover:bg-base-200
-                        "
-                        onClick={() => handleToggleCategory(group.category)}
-                        aria-expanded={!isCollapsed}
-                      >
-                        <span className="flex min-w-0 items-center gap-1.5">
-                          {isCollapsed
-                            ? <CaretRightIcon className="size-3.5 shrink-0" aria-hidden="true" />
-                            : <CaretDownIcon className="size-3.5 shrink-0" aria-hidden="true" />}
+                      <div className="flex min-w-0 items-center gap-1">
+                        <button
+                          type="button"
+                          className="
+                            flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 py-1
+                            text-left text-xs text-base-content/70 hover:bg-base-200
+                          "
+                          onClick={() => handleToggleCategory(group.category)}
+                          aria-expanded={!isCollapsed}
+                        >
+                          <CaretRightIcon
+                            className={`
+                              size-3.5 shrink-0 transition-transform duration-200
+                              motion-reduce:transition-none
+                              ${isCollapsed ? "" : "rotate-90"}
+                            `}
+                            aria-hidden="true"
+                          />
                           <span className="truncate font-semibold text-base-content/85">
                             {group.category}
                           </span>
-                        </span>
-                        <span className="flex shrink-0 items-center gap-1">
-                          {isMultiSelectMode && selectedInGroupCount > 0 && (
-                            <Badge tone="info">
-                              已选
-                              {" "}
-                              {selectedInGroupCount}
-                            </Badge>
+                        </button>
+                        {isMultiSelectMode && onDeleteSelected && (
+                          <IconButton
+                            tone="error"
+                            appearance="outline"
+                            size="xs"
+                            shape="square"
+                            className="shrink-0"
+                            onClick={onDeleteSelected}
+                            disabled={selectedIndices.size === 0}
+                            title="删除所选头像"
+                            label="删除所选头像"
+                            icon={<TrashIcon className="size-4" aria-hidden="true" />}
+                          />
+                        )}
+                        <IconButton
+                          tone="neutral"
+                          appearance="ghost"
+                          size="xs"
+                          shape="square"
+                          className="shrink-0"
+                          onClick={handleToggleCategorySelectionMode}
+                          aria-pressed={isMultiSelectMode}
+                          title={isMultiSelectMode ? "取消多选模式" : "进入多选模式"}
+                          label={isMultiSelectMode ? "取消多选模式" : "进入多选模式"}
+                          icon={(
+                            <span className="relative block size-4" aria-hidden="true">
+                              <AnimatePresence initial={false} mode="popLayout">
+                                <motion.span
+                                  key={isMultiSelectMode ? "cancel" : "select"}
+                                  initial={{ opacity: 0, scale: 0.7, rotate: isMultiSelectMode ? -45 : 45 }}
+                                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                                  exit={{ opacity: 0, scale: 0.7, rotate: isMultiSelectMode ? 45 : -45 }}
+                                  transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.12, ease: "easeOut" }}
+                                  className="absolute inset-0 flex items-center justify-center"
+                                >
+                                  {isMultiSelectMode
+                                    ? <XIcon className="size-4" aria-hidden="true" />
+                                    : <ChecksIcon className="size-4" aria-hidden="true" />}
+                                </motion.span>
+                              </AnimatePresence>
+                            </span>
                           )}
-                          <CountBadge tone="neutral">
-                            {group.items.length}
-                          </CountBadge>
-                        </span>
-                      </button>
+                        />
+                      </div>
                       <CollapsibleMotion
                         open={!isCollapsed}
                         className={`
@@ -872,9 +910,7 @@ export function SpriteListGrid({
                           ? { gridTemplateColumns: groupedGridTemplateColumns }
                           : undefined}
                       >
-                        <AnimatePresence initial={false} mode="popLayout">
-                          {group.items.map(item => renderAvatarTile(item.avatar, item.index))}
-                        </AnimatePresence>
+                        {group.items.map(item => renderAvatarTile(item.avatar, item.index))}
                         {renderUploadTile({
                           category: group.category,
                           variantId: uploadVariantId,
@@ -900,9 +936,7 @@ export function SpriteListGrid({
                     {beforeContentSlot}
                   </div>
                 )}
-                <AnimatePresence initial={false} mode="popLayout">
-                  {avatars.map((avatar, index) => renderAvatarTile(avatar, index))}
-                </AnimatePresence>
+                {avatars.map((avatar, index) => renderAvatarTile(avatar, index))}
                 {uploadTile}
               </div>
             )}

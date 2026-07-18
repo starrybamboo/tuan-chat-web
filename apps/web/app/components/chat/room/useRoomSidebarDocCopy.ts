@@ -1,5 +1,4 @@
 import type { DragEvent } from "react";
-import { appToast } from "@/components/common/appToast/appToast";
 
 import { useCallback, useState } from "react";
 
@@ -8,6 +7,7 @@ import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import { buildDocCardReferencePayload } from "@/components/chat/message/docCard/docCardMedia";
 import { copyDocToSpaceDoc } from "@/components/chat/utils/docCopy";
 import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
+import { appToast } from "@/components/common/appToast/appToast";
 
 import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
 
@@ -16,7 +16,7 @@ type UseRoomSidebarDocCopyParams = {
   isSpaceOwner: boolean;
   treeToRender: SidebarTree;
   visibleDocMetas: MinimalDocMeta[];
-  appendExtraDocMeta: (meta: MinimalDocMeta) => void;
+  upsertDocMeta: (meta: MinimalDocMeta) => void;
   normalizeAndSet: (next: SidebarTree, save: boolean, options?: { docMetasOverride?: MinimalDocMeta[] }) => void;
   isDragging: boolean;
 };
@@ -40,7 +40,7 @@ export default function useRoomSidebarDocCopy({
   isSpaceOwner,
   treeToRender,
   visibleDocMetas,
-  appendExtraDocMeta,
+  upsertDocMeta,
   normalizeAndSet,
   isDragging,
 }: UseRoomSidebarDocCopyParams): UseRoomSidebarDocCopyResult {
@@ -89,7 +89,7 @@ export default function useRoomSidebarDocCopy({
         ...(cleanDocRef.originalImageFileId ? { originalImageFileId: cleanDocRef.originalImageFileId } : {}),
         ...(cleanDocRef.imageMediaType ? { imageMediaType: cleanDocRef.imageMediaType } : {}),
       };
-      appendExtraDocMeta(newMeta);
+      upsertDocMeta(newMeta);
 
       const baseTree = treeToRender;
       const nextTree = JSON.parse(JSON.stringify(baseTree)) as SidebarTree;
@@ -158,7 +158,7 @@ export default function useRoomSidebarDocCopy({
       console.error("[DocCopy] drop copy failed", err);
       appToast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
     }
-  }, [activeSpaceId, appendExtraDocMeta, isSpaceOwner, normalizeAndSet, treeToRender, visibleDocMetas]);
+  }, [activeSpaceId, isSpaceOwner, normalizeAndSet, treeToRender, upsertDocMeta, visibleDocMetas]);
 
   const handleDocCopyDragOverCapture = useCallback((e: DragEvent) => {
     if (isDragging)

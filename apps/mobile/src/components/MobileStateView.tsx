@@ -60,7 +60,7 @@ export function MobileStateView({
         ? <ThemedText type="small" themeColor="textSecondary" style={{ textAlign: "center" }}>{children}</ThemedText>
         : children}
       {actionLabel && onAction
-        ? <MobileButton accessibilityLabel={actionLabel} onPress={onAction} variant={tone === "error" ? "danger" : "secondary"}>{actionLabel}</MobileButton>
+        ? <MobileButton accessibilityLabel={actionLabel} label={actionLabel} onPress={onAction} variant={tone === "error" ? "danger" : "secondary"} />
         : null}
     </View>
   );

@@ -23,4 +23,3 @@ export type ApiResultString = {
      */
     data?: string;
 };
-

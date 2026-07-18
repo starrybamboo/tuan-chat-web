@@ -24,4 +24,3 @@ export type ApiResultListSpace = {
      */
     data?: Array<Space>;
 };
-

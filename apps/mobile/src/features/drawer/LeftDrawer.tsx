@@ -1,10 +1,16 @@
+import type { SidebarTree } from "@tuanchat/domain/sidebar-tree";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { Space } from "@tuanchat/openapi-client/models/Space";
-import type { SidebarTree } from "@tuanchat/domain/sidebar-tree";
+import type { ReactNode } from "react";
+import type { SharedValue } from "react-native-reanimated";
 
-import { CaretDown, CaretRight, ChatCircle, Plus } from "phosphor-react-native";
+import { FlashList, type FlashListRef } from "@shopify/flash-list";
+import { CaretDown, CaretRight, ChatCircle, FolderPlus, ListPlus, Plus, UserPlus } from "phosphor-react-native";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
-import { FlatList, PanResponder, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import type { DmBackTarget } from "@/features/friends/dmNavigationState";
 import type { DmTab } from "@/features/friends/DmTopTabs";
@@ -38,9 +44,6 @@ const SPACE_RAIL_CONTENT_TOP_PADDING = Spacing.sm;
 const SPACE_RAIL_AUTO_SCROLL_EDGE_SIZE = 72;
 const SPACE_RAIL_AUTO_SCROLL_MAX_STEP = 14;
 const UNREAD_BADGE_SIZE = 16;
-const DRAWER_INITIAL_RENDER_COUNT = 12;
-const DRAWER_RENDER_BATCH_SIZE = 8;
-const DRAWER_WINDOW_SIZE = 7;
 
 const styles = StyleSheet.create({
   container: { flex: 1, flexDirection: "row" },
@@ -68,17 +71,22 @@ const styles = StyleSheet.create({
     marginVertical: Spacing.sm,
     width: 28,
   },
-  railScroll: { flex: 1 },
+  railScroll: { alignSelf: "stretch", flex: 1 },
   railScrollContent: { alignItems: "center", paddingTop: Spacing.sm },
   spaceButton: {
     alignItems: "center",
     borderRadius: Radius.md,
+    borderCurve: "continuous",
     height: 40,
     justifyContent: "center",
     width: 40,
   },
+  spaceButtonContainer: {
+    alignSelf: "center",
+    marginBottom: Spacing.md,
+  },
   spaceButtonDragging: {
-    elevation: 6,
+    boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.24)",
     opacity: 0.72,
     zIndex: 2,
   },
@@ -165,21 +173,140 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     lineHeight: 12,
   },
-  createRoomButton: {
-    alignItems: "center",
-    borderRadius: Radius.md,
-    borderStyle: "dashed",
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: Spacing.sm,
-    justifyContent: "center",
-    marginTop: Spacing.md,
-    minHeight: 40,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-  },
   emptyText: { fontSize: 12, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.xl },
 });
+
+type SpaceRailDragContainerProps = {
+  children: ReactNode;
+  displacedOffsetY: number;
+  dragTranslationY: SharedValue<number>;
+  dragging: boolean;
+};
+
+function SpaceRailDragContainer({
+  children,
+  displacedOffsetY,
+  dragTranslationY,
+  dragging,
+}: SpaceRailDragContainerProps) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: dragging ? dragTranslationY.get() : displacedOffsetY },
+      { scale: dragging ? 0.96 : 1 },
+    ],
+  }), [displacedOffsetY, dragging]);
+
+  return (
+    <Animated.View style={[styles.spaceButtonContainer, animatedStyle]}>
+      {children}
+    </Animated.View>
+  );
+}
+
+type SpaceRailItemProps = {
+  accentColor: string;
+  active: boolean;
+  activeBackgroundColor: string;
+  avatarFileId: number | null | undefined;
+  displacedOffsetY: number;
+  dragTranslationY: SharedValue<number>;
+  dragging: boolean;
+  index: number;
+  isDraggingSpace: boolean;
+  name: string | null | undefined;
+  onCancelDrag: () => void;
+  onEndDrag: () => void;
+  onMoveDrag: (dy: number) => void;
+  onSelect: (spaceId: number | null) => void;
+  onStartDrag: (spaceId: number) => void;
+  spaceCount: number;
+  spaceId: number | null;
+  backgroundColor: string;
+};
+
+function SpaceRailItem({
+  accentColor,
+  active,
+  activeBackgroundColor,
+  avatarFileId,
+  backgroundColor,
+  displacedOffsetY,
+  dragTranslationY,
+  dragging,
+  index,
+  isDraggingSpace,
+  name,
+  onCancelDrag,
+  onEndDrag,
+  onMoveDrag,
+  onSelect,
+  onStartDrag,
+  spaceCount,
+  spaceId,
+}: SpaceRailItemProps) {
+  const avatarUrl = resolveAvatarUrl(avatarFileId);
+  const spaceDragGesture = useMemo(() => Gesture.Pan()
+    .activateAfterLongPress(180)
+    .onStart(() => {
+      if (spaceId != null) {
+        scheduleOnRN(onStartDrag, spaceId);
+      }
+    })
+    .onUpdate((event) => {
+      if (spaceId == null) {
+        return;
+      }
+      const minOffset = -index * SPACE_RAIL_ITEM_HEIGHT;
+      const maxOffset = (spaceCount - 1 - index) * SPACE_RAIL_ITEM_HEIGHT;
+      dragTranslationY.set(Math.max(minOffset, Math.min(maxOffset, event.translationY)));
+      scheduleOnRN(onMoveDrag, event.translationY);
+    })
+    .onEnd(() => {
+      scheduleOnRN(onEndDrag);
+    })
+    .onFinalize((_event, success) => {
+      if (!success) {
+        scheduleOnRN(onCancelDrag);
+      }
+    }), [dragTranslationY, index, onCancelDrag, onEndDrag, onMoveDrag, onStartDrag, spaceCount, spaceId]);
+
+  const handlePress = useCallback(() => {
+    if (!isDraggingSpace) {
+      onSelect(spaceId);
+    }
+  }, [isDraggingSpace, onSelect, spaceId]);
+
+  return (
+    <SpaceRailDragContainer
+      displacedOffsetY={displacedOffsetY}
+      dragging={dragging}
+      dragTranslationY={dragTranslationY}
+    >
+      <GestureDetector gesture={spaceDragGesture}>
+        <Pressable
+          accessibilityLabel={`切换到空间${name ? ` ${name}` : ""}`}
+          accessibilityRole="button"
+          accessibilityState={{ selected: active }}
+          hitSlop={4}
+          onPress={handlePress}
+          style={[
+            styles.spaceButton,
+            dragging ? styles.spaceButtonDragging : null,
+            {
+              backgroundColor: active ? activeBackgroundColor : backgroundColor,
+              borderColor: active ? accentColor : "transparent",
+              borderWidth: active ? 1 : 0,
+            },
+          ]}
+        >
+          {avatarUrl
+            ? <CachedImage uri={avatarUrl} style={styles.spaceAvatar} />
+            : <ThemedText style={styles.spaceInitials}>{getInitials(name ?? "")}</ThemedText>}
+        </Pressable>
+      </GestureDetector>
+    </SpaceRailDragContainer>
+  );
+}
 
 function getInitials(name: string) {
   const trimmed = name.trim();
@@ -221,34 +348,38 @@ function DmSidebar({ activeDmTab, dmConversations, currentContactId, dmIsPending
   const friendsQuery = useFriendsQuery();
   const deleteMutation = useDeleteFriendMutation();
   const blockMutation = useBlockFriendMutation();
+  const { mutate: deleteFriend } = deleteMutation;
+  const { mutate: blockFriend } = blockMutation;
 
   const friends = friendsQuery.data ?? [];
 
   return (
     <View style={{ flex: 1 }}>
       <DmTopTabs activeTab={activeDmTab} onChangeTab={onChangeDmTab} />
-      {activeDmTab === "chat" && (
-        <DmConversationList
-          conversations={dmConversations}
-          currentContactId={currentContactId}
-          hideHeader
-          isPending={dmIsPending}
-          onSelectConversation={contactId => onSelectConversation(contactId, "conversation")}
-        />
-      )}
-      {activeDmTab === "friends" && (
-        <AllFriendsTab
-          friends={friends}
-          isPending={friendsQuery.isPending}
-          onDeleteFriend={userId => deleteMutation.mutate(userId)}
-          onBlockFriend={userId => blockMutation.mutate(userId)}
-          isBlocking={blockMutation.isPending}
-          onStartChat={userId => onSelectConversation(userId, "friend")}
-        />
-      )}
-      {activeDmTab === "new-friends" && (
-        <NewFriendsTab />
-      )}
+      {activeDmTab === "chat"
+        ? (
+            <DmConversationList
+              conversations={dmConversations}
+              currentContactId={currentContactId}
+              hideHeader
+              isPending={dmIsPending}
+              onSelectConversation={contactId => onSelectConversation(contactId, "conversation")}
+            />
+          )
+        : null}
+      {activeDmTab === "friends"
+        ? (
+            <AllFriendsTab
+              friends={friends}
+              isPending={friendsQuery.isPending}
+              onDeleteFriend={deleteFriend}
+              onBlockFriend={blockFriend}
+              isBlocking={blockMutation.isPending}
+              onStartChat={userId => onSelectConversation(userId, "friend")}
+            />
+          )
+        : null}
+      {activeDmTab === "new-friends" ? <NewFriendsTab /> : null}
     </View>
   );
 }
@@ -263,8 +394,10 @@ type LeftDrawerProps = {
   dmConversations: DmConversation[];
   dmIsPending: boolean;
   drawerMode: DrawerMode;
-  onCreateRoom?: () => void;
+  onCreateCategory?: () => void;
+  onCreateRoom?: (categoryId?: string) => void;
   onCreateSpace?: () => void;
+  onInviteMembers?: () => void;
   onChangeDmTab: (tab: DmTab) => void;
   onRefresh: () => void;
   onSelectConversation: (contactId: number, source?: DmBackTarget) => void;
@@ -288,6 +421,10 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+function getRoomListItemType(item: RoomListItem): RoomListItem["type"] {
+  return item.type;
+}
+
 function LeftDrawerInner({
   activeDmTab,
   activeSpaces,
@@ -299,7 +436,9 @@ function LeftDrawerInner({
   dmIsPending,
   drawerMode,
   onCreateRoom,
+  onCreateCategory,
   onCreateSpace,
+  onInviteMembers,
   onChangeDmTab,
   onRefresh: _onRefresh,
   onSelectConversation,
@@ -319,15 +458,16 @@ function LeftDrawerInner({
   const friendRequestsQuery = useFriendRequestsQuery();
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [draggingSpaceId, setDraggingSpaceId] = useState<number | null>(null);
-  const [dragOffsetY, setDragOffsetY] = useState(0);
   const [dragTargetIndex, setDragTargetIndex] = useState(-1);
-  const spaceRailListRef = useRef<FlatList<Space> | null>(null);
+  const dragTranslationY = useSharedValue(0);
+  const spaceRailListRef = useRef<FlashListRef<Space> | null>(null);
   const spaceRailViewportHeightRef = useRef(0);
   const spaceRailContentHeightRef = useRef(0);
   const spaceRailScrollOffsetRef = useRef(0);
   const dragStartScrollOffsetRef = useRef(0);
   const dragDyRef = useRef(0);
   const dragActiveRef = useRef(false);
+  const draggingSpaceIdRef = useRef<number | null>(null);
   const dragAutoScrollFrameRef = useRef<number | null>(null);
   const dragBaseOrderIdsRef = useRef<number[]>([]);
   const dragStartIndexRef = useRef(-1);
@@ -344,13 +484,12 @@ function LeftDrawerInner({
   const roomListItems = useMemo(() => buildRoomListItems({
     collapsedSections,
     currentSpaceId,
-    onCreateRoom,
     rooms: availableRooms,
     roomsError,
     roomsIsError,
     roomsIsPending,
     sidebarTree,
-  }), [availableRooms, collapsedSections, currentSpaceId, onCreateRoom, roomsError, roomsIsError, roomsIsPending, sidebarTree]);
+  }), [availableRooms, collapsedSections, currentSpaceId, roomsError, roomsIsError, roomsIsPending, sidebarTree]);
 
   const toggleSection = useCallback((categoryId: string, collapsed: boolean) => {
     setCollapsedSections(prev => ({ ...prev, [categoryId]: !collapsed }));
@@ -373,14 +512,14 @@ function LeftDrawerInner({
       Math.min(baseOrder.length - 1, startIndex + Math.round(clampedOffset / SPACE_RAIL_ITEM_HEIGHT)),
     );
 
-    setDragOffsetY(clampedOffset);
+    dragTranslationY.set(clampedOffset);
     if (targetIndex === dragCurrentIndexRef.current) {
       return;
     }
 
     dragCurrentIndexRef.current = targetIndex;
     setDragTargetIndex(targetIndex);
-  }, []);
+  }, [dragTranslationY]);
 
   const getDragPointerViewportY = useCallback((dy: number) => {
     const startIndex = dragStartIndexRef.current;
@@ -462,23 +601,24 @@ function LeftDrawerInner({
   const resetDraggingSpace = useCallback(() => {
     stopSpaceRailAutoScroll();
     dragActiveRef.current = false;
+    draggingSpaceIdRef.current = null;
     setDraggingSpaceId(null);
-    setDragOffsetY(0);
+    dragTranslationY.set(0);
     setDragTargetIndex(-1);
     dragBaseOrderIdsRef.current = [];
     dragStartIndexRef.current = -1;
     dragCurrentIndexRef.current = -1;
     dragDyRef.current = 0;
     dragStartScrollOffsetRef.current = 0;
-  }, [stopSpaceRailAutoScroll]);
+  }, [dragTranslationY, stopSpaceRailAutoScroll]);
 
-  const handleStartSpaceDrag = useCallback((space: Space) => {
-    if (!space.spaceId || orderedSpaces.length <= 1) {
+  const handleStartSpaceDrag = useCallback((spaceId: number) => {
+    if (orderedSpaces.length <= 1) {
       return;
     }
 
     const baseOrder = getSpaceRailIds(orderedSpaces);
-    const startIndex = baseOrder.indexOf(space.spaceId);
+    const startIndex = baseOrder.indexOf(spaceId);
     if (startIndex < 0) {
       return;
     }
@@ -489,10 +629,11 @@ function LeftDrawerInner({
     dragStartScrollOffsetRef.current = spaceRailScrollOffsetRef.current;
     dragDyRef.current = 0;
     dragActiveRef.current = true;
-    setDragOffsetY(0);
+    draggingSpaceIdRef.current = spaceId;
+    dragTranslationY.set(0);
     setDragTargetIndex(startIndex);
-    setDraggingSpaceId(space.spaceId);
-  }, [orderedSpaces]);
+    setDraggingSpaceId(spaceId);
+  }, [dragTranslationY, orderedSpaces]);
 
   const handleMoveSpaceDrag = useCallback((dy: number) => {
     dragDyRef.current = dy;
@@ -504,21 +645,16 @@ function LeftDrawerInner({
     const baseOrder = dragBaseOrderIdsRef.current;
     const startIndex = dragStartIndexRef.current;
     const targetIndex = dragCurrentIndexRef.current;
-    if (draggingSpaceId != null && baseOrder.length > 0 && startIndex >= 0 && targetIndex >= 0) {
+    if (draggingSpaceIdRef.current != null && baseOrder.length > 0 && startIndex >= 0 && targetIndex >= 0) {
       setSpaceRailOrder(moveSpaceRailId(baseOrder, startIndex, targetIndex));
     }
     resetDraggingSpace();
-  }, [draggingSpaceId, resetDraggingSpace, setSpaceRailOrder]);
-
-  const spaceRailPanResponder = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponder: () => draggingSpaceId != null,
-    onMoveShouldSetPanResponderCapture: () => draggingSpaceId != null,
-    onPanResponderMove: (_event, gestureState) => handleMoveSpaceDrag(gestureState.dy),
-    onPanResponderRelease: handleEndSpaceDrag,
-    onPanResponderTerminate: resetDraggingSpace,
-    onPanResponderTerminationRequest: () => draggingSpaceId == null,
-    onShouldBlockNativeResponder: () => draggingSpaceId != null,
-  }), [draggingSpaceId, handleEndSpaceDrag, handleMoveSpaceDrag, resetDraggingSpace]);
+  }, [resetDraggingSpace, setSpaceRailOrder]);
+  const handleCancelSpaceDrag = useCallback(() => {
+    if (dragActiveRef.current) {
+      resetDraggingSpace();
+    }
+  }, [resetDraggingSpace]);
 
   const renderRetryText = useCallback((message: string) => (
     <Pressable onPress={_onRefresh} style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}>
@@ -584,39 +720,29 @@ function LeftDrawerInner({
         displacedOffsetY = SPACE_RAIL_ITEM_HEIGHT;
       }
     }
-    const avatarUrl = resolveAvatarUrl(space.avatarFileId);
     return (
-      <Pressable
-        accessibilityLabel={`切换到空间${space.name ? ` ${space.name}` : ""}`}
-        accessibilityRole="button"
-        accessibilityState={{ selected: active }}
-        onPress={() => {
-          if (draggingSpaceId != null) {
-            return;
-          }
-          onSelectSpace(space.spaceId ?? null);
-        }}
-        onLongPress={() => handleStartSpaceDrag(space)}
-        delayLongPress={180}
-        style={[
-          styles.spaceButton,
-          dragging ? styles.spaceButtonDragging : null,
-          dragging ? { transform: [{ translateY: dragOffsetY }, { scale: 0.96 }] } : null,
-          !dragging && displacedOffsetY !== 0 ? { transform: [{ translateY: displacedOffsetY }] } : null,
-          {
-            backgroundColor: active ? theme.accentMuted : theme.backgroundElement,
-            borderWidth: active ? 1 : 0,
-            borderColor: active ? theme.accent : "transparent",
-            marginBottom: Spacing.md,
-          },
-        ]}
-      >
-        {avatarUrl
-          ? <CachedImage uri={avatarUrl} style={styles.spaceAvatar} />
-          : <ThemedText style={styles.spaceInitials}>{getInitials(space.name ?? "")}</ThemedText>}
-      </Pressable>
+      <SpaceRailItem
+        accentColor={theme.accent}
+        active={active}
+        activeBackgroundColor={theme.accentMuted}
+        avatarFileId={space.avatarFileId}
+        backgroundColor={theme.backgroundElement}
+        displacedOffsetY={displacedOffsetY}
+        dragTranslationY={dragTranslationY}
+        dragging={dragging}
+        index={index}
+        isDraggingSpace={draggingSpaceId != null}
+        name={space.name}
+        onCancelDrag={handleCancelSpaceDrag}
+        onEndDrag={handleEndSpaceDrag}
+        onMoveDrag={handleMoveSpaceDrag}
+        onSelect={onSelectSpace}
+        onStartDrag={handleStartSpaceDrag}
+        spaceCount={orderedSpaces.length}
+        spaceId={space.spaceId ?? null}
+      />
     );
-  }, [currentSpaceId, dragOffsetY, dragTargetIndex, draggingSpaceId, handleStartSpaceDrag, onSelectSpace, theme.accent, theme.accentMuted, theme.backgroundElement]);
+  }, [currentSpaceId, dragTargetIndex, dragTranslationY, draggingSpaceId, handleCancelSpaceDrag, handleEndSpaceDrag, handleMoveSpaceDrag, handleStartSpaceDrag, onSelectSpace, orderedSpaces.length, theme.accent, theme.accentMuted, theme.backgroundElement]);
 
   const renderSpaceFooter = useCallback(() => (
     <View style={{ alignItems: "center", gap: Spacing.md }}>
@@ -629,6 +755,7 @@ function LeftDrawerInner({
       <Pressable
         accessibilityLabel="创建空间"
         accessibilityRole="button"
+        hitSlop={4}
         onPress={onCreateSpace}
         style={[styles.createSpaceButton, { borderColor: theme.accent }]}
       >
@@ -654,31 +781,38 @@ function LeftDrawerInner({
 
     if (item.type === "section") {
       return (
-        <Pressable
-          onPress={() => toggleSection(item.categoryId, item.collapsed)}
-          style={styles.sectionHeader}
-        >
-          {item.collapsed
-            ? <CaretRight size={12} color={theme.textSecondary} />
-            : <CaretDown size={12} color={theme.textSecondary} />}
-          <ThemedText style={styles.sectionLabel} themeColor="textSecondary">
-            {item.label}
-          </ThemedText>
-        </Pressable>
-      );
-    }
-
-    if (item.type === "create-room") {
-      return (
-        <Pressable onPress={onCreateRoom} style={[styles.createRoomButton, { borderColor: theme.accent }]}>
-          <Plus size={16} color={theme.accent} />
-          <ThemedText style={{ fontSize: 12, color: theme.accent }}>新建频道</ThemedText>
-        </Pressable>
+        <View style={styles.sectionHeader}>
+          <Pressable
+            accessibilityLabel={`${item.collapsed ? "展开" : "折叠"}${item.label}`}
+            accessibilityRole="button"
+            onPress={() => toggleSection(item.categoryId, item.collapsed)}
+            style={{ alignItems: "center", flexDirection: "row", flex: 1, gap: Spacing.sm }}
+          >
+            {item.collapsed
+              ? <CaretRight size={12} color={theme.textSecondary} />
+              : <CaretDown size={12} color={theme.textSecondary} />}
+            <ThemedText style={styles.sectionLabel} themeColor="textSecondary">
+              {item.label}
+            </ThemedText>
+          </Pressable>
+          {onCreateRoom
+            ? (
+                <Pressable
+                  accessibilityLabel={`在${item.label}中新建房间`}
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={() => onCreateRoom(item.categoryId)}
+                >
+                  <ListPlus size={17} color={theme.textSecondary} />
+                </Pressable>
+              )
+            : null}
+        </View>
       );
     }
 
     return renderRoomRow(item.room);
-  }, [onCreateRoom, renderRetryText, renderRoomRow, theme.accent, theme.textSecondary, toggleSection]);
+  }, [onCreateRoom, renderRetryText, renderRoomRow, theme.textSecondary, toggleSection]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.surface }]}>
@@ -688,6 +822,7 @@ function LeftDrawerInner({
             accessibilityLabel={dmRailBadgeCount > 0 ? `打开私聊，${dmRailBadgeCount > 99 ? "99 条以上" : dmRailBadgeCount} 条未读` : "打开私聊"}
             accessibilityRole="button"
             accessibilityState={{ selected: drawerMode === "dm" }}
+            hitSlop={4}
             onPress={() => onSwitchMode("dm")}
             style={[styles.railIconButton, { backgroundColor: drawerMode === "dm" ? theme.accentMuted : theme.backgroundElement }]}
           >
@@ -708,17 +843,15 @@ function LeftDrawerInner({
 
         {layoutState.showSpaceRail
           ? (
-              <View style={styles.railScroll} {...spaceRailPanResponder.panHandlers}>
-                <FlatList
+              <View style={styles.railScroll}>
+                <FlashList
                   ref={spaceRailListRef}
                   data={orderedSpaces}
                   contentContainerStyle={styles.railScrollContent}
-                  extraData={`${draggingSpaceId ?? ""}:${dragOffsetY}:${dragTargetIndex}:${orderedSpaceIds.join(",")}`}
+                  extraData={`${draggingSpaceId ?? ""}:${dragTargetIndex}:${orderedSpaceIds.join(",")}`}
                   keyExtractor={space => `space:${space.spaceId ?? space.name ?? "unknown"}`}
                   renderItem={renderSpaceItem}
                   ListFooterComponent={renderSpaceFooter}
-                  initialNumToRender={DRAWER_INITIAL_RENDER_COUNT}
-                  maxToRenderPerBatch={DRAWER_RENDER_BATCH_SIZE}
                   onContentSizeChange={(_width, height) => {
                     spaceRailContentHeightRef.current = height;
                   }}
@@ -733,12 +866,9 @@ function LeftDrawerInner({
                     }
                   }}
                   // Space rail 支持拖拽排序，裁剪回收会干扰拖拽中的目标测算。
-                  removeClippedSubviews={false}
                   scrollEventThrottle={16}
                   scrollEnabled={draggingSpaceId == null}
                   showsVerticalScrollIndicator={false}
-                  updateCellsBatchingPeriod={50}
-                  windowSize={DRAWER_WINDOW_SIZE}
                 />
               </View>
             )
@@ -753,30 +883,39 @@ function LeftDrawerInner({
             <ThemedText numberOfLines={1} type="heading" style={{ flex: 1 }}>
               {currentSpace?.name ?? "选择空间"}
             </ThemedText>
-            {onCreateRoom
+            {onInviteMembers
               ? (
                   <Pressable
-                    accessibilityLabel="新建频道"
+                    accessibilityLabel="邀请空间成员"
                     accessibilityRole="button"
-                    onPress={onCreateRoom}
+                    onPress={onInviteMembers}
                     style={styles.sidebarHeaderAction}
                   >
-                    <Plus size={20} color={theme.accent} />
+                    <UserPlus size={19} color={theme.accent} />
+                  </Pressable>
+                )
+              : null}
+            {onCreateCategory
+              ? (
+                  <Pressable
+                    accessibilityLabel="新建分类"
+                    accessibilityRole="button"
+                    onPress={onCreateCategory}
+                    style={styles.sidebarHeaderAction}
+                  >
+                    <FolderPlus size={19} color={theme.accent} />
                   </Pressable>
                 )
               : null}
           </View>
 
-          <FlatList
+          <FlashList
             data={roomListItems}
             style={styles.roomList}
             contentContainerStyle={styles.roomListContent}
+            getItemType={getRoomListItemType}
             keyExtractor={item => item.key}
             renderItem={renderRoomListItem}
-            initialNumToRender={DRAWER_INITIAL_RENDER_COUNT}
-            maxToRenderPerBatch={DRAWER_RENDER_BATCH_SIZE}
-            updateCellsBatchingPeriod={50}
-            windowSize={DRAWER_WINDOW_SIZE}
           />
         </View>
       ) : (

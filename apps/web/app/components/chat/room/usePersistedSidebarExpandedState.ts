@@ -69,15 +69,13 @@ export default function usePersistedSidebarExpandedState({
   const localWriteSeqRef = useRef(0);
   const latestValidKeysRef = useRef(validKeys);
   const latestInitialExpandedKeysRef = useRef(initialExpandedKeys);
-  const validKeysSignature = useMemo(() => validKeys.join("\u0000"), [validKeys]);
-  const initialExpandedKeysSignature = useMemo(() => (initialExpandedKeys ?? []).join("\u0000"), [initialExpandedKeys]);
   const normalizedInitialExpandedMap = useMemo(() => {
     return normalizeExpandedMap({
       raw: null,
       validKeys,
       initialExpandedKeys,
     });
-  }, [initialExpandedKeysSignature, validKeysSignature]);
+  }, [initialExpandedKeys, validKeys]);
   const validKeySet = useMemo(() => new Set(validKeys), [validKeys]);
   const normalizeWithLatestKeys = useCallback((raw: Record<string, boolean> | null | undefined) => {
     return normalizeExpandedMap({
@@ -90,7 +88,7 @@ export default function usePersistedSidebarExpandedState({
   useEffect(() => {
     latestValidKeysRef.current = validKeys;
     latestInitialExpandedKeysRef.current = initialExpandedKeys;
-  }, [initialExpandedKeysSignature, validKeys, validKeysSignature, initialExpandedKeys]);
+  }, [initialExpandedKeys, validKeys]);
 
   useEffect(() => {
     if (activeSpaceId == null || !Number.isFinite(activeSpaceId) || activeSpaceId <= 0) {
@@ -140,10 +138,10 @@ export default function usePersistedSidebarExpandedState({
   }, [
     activeSpaceId,
     currentUserId,
-    initialExpandedKeysSignature,
+    initialExpandedKeys,
     normalizeWithLatestKeys,
     storageScope,
-    validKeysSignature,
+    validKeys,
   ]);
 
   useEffect(() => {
@@ -163,7 +161,7 @@ export default function usePersistedSidebarExpandedState({
     }
 
     setExpandedByKey(next);
-  }, [activeSpaceId, expandedByKey, validKeysSignature, validKeys]);
+  }, [activeSpaceId, expandedByKey, validKeys]);
 
   const setExpanded = useCallback((key: string, expanded: boolean) => {
     if (activeSpaceId == null || !Number.isFinite(activeSpaceId) || activeSpaceId <= 0) {

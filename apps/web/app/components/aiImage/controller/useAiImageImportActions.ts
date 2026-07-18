@@ -1,4 +1,4 @@
-import type { Dispatch, DragEvent as ReactDragEvent, RefObject, SetStateAction } from "react";
+import type { Dispatch, DragEvent as ReactDragEvent, SetStateAction } from "react";
 
 import { useCallback, useEffect } from "react";
 
@@ -9,7 +9,6 @@ import type {
   InternalHistoryImageDragPayload,
   MetadataImportSelectionState,
   PendingMetadataImportState,
-  ProFeatureSectionKey,
   UiMode,
 } from "@/components/aiImage/types";
 import type { NovelAiImageMetadataResult } from "@/utils/media/novelaiImageMetadata";
@@ -36,13 +35,17 @@ import {
   extractImageFilesFromTransfer,
   extractInternalHistoryImageDragPayload,
   generatedItemKey,
-  getNovelAiFreeOnlyMessage,
   hasFileDrag,
   hasInternalHistoryImageDrag,
 } from "@/components/aiImage/helpers";
 import { clearAiImageHistory } from "@/utils/aiImageHistoryDb";
 
 type Setter<T> = Dispatch<SetStateAction<T>>;
+
+function formatImageImportError(prefix: string, error: unknown) {
+  const detail = error instanceof Error ? error.message : String(error);
+  return detail ? `${prefix}：${detail}` : prefix;
+}
 
 type UseAiImageImportActionsOptions = {
   uiMode: UiMode;
@@ -53,20 +56,18 @@ type UseAiImageImportActionsOptions = {
   pendingMetadataImport: PendingMetadataImportState | null;
   metadataImportSelection: MetadataImportSelectionState;
   selectedPreviewResult: GeneratedImageItem | null;
-  sourceFileInputRef: RefObject<HTMLInputElement | null>;
   setError: Setter<string>;
   setIsPageImageDragOver: Setter<boolean>;
   setPendingMetadataImport: Setter<PendingMetadataImportState | null>;
   setMetadataImportSelection: Setter<MetadataImportSelectionState>;
-  setProFeatureSectionOpen: (section: ProFeatureSectionKey, open: boolean) => void;
+  openImportedImageInpaint: (sourceImage: ImportedSourceImagePayload) => void;
   setDirectorSourceItems: Setter<GeneratedImageItem[]>;
   setDirectorSourcePreview: Setter<GeneratedImageItem | null>;
   setDirectorOutputPreview: Setter<GeneratedImageItem | null>;
   setIsDirectorImageDragOver: Setter<boolean>;
   setSelectedHistoryPreviewKey: Setter<string | null>;
   showErrorToast: (message: string) => void;
-  showSuccessToast: (message: string) => void;
-  applySourceImageForUi: (targetUiMode: UiMode, sourceImage: ImportedSourceImagePayload, successMessage?: string) => void;
+  syncInpaintSourceForUi: (targetUiMode: UiMode, sourceImage: ImportedSourceImagePayload) => void;
   clearSourceImageForUi: (targetUiMode: UiMode) => void;
   refreshHistory: () => Promise<void>;
   applyImportedMetadata: (metadata: NovelAiImageMetadataResult, selection: MetadataImportSelectionState) => void;
@@ -86,20 +87,18 @@ export function useAiImageImportActions({
   pendingMetadataImport,
   metadataImportSelection,
   selectedPreviewResult,
-  sourceFileInputRef,
   setError,
   setIsPageImageDragOver,
   setPendingMetadataImport,
   setMetadataImportSelection,
-  setProFeatureSectionOpen,
+  openImportedImageInpaint,
   setDirectorSourceItems,
   setDirectorSourcePreview,
   setDirectorOutputPreview,
   setIsDirectorImageDragOver,
   setSelectedHistoryPreviewKey,
   showErrorToast,
-  showSuccessToast,
-  applySourceImageForUi,
+  syncInpaintSourceForUi,
   clearSourceImageForUi,
   refreshHistory,
   applyImportedMetadata,
@@ -115,20 +114,21 @@ export function useAiImageImportActions({
     name: string;
     source?: ImageImportSource;
     imageCount?: number;
-    target?: "img2img";
   }) => {
+    if ((args.imageCount ?? 1) > 1) {
+      showErrorToast("一次只能导入一张图片。");
+      return;
+    }
     await importSourceImageBytesAction({
       bytes: args.bytes,
       mime: args.mime,
       name: args.name,
       source: args.source,
       imageCount: args.imageCount,
-      target: args.target,
       uiMode,
       setError,
       setIsPageImageDragOver,
       readImageSize,
-      applySourceImageForUi,
       setPendingMetadataImport,
       defaultMetadataImportSelection,
       setMetadataImportSelection,
@@ -137,7 +137,6 @@ export function useAiImageImportActions({
       readImagePixels,
     });
   }, [
-    applySourceImageForUi,
     defaultMetadataImportSelection,
     extractNovelAiMetadataFromPngBytes,
     extractNovelAiMetadataFromStealthPixels,
@@ -147,31 +146,46 @@ export function useAiImageImportActions({
     setIsPageImageDragOver,
     setMetadataImportSelection,
     setPendingMetadataImport,
+    showErrorToast,
     uiMode,
   ]);
 
   const handlePickSourceImage = useCallback(async (
     file: File,
-    options?: { source?: ImageImportSource; imageCount?: number; target?: "img2img" },
+    options?: { source?: ImageImportSource; imageCount?: number },
   ) => {
-    await importSourceFileAction({
-      file,
-      options,
-      importSourceImageBytes: handleImportSourceImageBytes,
-    });
-  }, [handleImportSourceImageBytes]);
+    try {
+      await importSourceFileAction({
+        file,
+        options,
+        importSourceImageBytes: handleImportSourceImageBytes,
+      });
+    }
+    catch (error) {
+      const message = formatImageImportError("导入图片失败", error);
+      setError(message);
+      showErrorToast(message);
+    }
+  }, [handleImportSourceImageBytes, setError, showErrorToast]);
 
   const handlePickDirectorSourceImages = useCallback(async (files: FileList | File[]) => {
-    await pickDirectorSourceImagesAction({
-      files,
-      showErrorToast,
-      model,
-      readImageSize,
-      setDirectorSourceItems,
-      setDirectorSourcePreview,
-      setDirectorOutputPreview,
-    });
-  }, [model, readImageSize, setDirectorOutputPreview, setDirectorSourceItems, setDirectorSourcePreview, showErrorToast]);
+    try {
+      await pickDirectorSourceImagesAction({
+        files,
+        showErrorToast,
+        model,
+        readImageSize,
+        setDirectorSourceItems,
+        setDirectorSourcePreview,
+        setDirectorOutputPreview,
+      });
+    }
+    catch (error) {
+      const message = formatImageImportError("导入 Director 图片失败", error);
+      setError(message);
+      showErrorToast(message);
+    }
+  }, [model, readImageSize, setDirectorOutputPreview, setDirectorSourceItems, setDirectorSourcePreview, setError, showErrorToast]);
 
   const handlePickDirectorSourceHistoryImage = useCallback(async (payload: InternalHistoryImageDragPayload) => {
     await pickDirectorSourceHistoryImageAction({
@@ -188,14 +202,21 @@ export function useAiImageImportActions({
     payload: InternalHistoryImageDragPayload,
     options?: { source?: ImageImportSource; imageCount?: number },
   ) => {
-    await pickSourceHistoryImageAction({
-      payload,
-      options,
-      setIsPageImageDragOver,
-      showErrorToast,
-      handleImportSourceImageBytes,
-    });
-  }, [handleImportSourceImageBytes, setIsPageImageDragOver, showErrorToast]);
+    try {
+      await pickSourceHistoryImageAction({
+        payload,
+        options,
+        setIsPageImageDragOver,
+        showErrorToast,
+        handleImportSourceImageBytes,
+      });
+    }
+    catch (error) {
+      const message = formatImageImportError("导入历史图片失败", error);
+      setError(message);
+      showErrorToast(message);
+    }
+  }, [handleImportSourceImageBytes, setError, setIsPageImageDragOver, showErrorToast]);
 
   const handleHistoryImageDragStart = useCallback((
     event: ReactDragEvent<HTMLElement>,
@@ -261,29 +282,22 @@ export function useAiImageImportActions({
   const handleClearSourceImage = useCallback(() => {
     clearSourceImageForUi(uiMode);
     setIsPageImageDragOver(false);
-    if (uiMode === "pro")
-      setProFeatureSectionOpen("baseImage", true);
-  }, [clearSourceImageForUi, setIsPageImageDragOver, setProFeatureSectionOpen, uiMode]);
-
-  const handleOpenSourceImagePicker = useCallback(() => {
-    sourceFileInputRef.current?.click();
-  }, [sourceFileInputRef]);
+  }, [clearSourceImageForUi, setIsPageImageDragOver, uiMode]);
 
   const handleCloseMetadataImportDialog = useCallback(() => {
     setPendingMetadataImport(null);
     setMetadataImportSelection(defaultMetadataImportSelection);
   }, [defaultMetadataImportSelection, setMetadataImportSelection, setPendingMetadataImport]);
 
-  const handleImportSourceImageTarget = useCallback((target: "img2img" | "vibe" | "precise") => {
+  const handleOpenImportedImageInpaint = useCallback(() => {
     if (!pendingMetadataImport)
       return;
 
-    if (target === "img2img")
-      applySourceImageForUi(uiMode, pendingMetadataImport.sourceImage, "已应用底图。");
+    openImportedImageInpaint(pendingMetadataImport.sourceImage);
 
     setPendingMetadataImport(null);
     setMetadataImportSelection(defaultMetadataImportSelection);
-  }, [applySourceImageForUi, defaultMetadataImportSelection, pendingMetadataImport, setMetadataImportSelection, setPendingMetadataImport, uiMode]);
+  }, [defaultMetadataImportSelection, openImportedImageInpaint, pendingMetadataImport, setMetadataImportSelection, setPendingMetadataImport]);
 
   const handleConfirmMetadataImport = useCallback(() => {
     const pendingMetadata = pendingMetadataImport?.metadata;
@@ -303,25 +317,13 @@ export function useAiImageImportActions({
     setMetadataImportSelection(defaultMetadataImportSelection);
   }, [applyImportedMetadata, defaultMetadataImportSelection, metadataImportSelection, pendingMetadataImport, setMetadataImportSelection, setPendingMetadataImport]);
 
-  const handlePickVibeReferences = useCallback(async (files: FileList | File[]) => {
-    void files;
-    showErrorToast(getNovelAiFreeOnlyMessage("Vibe Transfer 暂不可用。"));
-    setProFeatureSectionOpen("vibeTransfer", true);
-  }, [setProFeatureSectionOpen, showErrorToast]);
-
-  const handlePickPreciseReference = useCallback(async (file: File) => {
-    void file;
-    showErrorToast(getNovelAiFreeOnlyMessage("Precise Reference 暂不可用。"));
-    setProFeatureSectionOpen("preciseReference", true);
-  }, [setProFeatureSectionOpen, showErrorToast]);
-
   const handleClearHistory = useCallback(async () => {
     await clearAiImageHistory();
     setSelectedHistoryPreviewKey(null);
     await refreshHistory();
   }, [refreshHistory, setSelectedHistoryPreviewKey]);
 
-  const applySelectedPreviewAsBaseImage = useCallback((showToast = false) => {
+  const syncSelectedPreviewToInpaintSource = useCallback(() => {
     if (!selectedPreviewResult)
       return false;
 
@@ -331,19 +333,13 @@ export function useAiImageImportActions({
       height: selectedPreviewResult.height,
     });
     if (!sourceImage) {
-      showErrorToast("读取预览图作为底图失败。");
+      showErrorToast("读取预览图作为 Inpaint 源图失败。");
       return false;
     }
 
-    applySourceImageForUi(uiMode, sourceImage);
-    if (showToast)
-      showSuccessToast("已将预览图应用为底图。");
+    syncInpaintSourceForUi(uiMode, sourceImage);
     return true;
-  }, [applySourceImageForUi, selectedPreviewResult, showErrorToast, showSuccessToast, uiMode]);
-
-  const handleUseSelectedResultAsBaseImage = useCallback(() => {
-    void applySelectedPreviewAsBaseImage(true);
-  }, [applySelectedPreviewAsBaseImage]);
+  }, [selectedPreviewResult, showErrorToast, syncInpaintSourceForUi, uiMode]);
 
   const handleSelectDirectorSourceItem = useCallback((item: GeneratedImageItem) => {
     setDirectorSourcePreview(item);
@@ -415,41 +411,24 @@ export function useAiImageImportActions({
     void handlePickDirectorSourceImages(files);
   }, [handlePickDirectorSourceHistoryImage, handlePickDirectorSourceImages, setIsDirectorImageDragOver, showErrorToast]);
 
-  const handleSyncDirectorSourceFromCurrentPreview = useCallback(() => {
-    if (!selectedPreviewResult)
-      return;
-    setDirectorSourcePreview(selectedPreviewResult);
-    setDirectorOutputPreview(null);
-    showSuccessToast("已将当前预览同步到导演工具输入。");
-  }, [selectedPreviewResult, setDirectorOutputPreview, setDirectorSourcePreview, showSuccessToast]);
-
   return {
-    handleImportSourceImageBytes,
-    handlePickSourceImage,
     handlePickDirectorSourceImages,
-    handlePickDirectorSourceHistoryImage,
-    handlePickSourceHistoryImage,
     handleHistoryImageDragStart,
     handlePageImageDragEnter,
     handlePageImageDragLeave,
     handlePageImageDragOver,
     handlePageImageDrop,
     handleClearSourceImage,
-    handleOpenSourceImagePicker,
     handleCloseMetadataImportDialog,
-    handleImportSourceImageTarget,
+    handleOpenImportedImageInpaint,
     handleConfirmMetadataImport,
-    handlePickVibeReferences,
-    handlePickPreciseReference,
     handleClearHistory,
-    applySelectedPreviewAsBaseImage,
-    handleUseSelectedResultAsBaseImage,
+    syncSelectedPreviewToInpaintSource,
     handleSelectDirectorSourceItem,
     handleRemoveDirectorSourceItem,
     handleDirectorImageDragEnter,
     handleDirectorImageDragLeave,
     handleDirectorImageDragOver,
     handleDirectorImageDrop,
-    handleSyncDirectorSourceFromCurrentPreview,
   };
 }

@@ -1,0 +1,17 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": [
+    "../../packages/oxlint-config/oxlint-base.jsonc"
+  ],
+  "ignorePatterns": [
+    // Electron/Vite 编译输出和嵌入式运行时资源均为生成产物。
+    "build/**",
+    "extraResources/**"
+  ],
+  "rules": {
+    // Electron 主进程和构建脚本禁止无边界关闭整份文件规则。
+    "eslint-comments/no-unlimited-disable": "error",
+    // Electron 主进程通过环境变量读取运行模式、发布与调试配置。
+    "node/no-process-env": "off"
+  }
+}

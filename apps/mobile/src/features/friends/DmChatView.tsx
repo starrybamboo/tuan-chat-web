@@ -1,14 +1,16 @@
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 
+import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { useQueryClient } from "@tanstack/react-query";
-import { buildDirectMessageSendRequestsFromUploadedMedia, DIRECT_MESSAGE_READ_LINE_TYPE, findDirectReplyMessage, getDirectMessagePreviewText, mergeDirectMessages } from "@tuanchat/domain/direct-message";
+import { buildDirectMessageRetryRequest, buildDirectMessageSendRequestsFromUploadedMedia, DIRECT_MESSAGE_READ_LINE_TYPE, getDirectMessagePreviewText, mergeDirectMessages } from "@tuanchat/domain/direct-message";
 import { getFileMessageExtra, getImageMessageExtra, getSoundMessageExtra, getVideoMessageExtra } from "@tuanchat/domain/message-extra";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { getDirectInboxQueryKey } from "@tuanchat/query/direct-message";
+import { getDirectInboxQueryKey, upsertDirectInboxQueryData } from "@tuanchat/query/direct-message";
+import { syncDirectConversation } from "@tuanchat/query/direct-message-conversation-sync";
 import { CaretLeft, PaperPlaneTilt, Warning, X, XCircle } from "phosphor-react-native";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, FlatList, InteractionManager, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from "react-native";
+import { Alert, InteractionManager, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
 import Animated, { useAnimatedStyle, withSpring } from "react-native-reanimated";
 
@@ -19,6 +21,7 @@ import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { resolveBottomThresholdTransition } from "@/features/chat/messageListScrollState";
+import { formatDmTime } from "@/features/friends/dmDateTime";
 import { DmMessageActionMenu } from "@/features/friends/DmMessageActionMenu";
 import { resolveInternalMessageMediaFileId } from "@/features/messages/messageMediaSource";
 import { resolveComposerInputHeight } from "@/features/messages/mobileComposerLayout";
@@ -26,6 +29,11 @@ import { mergePickedMessageAttachments, MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobi
 import { uploadMobileMessageAttachments } from "@/features/messages/mobileMessageAttachmentUpload";
 import { MobileMessageMediaPreview } from "@/features/messages/MobileMessageMediaPreview";
 import { useTheme } from "@/hooks/use-theme";
+import {
+  getCachedDirectConversationMaxSyncId,
+  rollbackPendingDirectMessage,
+  writeCachedDirectMessages,
+} from "@/features/friends/mobileDirectMessageCache";
 import { SPRING_SNAPPY } from "@/lib/animations";
 import { mobileApiClient } from "@/lib/api";
 import * as Clipboard from "@/lib/clipboard";
@@ -42,10 +50,6 @@ import {
 import { useRecallDmMutation, useSendDmMutation, useUpdateDmReadPositionMutation } from "./useSendDmMutation";
 
 const PAGE_SIZE = 30;
-const DM_INITIAL_RENDER_COUNT = 16;
-const DM_RENDER_BATCH_SIZE = 12;
-const DM_WINDOW_SIZE = 9;
-const DM_LIST_MAINTAIN_VISIBLE_POSITION = { minIndexForVisible: 0 };
 const DM_KEYBOARD_LAYOUT_SETTLE_MS = 320;
 const DM_CHAT_VIEW_DEBUG_ENABLED = false;
 const DM_CHAT_VIEW_DEBUG_PREFIX = "[DmChatView]";
@@ -269,7 +273,7 @@ function formatMessageTimeLabel(createTime?: string | null) {
   const parsed = new Date(createTime);
   if (Number.isNaN(parsed.getTime()))
     return "";
-  return parsed.toLocaleTimeString("zh-CN", { hour12: false, hour: "2-digit", minute: "2-digit" });
+  return formatDmTime(parsed);
 }
 
 function formatDateSeparator(createTime: string): string {
@@ -316,6 +320,10 @@ function getDirectMessageListItemKey(message: MessageDirectResponse, index: numb
     index,
   ];
   return `fallback:${fallbackParts.map(value => value ?? "").join(":")}`;
+}
+
+function getDirectMessageItemType(message: MessageDirectResponse): string | number {
+  return message.messageType ?? "unknown";
 }
 
 function summarizeDirectMessageForDebug(message?: MessageDirectResponse | null) {
@@ -381,7 +389,7 @@ type MessageSendStatus = "sending" | "failed";
 function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentUserId, messages, onBack, onOpenContactDrawer, safeAreaBottomInset = 0 }: DmChatViewProps) {
   const theme = useTheme();
   const queryClient = useQueryClient();
-  const flatListRef = useRef<FlatList<MessageDirectResponse>>(null);
+  const flatListRef = useRef<FlashListRef<MessageDirectResponse>>(null);
   const [draft, setDraft] = useState("");
   const [inputHeight, setInputHeight] = useState(COMPOSER_MIN_HEIGHT);
   const [attachments, setAttachments] = useState<MobileMessageAttachment[]>([]);
@@ -394,8 +402,6 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
   const keyboardLayoutGuardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const keyboardLayoutGuardActiveRef = useRef(false);
   const wasAtBottomBeforeKeyboardRef = useRef(true);
-  const [actionMenuMessage, setActionMenuMessage] = useState<MessageDirectResponse | null>(null);
-  const [actionMenuVisible, setActionMenuVisible] = useState(false);
   const [failedMessageIds, setFailedMessageIds] = useState<Set<number>>(() => new Set());
   const [isAtBottom, setIsAtBottom] = useState(true);
   const isAtBottomRef = useRef(true);
@@ -407,6 +413,29 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
   const sendMutation = useSendDmMutation(currentUserId);
   const recallMutation = useRecallDmMutation(currentUserId);
   const updateReadPositionMutation = useUpdateDmReadPositionMutation(currentUserId);
+  const { mutateAsync: sendDirectMessage } = sendMutation;
+  const { mutateAsync: recallDirectMessage } = recallMutation;
+  const { mutate: updateDirectMessageReadPosition } = updateReadPositionMutation;
+
+  useEffect(() => {
+    if (typeof currentUserId !== "number" || currentUserId <= 0 || contactId <= 0) {
+      return;
+    }
+    let disposed = false;
+    void getCachedDirectConversationMaxSyncId(currentUserId, contactId)
+      .then(syncId => syncDirectConversation(mobileApiClient, { syncId, targetUserId: contactId }))
+      .then(async (result) => {
+        if (disposed || !result.data?.messages) {
+          return;
+        }
+        await writeCachedDirectMessages(currentUserId, result.data.messages);
+        upsertDirectInboxQueryData(queryClient, currentUserId, result.data.messages);
+      })
+      .catch(error => console.warn("[DmChatView] 私聊会话增量同步失败:", error));
+    return () => {
+      disposed = true;
+    };
+  }, [contactId, currentUserId, queryClient]);
 
   const sendButtonStyle = useAnimatedStyle(() => ({
     transform: [{ scale: withSpring(isSending ? 0.85 : 1, SPRING_SNAPPY) }],
@@ -422,6 +451,16 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
   const visibleTimelineMessages = useMemo(() => {
     return getVisibleDirectMessageTimeline(mergedMessages);
   }, [mergedMessages]);
+
+  const visibleMessageById = useMemo(() => {
+    const messageById = new Map<number, MessageDirectResponse>();
+    for (const message of visibleTimelineMessages) {
+      if (typeof message.messageId === "number" && message.messageId > 0) {
+        messageById.set(message.messageId, message);
+      }
+    }
+    return messageById;
+  }, [visibleTimelineMessages]);
 
   const paginatedMessages = useMemo(() => {
     return selectDirectMessagePage(visibleTimelineMessages, visibleCount);
@@ -475,8 +514,6 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
       setAttachments([]);
       setReplyMessage(null);
       setErrorMessage(null);
-      setActionMenuMessage(null);
-      setActionMenuVisible(false);
       setFailedMessageIds(new Set());
       setIsAtBottom(true);
       setVisibleCount(PAGE_SIZE);
@@ -541,8 +578,8 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
       return;
     if (latestIncomingSync <= currentReadSync)
       return;
-    updateReadPositionMutation.mutate(contactId);
-  }, [contactId, currentReadSync, latestIncomingSync, updateReadPositionMutation]);
+    updateDirectMessageReadPosition(contactId);
+  }, [contactId, currentReadSync, latestIncomingSync, updateDirectMessageReadPosition]);
 
   useEffect(() => {
     const previousLength = previousPaginatedLengthRef.current;
@@ -698,7 +735,7 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
       }
 
       for (const request of requests) {
-        await sendMutation.mutateAsync(request);
+        await sendDirectMessage(request);
       }
 
       if (uploaded && uploaded.failedAttachments.length > 0) {
@@ -717,11 +754,11 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
       sendInFlightRef.current = false;
       setIsSending(false);
     }
-  }, [attachments, contactId, draft, replyMessage, sendMutation]);
+  }, [attachments, contactId, draft, replyMessage, sendDirectMessage]);
 
   const handleComposerContentSizeChange = useCallback((event: { nativeEvent: { contentSize: { height: number } } }) => {
     const nextHeight = resolveComposerInputHeight(event.nativeEvent.contentSize.height);
-    setInputHeight(prev => (prev === nextHeight ? prev : nextHeight));
+    setInputHeight(nextHeight);
   }, []);
 
   const _handlePickAttachments = useCallback(async (kind: MobileMessageAttachmentKind) => {
@@ -761,20 +798,23 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
           text: "撤回",
           style: "destructive",
           onPress: () => {
-            void recallMutation.mutateAsync({ messageId }).catch((error) => {
+            void recallDirectMessage({ messageId }).catch((error) => {
               setErrorMessage(getErrorMessage(error, "撤回失败。"));
             });
           },
         },
       ]);
     }
-  }, [recallMutation]);
+  }, [recallDirectMessage]);
 
-  const handleRemoveFailedMessage = useCallback((message: MessageDirectResponse) => {
+  const handleRemoveFailedMessage = useCallback(async (message: MessageDirectResponse) => {
     queryClient.setQueryData<MessageDirectResponse[]>(
       getDirectInboxQueryKey(currentUserId),
       current => removeMobileLocalDirectMessageData(current, message.messageId),
     );
+    if (typeof message.messageId === "number" && message.messageId < 0) {
+      await rollbackPendingDirectMessage(currentUserId, message.messageId);
+    }
   }, [currentUserId, queryClient]);
 
   const handleRetryFailedMessage = useCallback(async (message: MessageDirectResponse) => {
@@ -782,20 +822,17 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
       return;
     }
 
-    handleRemoveFailedMessage(message);
+    const request = buildDirectMessageRetryRequest(message);
+    if (!request) {
+      setErrorMessage("这条消息暂时无法重新发送。");
+      return;
+    }
+    await handleRemoveFailedMessage(message);
     sendInFlightRef.current = true;
     setErrorMessage(null);
     setIsSending(true);
     try {
-      await sendMutation.mutateAsync({
-        content: message.content ?? "",
-        extra: message.extra ?? {},
-        messageType: message.messageType ?? 1,
-        receiverId: contactId,
-        ...(typeof message.replyMessageId === "number" && message.replyMessageId > 0
-          ? { replyMessageId: message.replyMessageId }
-          : {}),
-      });
+      await sendDirectMessage(request);
     }
     catch (error) {
       setErrorMessage(getErrorMessage(error, "重试发送私聊消息失败。"));
@@ -804,7 +841,7 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
       sendInFlightRef.current = false;
       setIsSending(false);
     }
-  }, [contactId, handleRemoveFailedMessage, sendMutation]);
+  }, [handleRemoveFailedMessage, sendDirectMessage]);
 
   const getMessageStatus = useCallback((message: MessageDirectResponse): MessageSendStatus | null => {
     if (message.senderId !== currentUserId)
@@ -829,7 +866,9 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
     const isMine = item.senderId === currentUserId;
     const content = getDirectMessageContent(item);
     const status = getMessageStatus(item);
-    const replyTarget = findDirectReplyMessage(visibleTimelineMessages, item.replyMessageId);
+    const replyTarget = typeof item.replyMessageId === "number"
+      ? visibleMessageById.get(item.replyMessageId)
+      : undefined;
     const showReplyPreview = item.status !== 1 && typeof item.replyMessageId === "number" && item.replyMessageId > 0;
 
     const showDateSeparator = index === invertedMessages.length - 1 || !isSameDay(item.createTime, invertedMessages[index + 1]?.createTime);
@@ -869,22 +908,21 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
               )
             : null}
           <View style={[styles.bubbleWrapper, status === "sending" && styles.bubbleWrapperSending]}>
-            <Pressable
-              onLongPress={item.status !== 1
-                ? () => {
-                    setActionMenuMessage(item);
-                    setActionMenuVisible(true);
-                  }
-                : undefined}
-              style={[
-                styles.bubble,
-                {
-                  backgroundColor: item.status === 1
-                    ? theme.backgroundSelected
-                    : isMine ? theme.accent : theme.backgroundElement,
-                },
-              ]}
+            <DmMessageActionMenu
+              currentUserId={currentUserId}
+              message={item}
+              onAction={handleMessageAction}
             >
+              <Pressable
+                style={[
+                  styles.bubble,
+                  {
+                    backgroundColor: item.status === 1
+                      ? theme.backgroundSelected
+                      : isMine ? theme.accent : theme.backgroundElement,
+                  },
+                ]}
+              >
               {showReplyPreview
                 ? (
                     <View
@@ -933,7 +971,8 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
                       {content.text}
                     </ThemedText>
                   )}
-            </Pressable>
+              </Pressable>
+            </DmMessageActionMenu>
             <View style={[styles.messageFooter, { justifyContent: isMine ? "flex-end" : "flex-start" }]}>
               <ThemedText themeColor="textSecondary" style={styles.time}>
                 {formatMessageTimeLabel(item.createTime)}
@@ -955,7 +994,7 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
                         accessibilityLabel="删除失败私聊消息"
                         accessibilityRole="button"
                         hitSlop={8}
-                        onPress={() => handleRemoveFailedMessage(item)}
+                        onPress={() => void handleRemoveFailedMessage(item)}
                         style={styles.failedRemoveButton}
                       >
                         <XCircle size={13} color={theme.textSecondary} weight="fill" />
@@ -968,7 +1007,7 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
         </View>
       </View>
     );
-  }, [currentUserId, theme, contactAvatarUrl, contactName, getMessageStatus, handleRemoveFailedMessage, handleRetryFailedMessage, invertedMessages, onOpenContactDrawer, visibleTimelineMessages]);
+  }, [currentUserId, theme, contactAvatarUrl, contactName, getMessageStatus, handleMessageAction, handleRemoveFailedMessage, handleRetryFailedMessage, invertedMessages, onOpenContactDrawer, visibleMessageById]);
 
   const handleScrollToBottom = useCallback(() => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -997,21 +1036,6 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
       <ThemedText themeColor="textSecondary">暂无私聊消息</ThemedText>
     </View>
   ), []);
-
-  const handleCloseActionMenu = useCallback(() => {
-    setActionMenuVisible(false);
-  }, []);
-
-  const handleActionMenuAction = useCallback((action: DmMessageAction, message: MessageDirectResponse) => {
-    void handleMessageAction(action, message);
-  }, [handleMessageAction]);
-
-  const _attachmentKinds = [
-    { label: "图片", kind: MOBILE_MESSAGE_ATTACHMENT_KIND.IMAGE },
-    { label: "视频", kind: MOBILE_MESSAGE_ATTACHMENT_KIND.VIDEO },
-    { label: "文件", kind: MOBILE_MESSAGE_ATTACHMENT_KIND.FILE },
-    { label: "音频", kind: MOBILE_MESSAGE_ATTACHMENT_KIND.AUDIO },
-  ] as const;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -1045,27 +1069,23 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
       {contentReady
         ? (
             <>
-              <FlatList
+              <FlashList
                 ref={flatListRef}
                 data={invertedMessages}
                 inverted
                 keyboardDismissMode="interactive"
                 keyboardShouldPersistTaps="handled"
+                getItemType={getDirectMessageItemType}
                 keyExtractor={getDirectMessageListItemKey}
                 renderItem={renderItem}
                 contentContainerStyle={styles.listContent}
-                initialNumToRender={DM_INITIAL_RENDER_COUNT}
                 ListFooterComponent={listFooter}
                 ListEmptyComponent={listEmpty}
-                maintainVisibleContentPosition={DM_LIST_MAINTAIN_VISIBLE_POSITION}
-                maxToRenderPerBatch={DM_RENDER_BATCH_SIZE}
                 onScroll={handleScroll}
                 onContentSizeChange={DM_CHAT_VIEW_DEBUG_ENABLED ? handleContentSizeChange : undefined}
                 // 倒置 DM 消息流需要稳定底部锚点，避免裁剪回收导致阅读位置跳动。
-                removeClippedSubviews={false}
                 scrollEventThrottle={100}
                 style={styles.list}
-                windowSize={DM_WINDOW_SIZE}
               />
 
               {!isAtBottom && paginatedMessages.length > 0
@@ -1082,8 +1102,8 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
                 : null}
 
               <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : undefined}
-                enabled={Platform.OS === "ios"}
+                behavior={Platform.OS === "ios" ? "padding" : "position"}
+                enabled
                 style={[
                   styles.composerContainer,
                   {
@@ -1210,17 +1230,6 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
           )
         : <View style={styles.list} />}
 
-      {actionMenuVisible
-        ? (
-            <DmMessageActionMenu
-              currentUserId={currentUserId}
-              message={actionMenuMessage}
-              onAction={handleActionMenuAction}
-              onClose={handleCloseActionMenu}
-              visible
-            />
-          )
-        : null}
     </View>
   );
 }

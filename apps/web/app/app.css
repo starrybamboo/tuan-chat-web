@@ -616,38 +616,99 @@
     @apply disabled:text-base-content/25 disabled:shadow-none;
   }
 
-  .tc-button-primary {
+  .tc-button-solid.tc-button-tone-neutral {
+    @apply border-base-content bg-base-content text-base-100 hover:border-base-content/90 hover:bg-base-content/90;
+    @apply active:border-base-content/80 active:bg-base-content/80;
+  }
+
+  .tc-button-solid.tc-button-tone-primary {
     @apply border-primary bg-primary text-primary-content hover:border-primary/90 hover:bg-primary/90;
     @apply active:border-primary/80 active:bg-primary/80 focus-visible:ring-primary/20;
   }
 
-  .tc-button-outline {
-    @apply border-base-300 bg-transparent text-base-content hover:border-base-content/25 hover:bg-base-200;
+  .tc-button-soft.tc-button-tone-neutral {
+    @apply border-base-content/15 bg-base-content/10 text-base-content hover:border-base-content/25 hover:bg-base-content/15;
+    @apply active:bg-base-content/20;
+  }
+
+  .tc-button-soft.tc-button-tone-primary {
+    @apply border-primary/25 bg-primary/10 text-primary hover:border-primary/40 hover:bg-primary/15;
+    @apply active:bg-primary/20 focus-visible:ring-primary/20;
+  }
+
+  .tc-button-outline.tc-button-tone-neutral {
+    @apply border-base-content/50 bg-transparent text-base-content hover:border-base-content/75 hover:bg-base-200;
     @apply active:bg-base-300;
   }
 
-  .tc-button-ghost {
+  .tc-button-ghost.tc-button-tone-neutral {
     @apply border-transparent bg-transparent text-base-content hover:bg-base-200 active:bg-base-300;
   }
 
-  .tc-button-warning {
+  .tc-button-solid.tc-button-tone-warning {
     @apply border-warning bg-warning text-warning-content hover:border-warning/90 hover:bg-warning/90;
     @apply active:border-warning/80 active:bg-warning/80 focus-visible:ring-warning/25;
   }
 
-  .tc-button-success {
+  .tc-button-solid.tc-button-tone-success {
     @apply border-success bg-success text-success-content hover:border-success/90 hover:bg-success/90;
     @apply active:border-success/80 active:bg-success/80 focus-visible:ring-success/25;
   }
 
-  .tc-button-error {
+  .tc-button-solid.tc-button-tone-error {
     @apply border-error bg-error text-error-content hover:border-error/90 hover:bg-error/90;
     @apply active:border-error/80 active:bg-error/80 focus-visible:ring-error/25;
   }
 
-  .tc-button-error-outline {
+  .tc-button-soft.tc-button-tone-success {
+    @apply border-success/25 bg-success/10 text-success hover:border-success/40 hover:bg-success/15;
+    @apply active:bg-success/20 focus-visible:ring-success/25;
+  }
+
+  .tc-button-soft.tc-button-tone-warning {
+    @apply border-warning/30 bg-warning/10 text-warning hover:border-warning/45 hover:bg-warning/15;
+    @apply active:bg-warning/20 focus-visible:ring-warning/25;
+  }
+
+  .tc-button-soft.tc-button-tone-error {
+    @apply border-error/25 bg-error/10 text-error hover:border-error/40 hover:bg-error/15;
+    @apply active:bg-error/20 focus-visible:ring-error/25;
+  }
+
+  .tc-button-outline.tc-button-tone-primary {
+    @apply border-primary/55 bg-transparent text-primary hover:border-primary hover:bg-primary/10 active:bg-primary/20;
+    @apply focus-visible:ring-primary/20;
+  }
+
+  .tc-button-outline.tc-button-tone-success {
+    @apply border-success/55 bg-transparent text-success hover:border-success hover:bg-success/10 active:bg-success/20;
+    @apply focus-visible:ring-success/25;
+  }
+
+  .tc-button-outline.tc-button-tone-warning {
+    @apply border-warning/55 bg-transparent text-warning hover:border-warning hover:bg-warning/10 active:bg-warning/20;
+    @apply focus-visible:ring-warning/25;
+  }
+
+  .tc-button-outline.tc-button-tone-error {
     @apply border-error bg-transparent text-error hover:bg-error/10 active:bg-error/20;
     @apply focus-visible:ring-error/25;
+  }
+
+  .tc-button-ghost.tc-button-tone-primary {
+    @apply border-transparent bg-transparent text-primary hover:bg-primary/10 active:bg-primary/20 focus-visible:ring-primary/20;
+  }
+
+  .tc-button-ghost.tc-button-tone-success {
+    @apply border-transparent bg-transparent text-success hover:bg-success/10 active:bg-success/20 focus-visible:ring-success/25;
+  }
+
+  .tc-button-ghost.tc-button-tone-warning {
+    @apply border-transparent bg-transparent text-warning hover:bg-warning/10 active:bg-warning/20 focus-visible:ring-warning/25;
+  }
+
+  .tc-button-ghost.tc-button-tone-error {
+    @apply border-transparent bg-transparent text-error hover:bg-error/10 active:bg-error/20 focus-visible:ring-error/25;
   }
 
   /* 将历史 xs/sm/md/lg 视觉尺寸归并为 compact/default 两档。 */

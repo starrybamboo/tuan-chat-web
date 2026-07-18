@@ -1,7 +1,8 @@
 import { ChatCircleText, X } from "phosphor-react-native";
 import { useEffect } from "react";
-import { Platform, Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { ReduceMotion, SlideInUp, SlideOutUp } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors, Radius, Spacing } from "@/constants/theme";
 
@@ -13,7 +14,6 @@ export type ForegroundBanner = {
 };
 
 const AUTO_DISMISS_MS = 4500;
-const TOP_INSET = Platform.select({ ios: 52, android: (StatusBar.currentHeight ?? 24) + 6, default: 24 });
 
 type ForegroundNotificationBannerProps = {
   banner: ForegroundBanner | null;
@@ -42,13 +42,15 @@ export function ForegroundNotificationBanner({ banner, onDismiss, onPress }: For
 }
 
 function BannerCard({ banner, onDismiss, onPress }: { banner: ForegroundBanner; onDismiss: () => void; onPress: (banner: ForegroundBanner) => void }) {
+  const insets = useSafeAreaInsets();
+
   useEffect(() => {
     const timer = setTimeout(onDismiss, AUTO_DISMISS_MS);
     return () => clearTimeout(timer);
   }, [banner.id, onDismiss]);
 
   return (
-    <View pointerEvents="box-none" style={styles.host}>
+    <View pointerEvents="box-none" style={[styles.host, { top: insets.top + Spacing.sm }]}>
       <Animated.View
         entering={SlideInUp.duration(280).reduceMotion(ReduceMotion.System)}
         exiting={SlideOutUp.duration(220).reduceMotion(ReduceMotion.System)}
@@ -94,19 +96,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     position: "absolute",
     right: 0,
-    top: TOP_INSET,
     zIndex: 1000,
   },
   card: {
     backgroundColor: Colors.dark.surfaceOverlay,
     borderColor: Colors.dark.border,
     borderRadius: Radius.lg,
+    borderCurve: "continuous",
     borderWidth: StyleSheet.hairlineWidth,
-    elevation: 8,
-    shadowColor: Colors.dark.shadow,
-    shadowOffset: { height: 4, width: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
+    boxShadow: `0px 4px 12px ${Colors.dark.shadow}`,
   },
   pressable: {
     alignItems: "center",
@@ -119,6 +117,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: Colors.dark.accentMuted,
     borderRadius: Radius.full,
+    borderCurve: "continuous",
     height: 38,
     justifyContent: "center",
     width: 38,

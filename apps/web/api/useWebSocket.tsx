@@ -1,10 +1,13 @@
 import type { MessageDirectSendRequest } from "@tuanchat/openapi-client/models/MessageDirectSendRequest";
+import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
+import type { LocalDirectMessage } from "@tuanchat/domain/direct-message";
+import { markDirectMessageFailed } from "@tuanchat/domain/direct-message";
 import { formatLocalDateTime } from "@/utils/dateUtil";
 import { useQueryClient } from "@tanstack/react-query";
 import {useCallback, useEffect, useMemo, useRef} from "react";
 import { useImmer } from "use-immer";
 import { recoverAuthTokenFromSession } from "./authRecovery";
-import type { ChatStatusEvent, DirectMessageEvent } from "./wsModels";
+import type { ChatStatusEvent } from "./wsModels";
 import {
   useGetUserSessionsQuery,
   useUpdateReadPosition1Mutation
@@ -16,9 +19,11 @@ import { appendUrlQueryParam, resolveRuntimeWebSocketBaseUrl } from "@/utils/run
 import type { ChatStatus, OptimisticDirectMessagePending, WsMessage } from "./webSocketRuntimeTypes";
 import { AUTH_SESSION_CHANGED_EVENT } from "@/utils/auth/sessionEvents";
 import { useWebSocketMessageHandlers } from "./useWebSocketMessageHandlers";
+import { loadChatHistoryDb } from "@/components/chat/infra/localDb/chatHistoryDbLoader";
 import { useWebSocketNotifications } from "./useWebSocketNotifications";
 import {
   removeDirectInboxMessageFromCache,
+  getDirectInboxQueryKey,
   upsertDirectInboxQueryData,
 } from "@tuanchat/query/direct-message";
 import {
@@ -50,6 +55,7 @@ export interface WebsocketUtils {
   updateLastReadSyncId: (roomId: number, lastReadSyncId?: number) => void;
   chatStatus: Record<number, ChatStatus[]>;
   updateChatStatus: (chatStatusEvent:ChatStatusEvent)=> void;
+  markOptimisticDirectMessageFailed: (optimisticMessageId: number) => void;
   pushOptimisticDirectMessage: (request: MessageDirectSendRequest) => number | null;
   removeOptimisticDirectMessage: (optimisticMessageId: number) => void;
 }
@@ -368,12 +374,45 @@ export function useWebSocket() {
 
   const removeOptimisticDirectMessage = useCallback((optimisticMessageId: number) => {
     const pendingMessage = optimisticDirectMessageRequestMapRef.current.get(optimisticMessageId);
-    if (!pendingMessage) {
-      return;
+    if (pendingMessage) {
+      clearTimeout(pendingMessage.cleanupTimer);
+      optimisticDirectMessageRequestMapRef.current.delete(optimisticMessageId);
     }
-    clearTimeout(pendingMessage.cleanupTimer);
-    optimisticDirectMessageRequestMapRef.current.delete(optimisticMessageId);
     removeDirectInboxMessageFromCache(queryClient, resolveSelfUserId(), optimisticMessageId);
+    const selfUserId = resolveSelfUserId();
+    if (selfUserId > 0) {
+      void (pendingMessage?.pendingWritePromise ?? Promise.resolve())
+        .then(() => loadChatHistoryDb())
+        .then(db => db.rollbackPendingDirectMessage(selfUserId, optimisticMessageId))
+        .catch(error => console.warn("[WS] Failed to roll back pending direct message:", error));
+    }
+  }, [queryClient, resolveSelfUserId]);
+
+  const markOptimisticDirectMessageFailed = useCallback((optimisticMessageId: number, keepReconciliationCandidate = false) => {
+    const pendingMessage = optimisticDirectMessageRequestMapRef.current.get(optimisticMessageId);
+    if (pendingMessage) {
+      clearTimeout(pendingMessage.cleanupTimer);
+      if (!keepReconciliationCandidate) {
+        optimisticDirectMessageRequestMapRef.current.delete(optimisticMessageId);
+      }
+    }
+    const selfUserId = resolveSelfUserId();
+    let failedMessage: MessageDirectResponse | undefined;
+    queryClient.setQueryData<MessageDirectResponse[]>(getDirectInboxQueryKey(selfUserId), (current) => {
+      return (current ?? []).map((message) => {
+        if (message.messageId !== optimisticMessageId) {
+          return message;
+        }
+        failedMessage = markDirectMessageFailed(message);
+        return failedMessage;
+      });
+    });
+    if (selfUserId > 0 && failedMessage) {
+      void (pendingMessage?.pendingWritePromise ?? Promise.resolve())
+        .then(() => loadChatHistoryDb())
+        .then(db => db.addPendingDirectMessage(selfUserId, failedMessage!))
+        .catch(error => console.warn("[WS] Failed to persist failed direct message:", error));
+    }
   }, [queryClient, resolveSelfUserId]);
 
   const pushOptimisticDirectMessage = useCallback((request: MessageDirectSendRequest) => {
@@ -386,7 +425,7 @@ export function useWebSocket() {
     const optimisticMessageId = optimisticDirectMessageIdRef.current++;
     const now = Date.now();
     const nowIso = formatLocalDateTime(new Date(now));
-    const optimisticMessage: DirectMessageEvent = {
+    const optimisticMessage: LocalDirectMessage = {
       messageId: optimisticMessageId,
       senderId: selfUserId,
       receiverId,
@@ -398,16 +437,20 @@ export function useWebSocket() {
       status: 0,
       extra: request.extra ?? {},
       createTime: nowIso,
-      updateTime: nowIso,
+      tcLocalSyncState: "optimistic",
     };
 
     const cleanupTimer = setTimeout(() => {
-      removeOptimisticDirectMessage(optimisticMessageId);
+      markOptimisticDirectMessageFailed(optimisticMessageId, true);
     }, OPTIMISTIC_DIRECT_MESSAGE_TIMEOUT_MS);
 
+    const pendingWritePromise = loadChatHistoryDb()
+      .then(db => db.addPendingDirectMessage(selfUserId, optimisticMessage))
+      .catch(error => console.warn("[WS] Failed to persist pending direct message:", error));
     optimisticDirectMessageRequestMapRef.current.set(optimisticMessageId, {
       channelId: receiverId,
       cleanupTimer,
+      pendingWritePromise,
       request,
       createdAt: now,
     });
@@ -415,7 +458,7 @@ export function useWebSocket() {
     upsertDirectInboxQueryData(queryClient, selfUserId, [optimisticMessage]);
 
     return optimisticMessageId;
-  }, [queryClient, removeOptimisticDirectMessage, resolveSelfUserId]);
+  }, [markOptimisticDirectMessageFailed, queryClient, resolveSelfUserId]);
 
   const {
     notifyNewDirectMessage,
@@ -547,6 +590,7 @@ export function useWebSocket() {
     updateLastReadSyncId,
     chatStatus,
     updateChatStatus: handleChatStatusChange,
+    markOptimisticDirectMessageFailed,
     pushOptimisticDirectMessage,
     removeOptimisticDirectMessage,
   }), [
@@ -558,6 +602,7 @@ export function useWebSocket() {
     updateLastReadSyncId,
     chatStatus,
     handleChatStatusChange,
+    markOptimisticDirectMessageFailed,
     pushOptimisticDirectMessage,
     removeOptimisticDirectMessage,
   ]);

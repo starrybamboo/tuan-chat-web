@@ -15,4 +15,3 @@ export type FriendListRequest = {
      */
     pageSize?: number;
 };
-

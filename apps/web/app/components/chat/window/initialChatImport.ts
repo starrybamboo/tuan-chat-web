@@ -7,7 +7,6 @@ import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 
 import type { ChatMessageRequest, RoleAvatar, UserRole } from "../../../../api";
 
-import { addRoomRoleWithSuccessGuard } from "../../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../../api/instance";
 
 export type InitialImportChatMessage = ImportChatRequestMessage;
@@ -103,10 +102,7 @@ async function ensureInitialImportRoomMembers(
   if (!request) {
     return;
   }
-  const result = await tuanchat.roomMemberController.addMember1(request);
-  if (!result?.success) {
-    throw new Error(result?.errMsg?.trim() || "添加房间成员失败");
-  }
+  await tuanchat.roomMemberController.addMember1(request);
 }
 
 async function ensureInitialImportRoomRoles(
@@ -116,7 +112,7 @@ async function ensureInitialImportRoomRoles(
 ) {
   const requests = buildInitialImportRoomRoleAddRequests(roomId, messages, availableRoles);
   for (const request of requests) {
-    await addRoomRoleWithSuccessGuard(request);
+    await tuanchat.roomRoleController.addRole(request);
   }
 }
 

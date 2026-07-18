@@ -15,4 +15,3 @@ export type AbilityBatchQueryRequest = {
      */
     roleIds: Array<number>;
 };
-

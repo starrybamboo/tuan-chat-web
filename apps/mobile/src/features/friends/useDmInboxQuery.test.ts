@@ -41,4 +41,13 @@ describe("useDmInboxQuery helpers", () => {
       createDirectMessage(-42, { messageType: DIRECT_MESSAGE_READ_LINE_TYPE }),
     ])).toBe(true);
   });
+
+  it("只有本地待确认消息时也不会清空 pending 表", () => {
+    expect(hasPersistableDirectInboxMessages([
+      createDirectMessage(-1, { tcLocalSyncState: "optimistic" } as Partial<MessageDirectResponse>),
+    ])).toBe(true);
+    expect(hasPersistableDirectInboxMessages([
+      createDirectMessage(-2, { tcLocalSyncState: "failed" } as Partial<MessageDirectResponse>),
+    ])).toBe(true);
+  });
 });

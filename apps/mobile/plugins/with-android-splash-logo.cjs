@@ -60,9 +60,13 @@ module.exports = function withAndroidSplashLogo(config) {
       const resRoot = path.join(androidRoot, "app/src/main/res");
       const splashSourceRoot = path.join(projectRoot, "assets/images/android-splash");
       const splashSource = path.join(projectRoot, "assets/images/splash-icon.png");
+      const splashDrawablePath = path.join(resRoot, "drawable/splashscreen_logo.xml");
 
       fs.mkdirSync(splashSourceRoot, { recursive: true });
       fs.writeFileSync(path.join(splashSourceRoot, "splashscreen_logo.xml"), SPLASH_XML, "utf8");
+      // Avoid Expo's Android drawable copier, which concurrently writes this path for both themes.
+      fs.mkdirSync(path.dirname(splashDrawablePath), { recursive: true });
+      fs.writeFileSync(splashDrawablePath, SPLASH_XML, "utf8");
       await writeSplashDensityImages(resRoot, splashSource);
 
       return modConfig;

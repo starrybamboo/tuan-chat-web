@@ -24,4 +24,3 @@ export type ApiResultDirectBadgeSummaryResponse = {
      */
     data?: DirectBadgeSummaryResponse;
 };
-

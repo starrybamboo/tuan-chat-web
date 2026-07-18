@@ -23,4 +23,3 @@ export type ApiResultLong = {
      */
     data?: number;
 };
-

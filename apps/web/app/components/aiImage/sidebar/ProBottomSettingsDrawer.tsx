@@ -1,6 +1,7 @@
 import { ArrowCounterClockwise, CaretDownIcon, CaretUpIcon } from "@phosphor-icons/react";
 
 import {
+  NOVELAI_FREE_MAX_STEPS,
   SAMPLER_LABELS,
   SCHEDULE_LABELS,
 } from "@/components/aiImage/constants";
@@ -10,7 +11,7 @@ import {
   formatSliderValue,
 } from "@/components/aiImage/helpers";
 import { Disclosure } from "@/components/common/Disclosure";
-import { FieldLabel, RangeInput, SelectInput, Switch, TextInput } from "@/components/common/FormField";
+import { RangeInput, SelectInput, TextInput } from "@/components/common/FormField";
 
 export function renderProBottomSettingsDrawerContent({
   uiMode,
@@ -23,24 +24,20 @@ export function renderProBottomSettingsDrawerContent({
   samplerOptions,
   noiseScheduleOptions,
   noiseSchedule,
-  isNAI4,
-  isNAI3,
   cfgRescale,
-  qualityToggle,
-  smea,
-  smeaDyn,
+  cfgDelay,
+  dynamicThresholding,
   onResetCurrentImageSettings,
   onOpenDrawer,
   onCloseDrawer,
   setSteps,
-  setQualityToggle,
+  setCfgDelay,
+  setDynamicThresholding,
   setScale,
   setSeed,
   setSampler,
   setCfgRescale,
   setNoiseSchedule,
-  setSmea,
-  setSmeaDyn,
 }: {
   uiMode: "simple" | "pro";
   isProBottomSettingsOpen: boolean;
@@ -52,24 +49,20 @@ export function renderProBottomSettingsDrawerContent({
   samplerOptions: readonly string[];
   noiseScheduleOptions: readonly string[];
   noiseSchedule: string;
-  isNAI4: boolean;
-  isNAI3: boolean;
   cfgRescale: number;
-  qualityToggle: boolean;
-  smea: boolean;
-  smeaDyn: boolean;
+  cfgDelay: boolean;
+  dynamicThresholding: boolean;
   onResetCurrentImageSettings: () => void;
   onOpenDrawer: () => void;
   onCloseDrawer: () => void;
   setSteps: (value: number) => void;
-  setQualityToggle: (value: boolean) => void;
+  setCfgDelay: (value: boolean) => void;
+  setDynamicThresholding: (value: boolean) => void;
   setScale: (value: number) => void;
   setSeed: (value: number) => void;
   setSampler: (value: string) => void;
   setCfgRescale: (value: number) => void;
   setNoiseSchedule: (value: string) => void;
-  setSmea: (value: boolean) => void;
-  setSmeaDyn: (value: boolean) => void;
 }) {
   if (uiMode !== "pro")
     return null;
@@ -208,12 +201,13 @@ export function renderProBottomSettingsDrawerContent({
               </div>
               <div className="pr-4">
                 <RangeInput
+                  aria-label="Steps"
                   density="compact"
                   min="1"
-                  max="50"
+                  max={NOVELAI_FREE_MAX_STEPS}
                   step="1"
                   value={steps}
-                  onChange={e => setSteps(clampIntRange(Number(e.target.value), 1, 50, 50))}
+                  onChange={e => setSteps(clampIntRange(Number(e.target.value), 1, NOVELAI_FREE_MAX_STEPS, NOVELAI_FREE_MAX_STEPS))}
                 />
               </div>
             </div>
@@ -224,31 +218,44 @@ export function renderProBottomSettingsDrawerContent({
                   text-sm font-semibold text-base-content
                   dark:text-white
                 ">{`Prompt Guidance: ${scale}`}</span>
-                <button
-                  type="button"
-                  className={`
-                    inline-flex h-7 items-center rounded-md border px-2.5
-                    text-xs font-semibold transition
-                    focus:outline-none focus:ring-2 focus:ring-info/30
-                    ${
-                    qualityToggle
-                      ? "border-transparent bg-info/10 text-info"
-                      : `
-                        border-transparent bg-base-200 text-base-content/72
-                        hover:text-info
-                         dark:text-white/72
-                        dark:hover:text-info
-                      `
-                  }
-                  `}
-                  aria-pressed={qualityToggle}
-                  onClick={() => setQualityToggle(!qualityToggle)}
-                >
-                  Variety+
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    className={`
+                      inline-flex h-7 items-center rounded-md border px-2.5
+                      text-xs font-semibold transition
+                      focus:outline-none focus:ring-2 focus:ring-info/30
+                      ${cfgDelay
+                        ? "border-transparent bg-info/10 text-info"
+                        : "border-transparent bg-base-200 text-base-content/72 hover:text-info dark:text-white/72 dark:hover:text-info"}
+                    `}
+                    aria-pressed={cfgDelay}
+                    title="延后 CFG 介入，提高样本多样性与饱和度"
+                    onClick={() => setCfgDelay(!cfgDelay)}
+                  >
+                    Variety+
+                  </button>
+                  <button
+                    type="button"
+                    className={`
+                      inline-flex h-7 items-center rounded-md border px-2.5
+                      text-xs font-semibold transition
+                      focus:outline-none focus:ring-2 focus:ring-info/30
+                      ${dynamicThresholding
+                        ? "border-transparent bg-info/10 text-info"
+                        : "border-transparent bg-base-200 text-base-content/72 hover:text-info dark:text-white/72 dark:hover:text-info"}
+                    `}
+                    aria-pressed={dynamicThresholding}
+                    title="减少高 Guidance 产生的过锐和伪影"
+                    onClick={() => setDynamicThresholding(!dynamicThresholding)}
+                  >
+                    Decrisp
+                  </button>
+                </div>
               </div>
               <div className="pr-4">
                 <RangeInput
+                  aria-label="Guidance"
                   density="compact"
                   min="0"
                   max="10"
@@ -266,6 +273,7 @@ export function renderProBottomSettingsDrawerContent({
                   dark:text-white
                 ">Seed</div>
                 <TextInput
+                  aria-label="Seed"
                   density="compact"
                   surface="muted"
                   className={`
@@ -291,6 +299,7 @@ export function renderProBottomSettingsDrawerContent({
                   dark:text-white
                 ">Sampler</div>
                 <SelectInput
+                  aria-label="Sampler"
                   density="compact"
                   surface="muted"
                   className="dark:text-white"
@@ -309,26 +318,23 @@ export function renderProBottomSettingsDrawerContent({
               titleClassName="min-h-0 px-0 py-0 pr-12 text-sm font-semibold text-base-content dark:text-white"
               contentClassName="space-y-4 px-0 pb-0 pr-4 pt-4"
             >
-                {isNAI4
-                  ? (
-                      <div className="flex flex-col gap-2">
-                        <span className="
-                          text-sm font-semibold text-base-content
-                          dark:text-white
-                        ">{`Prompt Guidance Rescale: ${cfgRescale}`}</span>
-                        <div className="pr-4">
-                          <RangeInput
-                            density="compact"
-                            min="0"
-                            max="1"
-                            step="0.01"
-                            value={cfgRescale}
-                            onChange={e => setCfgRescale(clampRange(Number(e.target.value), 0, 1, 0))}
-                          />
-                        </div>
-                      </div>
-                    )
-                  : null}
+                <div className="flex flex-col gap-2">
+                  <span className="
+                    text-sm font-semibold text-base-content
+                    dark:text-white
+                  ">{`Prompt Guidance Rescale: ${cfgRescale}`}</span>
+                  <div className="pr-4">
+                    <RangeInput
+                      aria-label="Prompt Guidance Rescale"
+                      density="compact"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={cfgRescale}
+                      onChange={e => setCfgRescale(clampRange(Number(e.target.value), 0, 1, 0))}
+                    />
+                  </div>
+                </div>
 
                 {noiseScheduleOptions.length
                   ? (
@@ -338,6 +344,7 @@ export function renderProBottomSettingsDrawerContent({
                           dark:text-white
                         ">Noise Schedule</span>
                         <SelectInput
+                          aria-label="Noise Schedule"
                           density="compact"
                           surface="muted"
                           className="dark:text-white"
@@ -350,20 +357,6 @@ export function renderProBottomSettingsDrawerContent({
                     )
                   : null}
 
-                {isNAI3
-                  ? (
-                      <>
-                        <FieldLabel className="cursor-pointer justify-start gap-3 px-0">
-                          <Switch density="compact" checked={smea} onChange={e => setSmea(e.target.checked)} />
-                          <span className="text-base-content/78 dark:text-white/78">SMEA</span>
-                        </FieldLabel>
-                        <FieldLabel className="cursor-pointer justify-start gap-3 px-0">
-                          <Switch density="compact" checked={smeaDyn} onChange={e => setSmeaDyn(e.target.checked)} />
-                          <span className="text-base-content/78 dark:text-white/78">SMEA Dyn</span>
-                        </FieldLabel>
-                      </>
-                    )
-                  : null}
             </Disclosure>
           </div>
         </div>

@@ -64,7 +64,7 @@ describe("buildReplayRoleAvatarImportPlanFromAssetManifest", () => {
         avatarName: "全身半睁静眼",
         createRequest: {
           roleId: 10,
-          category: "gululu-replay",
+          category: "replay-import",
         },
         avatarRequest: {
           roleId: 10,
@@ -318,7 +318,7 @@ describe("applyReplayRoleAvatarImportPlan", () => {
       updateRoleAvatar,
     });
 
-    expect(setRoleAvatar).toHaveBeenCalledWith({ roleId: 10, category: "gululu-replay" });
+    expect(setRoleAvatar).toHaveBeenCalledWith({ roleId: 10, category: "replay-import" });
     expect(updateRoleAvatar).toHaveBeenCalledWith(expect.objectContaining({
       avatarId: 8101,
       roleId: 10,
@@ -426,8 +426,8 @@ describe("applyReplayRoleAvatarImportPlan", () => {
       roleIdList: [10],
       type: 0,
     });
-    expect(setRoleAvatar).toHaveBeenNthCalledWith(1, { roleId: 10, category: "gululu-replay" });
-    expect(setRoleAvatar).toHaveBeenNthCalledWith(2, { roleId: 10, category: "gululu-replay" });
+    expect(setRoleAvatar).toHaveBeenNthCalledWith(1, { roleId: 10, category: "replay-import" });
+    expect(setRoleAvatar).toHaveBeenNthCalledWith(2, { roleId: 10, category: "replay-import" });
     expect(updateRoleAvatar).toHaveBeenCalledWith(expect.objectContaining({
       avatarId: 8101,
       roleId: 10,

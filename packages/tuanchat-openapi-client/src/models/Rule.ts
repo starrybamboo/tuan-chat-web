@@ -13,4 +13,3 @@ export type Rule = {
     basicDefault?: Record<string, string>;
     dicerConfig?: Record<string, string>;
 };
-

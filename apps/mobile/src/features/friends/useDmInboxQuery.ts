@@ -1,19 +1,19 @@
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { groupDirectConversations, mergeDirectMessages } from "@tuanchat/domain/direct-message";
+import { groupDirectConversations, isLocalDirectMessage, mergeDirectMessages } from "@tuanchat/domain/direct-message";
 import { useDirectInboxMessagesQuery } from "@tuanchat/query/direct-message";
 import { useEffect, useMemo } from "react";
 
 import { hasPersistableDirectInboxMessages } from "@/features/friends/dmInboxCacheState";
 import { mobileApiClient } from "@/lib/api";
 
+import { shouldEnableDmInboxQuery, type UseDmInboxQueryOptions } from "./dmInboxQueryOptions";
 import {
   clearCachedDirectMessages,
   readCachedDirectInboxMessages,
   writeCachedDirectMessages,
 } from "./mobileDirectMessageCache";
-import { shouldEnableDmInboxQuery, type UseDmInboxQueryOptions } from "./dmInboxQueryOptions";
 
 export type DmConversation = {
   contactId: number;
@@ -43,7 +43,7 @@ export function useDmInboxQuery(
   });
   const queryKey = useMemo(() => ["dmInbox", currentUserId ?? null] as const, [currentUserId]);
 
-  // direct_messages 是 dmInbox 的恢复 read model；query 已成功后不得再被旧磁盘快照覆盖。
+  // 服务端快照成功后只恢复 pending overlay，避免旧 confirmed read model 覆盖服务器结果。
   useEffect(() => {
     if (!enabled || typeof currentUserId !== "number" || currentUserId <= 0) {
       return;
@@ -57,12 +57,15 @@ export function useDmInboxQuery(
         }
 
         const queryState = queryClient.getQueryState(queryKey);
-        if (queryState?.status === "success") {
+        const messagesToRestore = queryState?.status === "success"
+          ? messages.filter(isLocalDirectMessage)
+          : messages;
+        if (messagesToRestore.length === 0) {
           return;
         }
 
         queryClient.setQueryData<MessageDirectResponse[]>(queryKey, (currentMessages) => {
-          return mergeDirectInboxMessagesForQueryCache(messages, currentMessages);
+          return mergeDirectInboxMessagesForQueryCache(messagesToRestore, currentMessages);
         });
       })
       .catch((error) => {

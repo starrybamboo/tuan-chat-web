@@ -24,4 +24,3 @@ export type ApiResultRoleAbility = {
      */
     data?: RoleAbility;
 };
-

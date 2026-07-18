@@ -66,6 +66,32 @@ type ResolveAutoScrollAfterLoadParams = {
   suppressAutoScroll?: boolean;
 };
 
+type RoomExitReadState = {
+  enableUnreadIndicator: boolean;
+  historyMessages: ChatMessageResponse[];
+  updateLastReadSyncId: (roomId: number, lastReadSyncId?: number) => void;
+};
+
+function markRoomReadOnExit(params: {
+  roomId: number;
+  stateRef: MutableRefObject<RoomExitReadState>;
+  isAtBottomRef: MutableRefObject<boolean>;
+  lastSyncedMessageSyncIdRef: MutableRefObject<number | null>;
+}): void {
+  const state = params.stateRef.current;
+  const syncIdToMarkRead = resolveReadSyncIdOnRoomExit({
+    enableUnreadIndicator: state.enableUnreadIndicator,
+    historyMessages: state.historyMessages,
+    isAtBottom: params.isAtBottomRef.current,
+    lastSyncedMessageSyncId: params.lastSyncedMessageSyncIdRef.current,
+  });
+  if (syncIdToMarkRead == null) {
+    return;
+  }
+  params.lastSyncedMessageSyncIdRef.current = syncIdToMarkRead;
+  state.updateLastReadSyncId(params.roomId, syncIdToMarkRead);
+}
+
 /**
  * 仅在历史加载完成后的首个稳定时刻自动滚底一次，且前提是用户仍停留在底部。
  */
@@ -115,6 +141,12 @@ export default function useChatFrameScrollState({
   const latestHistorySyncIdRef = useRef<number | null>(null);
   const isAtTopRef = useRef(false);
   const hasAutoScrolledAfterLoadRef = useRef(false);
+  // 退出清理只随房间切换；其余字段通过 ref 读取最后一次已提交状态，避免消息更新触发清理。
+  const roomExitReadStateRef = useRef<RoomExitReadState>({
+    enableUnreadIndicator,
+    historyMessages,
+    updateLastReadSyncId,
+  });
 
   const unreadMessageNumber = enableUnreadIndicator
     ? (unreadMessagesNumber[roomId] ?? 0)
@@ -123,6 +155,14 @@ export default function useChatFrameScrollState({
   useEffect(() => {
     latestHistorySyncIdRef.current = getLatestHistoryMessageSyncId(historyMessages);
   });
+
+  useEffect(() => {
+    roomExitReadStateRef.current = {
+      enableUnreadIndicator,
+      historyMessages,
+      updateLastReadSyncId,
+    };
+  }, [enableUnreadIndicator, historyMessages, updateLastReadSyncId]);
 
   useEffect(() => {
     if (!enableUnreadIndicator) {
@@ -159,19 +199,14 @@ export default function useChatFrameScrollState({
 
   useEffect(() => {
     return () => {
-      const syncIdToMarkRead = resolveReadSyncIdOnRoomExit({
-        enableUnreadIndicator,
-        historyMessages,
-        isAtBottom: isAtBottomRef.current,
-        lastSyncedMessageSyncId: lastSyncedMessageSyncIdRef.current,
+      markRoomReadOnExit({
+        roomId,
+        stateRef: roomExitReadStateRef,
+        isAtBottomRef,
+        lastSyncedMessageSyncIdRef,
       });
-      if (syncIdToMarkRead == null) {
-        return;
-      }
-      lastSyncedMessageSyncIdRef.current = syncIdToMarkRead;
-      updateLastReadSyncId(roomId, syncIdToMarkRead);
     };
-  }, [enableUnreadIndicator, historyMessages, roomId, updateLastReadSyncId]);
+  }, [roomId]);
 
   const scrollToBottom = useCallback(() => {
     virtuosoRef.current?.scrollToIndex(

@@ -17,6 +17,8 @@ export function NewFriendsTab() {
   const requestsQuery = useFriendRequestsQuery();
   const acceptMutation = useAcceptFriendRequestMutation();
   const rejectMutation = useRejectFriendRequestMutation();
+  const { mutate: acceptFriendRequest } = acceptMutation;
+  const { mutate: rejectFriendRequest } = rejectMutation;
 
   const requests = requestsQuery.data ?? [];
   const pendingRequestsContent = requests.length > 0
@@ -25,8 +27,8 @@ export function NewFriendsTab() {
           embedded
           requests={requests}
           isPending={requestsQuery.isPending}
-          onAccept={id => acceptMutation.mutate(id)}
-          onReject={id => rejectMutation.mutate(id)}
+          onAccept={acceptFriendRequest}
+          onReject={rejectFriendRequest}
           isAccepting={acceptMutation.isPending}
           isRejecting={rejectMutation.isPending}
           showEmpty={false}

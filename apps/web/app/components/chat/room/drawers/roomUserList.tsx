@@ -67,13 +67,13 @@ export default function RoomUserList({ type}: { type: string }) {
     });
   }
 
-  const allRoomRoles = roomContext.roomAllRoles ?? [];
+  const allRoomRoles = roomContext.roomAllRoles;
   const roomRoles = useMemo(
-    () => allRoomRoles.filter(role => role.type !== 2),
+    () => (allRoomRoles ?? []).filter(role => role.type !== 2),
     [allRoomRoles],
   );
   const npcRoles = useMemo(
-    () => canViewNpcRoles ? allRoomRoles.filter(role => role.type === 2) : [],
+    () => canViewNpcRoles ? (allRoomRoles ?? []).filter(role => role.type === 2) : [],
     [allRoomRoles, canViewNpcRoles],
   );
 

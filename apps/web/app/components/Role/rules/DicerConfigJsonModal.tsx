@@ -219,7 +219,8 @@ export default function DicerConfigJsonModal({
       <DialogActions>
         <Button
           size="sm"
-          variant="warning"
+          tone="warning"
+          appearance="soft"
           onClick={handleReset}
           disabled={isSaving}
           title="还原默认配置，会覆盖当前编辑"

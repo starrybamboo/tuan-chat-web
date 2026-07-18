@@ -27,7 +27,7 @@ export type MobileQuerySnapshotOptions<T> = {
 
 export type SnapshotHydrationState<T> = {
   entry: QuerySnapshotEntry<T> | null;
-  key: string;
+  identity: string;
 };
 
 export type MobileQuerySnapshotWriteInput<T> = {
@@ -64,6 +64,15 @@ export function createMobileQuerySnapshotKey(parts: readonly unknown[]): string 
   return stableStringifyMobileQueryKey(parts);
 }
 
+/** 构造与 SQLite 快照复合主键一致的内存 hydration 身份。 */
+export function createMobileQuerySnapshotIdentity(options: Pick<MobileQuerySnapshotOptions<unknown>, "key" | "scope" | "userId">): string {
+  return stableStringifyMobileQueryKey({
+    key: options.key.trim(),
+    scope: options.scope?.trim() ?? "",
+    userId: isPositiveMobileUserId(options.userId) ? options.userId : null,
+  });
+}
+
 export function isPositiveMobileUserId(userId: number | null | undefined): userId is number {
   return Number.isInteger(userId) && Number(userId) > 0;
 }
@@ -79,13 +88,13 @@ export function canUseMobileUserScopedSnapshot(options: {
 export function getSnapshotHydratedData<T>(
   networkData: T | undefined,
   hydrationState: SnapshotHydrationState<T> | null,
-  key: string,
+  identity: string,
   networkDataAvailable = networkData !== undefined,
 ): T | undefined {
   if (networkDataAvailable) {
     return networkData;
   }
-  return hydrationState?.key === key ? hydrationState.entry?.payload : undefined;
+  return hydrationState?.identity === identity ? hydrationState.entry?.payload : undefined;
 }
 
 export function isSnapshotBackedPending<T>(
@@ -178,6 +187,7 @@ export function useMobileQuerySnapshot<T, Q extends SnapshotBackedQuery<T>>(
     userId,
   } = options;
   const enabled = options.enabled ?? true;
+  const snapshotIdentity = createMobileQuerySnapshotIdentity({ key, scope, userId });
   const [hydrationState, setHydrationState] = useState<SnapshotHydrationState<T> | null>(null);
   const writeStateRef = useRef<MobileQuerySnapshotWriteState>({
     completedAt: null,
@@ -197,28 +207,28 @@ export function useMobileQuerySnapshot<T, Q extends SnapshotBackedQuery<T>>(
     })
       .then((entry) => {
         if (!disposed) {
-          setHydrationState({ entry, key });
+          setHydrationState({ entry, identity: snapshotIdentity });
         }
       })
       .catch((error) => {
         if (!disposed) {
           console.warn("[useMobileQuerySnapshot] 读取 query 快照失败:", error);
-          setHydrationState({ entry: null, key });
+          setHydrationState({ entry: null, identity: snapshotIdentity });
         }
       });
 
     return () => {
       disposed = true;
     };
-  }, [enabled, key, scope, userId]);
+  }, [enabled, key, scope, snapshotIdentity, userId]);
 
   const networkDataAvailable = Boolean(query.isSuccess);
   const activeHydrationState = enabled ? hydrationState : null;
   const hydratedData = useMemo(
-    () => getSnapshotHydratedData(query.data, activeHydrationState, key, networkDataAvailable),
-    [activeHydrationState, key, networkDataAvailable, query.data],
+    () => getSnapshotHydratedData(query.data, activeHydrationState, snapshotIdentity, networkDataAvailable),
+    [activeHydrationState, networkDataAvailable, query.data, snapshotIdentity],
   );
-  const snapshotData = activeHydrationState?.key === key
+  const snapshotData = activeHydrationState?.identity === snapshotIdentity
     ? activeHydrationState.entry?.payload
     : undefined;
 

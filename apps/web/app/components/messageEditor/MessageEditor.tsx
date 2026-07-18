@@ -1403,7 +1403,6 @@ export default function MessageEditor({
     });
   }, [
     activeTextMessage,
-    activeTextMessage?.avatarId,
     speakerAvatarMenuState,
     speakerAvatarRoleAvatarsQuery.data,
     speakerAvatarRoleAvatarsQuery.isLoading,

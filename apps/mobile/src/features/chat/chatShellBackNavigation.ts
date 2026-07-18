@@ -8,11 +8,11 @@ export type ChatShellBackNavigationAction
     | "close-create-space"
     | "close-expression-picker"
     | "close-map-sheet"
-    | "close-member-invite"
     | "close-profile-sheet"
     | "close-right-drawer"
     | "close-role-switch"
     | "close-search"
+    | "close-space-invite"
     | "close-st-show-card";
 
 export type ChatShellBackNavigationState = {
@@ -24,11 +24,11 @@ export type ChatShellBackNavigationState = {
   expressionPickerVisible: boolean;
   isRoutePage: boolean;
   mapSheetVisible: boolean;
-  memberInviteVisible: boolean;
   profileSheetOpen: boolean;
   rightDrawerOpen: boolean;
   roleSwitchVisible: boolean;
   searchPageVisible: boolean;
+  spaceInviteVisible: boolean;
   stShowCardOpen: boolean;
 };
 
@@ -50,14 +50,14 @@ export function resolveChatShellBackNavigationAction(
   if (state.mapSheetVisible) {
     return "close-map-sheet";
   }
-  if (state.memberInviteVisible) {
-    return "close-member-invite";
-  }
   if (state.createRoomVisible) {
     return "close-create-room";
   }
   if (state.createSpaceVisible) {
     return "close-create-space";
+  }
+  if (state.spaceInviteVisible) {
+    return "close-space-invite";
   }
   if (state.profileSheetOpen) {
     return "close-profile-sheet";

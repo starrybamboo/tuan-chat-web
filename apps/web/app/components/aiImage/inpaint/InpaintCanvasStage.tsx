@@ -5,7 +5,7 @@ import type {
 } from "react";
 
 import type { InpaintViewportTransform } from "@/components/aiImage/inpaint/inpaintViewportUtils";
-import type { InpaintDialogSource } from "@/components/aiImage/types";
+import type { InpaintDialogSource, InpaintFocusRect } from "@/components/aiImage/types";
 
 import { MediaImage } from "@/components/common/mediaImage";
 
@@ -40,6 +40,9 @@ type InpaintCanvasStageProps = {
   isViewportPanning: boolean;
   viewportTransform: InpaintViewportTransform;
   viewportScale: number;
+  interactionMode: "mask" | "focus";
+  focusedArea: InpaintFocusRect | null;
+  isSelectingFocusedArea: boolean;
   onViewportMouseDownCapture: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onViewportAuxClick: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onPointerDown: (event: ReactPointerEvent<HTMLCanvasElement>) => void;
@@ -63,6 +66,9 @@ export function InpaintCanvasStage({
   isViewportPanning,
   viewportTransform,
   viewportScale,
+  interactionMode,
+  focusedArea,
+  isSelectingFocusedArea,
   onViewportMouseDownCapture,
   onViewportAuxClick,
   onPointerDown,
@@ -96,7 +102,7 @@ export function InpaintCanvasStage({
             rounded-full bg-base-100/70 px-3 py-1 text-xs text-base-content/60
             backdrop-blur-sm
           ">
-            用画笔涂抹需要修补的区域
+            {interactionMode === "focus" ? "拖拽选择需要保留上下文的焦点区域" : "用画笔涂抹需要修补的区域"}
           </p>
           <div
             className="absolute left-0 top-0 origin-top-left"
@@ -117,7 +123,10 @@ export function InpaintCanvasStage({
             />
             <canvas
               ref={canvasRef}
-              className="absolute inset-0 h-full w-full cursor-none touch-none"
+              className={`
+                absolute inset-0 h-full w-full touch-none
+                ${interactionMode === "focus" ? "cursor-crosshair" : "cursor-none"}
+              `}
               role="img"
               aria-label="用画笔涂抹需要修补的区域"
               onPointerDown={onPointerDown}
@@ -127,7 +136,42 @@ export function InpaintCanvasStage({
               onPointerEnter={onPointerEnter}
               onPointerLeave={onPointerLeave}
             />
-            {brushCursorPoint
+            {focusedArea
+              ? (
+                  <div className="pointer-events-none absolute inset-0 z-10" aria-hidden="true">
+                    <span className="absolute inset-x-0 top-0 bg-black/35" style={{ height: `${focusedArea.top}px` }} />
+                    <span
+                      className="absolute bottom-0 inset-x-0 bg-black/35"
+                      style={{ top: `${focusedArea.top + focusedArea.height}px` }}
+                    />
+                    <span
+                      className="absolute left-0 bg-black/35"
+                      style={{ top: `${focusedArea.top}px`, width: `${focusedArea.left}px`, height: `${focusedArea.height}px` }}
+                    />
+                    <span
+                      className="absolute right-0 bg-black/35"
+                      style={{
+                        left: `${focusedArea.left + focusedArea.width}px`,
+                        top: `${focusedArea.top}px`,
+                        height: `${focusedArea.height}px`,
+                      }}
+                    />
+                    <span
+                      className={`
+                        absolute border-2 border-info shadow-[0_0_0_1px_rgba(0,0,0,0.55)]
+                        ${isSelectingFocusedArea ? "bg-info/8" : ""}
+                      `}
+                      style={{
+                        left: `${focusedArea.left}px`,
+                        top: `${focusedArea.top}px`,
+                        width: `${focusedArea.width}px`,
+                        height: `${focusedArea.height}px`,
+                      }}
+                    />
+                  </div>
+                )
+              : null}
+            {interactionMode === "mask" && brushCursorPoint
               ? (
                   <div
                     className="

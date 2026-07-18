@@ -24,4 +24,3 @@ export type ApiResultChatMessageResponse = {
      */
     data?: ChatMessageResponse;
 };
-

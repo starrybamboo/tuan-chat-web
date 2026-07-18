@@ -1,9 +1,28 @@
+param(
+  [string]$DeviceSerial,
+  [switch]$ReversePorts
+)
+
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..\..")
-$adb = "D:\AndroidSdk\platform-tools\adb.exe"
+$adb = "D:\android-sdk\platform-tools\adb.exe"
 if (-not (Test-Path -LiteralPath $adb)) {
-  $adb = "D:\android-sdk\platform-tools\adb.exe"
+  $adb = "D:\AndroidSdk\platform-tools\adb.exe"
+}
+
+$adbTargetArgs = @()
+if (-not [string]::IsNullOrWhiteSpace($DeviceSerial)) {
+  $adbTargetArgs = @("-s", $DeviceSerial.Trim())
+}
+
+function Invoke-AdbReversePort {
+  param([Parameter(Mandatory = $true)][int]$Port)
+
+  & $adb @adbTargetArgs reverse "tcp:$Port" "tcp:$Port" | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    throw "adb reverse tcp:$Port tcp:$Port 失败。"
+  }
 }
 if (-not (Test-Path -LiteralPath $adb)) {
   throw "找不到 adb，请确认 Android SDK 已安装到 D:\AndroidSdk 或 D:\android-sdk。"
@@ -17,10 +36,18 @@ Get-NetTCPConnection -LocalPort 8082 -State Listen -ErrorAction SilentlyContinue
     }
   }
 
-& $adb reverse tcp:8082 tcp:8082
+Invoke-AdbReversePort -Port 8082
 
-$env:EXPO_PUBLIC_TUANCHAT_API_BASE_URL = "http://10.0.2.2:8081"
-$env:EXPO_PUBLIC_TUANCHAT_API_WS_URL = "ws://10.0.2.2:8090"
+if ($ReversePorts) {
+  Invoke-AdbReversePort -Port 8081
+  Invoke-AdbReversePort -Port 8090
+  $env:EXPO_PUBLIC_TUANCHAT_API_BASE_URL = "http://127.0.0.1:8081"
+  $env:EXPO_PUBLIC_TUANCHAT_API_WS_URL = "ws://127.0.0.1:8090"
+}
+else {
+  $env:EXPO_PUBLIC_TUANCHAT_API_BASE_URL = "http://10.0.2.2:8081"
+  $env:EXPO_PUBLIC_TUANCHAT_API_WS_URL = "ws://10.0.2.2:8090"
+}
 $env:EXPO_PUBLIC_CHAT_TIMING_TRACE = "1"
 $env:EXPO_PUBLIC_MOBILE_NOTIFICATION_TRACE = "1"
 $env:ANDROID_HOME = "D:\AndroidSdk"

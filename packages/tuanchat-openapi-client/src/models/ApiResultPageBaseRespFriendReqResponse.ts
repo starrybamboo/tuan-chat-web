@@ -24,4 +24,3 @@ export type ApiResultPageBaseRespFriendReqResponse = {
      */
     data?: PageBaseRespFriendReqResponse;
 };
-

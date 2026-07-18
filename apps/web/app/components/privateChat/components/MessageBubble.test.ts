@@ -125,4 +125,42 @@ describe("private MessageBubble", () => {
     expect(html).toContain("border-base-content/25 bg-base-100/60 text-base-content/65");
     expect(html).not.toContain("border-white/60 bg-white/15 text-white/80");
   });
+
+  it("乐观私聊消息显示发送中状态", () => {
+    const html = renderToStaticMarkup(createElement(MessageBubble, {
+      groupedWithPrevious: true,
+      isOwn: true,
+      message: {
+        messageId: -1,
+        messageType: 1,
+        content: "正在发送",
+        senderId: 7,
+        tcLocalSyncState: "optimistic",
+      } as never,
+    }));
+
+    expect(html).toContain("data-local-sync-state=\"optimistic\"");
+    expect(html).toContain("发送中");
+  });
+
+  it("失败私聊消息保留内容并显示重试与删除入口", () => {
+    const html = renderToStaticMarkup(createElement(MessageBubble, {
+      groupedWithPrevious: true,
+      isOwn: true,
+      message: {
+        messageId: -2,
+        messageType: 1,
+        content: "发送失败但仍应显示",
+        senderId: 7,
+        tcLocalSyncState: "failed",
+      } as never,
+      onRemoveFailed: vi.fn(),
+      onRetryFailed: vi.fn(),
+    }));
+
+    expect(html).toContain("data-local-sync-state=\"failed\"");
+    expect(html).toContain("发送失败但仍应显示");
+    expect(html).toContain("重新发送失败私聊消息");
+    expect(html).toContain("删除失败私聊消息");
+  });
 });

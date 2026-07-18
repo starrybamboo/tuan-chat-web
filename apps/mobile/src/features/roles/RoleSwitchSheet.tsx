@@ -1,9 +1,10 @@
 import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
+import { FlashList } from "@shopify/flash-list";
 import { CaretLeft, UserPlus } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { CachedImage } from "@/components/CachedImage";
@@ -14,6 +15,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { avatarThumbUrl } from "@/lib/media-url";
 import { readMobileKeyValue, writeMobileKeyValue } from "@/lib/mobile-key-value-storage";
 
+import { buildRoleAvatarGridRows } from "./roleAvatarGridRows";
 import {
   buildRoleAvatarCategoryGroups,
   buildRoleAvatarVariantGroups,
@@ -35,6 +37,10 @@ type RoleSwitchListItem
   = { type: "narrator"; key: string }
     | { type: "role"; key: string; role: UserRole }
     | { type: "empty"; key: string };
+
+function getRoleSwitchListItemType(item: RoleSwitchListItem): RoleSwitchListItem["type"] {
+  return item.type;
+}
 
 const styles = StyleSheet.create({
   sheet: {},
@@ -118,11 +124,10 @@ const styles = StyleSheet.create({
   avatarGrid: {
     marginBottom: Spacing.lg,
     marginTop: Spacing.sm,
-    maxHeight: 260,
     paddingHorizontal: GRID_HORIZONTAL_PADDING,
   },
   avatarGridContent: { gap: AVATAR_GRID_GAP },
-  avatarGridRow: { gap: AVATAR_GRID_GAP },
+  avatarGridRow: { flexDirection: "row", gap: AVATAR_GRID_GAP },
   avatarGridItem: {
     alignItems: "center",
     borderRadius: Radius.md,
@@ -254,7 +259,7 @@ export function RoleSwitchSheet({
   }, [windowWidth]);
   const avatarGridImageSize = Math.max(0, avatarGridItemSize - 6);
 
-  const myRoles = roles.filter(r => r.state !== 1);
+  const myRoles = useMemo(() => roles.filter(r => r.state !== 1), [roles]);
   const isNarrator = isRoleSwitchNarratorSelected(currentRoleId);
 
   const activeExpandedRoleId = expandedRoleId ?? (currentRoleId && currentRoleId > 0 ? currentRoleId : null);
@@ -472,18 +477,17 @@ export function RoleSwitchSheet({
                 <View style={styles.avatarSectionHeader}>
                   <ThemedText type="caption" themeColor="textSecondary">立绘组</ThemedText>
                 </View>
-                <FlatList
-                  data={avatarVariantFolders}
-                  key={`role-avatar-variant-grid-${AVATAR_GRID_COLUMNS}`}
-                  keyExtractor={group => `role-avatar-variant:${group.variantId}`}
-                  renderItem={renderAvatarVariantFolderItem}
-                  numColumns={AVATAR_GRID_COLUMNS}
-                  scrollEnabled={avatarVariantFolders.length > AVATAR_GRID_COLUMNS * 2}
-                  nestedScrollEnabled
-                  style={styles.avatarGrid}
-                  contentContainerStyle={styles.avatarGridContent}
-                  columnWrapperStyle={styles.avatarGridRow}
-                />
+                <View style={[styles.avatarGrid, styles.avatarGridContent]}>
+                  {buildRoleAvatarGridRows(avatarVariantFolders, AVATAR_GRID_COLUMNS).map(row => (
+                    <View key={`variant-row:${row.map(group => group.variantId).join(":")}`} style={styles.avatarGridRow}>
+                      {row.map(group => (
+                        <View key={`role-avatar-variant:${group.variantId}`}>
+                          {renderAvatarVariantFolderItem({ item: group })}
+                        </View>
+                      ))}
+                    </View>
+                  ))}
+                </View>
               </View>
             )
           : null}
@@ -522,18 +526,17 @@ export function RoleSwitchSheet({
                   </View>
                 )
               : null}
-            <FlatList
-              data={avatars}
-              key={`role-avatar-grid-${AVATAR_GRID_COLUMNS}`}
-              keyExtractor={avatar => `role-avatar:${avatar.avatarId ?? avatar.avatarFileId ?? "unknown"}`}
-              renderItem={renderAvatarItem}
-              numColumns={AVATAR_GRID_COLUMNS}
-              scrollEnabled={avatars.length > AVATAR_GRID_COLUMNS * 3}
-              nestedScrollEnabled
-              style={styles.avatarGrid}
-              contentContainerStyle={styles.avatarGridContent}
-              columnWrapperStyle={styles.avatarGridRow}
-            />
+            <View style={[styles.avatarGrid, styles.avatarGridContent]}>
+              {buildRoleAvatarGridRows(avatars, AVATAR_GRID_COLUMNS).map((row, rowIndex) => (
+                <View key={`avatar-row:${activeAvatarVariantId}:${category}:${rowIndex}`} style={styles.avatarGridRow}>
+                  {row.map(avatar => (
+                    <View key={`role-avatar:${avatar.avatarId ?? avatar.avatarFileId ?? "unknown"}`}>
+                      {renderAvatarItem({ item: avatar })}
+                    </View>
+                  ))}
+                </View>
+              ))}
+            </View>
           </View>
         ))}
 
@@ -739,7 +742,7 @@ export function RoleSwitchSheet({
         ? (
             addableRoles.length > 0
               ? (
-                  <FlatList
+                  <FlashList
                     data={addableRoles}
                     keyExtractor={role => `add-role:${role.roleId}`}
                     ListHeaderComponent={renderCreateRoleButton}
@@ -757,8 +760,9 @@ export function RoleSwitchSheet({
                 )
           )
         : (
-            <FlatList
+            <FlashList
               data={roleListItems}
+              getItemType={getRoleSwitchListItemType}
               keyExtractor={item => item.key}
               renderItem={renderRoleItem}
               style={styles.roleList}

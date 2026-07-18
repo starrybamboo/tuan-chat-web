@@ -1,7 +1,8 @@
+import { Galeria } from "@nandorojo/galeria";
+import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 import { useGetUserProfileQuery } from "@tuanchat/query/users";
 import { Trash } from "phosphor-react-native";
-import { useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CachedImage } from "@/components/CachedImage";
@@ -62,17 +63,6 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: Spacing.xl,
   },
-  avatarPreviewOverlay: {
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.9)",
-    flex: 1,
-    justifyContent: "center",
-  },
-  avatarPreviewImage: {
-    borderRadius: Radius.lg,
-    height: 280,
-    width: 280,
-  },
 });
 
 type DmContactDrawerProps = {
@@ -86,7 +76,6 @@ type DmContactDrawerProps = {
 export function DmContactDrawer({ contactId, contactName, contactAvatarFileId, onClose, onDeleted }: DmContactDrawerProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
   const profileQuery = useGetUserProfileQuery(mobileApiClient, contactId, {
     enabled: contactId > 0,
   });
@@ -97,6 +86,7 @@ export function DmContactDrawer({ contactId, contactName, contactAvatarFileId, o
   const avatarPreviewUrl = displayAvatarFileId ? mediaFileUrl(displayAvatarFileId, "image", "original") : "";
 
   const deleteMutation = useDeleteFriendMutation();
+  const { mutateAsync: deleteFriend } = deleteMutation;
 
   const handleDelete = async () => {
     const confirmed = await confirmAction({
@@ -110,13 +100,13 @@ export function DmContactDrawer({ contactId, contactName, contactAvatarFileId, o
     }
 
     try {
-      await deleteMutation.mutateAsync(contactId);
+      await deleteFriend(contactId);
       Alert.alert("已删除", `已将「${displayName}」从好友列表移除`);
       onDeleted?.();
       onClose();
     }
-    catch {
-      Alert.alert("操作失败", "删除失败，请稍后重试");
+    catch (error) {
+      Alert.alert("操作失败", extractOpenApiErrorMessage(error, "删除失败，请稍后重试"));
     }
   };
 
@@ -124,29 +114,29 @@ export function DmContactDrawer({ contactId, contactName, contactAvatarFileId, o
     <View style={[styles.container, { backgroundColor: theme.surface }]}>
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <ThemedText type="heading" style={{ flex: 1 }}>个人资料</ThemedText>
-        <Pressable onPress={onClose}>
+        <Pressable accessibilityLabel="关闭联系人资料" accessibilityRole="button" onPress={onClose}>
           <ThemedText themeColor="accent">关闭</ThemedText>
         </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={[styles.content, { flexGrow: 1, paddingBottom: Spacing.xxl + insets.bottom }]}>
-        <Pressable
-          onPress={() => avatarUrl && setAvatarPreviewVisible(true)}
-          accessibilityLabel="查看用户头像"
-          accessibilityRole="imagebutton"
-        >
-          {avatarUrl
-            ? (
-                <CachedImage uri={avatarUrl} style={styles.avatar} />
-              )
-            : (
-                <View style={styles.avatarFallback}>
-                  <ThemedText style={{ color: "#fff", fontSize: 28, fontWeight: "700" }}>
-                    {displayName.slice(0, 1).toUpperCase()}
-                  </ThemedText>
-                </View>
-              )}
-        </Pressable>
+        {avatarUrl && avatarPreviewUrl
+          ? (
+              <Galeria urls={[avatarPreviewUrl]}>
+                <Galeria.Image>
+                  <View accessible accessibilityLabel="查看用户头像" accessibilityRole="imagebutton">
+                    <CachedImage uri={avatarUrl} style={styles.avatar} />
+                  </View>
+                </Galeria.Image>
+              </Galeria>
+            )
+          : (
+              <View style={styles.avatarFallback}>
+                <ThemedText style={{ color: "#fff", fontSize: 28, fontWeight: "700" }}>
+                  {displayName.slice(0, 1).toUpperCase()}
+                </ThemedText>
+              </View>
+            )}
 
         <ThemedText type="title" style={styles.name}>{displayName}</ThemedText>
 
@@ -174,29 +164,6 @@ export function DmContactDrawer({ contactId, contactName, contactAvatarFileId, o
           </Pressable>
         </View>
       </ScrollView>
-      <Modal
-        visible={avatarPreviewVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setAvatarPreviewVisible(false)}
-      >
-        <Pressable
-          accessibilityLabel="关闭头像预览"
-          accessibilityRole="button"
-          style={styles.avatarPreviewOverlay}
-          onPress={() => setAvatarPreviewVisible(false)}
-        >
-          {avatarPreviewUrl
-            ? (
-                <CachedImage
-                  uri={avatarPreviewUrl}
-                  style={styles.avatarPreviewImage}
-                  contentFit="cover"
-                />
-              )
-            : null}
-        </Pressable>
-      </Modal>
     </View>
   );
 }

@@ -48,4 +48,3 @@ export type RoomMessageStreamItem = {
      */
     position?: number;
 };
-

@@ -21,7 +21,7 @@ pnpm mobile:ios
 pnpm mobile:web
 pnpm mobile:typecheck
 pnpm mobile:local-apk
-pnpm mobile:emulator-apk
+pnpm mobile:debug-apk
 pnpm mobile:cloud-apk
 pnpm mobile:workflow:preview
 pnpm mobile:workflow:production
@@ -60,6 +60,13 @@ pnpm mobile:start:local-backend
 
 这个脚本会建立 Metro 所需的 `8082` 端口转发，并注入 `EXPO_PUBLIC_TUANCHAT_API_BASE_URL=http://10.0.2.2:8081`、`EXPO_PUBLIC_TUANCHAT_API_WS_URL=ws://10.0.2.2:8090` 与聊天链路 trace。
 
+真机连接本地后端时，两条命令都追加相同的设备序列号和 `-ReversePorts`；脚本会改用设备侧 `127.0.0.1`，并反向转发 Metro、API 与 WebSocket：
+
+```powershell
+pnpm mobile:debug-apk -- -DeviceSerial <serial> -ReversePorts
+pnpm mobile:start:local-backend -- -DeviceSerial <serial> -ReversePorts
+```
+
 如果 Metro 还没连上，或者需要从电脑侧重新唤起 Android 上的 dev client，运行：
 
 ```bash
@@ -72,13 +79,13 @@ pnpm mobile:android
 pnpm mobile:ios
 ```
 
-如果改了原生依赖、`android/`、权限、包名、Expo config 或 native module，需要重新生成并安装本地 APK。模拟器优先运行：
+如果改了原生依赖、`android/`、权限、包名、Expo config 或 native module，需要重新生成并安装 Debug APK：
 
 ```bash
-pnpm mobile:emulator-apk
+pnpm mobile:debug-apk
 ```
 
-真机或发布前本地包使用：
+需要在本机生成连接生产 API / WebSocket 的 Release APK 时使用：
 
 ```bash
 pnpm mobile:local-apk
@@ -92,15 +99,15 @@ pnpm mobile:local-apk
   - `WatchMaid_API_36_Fresh`
 - `A_watch_maid` 的移动端是 React Native CLI 工程；团剧共创移动端是 Expo 工程。两者可以共用同一个模拟器，但不能共用同一个 Metro / Expo 端口
 - 团剧共创移动端默认 Android 调试链路已经切到“本地 dev build / APK + 共享模拟器”，不再默认依赖 Expo Go。
-- `pnpm mobile:emulator-apk` 会自动完成：
+- `pnpm mobile:debug-apk` 会自动完成：
   1. 固定使用 `D:\android-sdk` 下的 `adb.exe`
-  2. 优先使用唯一在线真机；没有真机时才启动共享 AVD `WatchMaid_API_36_Fresh`
+  2. 默认启动共享 AVD `WatchMaid_API_36_Fresh`；只有显式传入 `-DeviceSerial` 时才安装到指定在线设备
   3. 固定用 `D:\AndroidSdk` 作为原生构建 SDK
   4. 将 `TEMP` / `TMP` 固定到 `D:\A_collection\.tmp\expo-temp`
   5. 将 `GRADLE_USER_HOME` 固定到 `D:\A_collection\.gradle-home2`
-  6. 默认构建 `Release` / `x86_64` APK；如需其他变体或架构，可向脚本追加 `-Variant`、`-Architectures` 或 `-AllArchitectures`
+  6. 固定构建 `Debug` APK；模拟器默认使用 `x86_64`，指定设备且未显式传架构时自动读取设备 ABI
   7. 执行 `adb install -r`，并启动 `com.tuanchat.mobile/.MainActivity`
-  8. 只有显式追加 `-ReversePorts` 时，才会补 `adb reverse tcp:8082 tcp:8082` 和 `adb reverse tcp:8081 tcp:8081`
+  8. 只有显式追加 `-ReversePorts` 时，才把 API / WebSocket 切到设备侧 `127.0.0.1`，并反向转发 `8082`、`8081`、`8090`
 - 如果 `watch-maid` 已占用 `8081`，团剧共创移动端请固定用 `8082`，不要和它共用同一端口。
 - Android 模拟器访问电脑本地后端时默认使用 `10.0.2.2` 网关，避免依赖 `adb reverse` 转发 API / WebSocket 请求。
 - Android prebuild 会通过 `with-android-network-concurrency.cjs` 将 OkHttp 单主机并发上限设为 16，避免进房首屏请求占满默认连接槽位后阻塞首条消息发送。
@@ -135,7 +142,7 @@ $env:EXPO_PUBLIC_TUANCHAT_API_WS_URL="ws://10.0.2.2:8090"
 
 ```bash
 pnpm mobile:android
-pnpm mobile:emulator-apk
+pnpm mobile:debug-apk
 ```
 
 - 历史实测结果：
@@ -169,7 +176,7 @@ pnpm mobile:emulator-apk
 - 已接入移动端最小 websocket 实时同步，当前只增量同步当前房间主消息流
 - 移动端当前主题暂时固定为浅色，优先对齐用户指定的覆盖式抽屉视觉
 - 登录后默认先展示左侧抽屉展开态，结构调整为“空间列表 + 房间卡片列”的浅色覆盖式双列面板，主消息区保持可见
-- Web 静态导出默认连 `https://tuan.chat/api` 与 `wss://tuan.chat/ws` 方便直接截图验收；原生 Android / iOS 仍默认连本地开发地址
+- 移动端未显式注入环境变量时默认连接生产 API / WebSocket；只有 `mobile:debug-apk` 与 `mobile:start:local-backend` 调试链显式注入 `10.0.2.2` 本地后端地址
 - 已确认可与 `A_watch_maid` 共用现有 Android 模拟器；并约定通过独立端口避免与 `watch-maid` 的 Metro 冲突
 - 已补本地 Android dev build 调试脚本，固定共享 AVD、分离构建 SDK / 模拟器 SDK，并完成共享模拟器实测
 - 还没有接入完整聊天能力（更完整的状态事件交互、更细的实时事件处理）

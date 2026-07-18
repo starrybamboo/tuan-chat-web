@@ -1,67 +1,33 @@
 import { QueryClient } from "@tanstack/react-query";
+import { rollbackOptimisticQueryTransaction } from "@tuanchat/query/optimistic-cache";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
-  addRoomMemberWithSuccessGuard,
-  addRoomRoleWithSuccessGuard,
-  addSpaceMemberWithSuccessGuard,
   beginDeleteRoomExtraOptimisticMutation,
   beginSetRoomExtraOptimisticMutation,
   beginSetSpaceExtraOptimisticMutation,
-  deleteRoomMemberWithSuccessGuard,
-  deleteSpaceMemberWithSuccessGuard,
   fetchSpaceExtraWithCache,
   roomExtraQueryKey,
   setRoomExtraWithCache,
   setSpaceExtraWithCache,
-  setPlayerWithSuccessGuard,
   spaceExtraQueryKey,
   spaceInfoQueryKey,
-  updateSpaceMemberTypeWithSuccessGuard,
 } from "./chatQueryHooks";
-import { rollbackOptimisticQueryTransaction } from "@tuanchat/query/optimistic-cache";
 
 const {
-  addRoomMemberMock,
-  addRoleMock,
-  addSpaceMemberMock,
-  deleteRoomMemberMock,
-  deleteSpaceMemberMock,
   getSpaceExtraMock,
-  updateMemberTypeMock,
   setSpaceExtraMock,
   setRoomExtraMock,
-  setPlayerMock,
 } = vi.hoisted(() => ({
-  addRoomMemberMock: vi.fn(),
-  addRoleMock: vi.fn(),
-  addSpaceMemberMock: vi.fn(),
-  deleteRoomMemberMock: vi.fn(),
-  deleteSpaceMemberMock: vi.fn(),
   getSpaceExtraMock: vi.fn(),
-  updateMemberTypeMock: vi.fn(),
   setSpaceExtraMock: vi.fn(),
   setRoomExtraMock: vi.fn(),
-  setPlayerMock: vi.fn(),
 }));
 
 vi.mock("../instance", () => ({
   tuanchat: {
-    roomMemberController: {
-      addMember1: addRoomMemberMock,
-      deleteMember1: deleteRoomMemberMock,
-    },
-    roomRoleController: {
-      addRole: addRoleMock,
-    },
     roomController: {
       setRoomExtra: setRoomExtraMock,
-    },
-    spaceMemberController: {
-      addMember: addSpaceMemberMock,
-      deleteMember: deleteSpaceMemberMock,
-      grantPlayer: setPlayerMock,
-      updateMemberType: updateMemberTypeMock,
     },
     spaceController: {
       getSpaceExtra: getSpaceExtraMock,
@@ -189,11 +155,11 @@ describe("chat extra cache helpers", () => {
     });
     setSpaceExtraMock.mockResolvedValueOnce({ success: false, errMsg: "denied" });
 
-    await setSpaceExtraWithCache(queryClient, {
+    await expect(setSpaceExtraWithCache(queryClient, {
       spaceId: 7,
       key: "webgalRealtimeRenderSettings",
       value: "{\"enabled\":true}",
-    });
+    })).rejects.toThrow("denied");
 
     expect(queryClient.getQueryData(spaceExtraQueryKey(7, "webgalRealtimeRenderSettings"))).toMatchObject({
       success: false,
@@ -212,11 +178,11 @@ describe("chat extra cache helpers", () => {
     });
     setRoomExtraMock.mockResolvedValueOnce({ success: false, errMsg: "denied" });
 
-    await setRoomExtraWithCache(queryClient, {
+    await expect(setRoomExtraWithCache(queryClient, {
       roomId: 12,
       key: "initiativeList",
       value: "[1,2,3]",
-    });
+    })).rejects.toThrow("denied");
 
     expect(queryClient.getQueryData(roomExtraQueryKey(12, "initiativeList"))).toMatchObject({
       success: true,
@@ -237,48 +203,4 @@ describe("chat extra cache helpers", () => {
     expect(getSpaceExtraMock).toHaveBeenCalledTimes(1);
   });
 
-  it("updateSpaceMemberTypeWithSuccessGuard 会把 success:false 转成错误路径", async () => {
-    const request = { spaceId: 7, uidList: [11], memberType: 2 };
-    updateMemberTypeMock.mockResolvedValueOnce({ success: false, errMsg: "denied" });
-
-    await expect(updateSpaceMemberTypeWithSuccessGuard(request)).rejects.toThrow("denied");
-    expect(updateMemberTypeMock).toHaveBeenCalledWith(request);
-  });
-
-  it("addRoomRoleWithSuccessGuard 会把 success:false 转成错误路径", async () => {
-    const request = { roomId: 9, roleIdList: [101] };
-    addRoleMock.mockResolvedValueOnce({ success: false, errMsg: "role denied" });
-
-    await expect(addRoomRoleWithSuccessGuard(request)).rejects.toThrow("role denied");
-    expect(addRoleMock).toHaveBeenCalledWith(request);
-  });
-
-  it("addRoomMemberWithSuccessGuard 会把业务失败交给乐观回滚", async () => {
-    const request = { roomId: 9, userIdList: [101] };
-    addRoomMemberMock.mockResolvedValueOnce({ success: false, errMsg: "room member denied" });
-
-    await expect(addRoomMemberWithSuccessGuard(request)).rejects.toThrow("room member denied");
-    expect(addRoomMemberMock).toHaveBeenCalledWith(request);
-  });
-
-  it("addSpaceMemberWithSuccessGuard 会把业务失败交给乐观回滚", async () => {
-    const request = { spaceId: 7, userIdList: [101] };
-    addSpaceMemberMock.mockResolvedValueOnce({ success: false, errMsg: "space member denied" });
-
-    await expect(addSpaceMemberWithSuccessGuard(request)).rejects.toThrow("space member denied");
-    expect(addSpaceMemberMock).toHaveBeenCalledWith(request);
-  });
-
-  it("成员删除与玩家设置的业务失败都会进入回滚路径", async () => {
-    const roomRequest = { roomId: 9, userIdList: [101] };
-    const spaceRequest = { spaceId: 7, userIdList: [101] };
-    const playerRequest = { spaceId: 7, uidList: [101] };
-    deleteRoomMemberMock.mockResolvedValueOnce({ success: false, errMsg: "room delete denied" });
-    deleteSpaceMemberMock.mockResolvedValueOnce({ success: false, errMsg: "space delete denied" });
-    setPlayerMock.mockResolvedValueOnce({ success: false, errMsg: "player denied" });
-
-    await expect(deleteRoomMemberWithSuccessGuard(roomRequest)).rejects.toThrow("room delete denied");
-    await expect(deleteSpaceMemberWithSuccessGuard(spaceRequest)).rejects.toThrow("space delete denied");
-    await expect(setPlayerWithSuccessGuard(playerRequest)).rejects.toThrow("player denied");
-  });
 });

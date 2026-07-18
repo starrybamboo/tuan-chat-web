@@ -29,4 +29,3 @@ export type RoleAvatarCreateRequest = {
      */
     avatarCropContext?: AvatarCropContext;
 };
-

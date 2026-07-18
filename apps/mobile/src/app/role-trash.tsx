@@ -1,9 +1,10 @@
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
+import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
 import { ArrowClockwise, CaretLeft, MagnifyingGlass, Trash, X } from "phosphor-react-native";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CachedImage } from "@/components/CachedImage";
@@ -211,6 +212,9 @@ export default function RoleTrashScreen() {
   const roleTrashQuery = useRoleTrashQuery(searchText);
   const hardDeleteMutation = useHardDeleteRolesMutation();
   const clearTrashMutation = useClearRoleTrashMutation();
+  const { refetch: refetchRoleTrash } = roleTrashQuery;
+  const { mutateAsync: hardDeleteRoles } = hardDeleteMutation;
+  const { mutateAsync: clearRoleTrash } = clearTrashMutation;
   const roles = useMemo(() => roleTrashQuery.data?.data?.list ?? [], [roleTrashQuery.data?.data?.list]);
   const total = roleTrashQuery.data?.data?.totalRecords ?? roles.length;
   const clearDisabled = total <= 0 || hardDeleteMutation.isPending || clearTrashMutation.isPending;
@@ -220,7 +224,7 @@ export default function RoleTrashScreen() {
       router.back();
       return;
     }
-    router.replace("/(tabs)/role" as any);
+    router.replace("/(tabs)/role");
   }, []);
 
   const handleHardDelete = useCallback(async (role: UserRole) => {
@@ -237,16 +241,16 @@ export default function RoleTrashScreen() {
 
     setPendingRoleId(roleId);
     try {
-      await hardDeleteMutation.mutateAsync([roleId]);
-      await roleTrashQuery.refetch();
+      await hardDeleteRoles([roleId]);
+      await refetchRoleTrash();
     }
-    catch (error: any) {
-      Alert.alert("硬删除失败", error?.message ?? "请稍后重试");
+    catch (error) {
+      Alert.alert("硬删除失败", error instanceof Error ? error.message : "请稍后重试");
     }
     finally {
       setPendingRoleId(null);
     }
-  }, [hardDeleteMutation, roleTrashQuery]);
+  }, [hardDeleteRoles, refetchRoleTrash]);
 
   const handleClearTrash = useCallback(async () => {
     const confirmed = await confirmAction({
@@ -260,13 +264,13 @@ export default function RoleTrashScreen() {
     }
 
     try {
-      await clearTrashMutation.mutateAsync();
-      await roleTrashQuery.refetch();
+      await clearRoleTrash();
+      await refetchRoleTrash();
     }
-    catch (error: any) {
-      Alert.alert("清空失败", error?.message ?? "请稍后重试");
+    catch (error) {
+      Alert.alert("清空失败", error instanceof Error ? error.message : "请稍后重试");
     }
-  }, [clearTrashMutation, roleTrashQuery, total]);
+  }, [clearRoleTrash, refetchRoleTrash, total]);
 
   const renderListHeader = useCallback(() => (
     <View style={styles.listHeader}>
@@ -335,7 +339,7 @@ export default function RoleTrashScreen() {
       return (
         <View style={styles.stateBlock}>
           <ThemedText style={{ color: theme.danger }}>回收站加载失败</ThemedText>
-          <Pressable onPress={() => void roleTrashQuery.refetch()}>
+          <Pressable onPress={() => void refetchRoleTrash()}>
             <ThemedText themeColor="accent">重试</ThemedText>
           </Pressable>
         </View>
@@ -348,7 +352,7 @@ export default function RoleTrashScreen() {
         </ThemedText>
       </View>
     );
-  }, [roleTrashQuery, searchText, theme]);
+  }, [refetchRoleTrash, searchText, theme]);
 
   const renderRoleTrashItem = useCallback(({ item }: { item: UserRole }) => (
     <RoleTrashItem
@@ -375,14 +379,14 @@ export default function RoleTrashScreen() {
             accessibilityLabel="刷新回收站"
             accessibilityRole="button"
             disabled={roleTrashQuery.isFetching}
-            onPress={() => void roleTrashQuery.refetch()}
+            onPress={() => void refetchRoleTrash()}
             style={[styles.headerActionButton, { backgroundColor: theme.backgroundElement }]}
           >
             <ArrowClockwise size={18} color={theme.textSecondary} weight="bold" />
           </Pressable>
         </View>
 
-        <FlatList
+        <FlashList
           contentContainerStyle={styles.content}
           data={roleTrashQuery.isPending || roleTrashQuery.isError ? [] : roles}
           keyboardShouldPersistTaps="handled"

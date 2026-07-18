@@ -7,4 +7,3 @@ export type Snapshot = {
     content?: string;
     extra?: any;
 };
-

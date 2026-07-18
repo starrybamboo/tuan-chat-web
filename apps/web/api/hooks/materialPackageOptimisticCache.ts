@@ -23,12 +23,11 @@ export function patchMaterialPackageCacheValue(
   if (Array.isArray(current)) {
     let changed = false;
     const next = current.flatMap((item) => {
-      if (!isRecord(item) || item[idKey] !== packageId) {
-        return [item];
-      }
-      changed = true;
-      const patched = update(item);
-      return patched ? [patched] : [];
+      const patched = isRecord(item) && item[idKey] === packageId
+        ? update(item)
+        : patchMaterialPackageCacheValue(item, idKey, packageId, update);
+      changed ||= patched !== item;
+      return patched === null ? [] : [patched];
     });
     return changed ? next : current;
   }

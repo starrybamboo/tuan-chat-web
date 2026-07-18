@@ -90,23 +90,6 @@ export function useAiImagePreviewActions({
       setDirectorOutputPreview(null);
   }, [isDirectorToolsOpen, setDirectorOutputPreview, setSelectedHistoryPreviewKey]);
 
-  const handleClearCurrentDisplayedImage = useCallback(() => {
-    if (!selectedPreviewResult)
-      return;
-    setSelectedHistoryPreviewKey(null);
-    setSelectedResultIndex(-1);
-    setDirectorSourcePreview(null);
-    setDirectorOutputPreview(null);
-    setIsPreviewImageModalOpen(false);
-  }, [
-    selectedPreviewResult,
-    setDirectorOutputPreview,
-    setDirectorSourcePreview,
-    setIsPreviewImageModalOpen,
-    setSelectedHistoryPreviewKey,
-    setSelectedResultIndex,
-  ]);
-
   const createDirectorSourceClone = useCallback((image: GeneratedImageItem) => {
     return {
       ...image,
@@ -159,12 +142,6 @@ export function useAiImagePreviewActions({
       `${filePrefix}_${image.seed}_${image.batchIndex + 1}.${extensionFromDataUrl(image.dataUrl)}`,
     );
   }, []);
-
-  const handleRunDirectorInputUpscale = useCallback(async () => {
-    if (!directorInputPreview)
-      return;
-    showErrorToast("放大功能暂不可用。");
-  }, [directorInputPreview, showErrorToast]);
 
   const handleAddDirectorDisplayedToSourceRail = useCallback(() => {
     const clone = addDirectorImageToSourceRail(directorOutputPreview ?? selectedPreviewResult);
@@ -266,9 +243,6 @@ export function useAiImagePreviewActions({
 
   return {
     handleSelectCurrentResult,
-    handlePreviewHistoryRow,
-    handleClearCurrentDisplayedImage,
-    handleRunDirectorInputUpscale,
     handleAddDirectorDisplayedToSourceRail,
     handleCopyDirectorInputImage,
     handleCopyDirectorOutputImage,

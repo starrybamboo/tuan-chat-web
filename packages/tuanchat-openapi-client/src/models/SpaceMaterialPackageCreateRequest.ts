@@ -28,4 +28,3 @@ export type SpaceMaterialPackageCreateRequest = {
      */
     content: MaterialPackageContent;
 };
-

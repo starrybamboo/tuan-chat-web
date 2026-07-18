@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 
 import { isSystemRowMessageType } from "@tuanchat/domain/poke-message";
-import { isOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
+import { isFailedRoomMessage, isLocalRoomMessage, isOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
 import React, { useCallback } from "react";
 
 import { ChatBubble } from "@/components/chat/message/chatBubble";
@@ -120,9 +120,10 @@ export default function ChatFrameMessageItem({
     chatMessageResponse.message.messageType,
   );
   const isOptimisticMessage = isOptimisticRoomMessage(chatMessageResponse.message);
-  const messageSendStateClass = isOptimisticMessage
-    ? "message-sending"
-    : "message-sent";
+  const isLocalMessage = isLocalRoomMessage(chatMessageResponse.message);
+  const messageSendStateClass = isFailedRoomMessage(chatMessageResponse.message)
+    ? "message-send-failed"
+    : isOptimisticMessage ? "message-sending" : "message-sent";
   const shouldPlayWebgalModeEntryAnimation = typeof webgalModeEntryAnimationDelayMs === "number";
   const webgalModeEntryAnimationStyle = shouldPlayWebgalModeEntryAnimation
     ? ({
@@ -196,7 +197,7 @@ export default function ChatFrameMessageItem({
           data-message-insert-action="true"
           aria-hidden={isSelecting}
         >
-          {!isSelecting && !isOptimisticMessage && (
+          {!isSelecting && !isLocalMessage && (
             <button
               type="button"
               className="
@@ -213,7 +214,7 @@ export default function ChatFrameMessageItem({
               pointer-events-none absolute left-0 right-0 top-1/2
               -translate-y-1/2 h-[2px] transition-colors duration-200
               ${
-              isSelecting || isOptimisticMessage
+              isSelecting || isLocalMessage
                 ? "bg-transparent"
                 : isInsertTarget
                   ? "bg-info"

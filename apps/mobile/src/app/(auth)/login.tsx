@@ -60,13 +60,13 @@ const styles = StyleSheet.create({
 
 export default function LoginScreen() {
   const theme = useTheme();
-  const router = useRouter();
+  const { push, replace } = useRouter();
   const { isAuthenticated, isSigningIn, signIn } = useAuthSession();
   const [identifier, setIdentifier] = useState(SHOW_LOCAL_ACCOUNT_LOGIN ? "10001" : "");
   const [password, setPassword] = useState(SHOW_LOCAL_ACCOUNT_LOGIN ? "enter123" : "");
 
   const handleLogin = () => {
-    router.push("/(auth)/web-login" as any);
+    push("/(auth)/web-login");
   };
 
   const handleLocalLogin = async () => {
@@ -75,7 +75,7 @@ export default function LoginScreen() {
         identifier,
         loginMethod: "userId",
         password,
-        router,
+        replace,
         signIn,
       });
     }
@@ -85,7 +85,7 @@ export default function LoginScreen() {
   };
 
   if (isAuthenticated) {
-    return <Redirect href={"/(tabs)" as any} />;
+    return <Redirect href="/(tabs)" />;
   }
 
   return (

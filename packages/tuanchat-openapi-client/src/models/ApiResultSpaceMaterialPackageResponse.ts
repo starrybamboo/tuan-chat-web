@@ -24,4 +24,3 @@ export type ApiResultSpaceMaterialPackageResponse = {
      */
     data?: SpaceMaterialPackageResponse;
 };
-

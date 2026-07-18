@@ -24,4 +24,3 @@ export type ApiResultMessage = {
      */
     data?: Message;
 };
-

@@ -11,4 +11,3 @@ export type SpaceCloneByRepositoryRequest = {
      */
     repositoryId: number;
 };
-

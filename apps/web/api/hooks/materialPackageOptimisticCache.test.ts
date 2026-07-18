@@ -30,5 +30,6 @@ describe("material package optimistic cache", () => {
 
     await beginMaterialPackageDeleteOptimisticMutation(queryClient, 7);
     expect(queryClient.getQueryData<any>(pageKey)?.data.list).toEqual([]);
+    expect(queryClient.getQueryData<any>(infiniteKey)?.pages[0].data.list).toEqual([]);
   });
 });

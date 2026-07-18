@@ -24,4 +24,3 @@ export type ApiResultPageBaseRespFollowResponse = {
      */
     data?: PageBaseRespFollowResponse;
 };
-

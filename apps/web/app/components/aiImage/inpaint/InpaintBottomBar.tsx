@@ -203,6 +203,7 @@ export function InpaintBottomBar({
                         </span>
                       </div>
                       <RangeInput
+                        aria-label="Mask Opacity"
                         density="compact"
                         min={10}
                         max={100}

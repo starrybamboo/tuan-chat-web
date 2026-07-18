@@ -33,6 +33,17 @@ export async function readCachedDirectConversationMessages(
   return repository.getMessagesByContact(currentUserId, contactId, { limit: DIRECT_CONVERSATION_CACHE_WINDOW_SIZE });
 }
 
+export async function getCachedDirectConversationMaxSyncId(
+  currentUserId: number | null | undefined,
+  contactId: number | null | undefined,
+): Promise<number> {
+  if (!isPositiveId(currentUserId) || !isPositiveId(contactId)) {
+    return 0;
+  }
+  const repository = await getMobileDirectMessageRepository();
+  return repository.getMaxSyncIdByContact(currentUserId, contactId);
+}
+
 export async function writeCachedDirectMessages(
   currentUserId: number | null | undefined,
   messages: MessageDirectResponse[],
@@ -46,29 +57,38 @@ export async function writeCachedDirectMessages(
   await repository.upsertMessages(currentUserId, persistableMessages);
 }
 
-export async function markCachedDirectMessagesRecalled(
+export async function writePendingDirectMessage(
   currentUserId: number | null | undefined,
-  messageIds: number[],
+  message: MessageDirectResponse,
 ): Promise<void> {
-  if (!isPositiveId(currentUserId) || messageIds.length === 0) {
+  if (!isPositiveId(currentUserId)) {
     return;
   }
-
   const repository = await getMobileDirectMessageRepository();
-  await repository.markMessagesRecalled(currentUserId, messageIds);
+  await repository.addPendingMessage(currentUserId, message);
 }
 
-export async function upsertCachedDirectReadLine(
+export async function promotePendingDirectMessage(
   currentUserId: number | null | undefined,
-  contactId: number | null | undefined,
-  syncId: number,
+  pendingMessageId: number,
+  confirmedMessage: MessageDirectResponse,
 ): Promise<void> {
-  if (!isPositiveId(currentUserId) || !isPositiveId(contactId) || syncId <= 0) {
+  if (!isPositiveId(currentUserId)) {
     return;
   }
-
   const repository = await getMobileDirectMessageRepository();
-  await repository.upsertReadLine(currentUserId, contactId, syncId);
+  await repository.promotePendingMessage(currentUserId, pendingMessageId, confirmedMessage);
+}
+
+export async function rollbackPendingDirectMessage(
+  currentUserId: number | null | undefined,
+  pendingMessageId: number,
+): Promise<void> {
+  if (!isPositiveId(currentUserId)) {
+    return;
+  }
+  const repository = await getMobileDirectMessageRepository();
+  await repository.rollbackPendingMessage(currentUserId, pendingMessageId);
 }
 
 export async function clearCachedDirectMessages(currentUserId: number | null | undefined): Promise<void> {

@@ -1,21 +1,16 @@
-import { appToast } from "@/components/common/appToast/appToast";
-// AI image page: aligned with NovelAI Image desktop layout and interactions; keeps free single-image txt2img and preview-area Inpaint.
-
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type {
   ActivePreviewAction,
   DirectorToolId,
   GeneratedImageItem,
+  ImportedSourceImagePayload,
   InpaintDialogSource,
   MetadataImportSelectionState,
-  NovelAiEmotion,
   PendingMetadataImportState,
-  PreciseReferenceRow,
   ProFeatureSectionKey,
   UiMode,
   V4CharEditorRow,
-  VibeTransferReferenceRow,
 } from "@/components/aiImage/types";
 import type { NovelAiNl2TagsResult } from "@/utils/novelaiNl2Tags";
 
@@ -25,8 +20,11 @@ import {
 } from "@/components/aiImage/api";
 import {
   DEFAULT_DIRECTOR_TOOL_ID,
+  DEFAULT_IMAGE_MODEL,
+  DEFAULT_INPAINT_NEGATIVE_PROMPT,
+  DEFAULT_INPAINT_PROMPT,
   DIRECTOR_TOOL_OPTIONS_BY_ID,
-  MODEL_DESCRIPTIONS,
+  NOVELAI_FREE_FIXED_IMAGE_COUNT,
   PREVIEW_ACTION_LABELS,
   STORAGE_UI_MODE_KEY,
 } from "@/components/aiImage/constants";
@@ -38,11 +36,6 @@ import { useAiImageImportActions } from "@/components/aiImage/controller/useAiIm
 import { useAiImageInpaintActions } from "@/components/aiImage/controller/useAiImageInpaintActions";
 import {
   createAiImageHistoryPaneProps,
-  createAiImagePreviewPaneProps,
-  createAiImageWorkspaceProps,
-  useAiImageDialogViewModels,
-  useAiImageSidebarProps,
-  useAiImageWorkspaceProps,
 } from "@/components/aiImage/controller/useAiImagePageViewModels";
 import { useAiImagePreviewActions } from "@/components/aiImage/controller/useAiImagePreviewActions";
 import { useAiImagePreviewState } from "@/components/aiImage/controller/useAiImagePreviewState";
@@ -50,7 +43,6 @@ import { useAiImageSimpleActions } from "@/components/aiImage/controller/useAiIm
 import { useAiImageStyleState } from "@/components/aiImage/controller/useAiImageStyleState";
 import {
   createProFeatureSectionState,
-  formatDirectorEmotionLabel,
   getNovelAiFreeGenerationViolation,
   hasMetadataSettingsPayload,
   hasNonEmptyText,
@@ -58,11 +50,11 @@ import {
   readImagePixels,
   readImageSize,
   readLocalStorageString,
-  resolveFixedImageModel,
   resolveSimpleGenerateMode,
   sanitizeNovelAiTagInput,
   writeLocalStorageString,
 } from "@/components/aiImage/helpers";
+import { appToast } from "@/components/common/appToast/appToast";
 import {
   addAiImageHistoryBatch,
 } from "@/utils/aiImageHistoryDb";
@@ -82,14 +74,7 @@ const DEFAULT_METADATA_IMPORT_SELECTION: MetadataImportSelectionState = {
   cleanImports: false,
 };
 
-const DEFAULT_INPAINT_PROMPT = "very aesthetic, masterpiece, no text";
-const DEFAULT_INPAINT_NEGATIVE_PROMPT = "nsfw, lowres, artistic error, film grain, scan artifacts, worst quality, bad quality, jpeg artifacts, very displeasing, chromatic aberration, dithering, halftone, screentone, multiple views, logo, too many watermarks, negative space, blank page";
-
 export function useAiImagePageController() {
-  const sourceFileInputRef = useRef<HTMLInputElement | null>(null);
-  const vibeReferenceInputRef = useRef<HTMLInputElement | null>(null);
-  const preciseReferenceInputRef = useRef<HTMLInputElement | null>(null);
-
   const [uiMode, setUiMode] = useState<UiMode>(() => {
     const stored = readLocalStorageString(STORAGE_UI_MODE_KEY, "simple").trim();
     return stored === "pro" ? "pro" : "simple";
@@ -122,15 +107,10 @@ export function useAiImagePageController() {
   const [v4UseCoords, setV4UseCoords] = useState<boolean>(false);
   const [v4UseOrder, setV4UseOrder] = useState<boolean>(true);
   const [v4Chars, setV4Chars] = useState<V4CharEditorRow[]>([]);
-  const [vibeTransferReferences, setVibeTransferReferences] = useState<VibeTransferReferenceRow[]>([]);
-  const [preciseReference, setPreciseReference] = useState<PreciseReferenceRow | null>(null);
-  // Follow the NovelAI pro-mode interaction model: fold advanced reference capabilities into expandable sections to reduce long-form noise and auto-open the related section when importing content.
   const [proFeatureSections, setProFeatureSections] = useState<Record<ProFeatureSectionKey, boolean>>(() => createProFeatureSectionState());
 
   // This page intentionally uses a single fixed model so simple mode does not expose an extra choice that users cannot meaningfully evaluate from the result.
-  const model = resolveFixedImageModel();
-  const isNAI3 = false;
-  const isNAI4 = true;
+  const model = DEFAULT_IMAGE_MODEL;
 
   useEffect(() => {
     if (!v4UseCoords)
@@ -140,10 +120,6 @@ export function useAiImagePageController() {
       return next === prev ? prev : next;
     }));
   }, [v4Chars, v4UseCoords]);
-
-  const toggleProFeatureSection = useCallback((section: ProFeatureSectionKey) => {
-    setProFeatureSections(prev => ({ ...prev, [section]: !prev[section] }));
-  }, []);
 
   const setProFeatureSectionOpen = useCallback((section: ProFeatureSectionKey, open: boolean) => {
     setProFeatureSections((prev) => {
@@ -166,11 +142,7 @@ export function useAiImagePageController() {
   const [directorOutputPreview, setDirectorOutputPreview] = useState<GeneratedImageItem | null>(null);
   const [directorColorizePrompt, setDirectorColorizePrompt] = useState("");
   const [directorColorizeDefry, setDirectorColorizeDefry] = useState<number>(0);
-  const [directorEmotion, setDirectorEmotion] = useState<NovelAiEmotion>("neutral");
-  const [directorEmotionDefry, setDirectorEmotionDefry] = useState<number>(0);
-  const [directorEmotionExtraPrompt, setDirectorEmotionExtraPrompt] = useState("");
   const [inpaintDialogSource, setInpaintDialogSource] = useState<InpaintDialogSource | null>(null);
-  const [normalizeReferenceStrengths, setNormalizeReferenceStrengths] = useState<boolean>(false);
 
   const showSuccessToast = useCallback((message: string) => {
     appToast.success(message);
@@ -191,14 +163,12 @@ export function useAiImagePageController() {
     setCompareStyleId,
     stylePresets,
     compareStylePresets,
-    activeStyleIds,
-    activeStylePresets,
     activeStyleTags,
     activeStyleNegativeTags,
+    activeStylePresets,
     handleToggleStyle,
     handleSelectCompareStyle,
     handleClearStyles,
-    handleClearActiveStyles,
   } = useAiImageStyleState();
   const {
     samplerOptions,
@@ -212,6 +182,12 @@ export function useAiImagePageController() {
     setSimpleInfillMaskDataUrl,
     setProInfillMaskDataUrl,
     infillMaskDataUrl,
+    infillFocusedArea,
+    overlayOriginalImage,
+    setSimpleInfillFocusedArea,
+    setSimpleOverlayOriginalImage,
+    setProInfillFocusedArea,
+    setProOverlayOriginalImage,
     clearInfillMaskForUi,
     width,
     height,
@@ -219,7 +195,6 @@ export function useAiImagePageController() {
     heightInput,
     roundedRequestedSize,
     hasCompleteDimensionInputs,
-    imageCount,
     steps,
     scale,
     sampler,
@@ -227,18 +202,13 @@ export function useAiImagePageController() {
     cfgRescale,
     ucPreset,
     qualityToggle,
+    cfgDelay,
     dynamicThresholding,
-    smea,
-    smeaDyn,
-    currentImg2imgStrength,
-    currentImg2imgNoise,
     currentInfillStrength,
     currentInfillNoise,
     strength,
-    noise,
     seed,
     seedIsRandom,
-    imageCountLimit,
     simpleWidth,
     setSimpleWidth,
     simpleHeight,
@@ -252,33 +222,24 @@ export function useAiImagePageController() {
     setProHeight,
     proResolutionSelection,
     setProResolutionSelection,
-    setProImageCount,
     setProSteps,
     setProScale,
     setProSampler,
     setProNoiseSchedule,
     setProCfgRescale,
     setProUcPreset,
-    setProSmea,
-    setProSmeaDyn,
     setProQualityToggle,
+    setProCfgDelay,
     setProDynamicThresholding,
     setProSeed,
-    setSimpleImg2imgStrength,
-    setSimpleImg2imgNoise,
     setSimpleInfillStrength,
     setSimpleInfillNoise,
     setProInfillStrength,
     inferResolutionSelection,
-    applyModeStrengthAndNoise,
+    applyInfillStrengthAndNoise,
     clearSourceImageForUi,
-    applySourceImageForUi,
+    syncInpaintSourceForUi,
     resolveInfillMaskBase64ForUi,
-    resolveSeparatedInfillMaskBase64ForUi,
-    resolveBlendInfillMaskDataUrlForUi,
-    restoreSourceImageForUi,
-    activeResolutionPreset,
-    simpleResolutionArea,
     handleSelectSimpleResolutionPreset,
     handleSelectProResolutionPreset,
     handleSimpleWidthChange,
@@ -288,30 +249,18 @@ export function useAiImagePageController() {
     handleSwapImageDimensions,
     handleCommitSimpleDimensions,
     handleCommitProDimensions,
-    handleCropToClosestValidSize,
     handleResetCurrentImageSettings,
-    handleClearSeed,
-    setWidth,
-    setHeight,
-    setImageCount,
     setSteps,
     setScale,
     setSampler,
     setNoiseSchedule,
     setCfgRescale,
-    setUcPreset,
-    setQualityToggle,
     setDynamicThresholding,
-    setSmea,
-    setSmeaDyn,
     setStrength,
-    setNoise,
     setSeed,
   } = useAiImageDimensionsState({
     uiMode,
     showSuccessToast,
-    readImagePixels,
-    readImageSize,
     onSourceImageChange: () => setInfillAppendPrompt(""),
   });
 
@@ -340,7 +289,6 @@ export function useAiImagePageController() {
     archivedHistoryRows,
     isSelectedPreviewPinned,
     previewMeta,
-    hasCurrentDisplayedImage,
   } = useAiImagePreviewState();
   const directorTool = DIRECTOR_TOOL_OPTIONS_BY_ID[activeDirectorTool];
   const directorInputPreview = directorSourcePreview;
@@ -392,8 +340,6 @@ export function useAiImagePageController() {
     setSimpleResolutionSelection,
     setUiMode,
     clearSourceImageForUi,
-    setVibeTransferReferences,
-    setPreciseReference,
     setProFeatureSectionOpen,
     setPrompt,
     setNegativePrompt,
@@ -401,7 +347,6 @@ export function useAiImagePageController() {
     setProWidth,
     setProHeight,
     setProResolutionSelection,
-    setProImageCount,
     setProSteps,
     setProScale,
     setProSampler,
@@ -409,10 +354,9 @@ export function useAiImagePageController() {
     setProCfgRescale,
     setProUcPreset,
     setProQualityToggle,
+    setProCfgDelay,
     setProDynamicThresholding,
-    setProSmea,
-    setProSmeaDyn,
-    applyModeStrengthAndNoise,
+    applyInfillStrengthAndNoise,
     setV4UseCoords,
     setV4UseOrder,
     setV4Chars,
@@ -423,12 +367,27 @@ export function useAiImagePageController() {
     setSimpleNegativePrompt,
     setSimpleEditorMode,
     setProFeatureSections,
-    restoreSourceImageForUi,
     showSuccessToast,
   });
 
+  const openImportedImageInpaint = useCallback((sourceImage: ImportedSourceImagePayload) => {
+    setInpaintDialogSource({
+      dataUrl: sourceImage.dataUrl,
+      imageBase64: sourceImage.imageBase64,
+      width: sourceImage.width ?? width,
+      height: sourceImage.height ?? height,
+      seed,
+      model,
+      mode: uiMode,
+      prompt: uiMode === "simple" ? simplePrompt : prompt,
+      negativePrompt: uiMode === "simple" ? simpleNegativePrompt : negativePrompt,
+      strength: currentInfillStrength,
+      focusedArea: null,
+      overlayOriginalImage: true,
+    });
+  }, [currentInfillStrength, height, model, negativePrompt, prompt, seed, simpleNegativePrompt, simplePrompt, uiMode, width]);
+
   const {
-    handlePickSourceImage,
     handlePickDirectorSourceImages,
     handleHistoryImageDragStart,
     handlePageImageDragEnter,
@@ -436,15 +395,11 @@ export function useAiImagePageController() {
     handlePageImageDragOver,
     handlePageImageDrop,
     handleClearSourceImage,
-    handleOpenSourceImagePicker,
     handleCloseMetadataImportDialog,
-    handleImportSourceImageTarget,
+    handleOpenImportedImageInpaint,
     handleConfirmMetadataImport,
-    handlePickVibeReferences,
-    handlePickPreciseReference,
     handleClearHistory,
-    applySelectedPreviewAsBaseImage,
-    handleUseSelectedResultAsBaseImage,
+    syncSelectedPreviewToInpaintSource,
     handleSelectDirectorSourceItem,
     handleRemoveDirectorSourceItem,
     handleDirectorImageDragEnter,
@@ -460,20 +415,18 @@ export function useAiImagePageController() {
     pendingMetadataImport,
     metadataImportSelection,
     selectedPreviewResult,
-    sourceFileInputRef,
     setError,
     setIsPageImageDragOver,
     setPendingMetadataImport,
     setMetadataImportSelection,
-    setProFeatureSectionOpen,
+    openImportedImageInpaint,
     setDirectorSourceItems,
     setDirectorSourcePreview,
     setDirectorOutputPreview,
     setIsDirectorImageDragOver,
     setSelectedHistoryPreviewKey,
     showErrorToast,
-    showSuccessToast,
-    applySourceImageForUi,
+    syncInpaintSourceForUi,
     clearSourceImageForUi,
     refreshHistory,
     applyImportedMetadata,
@@ -486,14 +439,12 @@ export function useAiImagePageController() {
 
   const {
     handleToggleDirectorTools,
-    handleRunUpscale,
     handleRunDirectorTool,
     runGenerate,
   } = useAiImageGenerationActions({
     uiMode,
     mode,
     model,
-    isNAI4,
     isDirectorToolsOpen,
     selectedPreviewResult,
     prompt,
@@ -515,37 +466,29 @@ export function useAiImagePageController() {
     cfgRescale,
     ucPreset,
     qualityToggle,
+    cfgDelay,
     dynamicThresholding,
-    smea,
-    smeaDyn,
-    currentImg2imgStrength,
-    currentImg2imgNoise,
     currentInfillStrength,
     currentInfillNoise,
+    infillFocusedArea,
+    overlayOriginalImage,
     sourceImageBase64,
     sourceImageDataUrl,
     sourceImageSize,
+    infillMaskDataUrl,
     v4Chars,
     v4UseCoords,
     v4UseOrder,
-    normalizeReferenceStrengths,
-    vibeTransferReferences,
-    preciseReference,
     activeStyleTags,
     activeStyleNegativeTags,
     directorInputPreview,
     directorTool,
     activeDirectorTool,
     directorColorizePrompt,
-    directorEmotionExtraPrompt,
     directorColorizeDefry,
-    directorEmotionDefry,
-    directorEmotion,
     historyRowByResultMatchKey,
     readImageSize,
     resolveInfillMaskBase64ForUi,
-    resolveSeparatedInfillMaskBase64ForUi,
-    resolveBlendInfillMaskDataUrlForUi,
     setIsDirectorToolsOpen,
     setError,
     setLoading,
@@ -568,12 +511,12 @@ export function useAiImagePageController() {
 
   const {
     handleSimpleConvertToTags,
+    handleClearSimpleDraft,
     handleAcceptSimpleConverted,
     handleRejectSimpleConverted,
     handleReturnToSimpleText,
     handleReturnToSimpleTags,
     handleSimpleGenerateFromTags,
-    handleClearSimpleDraft,
     simpleConvertLabel,
   } = useAiImageSimpleActions({
     mode,
@@ -598,8 +541,6 @@ export function useAiImagePageController() {
     setSimpleText,
     setSimpleWidth,
     setSimpleHeight,
-    setSimpleImg2imgStrength,
-    setSimpleImg2imgNoise,
     setSimpleInfillStrength,
     setSimpleInfillNoise,
     setSimpleSeed,
@@ -617,21 +558,21 @@ export function useAiImagePageController() {
   });
   const {
     handleOpenInpaint,
-    handleOpenBaseImageInpaint,
+    handleEditInpaintMask,
     handleCloseInpaintDialog,
     handleSaveInpaintMask,
     handleReturnFromInfillSettings,
-    handleClearInfillMask,
   } = useAiImageInpaintActions({
     uiMode,
     loading,
-    mode,
     model,
     width,
     height,
     seed,
     sourceImageDataUrl,
     infillMaskDataUrl,
+    infillFocusedArea,
+    overlayOriginalImage,
     simpleInfillPrompt,
     proInfillPrompt,
     simpleInfillNegativePrompt,
@@ -642,7 +583,8 @@ export function useAiImagePageController() {
     history,
     inpaintDialogSource,
     readImageSize,
-    applySelectedPreviewAsBaseImage,
+    syncSelectedPreviewToInpaintSource,
+    syncInpaintSourceForUi,
     setError,
     setInpaintDialogSource,
     setSimpleInfillPrompt,
@@ -651,10 +593,14 @@ export function useAiImagePageController() {
     setSimplePromptTab,
     setSimpleInfillStrength,
     setSimpleInfillMaskDataUrl,
+    setSimpleInfillFocusedArea,
+    setSimpleOverlayOriginalImage,
     setProInfillPrompt,
     setProInfillNegativePrompt,
     setProInfillStrength,
     setProInfillMaskDataUrl,
+    setProInfillFocusedArea,
+    setProOverlayOriginalImage,
     clearInfillMaskForUi,
     setModeForUi,
     showErrorToast,
@@ -662,8 +608,6 @@ export function useAiImagePageController() {
 
   const {
     handleSelectCurrentResult,
-    handleClearCurrentDisplayedImage,
-    handleRunDirectorInputUpscale,
     handleAddDirectorDisplayedToSourceRail,
     handleCopyDirectorInputImage,
     handleCopyDirectorOutputImage,
@@ -708,15 +652,12 @@ export function useAiImagePageController() {
     handleMoveV4Char,
     handleUpdateV4Char,
     handleSetV4UseCoords,
-    handleUpdateVibeReference,
-    handleRemoveVibeReference,
   } = useAiImageCharacterActions({
     v4UseCoords,
     setV4Chars,
     setCharPromptTabs,
     setProFeatureSectionOpen,
     setV4UseCoords,
-    setVibeTransferReferences,
   });
 
   const isBusy = loading || simpleConverting || Boolean(pendingPreviewAction);
@@ -724,14 +665,12 @@ export function useAiImagePageController() {
     mode,
     width: roundedRequestedSize.width,
     height: roundedRequestedSize.height,
-    imageCount,
+    imageCount: NOVELAI_FREE_FIXED_IMAGE_COUNT,
     steps,
     sourceImageBase64,
     sourceImageWidth: sourceImageSize?.width,
     sourceImageHeight: sourceImageSize?.height,
     maskBase64: mode === "infill" ? resolveInfillMaskBase64ForUi(uiMode) : undefined,
-    vibeTransferReferenceCount: vibeTransferReferences.length,
-    hasPreciseReference: Boolean(preciseReference),
   });
   const canGenerate = !isBusy && !freeGenerationViolation && hasCompleteDimensionInputs;
   const canTriggerProGenerate = canGenerate;
@@ -740,16 +679,9 @@ export function useAiImagePageController() {
     : pendingPreviewAction
       ? `${PREVIEW_ACTION_LABELS[pendingPreviewAction]}...`
       : "Generate 1 image";
-  const ucPresetEnabled = ucPreset !== 2;
-  const fixedModelDescription = MODEL_DESCRIPTIONS[model] || "Image generation model";
-  const hasReferenceConflict = vibeTransferReferences.length > 0 && Boolean(preciseReference);
-  const canAddVibeReference = false;
-  const baseImageDescription = "Base Img / img2img is disabled. Use Inpaint from the preview tools.";
   const characterPromptDescription = v4Chars.length
     ? "Click to edit a character."
     : "Customize separate characters.";
-  const vibeTransferDescription = "Change the image, keep the vision.";
-  const preciseReferenceDescription = "Add a reference image for a character or style.";
   const pendingMetadataSettings = pendingMetadataImport?.metadata?.settings ?? null;
   const canImportMetadataPrompt = pendingMetadataSettings ? hasNonEmptyText(pendingMetadataSettings.prompt) : false;
   const canImportMetadataNegativePrompt = pendingMetadataSettings ? hasNonEmptyText(pendingMetadataSettings.negativePrompt) : false;
@@ -766,40 +698,24 @@ export function useAiImagePageController() {
   const canGenerateFromSimpleTags = canGenerate && (Boolean(sanitizeNovelAiTagInput(simplePrompt)) || simpleGenerateMode === "infill");
   const hasSimpleTagsDraft = Boolean(sanitizeNovelAiTagInput(simplePrompt) || sanitizeNovelAiTagInput(simpleNegativePrompt));
 
-  const sidebarProps = useAiImageSidebarProps({
-    activeResolutionPreset,
-    baseImageDescription,
-    canAddVibeReference,
+  const sidebarProps = {
+    setProPromptTab,
+    setQualityToggle: setProQualityToggle,
+    setUcPreset: setProUcPreset,
     canConvertSimpleText,
-    canGenerate,
     canGenerateFromSimpleTags,
     canTriggerProGenerate,
     cfgRescale,
     charPromptTabs,
     characterPromptDescription,
-    fixedModelDescription,
     freeGenerationViolation,
     hasSimpleTagsDraft,
     isBusy,
-    handleAddV4Char,
-    handleClearSeed,
-    handleClearCurrentDisplayedImage,
-    handleOpenSourceImagePicker,
     handleClearSourceImage,
-    handleClearInfillMask,
     handleClearSimpleDraft,
-    handleClearStyles: handleClearActiveStyles,
-    handleCropToClosestValidSize,
-    handleMoveV4Char,
-    handleRemoveV4Char,
-    handleRemoveVibeReference,
-    handleAcceptSimpleConverted,
-    handleRejectSimpleConverted,
     handleCommitProDimensions,
     handleCommitSimpleDimensions,
     handleResetCurrentImageSettings,
-    handleReturnToSimpleTags,
-    handleReturnToSimpleText,
     handleSelectProResolutionPreset,
     handleSelectSimpleResolutionPreset,
     handleSimpleConvertToTags,
@@ -810,115 +726,84 @@ export function useAiImagePageController() {
     handleSimpleWidthChange,
     handleSwapImageDimensions,
     handleUpdateV4Char,
-    handleUpdateVibeReference,
-    handleOpenBaseImageInpaint,
+    handleAddV4Char,
+    handleMoveV4Char,
+    handleRemoveV4Char,
+    setCharPromptTabs,
+    v4UseOrder,
+    handleEditInpaintMask,
     handleReturnFromInfillSettings,
     infillAppendPrompt,
     handleSetV4UseCoords,
-    hasReferenceConflict,
-    height,
     heightInput,
-    imageCount,
-    imageCountLimit,
     infillMaskDataUrl,
     isDirectorToolsOpen,
-    isNAI3,
-    isNAI4,
-    isPageImageDragOver,
     mode,
-    model,
     negativePrompt,
-    noise,
     noiseSchedule,
     noiseScheduleOptions,
-    normalizeReferenceStrengths,
-    preciseReference,
-    preciseReferenceDescription,
-    preciseReferenceInputRef,
     proFeatureSections,
     proGenerateLabel,
     proPromptTab,
     proResolutionSelection,
     prompt,
     qualityToggle,
+    cfgDelay,
+    dynamicThresholding,
     runGenerate,
     sampler,
     samplerOptions,
     scale,
     seed,
     seedIsRandom,
-    selectedStyleIds: activeStyleIds,
-    selectedStyleNegativeTags: activeStyleNegativeTags,
-    selectedStylePresets: activeStylePresets,
-    selectedStyleTags: activeStyleTags,
     setCfgRescale,
-    setCharPromptTabs,
+    setCfgDelay: setProCfgDelay,
     setDynamicThresholding,
-    setHeight,
     setInfillAppendPrompt,
-    setImageCount,
-    setIsStylePickerOpen,
     setNegativePrompt,
-    setNoise,
     setNoiseSchedule,
-    setNormalizeReferenceStrengths,
-    setPreciseReference,
-    setProFeatureSectionOpen,
-    setProPromptTab,
     setPrompt,
-    setQualityToggle,
+    setSimpleText,
+    setSimpleConverted,
+    setSimpleConvertedFromText,
+    setSimpleEditorMode,
+    setSimplePromptTab,
+    handleReturnToSimpleTags,
+    handleRejectSimpleConverted,
+    handleAcceptSimpleConverted,
+    handleReturnToSimpleText,
+    simpleText,
+    simplePrompt,
+    simpleNegativePrompt,
+    selectedStylePresets: activeStylePresets,
+    setIsStylePickerOpen,
     setSampler,
     setScale,
     setSeed,
-    setSimpleEditorMode,
-    setSimpleConverted,
-    setSimpleConvertedFromText,
     setSimpleNegativePrompt,
-    setSimplePromptTab,
     setSimplePrompt,
-    setSimpleText,
-    setSmea,
-    setSmeaDyn,
     setSteps,
     setStrength,
-    setUcPreset,
     setUiMode,
-    setV4Chars,
-    setV4UseOrder,
-    setWidth,
     simpleConvertLabel,
     simpleConverting,
     simpleEditorMode,
     simpleConverted,
-    simpleNegativePrompt,
     simplePromptTab,
-    simplePrompt,
-    simpleResolutionArea,
     simpleResolutionSelection,
-    simpleText,
-    smea,
-    smeaDyn,
     sourceImageDataUrl,
-    hasCurrentDisplayedImage,
     steps,
     strength,
-    toggleProFeatureSection,
     ucPreset,
-    ucPresetEnabled,
     uiMode,
     v4Chars,
     v4UseCoords,
-    v4UseOrder,
-    vibeReferenceInputRef,
-    vibeTransferDescription,
-    vibeTransferReferences,
-    width,
     widthInput,
-  });
+  };
 
-  const workspaceProps = useAiImageWorkspaceProps(createAiImageWorkspaceProps({
+  const workspaceProps = {
     isDirectorToolsOpen,
-    previewPaneProps: createAiImagePreviewPaneProps({
+    previewPaneProps: {
       isDirectorToolsOpen,
       previewMeta,
       results,
@@ -937,13 +822,7 @@ export function useAiImagePageController() {
       directorOutputPreview,
       directorColorizePrompt,
       directorColorizeDefry,
-      directorEmotion,
-      directorEmotionExtraPrompt,
-      directorEmotionDefry,
       onToggleDirectorTools: handleToggleDirectorTools,
-      onRunUpscale: handleRunUpscale,
-      onRunDirectorInputUpscale: handleRunDirectorInputUpscale,
-      onUseSelectedResultAsBaseImage: handleUseSelectedResultAsBaseImage,
       onPickDirectorSourceImages: handlePickDirectorSourceImages,
       onSelectDirectorSourceItem: handleSelectDirectorSourceItem,
       onRemoveDirectorSourceItem: handleRemoveDirectorSourceItem,
@@ -954,9 +833,6 @@ export function useAiImagePageController() {
       onDirectorImageDrop: handleDirectorImageDrop,
       onDirectorColorizePromptChange: setDirectorColorizePrompt,
       onDirectorColorizeDefryChange: setDirectorColorizeDefry,
-      onDirectorEmotionChange: setDirectorEmotion,
-      onDirectorEmotionExtraPromptChange: setDirectorEmotionExtraPrompt,
-      onDirectorEmotionDefryChange: setDirectorEmotionDefry,
       onActiveDirectorToolChange: setActiveDirectorTool,
       onRunDirectorTool: handleRunDirectorTool,
       onSelectCurrentResult: handleSelectCurrentResult,
@@ -969,8 +845,7 @@ export function useAiImagePageController() {
       onDownloadCurrent: handleDownloadCurrent,
       onDownloadDirectorOutputImage: handleDownloadDirectorOutputImage,
       onApplySelectedPreviewSeed: handleApplySelectedPreviewSeed,
-      formatDirectorEmotionLabel,
-    }),
+    },
     historyPaneProps: createAiImageHistoryPaneProps({
       history,
       mode,
@@ -992,15 +867,9 @@ export function useAiImagePageController() {
     onClearPinnedPreview: handleClearPinnedPreview,
     onJumpToPinnedPreview: handleSelectPinnedPreview,
     onApplyPinnedPreviewSeed: handleApplyPinnedPreviewSeed,
-  }));
+  };
 
-  const {
-    metadataImportDialogProps,
-    previewImageDialogProps,
-    inpaintDialogProps,
-    stylePickerDialogProps,
-  } = useAiImageDialogViewModels({
-    metadataImportDialogProps: {
+  const metadataImportDialogProps = {
       pendingMetadataImport,
       canImportMetadataPrompt,
       canImportMetadataNegativePrompt,
@@ -1011,23 +880,23 @@ export function useAiImagePageController() {
       metadataImportSelection,
       setMetadataImportSelection,
       onClose: handleCloseMetadataImportDialog,
-      onImportSourceImageTarget: handleImportSourceImageTarget,
+      onOpenImportedImageInpaint: handleOpenImportedImageInpaint,
       onConfirmMetadataImport: handleConfirmMetadataImport,
-    },
-    previewImageDialogProps: {
+  };
+  const previewImageDialogProps = {
       isOpen: isPreviewImageModalOpen,
       selectedPreviewResult,
       onClose: () => setIsPreviewImageModalOpen(false),
-    },
-    inpaintDialogProps: {
+  };
+  const inpaintDialogProps = {
       isOpen: Boolean(inpaintDialogSource),
       source: inpaintDialogSource,
       isSubmitting: loading,
       error,
       onClose: handleCloseInpaintDialog,
       onSubmit: handleSaveInpaintMask,
-    },
-    stylePickerDialogProps: {
+  };
+  const stylePickerDialogProps = {
       isOpen: isStylePickerOpen,
       viewMode: styleSelectionMode,
       selectedStyleIds,
@@ -1039,21 +908,14 @@ export function useAiImagePageController() {
       onViewModeChange: setStyleSelectionMode,
       onClearStyles: handleClearStyles,
       onClose: () => setIsStylePickerOpen(false),
-    },
-  });
+  };
 
   return {
     isPageImageDragOver,
-    sourceFileInputRef,
-    vibeReferenceInputRef,
-    preciseReferenceInputRef,
     handlePageImageDragEnter,
     handlePageImageDragLeave,
     handlePageImageDragOver,
     handlePageImageDrop,
-    handlePickSourceImage,
-    handlePickVibeReferences,
-    handlePickPreciseReference,
     sidebarProps,
     workspaceProps,
     metadataImportDialogProps,

@@ -1,5 +1,7 @@
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 
+import { hashKey } from "@tanstack/react-query";
+
 export type OptimisticQueryPatch<TData = unknown> = {
   queryKey: QueryKey;
   exact?: boolean;
@@ -13,6 +15,7 @@ export type OptimisticQueryTransactionEntry = {
   hadData: boolean;
   previousData: unknown;
   optimisticData: unknown;
+  optimisticDataUpdateCount: number;
 };
 
 export type OptimisticQueryTransaction = {
@@ -35,6 +38,7 @@ export async function beginOptimisticQueryTransaction(
   })));
 
   const transaction: OptimisticQueryTransaction = { entries: [] };
+  const entryIndexByQueryHash = new Map<string, number>();
   for (const patch of patches) {
     const exact = patch.exact ?? true;
     const queryEntries = queryClient.getQueriesData({ queryKey: patch.queryKey, exact });
@@ -42,12 +46,15 @@ export async function beginOptimisticQueryTransaction(
       const optimisticData = patch.update(undefined, patch.queryKey);
       if (optimisticData !== undefined) {
         const storedOptimisticData = queryClient.setQueryData(patch.queryKey, optimisticData);
-        transaction.entries.push({
-          queryKey: patch.queryKey,
-          hadData: false,
-          previousData: undefined,
-          optimisticData: storedOptimisticData,
-        });
+        recordOptimisticQueryWrite(
+          queryClient,
+          transaction,
+          entryIndexByQueryHash,
+          patch.queryKey,
+          false,
+          undefined,
+          storedOptimisticData,
+        );
       }
       continue;
     }
@@ -58,15 +65,50 @@ export async function beginOptimisticQueryTransaction(
         continue;
       }
       const storedOptimisticData = queryClient.setQueryData(queryKey, optimisticData);
-      transaction.entries.push({
+      recordOptimisticQueryWrite(
+        queryClient,
+        transaction,
+        entryIndexByQueryHash,
         queryKey,
-        hadData: true,
+        true,
         previousData,
-        optimisticData: storedOptimisticData,
-      });
+        storedOptimisticData,
+      );
     }
   }
   return transaction;
+}
+
+/** 同一事务多次命中同一 Query 时，保留首次快照和最终乐观版本。 */
+function recordOptimisticQueryWrite(
+  queryClient: QueryClient,
+  transaction: OptimisticQueryTransaction,
+  entryIndexByQueryHash: Map<string, number>,
+  queryKey: QueryKey,
+  hadData: boolean,
+  previousData: unknown,
+  optimisticData: unknown,
+): void {
+  const queryHash = hashKey(queryKey);
+  const existingIndex = entryIndexByQueryHash.get(queryHash);
+  const optimisticDataUpdateCount = queryClient.getQueryState(queryKey)?.dataUpdateCount ?? 0;
+  if (existingIndex !== undefined) {
+    transaction.entries[existingIndex] = {
+      ...transaction.entries[existingIndex],
+      optimisticData,
+      optimisticDataUpdateCount,
+    };
+    return;
+  }
+
+  entryIndexByQueryHash.set(queryHash, transaction.entries.length);
+  transaction.entries.push({
+    queryKey,
+    hadData,
+    previousData,
+    optimisticData,
+    optimisticDataUpdateCount,
+  });
 }
 
 /** 失败时按相反顺序回滚；并发新写入已经替换缓存时保留较新的结果。 */
@@ -79,7 +121,12 @@ export function rollbackOptimisticQueryTransaction(
   }
 
   for (const entry of [...transaction.entries].reverse()) {
-    if (queryClient.getQueryData(entry.queryKey) !== entry.optimisticData) {
+    const currentState = queryClient.getQueryState(entry.queryKey);
+    if (
+      !currentState
+      || currentState.data !== entry.optimisticData
+      || currentState.dataUpdateCount !== entry.optimisticDataUpdateCount
+    ) {
       continue;
     }
     if (entry.hadData) {

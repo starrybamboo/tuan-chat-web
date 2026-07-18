@@ -91,10 +91,10 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     dirtyRef.current = false;
   }, [space, buildSnapshot]);
 
-  const updateSpaceMutation = useUpdateSpaceMutation();
+  const { mutate: updateSpace } = useUpdateSpaceMutation();
   const spaceAvatarPreview = formData.avatar || imageLowUrl(formData.avatarFileId) || undefined;
 
-  const saveNow = async (params?: { data?: typeof formData }) => {
+  const saveNow = useCallback(async (params?: { data?: typeof formData }) => {
     if (!Number.isFinite(spaceId) || spaceId <= 0)
       return;
 
@@ -111,7 +111,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     }
 
     const updatePromise = new Promise<void>((resolve, reject) => {
-      updateSpaceMutation.mutate({
+      updateSpace({
         spaceId,
         name: data.name,
         description: data.description,
@@ -126,9 +126,9 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     lastSavedSnapshotRef.current = snapshot;
     dirtyRef.current = false;
     retryDelayMsRef.current = 2000;
-  };
+  }, [buildSnapshot, spaceId, updateSpace]);
 
-  const flushAutoSave = async () => {
+  const flushAutoSave = useCallback(async function flushAutoSaveImpl() {
     if (isSavingRef.current) {
       saveQueuedRef.current = true;
       return;
@@ -158,7 +158,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
       retryDelayMsRef.current = Math.min(Math.floor(retryDelayMsRef.current * 1.6), 30000);
       retryTimerRef.current = window.setTimeout(() => {
         retryTimerRef.current = null;
-        flushAutoSave();
+        void flushAutoSaveImpl();
       }, delay);
     }
     finally {
@@ -167,18 +167,18 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
         saveQueuedRef.current = false;
         // 如果在保存期间有新改动，立刻再 flush 一次。
         if (dirtyRef.current) {
-          void flushAutoSave();
+          void flushAutoSaveImpl();
         }
       }
     }
-  };
+  }, [saveNow]);
 
-  const scheduleAutoSave = () => {
+  const scheduleAutoSave = useCallback((data: typeof formData) => {
     if (!didInitFormRef.current)
       return;
 
     // 标记 dirty
-    dirtyRef.current = buildSnapshot(latestFormDataRef.current) !== lastSavedSnapshotRef.current;
+    dirtyRef.current = buildSnapshot(data) !== lastSavedSnapshotRef.current;
     if (!dirtyRef.current)
       return;
 
@@ -190,14 +190,14 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
       saveDebounceTimerRef.current = null;
       void flushAutoSave();
     }, 800);
-  };
+  }, [buildSnapshot, flushAutoSave]);
 
   // 监听变更：自动保存
   useEffect(() => {
     if (!didInitFormRef.current)
       return;
-    scheduleAutoSave();
-  }, [formData]);
+    scheduleAutoSave(formData);
+  }, [formData, scheduleAutoSave]);
 
   // 离开空间资料时自动保存（兜底）
   useEffect(() => {
@@ -215,7 +215,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
       // 这里不 await，避免阻塞卸载流程。
       void saveNow();
     };
-  }, []);
+  }, [saveNow]);
 
   return (
     <div className="size-full min-w-0 min-h-0 overflow-hidden">

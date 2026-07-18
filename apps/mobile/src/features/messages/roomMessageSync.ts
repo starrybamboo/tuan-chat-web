@@ -24,6 +24,15 @@ type RoomMessageSyncClient = {
   };
 };
 
+type RoomMessageByIdClient = {
+  chatController: {
+    getMessageById: (messageId: number) => Promise<{
+      data?: ChatMessageResponse;
+      success?: boolean;
+    }>;
+  };
+};
+
 export type FetchRoomMessagesWithLocalSyncDeps = {
   apiBaseUrl?: string;
   client: RoomMessageSyncClient;
@@ -93,6 +102,24 @@ export type UpsertRoomMessagesToQueryAndDiskDeps = {
 export function extractChatMessageResponses(result: unknown): ChatMessageResponse[] {
   const data = (result as { data?: unknown } | null)?.data ?? result;
   return Array.isArray(data) ? data as ChatMessageResponse[] : [];
+}
+
+/** 按消息 ID 补齐回复目标，避免为一次跳转重新拉取整段历史。 */
+export async function fetchRoomMessageByIdForRoom(
+  roomId: number,
+  messageId: number,
+  client: RoomMessageByIdClient,
+): Promise<ChatMessageResponse | null> {
+  if (!Number.isInteger(roomId) || roomId <= 0 || !Number.isInteger(messageId) || messageId <= 0) {
+    return null;
+  }
+
+  const result = await client.chatController.getMessageById(messageId);
+  const response = result.data;
+  if (result.success !== true || response?.message?.roomId !== roomId) {
+    return null;
+  }
+  return response;
 }
 
 export async function fetchRoomMessagesWithLocalSync(

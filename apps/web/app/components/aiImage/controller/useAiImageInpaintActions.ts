@@ -1,22 +1,23 @@
 import { useCallback } from "react";
 
-import type { GeneratedImageItem, InpaintDialogSource, InpaintSubmitPayload, UiMode } from "@/components/aiImage/types";
-import type { AiImageHistoryMode, AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
+import type { AiImageGenerationMode, GeneratedImageItem, ImportedSourceImagePayload, InpaintDialogSource, InpaintFocusRect, InpaintSubmitPayload, UiMode } from "@/components/aiImage/types";
+import type { AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
 
 import { buildOpenInpaintState } from "@/components/aiImage/controller/generateActions";
-import { buildBaseImageInpaintStateAction, saveInpaintMaskAction } from "@/components/aiImage/controller/inpaintActions";
+import { buildInpaintSourceStateAction, saveInpaintMaskAction } from "@/components/aiImage/controller/inpaintActions";
 import { dataUrlToBase64 } from "@/components/aiImage/helpers";
 
 type UseAiImageInpaintActionsOptions = {
   uiMode: UiMode;
   loading: boolean;
-  mode: AiImageHistoryMode;
   model: string;
   width: number;
   height: number;
   seed: number;
   sourceImageDataUrl: string;
   infillMaskDataUrl: string;
+  infillFocusedArea: InpaintFocusRect | null;
+  overlayOriginalImage: boolean;
   simpleInfillPrompt: string;
   proInfillPrompt: string;
   simpleInfillNegativePrompt: string;
@@ -27,7 +28,8 @@ type UseAiImageInpaintActionsOptions = {
   history: AiImageHistoryRow[];
   inpaintDialogSource: InpaintDialogSource | null;
   readImageSize: (dataUrl: string) => Promise<{ width: number; height: number }>;
-  applySelectedPreviewAsBaseImage: () => boolean;
+  syncSelectedPreviewToInpaintSource: () => boolean;
+  syncInpaintSourceForUi: (targetUiMode: UiMode, sourceImage: ImportedSourceImagePayload) => void;
   setError: (value: string) => void;
   setInpaintDialogSource: (value: InpaintDialogSource | null) => void;
   setSimpleInfillPrompt: (value: string) => void;
@@ -36,12 +38,16 @@ type UseAiImageInpaintActionsOptions = {
   setSimplePromptTab: (value: "prompt" | "negative") => void;
   setSimpleInfillStrength: (value: number) => void;
   setSimpleInfillMaskDataUrl: (value: string) => void;
+  setSimpleInfillFocusedArea: (value: InpaintFocusRect | null) => void;
+  setSimpleOverlayOriginalImage: (value: boolean) => void;
   setProInfillPrompt: (value: string) => void;
   setProInfillNegativePrompt: (value: string) => void;
   setProInfillStrength: (value: number) => void;
   setProInfillMaskDataUrl: (value: string) => void;
+  setProInfillFocusedArea: (value: InpaintFocusRect | null) => void;
+  setProOverlayOriginalImage: (value: boolean) => void;
   clearInfillMaskForUi: (mode: UiMode) => void;
-  setModeForUi: (mode: UiMode, nextMode: AiImageHistoryMode) => void;
+  setModeForUi: (mode: UiMode, nextMode: AiImageGenerationMode) => void;
   showErrorToast: (message: string) => void;
 };
 
@@ -54,6 +60,8 @@ export function useAiImageInpaintActions({
   seed,
   sourceImageDataUrl,
   infillMaskDataUrl,
+  infillFocusedArea,
+  overlayOriginalImage,
   simpleInfillPrompt,
   proInfillPrompt,
   simpleInfillNegativePrompt,
@@ -64,7 +72,8 @@ export function useAiImageInpaintActions({
   history,
   inpaintDialogSource,
   readImageSize,
-  applySelectedPreviewAsBaseImage,
+  syncSelectedPreviewToInpaintSource,
+  syncInpaintSourceForUi,
   setError,
   setInpaintDialogSource,
   setSimpleInfillPrompt,
@@ -73,10 +82,14 @@ export function useAiImageInpaintActions({
   setSimplePromptTab,
   setSimpleInfillStrength,
   setSimpleInfillMaskDataUrl,
+  setSimpleInfillFocusedArea,
+  setSimpleOverlayOriginalImage,
   setProInfillPrompt,
   setProInfillNegativePrompt,
   setProInfillStrength,
   setProInfillMaskDataUrl,
+  setProInfillFocusedArea,
+  setProOverlayOriginalImage,
   clearInfillMaskForUi,
   setModeForUi,
   showErrorToast,
@@ -86,8 +99,8 @@ export function useAiImageInpaintActions({
     if (!preview)
       return;
 
-    const shouldSyncBaseImage = sourceImageDataUrl !== preview.dataUrl;
-    if (shouldSyncBaseImage && !applySelectedPreviewAsBaseImage())
+    const shouldSyncInpaintSource = sourceImageDataUrl !== preview.dataUrl;
+    if (shouldSyncInpaintSource && !syncSelectedPreviewToInpaintSource())
       return;
 
     const sourceImageBase64 = dataUrlToBase64(preview.dataUrl);
@@ -100,7 +113,7 @@ export function useAiImageInpaintActions({
     setInpaintDialogSource(buildOpenInpaintState({
       selectedPreviewResult: preview,
       selectedPreviewHistoryRow,
-      shouldSyncBaseImage,
+      shouldSyncInpaintSource,
       dataUrlToBase64,
       infillMaskDataUrl,
       uiMode,
@@ -109,11 +122,15 @@ export function useAiImageInpaintActions({
       simpleInfillNegativePrompt,
       proInfillNegativePrompt,
       currentInfillStrength,
+      infillFocusedArea,
+      overlayOriginalImage,
     }));
   }, [
-    applySelectedPreviewAsBaseImage,
+    syncSelectedPreviewToInpaintSource,
     currentInfillStrength,
     infillMaskDataUrl,
+    infillFocusedArea,
+    overlayOriginalImage,
     proInfillNegativePrompt,
     proInfillPrompt,
     selectedPreviewHistoryRow,
@@ -127,9 +144,9 @@ export function useAiImageInpaintActions({
     uiMode,
   ]);
 
-  const handleOpenBaseImageInpaint = useCallback(async () => {
+  const handleEditInpaintMask = useCallback(async () => {
     try {
-      const nextState = await buildBaseImageInpaintStateAction({
+      const nextState = await buildInpaintSourceStateAction({
         sourceImageDataUrl,
         readImageSize,
         history,
@@ -144,6 +161,8 @@ export function useAiImageInpaintActions({
         seed,
         model,
         currentInfillStrength,
+        infillFocusedArea,
+        overlayOriginalImage,
       });
       if (!nextState)
         return;
@@ -159,7 +178,9 @@ export function useAiImageInpaintActions({
     height,
     history,
     infillMaskDataUrl,
+    infillFocusedArea,
     model,
+    overlayOriginalImage,
     proInfillNegativePrompt,
     proInfillPrompt,
     readImageSize,
@@ -191,13 +212,18 @@ export function useAiImageInpaintActions({
       setSimplePromptTab,
       setSimpleInfillStrength,
       setSimpleInfillMaskDataUrl,
+      setSimpleInfillFocusedArea,
+      setSimpleOverlayOriginalImage,
       setProInfillPrompt,
       setProInfillNegativePrompt,
       setProInfillStrength,
       setProInfillMaskDataUrl,
+      setProInfillFocusedArea,
+      setProOverlayOriginalImage,
       setError,
       setModeForUi,
       setInpaintDialogSource,
+      syncInpaintSourceForUi,
     });
   }, [
     inpaintDialogSource,
@@ -205,32 +231,32 @@ export function useAiImageInpaintActions({
     setInpaintDialogSource,
     setModeForUi,
     setProInfillMaskDataUrl,
+    setProInfillFocusedArea,
     setProInfillNegativePrompt,
     setProInfillPrompt,
     setProInfillStrength,
+    setProOverlayOriginalImage,
     setSimpleEditorMode,
     setSimpleInfillMaskDataUrl,
+    setSimpleInfillFocusedArea,
     setSimpleInfillNegativePrompt,
     setSimpleInfillPrompt,
     setSimpleInfillStrength,
+    setSimpleOverlayOriginalImage,
     setSimplePromptTab,
+    syncInpaintSourceForUi,
   ]);
 
   const handleReturnFromInfillSettings = useCallback(() => {
-    setModeForUi(uiMode, sourceImageDataUrl ? "img2img" : "txt2img");
-  }, [setModeForUi, sourceImageDataUrl, uiMode]);
-
-  const handleClearInfillMask = useCallback(() => {
     clearInfillMaskForUi(uiMode);
-    setModeForUi(uiMode, sourceImageDataUrl ? "img2img" : "txt2img");
-  }, [clearInfillMaskForUi, setModeForUi, sourceImageDataUrl, uiMode]);
+    setModeForUi(uiMode, "txt2img");
+  }, [clearInfillMaskForUi, setModeForUi, uiMode]);
 
   return {
     handleOpenInpaint,
-    handleOpenBaseImageInpaint,
+    handleEditInpaintMask,
     handleCloseInpaintDialog,
     handleSaveInpaintMask,
     handleReturnFromInfillSettings,
-    handleClearInfillMask,
   };
 }

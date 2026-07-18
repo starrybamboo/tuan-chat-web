@@ -8,4 +8,3 @@ export type RuleResponse = {
     ruleName?: string;
     ruleDescription?: string;
 };
-

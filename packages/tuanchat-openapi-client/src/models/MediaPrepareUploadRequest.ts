@@ -40,4 +40,3 @@ export type MediaPrepareUploadRequest = {
     metadata?: Record<string, any>;
     chatroomScene?: boolean;
 };
-

@@ -1,6 +1,6 @@
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 
-import { DIRECT_MESSAGE_READ_LINE_TYPE } from "@tuanchat/domain/direct-message";
+import { DIRECT_MESSAGE_READ_LINE_TYPE, DIRECT_MESSAGE_RECALL_TYPE } from "@tuanchat/domain/direct-message";
 
 type DirectMessageDisplayOrderFields = Pick<
   MessageDirectResponse,
@@ -33,7 +33,7 @@ export function getVisibleDirectMessageTimeline<T extends DirectMessageDisplayOr
   messages: readonly T[],
 ): T[] {
   return messages
-    .filter(message => message.messageType !== DIRECT_MESSAGE_READ_LINE_TYPE)
+    .filter(message => message.messageType !== DIRECT_MESSAGE_READ_LINE_TYPE && message.messageType !== DIRECT_MESSAGE_RECALL_TYPE)
     .sort(compareDirectMessagesForDisplay);
 }
 

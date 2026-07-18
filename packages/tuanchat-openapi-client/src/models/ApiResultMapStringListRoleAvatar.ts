@@ -24,4 +24,3 @@ export type ApiResultMapStringListRoleAvatar = {
      */
     data?: Record<string, Array<RoleAvatar>>;
 };
-

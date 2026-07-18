@@ -6,7 +6,7 @@ import type {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { InpaintViewportSize, InpaintViewportTransform } from "@/components/aiImage/inpaint/inpaintViewportUtils";
-import type { InpaintDialogSource, InpaintSubmitPayload } from "@/components/aiImage/types";
+import type { InpaintDialogSource, InpaintFocusRect, InpaintSubmitPayload } from "@/components/aiImage/types";
 
 import { triggerBrowserDownload } from "@/components/aiImage/helpers";
 import { InpaintBottomBar } from "@/components/aiImage/inpaint/InpaintBottomBar";
@@ -17,10 +17,10 @@ import {
   clampInpaintZoom,
   clampViewportPan,
   INPAINT_ZOOM_STEP,
-
   resolveCenteredViewportPan,
   resolveInpaintViewportSize,
 } from "@/components/aiImage/inpaint/inpaintViewportUtils";
+import { resolveInpaintFocusRectFromPoints } from "@/components/aiImage/inpaintFocusUtils";
 import {
   buildBinaryMaskGrid,
   buildMaskOutlineSegments,
@@ -79,6 +79,8 @@ export function InpaintDialog({
   const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const fillPreviewCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawingPointerIdRef = useRef<number | null>(null);
+  const focusedAreaPointerIdRef = useRef<number | null>(null);
+  const focusedAreaStartRef = useRef<CanvasPoint | null>(null);
   const isDrawingRef = useRef(false);
   const lastPointRef = useRef<CanvasPoint | null>(null);
   const undoStackRef = useRef<ImageData[]>([]);
@@ -92,6 +94,10 @@ export function InpaintDialog({
   const [strength, setStrength] = useState(1);
   const [brushSize, setBrushSize] = useState(() => normalizeMaskBrushSize(4, "square"));
   const [tool, setTool] = useState<"paint" | "erase">("paint");
+  const [interactionMode, setInteractionMode] = useState<"mask" | "focus">("mask");
+  const [focusedArea, setFocusedArea] = useState<InpaintFocusRect | null>(null);
+  const [isSelectingFocusedArea, setIsSelectingFocusedArea] = useState(false);
+  const [overlayOriginalImage, setOverlayOriginalImage] = useState(false);
   const [maskDrawShape, setMaskDrawShape] = useState<"circle" | "square">("square");
   const [maskColor, setMaskColor] = useState<(typeof MASK_COLOR_OPTIONS)[number]>(MASK_COLOR_OPTIONS[4]);
   const [maskOpacity, setMaskOpacity] = useState(45);
@@ -296,6 +302,10 @@ export function InpaintDialog({
       setStrength(source.strength);
       setBrushSize(normalizeMaskBrushSize(4, "square"));
       setTool("paint");
+      setInteractionMode("mask");
+      setFocusedArea(source.focusedArea);
+      setIsSelectingFocusedArea(false);
+      setOverlayOriginalImage(source.overlayOriginalImage);
       setMaskDrawShape("square");
       setMaskColor(MASK_COLOR_OPTIONS[4]);
       setMaskOpacity(45);
@@ -310,6 +320,8 @@ export function InpaintDialog({
       setIsViewportPanning(false);
       setHasMask(false);
       viewportPanSessionRef.current = null;
+      focusedAreaPointerIdRef.current = null;
+      focusedAreaStartRef.current = null;
       hasInitializedViewportTransformRef.current = false;
       undoStackRef.current = [];
       redoStackRef.current = [];
@@ -629,6 +641,19 @@ export function InpaintDialog({
   ]);
 
   const finishDrawing = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (focusedAreaPointerIdRef.current === event.pointerId) {
+      focusedAreaPointerIdRef.current = null;
+      focusedAreaStartRef.current = null;
+      setIsSelectingFocusedArea(false);
+      try {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+      catch {
+        // ignore
+      }
+      return;
+    }
+
     if (!isDrawingRef.current || drawingPointerIdRef.current !== event.pointerId)
       return;
 
@@ -652,6 +677,17 @@ export function InpaintDialog({
     if (!point)
       return;
 
+    if (interactionMode === "focus") {
+      event.preventDefault();
+      focusedAreaPointerIdRef.current = event.pointerId;
+      focusedAreaStartRef.current = point.canvasPoint;
+      setFocusedArea(null);
+      setIsSelectingFocusedArea(true);
+      setBrushCursorPoint(null);
+      event.currentTarget.setPointerCapture(event.pointerId);
+      return;
+    }
+
     pushUndoSnapshot();
     event.preventDefault();
     drawingPointerIdRef.current = event.pointerId;
@@ -661,7 +697,7 @@ export function InpaintDialog({
     event.currentTarget.setPointerCapture(event.pointerId);
     drawStroke(point.canvasPoint, point.canvasPoint);
     setHasMask(true);
-  }, [drawStroke, pushUndoSnapshot, resolveCanvasPoint]);
+  }, [drawStroke, interactionMode, pushUndoSnapshot, resolveCanvasPoint]);
 
   const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (viewportPanSessionRef.current) {
@@ -670,8 +706,22 @@ export function InpaintDialog({
     }
 
     const point = resolveCanvasPoint(event);
-    if (point)
+    if (interactionMode === "mask" && point)
       setBrushCursorPoint(point.cursorPoint);
+
+    if (interactionMode === "focus" && focusedAreaPointerIdRef.current === event.pointerId) {
+      const startPoint = focusedAreaStartRef.current;
+      if (!point || !startPoint || sourceCanvasSize.width <= 0 || sourceCanvasSize.height <= 0)
+        return;
+      event.preventDefault();
+      setFocusedArea(resolveInpaintFocusRectFromPoints(
+        startPoint,
+        point.canvasPoint,
+        sourceCanvasSize.width,
+        sourceCanvasSize.height,
+      ));
+      return;
+    }
 
     if (!isDrawingRef.current || drawingPointerIdRef.current !== event.pointerId)
       return;
@@ -683,17 +733,17 @@ export function InpaintDialog({
     event.preventDefault();
     drawStroke(previousPoint, point.canvasPoint);
     lastPointRef.current = point.canvasPoint;
-  }, [drawStroke, resolveCanvasPoint]);
+  }, [drawStroke, interactionMode, resolveCanvasPoint, sourceCanvasSize.height, sourceCanvasSize.width]);
 
   const handlePointerEnter = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (viewportPanSessionRef.current)
+    if (viewportPanSessionRef.current || interactionMode === "focus")
       return;
 
     const point = resolveCanvasPoint(event);
     if (!point)
       return;
     setBrushCursorPoint(point.cursorPoint);
-  }, [resolveCanvasPoint]);
+  }, [interactionMode, resolveCanvasPoint]);
 
   const handlePointerLeave = useCallback(() => {
     if (!isDrawingRef.current)
@@ -795,6 +845,23 @@ export function InpaintDialog({
     setBrushSize(previous => normalizeMaskBrushSize(previous, nextShape));
   }, []);
 
+  const handleSetMaskTool = useCallback((nextTool: "paint" | "erase") => {
+    setTool(nextTool);
+    setInteractionMode("mask");
+  }, []);
+
+  const handleToggleFocusedAreaTool = useCallback(() => {
+    setInteractionMode(previous => previous === "focus" ? "mask" : "focus");
+    setBrushCursorPoint(null);
+  }, []);
+
+  const handleClearFocusedArea = useCallback(() => {
+    focusedAreaPointerIdRef.current = null;
+    focusedAreaStartRef.current = null;
+    setFocusedArea(null);
+    setIsSelectingFocusedArea(false);
+  }, []);
+
   const handleToggleSquareBrush = useCallback((event?: { preventDefault?: () => void; stopPropagation?: () => void }) => {
     event?.preventDefault?.();
     event?.stopPropagation?.();
@@ -863,8 +930,10 @@ export function InpaintDialog({
       negativePrompt,
       strength,
       maskDataUrl,
+      focusedArea,
+      overlayOriginalImage,
     });
-  }, [buildMaskDataUrl, hasMask, isSubmitting, negativePrompt, onSubmit, prompt, source, strength]);
+  }, [buildMaskDataUrl, focusedArea, hasMask, isSubmitting, negativePrompt, onSubmit, overlayOriginalImage, prompt, source, strength]);
 
   const handleDownloadSource = useCallback(() => {
     if (!source)
@@ -951,9 +1020,15 @@ export function InpaintDialog({
         sharedPanelClassName={sharedPanelClassName}
         brushSize={brushSize}
         isSquareBrush={isSquareBrush}
+        interactionMode={interactionMode}
+        hasFocusedArea={Boolean(focusedArea)}
+        overlayOriginalImage={overlayOriginalImage}
         onBrushSizeChange={handleBrushSizeChange}
         onMaskDrawShapeChange={handleMaskDrawShapeChange}
         onToggleSquareBrush={handleToggleSquareBrush}
+        onToggleFocusedAreaTool={handleToggleFocusedAreaTool}
+        onClearFocusedArea={handleClearFocusedArea}
+        onOverlayOriginalImageChange={setOverlayOriginalImage}
       />
 
       <InpaintTopBar
@@ -973,6 +1048,9 @@ export function InpaintDialog({
         isViewportPanning={isViewportPanning}
         viewportTransform={viewportTransform}
         viewportScale={viewportScale}
+        interactionMode={interactionMode}
+        focusedArea={focusedArea}
+        isSelectingFocusedArea={isSelectingFocusedArea}
         onViewportMouseDownCapture={handleViewportMouseDown}
         onViewportAuxClick={handleViewportAuxClick}
         onPointerDown={handlePointerDown}
@@ -1008,7 +1086,7 @@ export function InpaintDialog({
         onZoomOut={handleZoomOut}
         onResetZoom={handleResetZoom}
         onZoomIn={handleZoomIn}
-        onSetTool={setTool}
+        onSetTool={handleSetMaskTool}
         onToggleBoardPanel={() => setIsBoardPanelOpen(prev => !prev)}
         onSetMaskColor={setMaskColor}
         onSetMaskOpacity={setMaskOpacity}

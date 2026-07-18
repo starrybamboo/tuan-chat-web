@@ -2,8 +2,7 @@ import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/Mess
 
 import { isDirectReadLineMessage } from "@tuanchat/domain/direct-message";
 
-import { isMobileOptimisticDirectMessage } from "./mobileDirectMessageOptimistic";
-
 export function hasPersistableDirectInboxMessages(messages: readonly MessageDirectResponse[] | undefined): boolean {
-  return (messages ?? []).some(message => !isDirectReadLineMessage(message) && !isMobileOptimisticDirectMessage(message));
+  // 本地待确认消息由 pending 表持久化，也必须阻止清空整个私聊仓储。
+  return (messages ?? []).some(message => !isDirectReadLineMessage(message));
 }

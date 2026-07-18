@@ -1,13 +1,16 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
+import type { SharedValue } from "react-native-reanimated";
 
 import { getDiceResultExtra, getDiceTurnExtra, getImageMessageExtra, getSoundMessageExtra } from "@tuanchat/domain/message-extra";
 import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { isSystemRowMessageType } from "@tuanchat/domain/poke-message";
-import { isOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
-import { memo, useCallback, useMemo, useRef } from "react";
-import type { GestureResponderEvent } from "react-native";
-import { PanResponder, Pressable, StyleSheet, Vibration, View } from "react-native";
+import { isFailedRoomMessage, isOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { Pressable, StyleSheet, type GestureResponderEvent, Vibration, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { scheduleOnRN } from "react-native-worklets";
+import { ArrowClockwise, Warning, XCircle } from "phosphor-react-native";
 
 import { CachedImage } from "@/components/CachedImage";
 import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
@@ -22,6 +25,7 @@ import type { RoomRolesById } from "./chat-avatar-utils";
 import { CommandRequestCard, getCommandRequestDisableReason } from "./CommandRequestCard";
 import { getMobileMessageAuthorLabel, isNarratorMessage, isOutOfCharacterMessage } from "./messageAuthorLabel";
 import { MessageAvatar } from "./MessageAvatar";
+import { MOBILE_AVATAR_DOUBLE_TAP_WINDOW_MS, resolveMobileAvatarTap } from "./mobileAvatarTap";
 import { getMessagePreview } from "./mobileChatUtils";
 import {
   ClueCard,
@@ -33,7 +37,6 @@ import {
   StateEventCard,
   WebgalChooseCard,
 } from "./MobileMessageCards";
-import { resolveMobilePokeTap } from "./mobilePokeDoubleTap";
 
 const AVATAR_SIZE = 40;
 
@@ -59,12 +62,34 @@ const styles = StyleSheet.create({
     paddingRight: Spacing.xxl,
     paddingVertical: Spacing.md,
   },
+  pokeCard: {
+    alignSelf: "center",
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    maxWidth: "88%",
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+  },
   rowHighlight: {
     borderRadius: Radius.sm,
   },
   rowSending: {
     opacity: 0.88,
     transform: [{ translateY: 1 }, { scale: 0.995 }],
+  },
+  failedActions: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.sm,
+    justifyContent: "flex-end",
+    marginTop: Spacing.xs,
+  },
+  failedActionButton: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
   },
   rowOOC: {
     alignItems: "flex-start",
@@ -162,6 +187,7 @@ function getCompactMediaText(message: Message): string {
 type ChatMessageItemProps = {
   avatarUrl?: string | null;
   currentRoleId?: number;
+  dragTranslationY?: SharedValue<number>;
   isCommandRequestConsumed?: (messageId: number) => boolean;
   isGrouped: boolean;
   isMultiSelected?: boolean;
@@ -172,21 +198,24 @@ type ChatMessageItemProps = {
   noRole?: boolean;
   onCancelDragMessage?: () => void;
   onExecuteCommandRequest?: (payload: { command: string; messageId: number }) => void;
-  onDragMessage?: (payload: { message: Message; pageY: number; translationY: number }) => void;
+  onDragMessage?: (payload: { message: Message; pageY: number }) => void;
   onDropMessage?: (payload: { message: Message; pageY: number }) => void;
   onLongPress: (payload: { message: Message; pageX: number; pageY: number }) => void;
+  onOpenAvatarPicker?: () => void;
   onPokeAvatar?: (message: Message) => void;
   onPressReply?: (messageId: number) => void;
+  onRemoveFailed?: (message: Message) => void;
+  onRetryFailed?: (message: Message) => void;
   onToggleMultiSelect?: (message: Message) => void;
   replyAuthorName?: string | null;
   replyPreviewText?: string | null;
   roomRolesById: RoomRolesById;
-  shouldFetchMissingAvatar?: boolean;
 };
 
 export const ChatMessageItem = memo(({
   avatarUrl,
   currentRoleId = 0,
+  dragTranslationY,
   isCommandRequestConsumed,
   isGrouped,
   isMultiSelected,
@@ -200,19 +229,22 @@ export const ChatMessageItem = memo(({
   onDragMessage,
   onDropMessage,
   onLongPress,
+  onOpenAvatarPicker,
   onPokeAvatar,
   onPressReply,
+  onRemoveFailed,
+  onRetryFailed,
   onToggleMultiSelect,
   replyAuthorName,
   replyPreviewText,
   roomRolesById,
-  shouldFetchMissingAvatar = true,
 }: ChatMessageItemProps) => {
   const theme = useTheme();
   const isOOC = isOutOfCharacterMessage(message);
   const narrator = isNarratorMessage(message);
   const usesSystemRow = narrator || isSystemRowMessageType(message.messageType);
   const isSending = isOptimisticRoomMessage(message);
+  const isFailed = isFailedRoomMessage(message);
   const displayName = getDisplayRoleName(message, roomRolesById);
   const shouldRenderTextPreview = shouldRenderMobileMessageTextPreview(message.messageType);
   const canViewHiddenDiceReply = isSpaceOwner || (currentRoleId > 0 && currentRoleId === message.roleId);
@@ -229,49 +261,60 @@ export const ChatMessageItem = memo(({
     if (!lastPoint) {
       return;
     }
-    longPressActiveRef.current = false;
-    hasDraggedAfterLongPressRef.current = false;
-    lastLongPressPointRef.current = null;
     onLongPress({ message, pageX: lastPoint.pageX, pageY: lastPoint.pageY });
   }, [message, onLongPress]);
-  const panResponder = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponder: (_event, gestureState) => {
-      if (!longPressActiveRef.current || Math.abs(gestureState.dy) < 8) {
-        return false;
-      }
-      hasDraggedAfterLongPressRef.current = true;
-      return true;
-    },
-    onPanResponderMove: (_event, gestureState) => {
-      if (!longPressActiveRef.current) {
-        return;
-      }
-      const startPoint = lastLongPressPointRef.current;
-      onDragMessage?.({
-        message,
-        pageY: gestureState.moveY,
-        translationY: startPoint ? gestureState.moveY - startPoint.pageY : gestureState.dy,
-      });
-    },
-    onPanResponderRelease: (_event, gestureState) => {
-      const lastPoint = lastLongPressPointRef.current;
-      longPressActiveRef.current = false;
-      if (hasDraggedAfterLongPressRef.current) {
-        onDropMessage?.({ message, pageY: gestureState.moveY || lastPoint?.pageY || 0 });
-      }
-      else if (lastPoint) {
-        openLongPressMenu();
-      }
-      hasDraggedAfterLongPressRef.current = false;
-      lastLongPressPointRef.current = null;
-    },
-    onPanResponderTerminate: () => {
+  const handleMessageGestureStart = useCallback((pageX: number, pageY: number) => {
+    Vibration.vibrate(10);
+    longPressActiveRef.current = true;
+    hasDraggedAfterLongPressRef.current = false;
+    lastLongPressPointRef.current = { pageX, pageY };
+  }, []);
+  const handleMessageGestureUpdate = useCallback((pageY: number, translationY: number) => {
+    if (!longPressActiveRef.current || Math.abs(translationY) < 8) {
+      return;
+    }
+    hasDraggedAfterLongPressRef.current = true;
+    onDragMessage?.({ message, pageY });
+  }, [message, onDragMessage]);
+  const handleMessageGestureEnd = useCallback((pageY: number) => {
+    const lastPoint = lastLongPressPointRef.current;
+    longPressActiveRef.current = false;
+    if (hasDraggedAfterLongPressRef.current) {
+      onDropMessage?.({ message, pageY: pageY || lastPoint?.pageY || 0 });
+    }
+    else if (lastPoint) {
+      openLongPressMenu();
+    }
+    hasDraggedAfterLongPressRef.current = false;
+    lastLongPressPointRef.current = null;
+  }, [message, onDropMessage, openLongPressMenu]);
+  const handleMessageGestureCancel = useCallback(() => {
+    if (longPressActiveRef.current) {
       longPressActiveRef.current = false;
       hasDraggedAfterLongPressRef.current = false;
       lastLongPressPointRef.current = null;
       onCancelDragMessage?.();
-    },
-  }), [message, onCancelDragMessage, onDragMessage, onDropMessage, openLongPressMenu]);
+    }
+  }, [onCancelDragMessage]);
+  const messageGesture = useMemo(() => Gesture.Pan()
+    .activateAfterLongPress(500)
+    .onStart((event) => {
+      scheduleOnRN(handleMessageGestureStart, event.absoluteX, event.absoluteY);
+    })
+    .onUpdate((event) => {
+      if (Math.abs(event.translationY) >= 8) {
+        dragTranslationY?.set(event.translationY);
+      }
+      scheduleOnRN(handleMessageGestureUpdate, event.absoluteY, event.translationY);
+    })
+    .onEnd((event) => {
+      scheduleOnRN(handleMessageGestureEnd, event.absoluteY);
+    })
+    .onFinalize((_event, success) => {
+      if (!success) {
+        scheduleOnRN(handleMessageGestureCancel);
+      }
+    }), [dragTranslationY, handleMessageGestureCancel, handleMessageGestureEnd, handleMessageGestureStart, handleMessageGestureUpdate]);
   const renderDiceTurnContent = (numberOfLines?: number) => {
     const diceTurn = getDiceTurnExtra(message.extra);
     if (!diceTurn) {
@@ -337,18 +380,36 @@ export const ChatMessageItem = memo(({
       : isGrouped ? styles.rowGrouped : styles.row;
 
   const avatarTapRef = useRef<{ roleId: number; timestamp: number } | null>(null);
+  const avatarSingleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (avatarSingleTapTimerRef.current) {
+      clearTimeout(avatarSingleTapTimerRef.current);
+    }
+  }, []);
   const handleAvatarPress = useCallback(() => {
     const roleId = message.roleId ?? -1;
-    if (!(roleId > 0) || !onPokeAvatar || multiSelectMode) {
+    if (!(roleId > 0) || !onOpenAvatarPicker || multiSelectMode) {
       return;
     }
-    const result = resolveMobilePokeTap(avatarTapRef.current, roleId, Date.now());
-    avatarTapRef.current = result.next;
-    if (result.matched) {
+    const tapResult = resolveMobileAvatarTap(avatarTapRef.current, roleId, Date.now());
+    avatarTapRef.current = tapResult.next;
+    if (tapResult.matchedDoubleTap) {
+      if (avatarSingleTapTimerRef.current) {
+        clearTimeout(avatarSingleTapTimerRef.current);
+        avatarSingleTapTimerRef.current = null;
+      }
       Vibration.vibrate(10);
-      onPokeAvatar(message);
+      onPokeAvatar?.(message);
+      return;
     }
-  }, [message, multiSelectMode, onPokeAvatar]);
+    if (avatarSingleTapTimerRef.current) {
+      clearTimeout(avatarSingleTapTimerRef.current);
+    }
+    avatarSingleTapTimerRef.current = setTimeout(() => {
+      avatarSingleTapTimerRef.current = null;
+      onOpenAvatarPicker();
+    }, MOBILE_AVATAR_DOUBLE_TAP_WINDOW_MS);
+  }, [message, multiSelectMode, onOpenAvatarPicker, onPokeAvatar]);
   const handleAvatarLongPress = useCallback((event: GestureResponderEvent) => {
     const { pageX, pageY } = event.nativeEvent;
     Vibration.vibrate(10);
@@ -356,26 +417,24 @@ export const ChatMessageItem = memo(({
   }, [message, onLongPress]);
 
   const avatar = (
-      <MessageAvatar
-        avatarFileId={message.avatarFileId}
-        avatarId={message.avatarId}
-        avatarUrl={avatarUrl}
-        displayName={displayName}
-        preferUserAvatar={isOOC}
-        roleId={message.roleId}
-        roomRolesById={roomRolesById}
-        shouldFetchMissingAvatar={shouldFetchMissingAvatar}
-        size={AVATAR_SIZE}
-        userId={message.userId}
-      />
+    <MessageAvatar
+      avatarFileId={message.avatarFileId}
+      avatarUrl={avatarUrl}
+      displayName={displayName}
+      preferUserAvatar={isOOC}
+      roleId={message.roleId}
+      roomRolesById={roomRolesById}
+      size={AVATAR_SIZE}
+      userId={message.userId}
+    />
   );
   const renderAvatar = () => {
-    if (!onPokeAvatar || !(message.roleId && message.roleId > 0) || multiSelectMode) {
+    if (!onOpenAvatarPicker || !(message.roleId && message.roleId > 0) || multiSelectMode) {
       return avatar;
     }
     return (
       <Pressable
-        accessibilityLabel={`双击${displayName}头像戳一戳`}
+        accessibilityLabel="选择发言头像"
         accessibilityRole="button"
         delayLongPress={500}
         onLongPress={handleAvatarLongPress}
@@ -446,6 +505,16 @@ export const ChatMessageItem = memo(({
                     ? <ThemedText style={{ fontSize: 13, color: theme.textSecondary }}>{getCompactMediaText(message)}</ThemedText>
                     : message.messageType === MESSAGE_TYPE.DICE
                       ? renderDiceTurnContent(2)
+                      : message.messageType === MESSAGE_TYPE.POKE
+                        ? (
+                            <View style={[styles.pokeCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+                              <TextEnhanceRenderer
+                                content={message.content ?? ""}
+                                numberOfLines={2}
+                                style={[styles.content, { color: theme.textSecondary, textAlign: "center" }]}
+                              />
+                            </View>
+                          )
                       : (
                           <TextEnhanceRenderer
                             content={message.messageType === MESSAGE_TYPE.POKE ? message.content ?? "" : getMessagePreview(message)}
@@ -464,24 +533,14 @@ export const ChatMessageItem = memo(({
   }
 
   return (
-    <View {...panResponder.panHandlers}>
-      <Pressable
-        delayLongPress={500}
-        onLongPress={(event) => {
-          const { pageX, pageY } = event.nativeEvent;
-          Vibration.vibrate(10);
-          longPressActiveRef.current = true;
-          hasDraggedAfterLongPressRef.current = false;
-          lastLongPressPointRef.current = { pageX, pageY };
-        }}
-        onPressOut={() => {
-          if (!longPressActiveRef.current || hasDraggedAfterLongPressRef.current) {
-            return;
-          }
-          openLongPressMenu();
-        }}
+    <GestureDetector gesture={messageGesture}>
+      <View
+        collapsable={false}
+        accessibilityActions={[{ label: "打开消息操作", name: "activate" }]}
         accessibilityLabel={`${displayName}：${getMessagePreview(message)}${replyPreviewText ? `，回复${replyAuthorName ? ` ${replyAuthorName}` : ""}：${replyPreviewText}` : ""}`}
-        accessibilityHint="长按打开消息操作"
+        accessibilityHint="长按打开消息操作；长按后上下拖动可调整消息顺序"
+        accessibilityRole="button"
+        onAccessibilityAction={() => onLongPress({ message, pageX: 0, pageY: 0 })}
       >
         <View
           style={[
@@ -531,6 +590,15 @@ export const ChatMessageItem = memo(({
           {shouldRenderTextPreview
             ? message.messageType === MESSAGE_TYPE.DICE
               ? renderDiceTurnContent()
+              : message.messageType === MESSAGE_TYPE.POKE
+                ? (
+                    <View style={[styles.pokeCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+                      <TextEnhanceRenderer
+                        content={message.content ?? ""}
+                        style={[styles.content, { color: theme.textSecondary, textAlign: "center" }]}
+                      />
+                    </View>
+                  )
               : (
                   <TextEnhanceRenderer
                     content={message.messageType === MESSAGE_TYPE.POKE ? message.content ?? "" : getMessagePreview(message)}
@@ -598,9 +666,36 @@ export const ChatMessageItem = memo(({
                 );
               })()
             : null}
+          {isFailed
+            ? (
+                <View style={styles.failedActions}>
+                  <Warning size={12} color={theme.danger} weight="fill" />
+                  <ThemedText style={{ color: theme.danger, fontSize: 11, fontWeight: "600" }}>发送失败</ThemedText>
+                  <Pressable
+                    accessibilityLabel="重新发送失败消息"
+                    accessibilityRole="button"
+                    hitSlop={6}
+                    onPress={() => onRetryFailed?.(message)}
+                    style={styles.failedActionButton}
+                  >
+                    <ArrowClockwise size={13} color={theme.danger} weight="bold" />
+                    <ThemedText style={{ color: theme.danger, fontSize: 11 }}>重试</ThemedText>
+                  </Pressable>
+                  <Pressable
+                    accessibilityLabel="删除失败消息"
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    onPress={() => onRemoveFailed?.(message)}
+                    style={styles.failedActionButton}
+                  >
+                    <XCircle size={13} color={theme.textSecondary} weight="fill" />
+                  </Pressable>
+                </View>
+              )
+            : null}
           </View>
         </View>
-      </Pressable>
-    </View>
+      </View>
+    </GestureDetector>
   );
 });

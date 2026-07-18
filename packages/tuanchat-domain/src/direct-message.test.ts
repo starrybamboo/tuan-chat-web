@@ -4,11 +4,16 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildDirectMessageSendRequestsFromUploadedMedia,
+  buildDirectMessageRetryRequest,
   findDirectReplyMessage,
   getDirectMessagePreviewText,
   getDirectUnreadCount,
   groupDirectConversations,
+  isFailedDirectMessage,
+  isOptimisticDirectMessage,
+  markDirectMessageFailed,
   mergeDirectMessages,
+  projectDirectMessageEvents,
 } from "./direct-message";
 
 function createDirectMessage(overrides: Partial<MessageDirectResponse>): MessageDirectResponse {
@@ -27,6 +32,27 @@ function createDirectMessage(overrides: Partial<MessageDirectResponse>): Message
 }
 
 describe("direct message helpers", () => {
+  it("私聊失败态可持久化展示并重建为一条新发送请求", () => {
+    const failed = markDirectMessageFailed(createDirectMessage({
+      content: "再试一次",
+      extra: { imageMessage: { fileId: 9 } },
+      messageId: -1,
+      messageType: 2,
+      receiverId: 42,
+      replyMessageId: 7,
+    }));
+
+    expect(isOptimisticDirectMessage(failed)).toBe(false);
+    expect(isFailedDirectMessage(failed)).toBe(true);
+    expect(buildDirectMessageRetryRequest(failed)).toEqual({
+      content: "再试一次",
+      extra: { imageMessage: { fileId: 9 } },
+      messageType: 2,
+      receiverId: 42,
+      replyMessageId: 7,
+    });
+  });
+
   it("按 messageId 去重并按 syncId 升序合并", () => {
     expect(mergeDirectMessages([
       createDirectMessage({ messageId: 2, syncId: 2, content: "old" }),
@@ -138,6 +164,21 @@ describe("direct message helpers", () => {
 
   it("会把已删除私聊消息转换成撤回预览", () => {
     expect(getDirectMessagePreviewText(createDirectMessage({ status: 1 }))).toBe("[消息已撤回]");
+  });
+
+  it("会重放撤回事件并将目标消息投影为已撤回", () => {
+    const original = createDirectMessage({ messageId: 8, syncId: 8 });
+    const recall = createDirectMessage({
+      content: "",
+      messageId: 9,
+      messageType: 10001,
+      replyMessageId: 8,
+      syncId: 9,
+    });
+
+    expect(projectDirectMessageEvents([original, recall])).toEqual([
+      createDirectMessage({ messageId: 8, status: 1, syncId: 8 }),
+    ]);
   });
 
   it("按 replyMessageId 找到私聊回复引用消息", () => {

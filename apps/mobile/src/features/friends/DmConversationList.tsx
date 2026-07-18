@@ -1,6 +1,7 @@
+import { FlashList } from "@shopify/flash-list";
 import { UsersThree } from "phosphor-react-native";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
-import { FlatList, Pressable, RefreshControl, StyleSheet, View } from "react-native";
+import { Pressable, RefreshControl, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
@@ -10,12 +11,10 @@ import { avatarThumbUrl } from "@/lib/media-url";
 import type { DmConversation } from "./useDmInboxQuery";
 
 import { ContactListAvatar } from "./ContactListAvatar";
+import { formatDmTime } from "./dmDateTime";
 import { normalizeDmConversations } from "./dmConversationListModel";
 
 const AVATAR_SIZE = 40;
-const CONVERSATION_INITIAL_RENDER_COUNT = 12;
-const CONVERSATION_RENDER_BATCH_SIZE = 8;
-const CONVERSATION_WINDOW_SIZE = 7;
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -71,7 +70,7 @@ function formatConversationTime(createTime?: string | null): string {
   const dayMs = 86400000;
 
   if (diff < 0 || diff < dayMs) {
-    return date.toLocaleTimeString("zh-CN", { hour12: false, hour: "2-digit", minute: "2-digit" });
+    return formatDmTime(date);
   }
   if (diff < dayMs * 2)
     return "昨天";
@@ -106,7 +105,7 @@ function DmConversationListInner({
   const theme = useTheme();
 
   const onSelectRef = useRef(onSelectConversation);
-  useEffect(() => { onSelectRef.current = onSelectConversation; });
+  useEffect(() => { onSelectRef.current = onSelectConversation; }, [onSelectConversation]);
 
   const sortedConversations = useMemo(() => normalizeDmConversations(conversations), [conversations]);
 
@@ -157,32 +156,32 @@ function DmConversationListInner({
 
   return (
     <View style={styles.container}>
-      {!hideHeader && (
-        <View style={[styles.header, { borderBottomColor: theme.border }]}>
+      {!hideHeader
+        ? (
+            <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <ThemedText numberOfLines={1} type="heading" style={{ flex: 1 }}>
             私聊
           </ThemedText>
-          {onOpenFriends && (
-            <Pressable
-              onPress={onOpenFriends}
-              style={[styles.friendsButton, { backgroundColor: theme.backgroundElement }]}
-              accessibilityLabel="好友管理"
-              accessibilityRole="button"
-            >
-              <UsersThree size={16} color={theme.textSecondary} />
-            </Pressable>
-          )}
-        </View>
-      )}
+              {onOpenFriends
+                ? (
+                    <Pressable
+                      onPress={onOpenFriends}
+                      style={[styles.friendsButton, { backgroundColor: theme.backgroundElement }]}
+                      accessibilityLabel="好友管理"
+                      accessibilityRole="button"
+                    >
+                      <UsersThree size={16} color={theme.textSecondary} />
+                    </Pressable>
+                  )
+                : null}
+            </View>
+          )
+        : null}
 
-      <FlatList
+      <FlashList
         data={sortedConversations}
         keyExtractor={item => String(item.contactId)}
         renderItem={renderItem}
-        initialNumToRender={CONVERSATION_INITIAL_RENDER_COUNT}
-        maxToRenderPerBatch={CONVERSATION_RENDER_BATCH_SIZE}
-        updateCellsBatchingPeriod={50}
-        windowSize={CONVERSATION_WINDOW_SIZE}
         contentContainerStyle={styles.listContent}
         style={styles.list}
         refreshControl={

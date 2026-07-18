@@ -17,7 +17,7 @@ export const FRIEND_REQUEST_PAGE_QUERY_KEY = ["friendRequestPage"] as const;
 export const FRIEND_CHECK_QUERY_KEY = ["friendCheck"] as const;
 
 type FriendRequestPageData = ApiResultPageBaseRespFriendReqResponse | undefined;
-type FriendRequestPageSnapshot = OptimisticQueryTransaction;
+type FriendRequestPageTransaction = OptimisticQueryTransaction;
 
 function removeFriendFromResult(current: ApiResultListFriendResponse | undefined, targetUserId: number) {
   if (!current?.data) {
@@ -34,8 +34,12 @@ function addFriendToResult(current: ApiResultListFriendResponse | undefined, fri
   return { ...current, data: [...current.data, friend] };
 }
 
-function findFriendInListCaches(queryClient: QueryClient, targetUserId: number) {
-  for (const [, current] of queryClient.getQueriesData<ApiResultListFriendResponse>({ queryKey: FRIEND_LIST_QUERY_KEY })) {
+function findFriendInResultCaches(
+  queryClient: QueryClient,
+  queryKey: readonly string[],
+  targetUserId: number,
+) {
+  for (const [, current] of queryClient.getQueriesData<ApiResultListFriendResponse>({ queryKey })) {
     const friend = current?.data?.find(item => item.userId === targetUserId);
     if (friend) {
       return friend;
@@ -60,7 +64,12 @@ export function beginDeleteFriendRelationshipOptimisticMutation(queryClient: Que
     }),
     optimisticQueryPatch<ApiResultFriendCheckResponse>({
       queryKey: [...FRIEND_CHECK_QUERY_KEY, targetUserId],
-      update: current => patchFriendCheckResult(current, { canSendMessage: false, isFriend: false }),
+      update: current => patchFriendCheckResult(current, {
+        canSendMessage: false,
+        isFriend: false,
+        status: undefined,
+        statusDesc: "无关系",
+      }),
     }),
   ]);
 }
@@ -73,13 +82,14 @@ export function beginSendFriendRequestOptimisticMutation(queryClient: QueryClien
         canSendMessage: false,
         isFriend: false,
         status: 1,
+        statusDesc: "待确认",
       }),
     }),
   ]);
 }
 
 export function beginBlockFriendRelationshipOptimisticMutation(queryClient: QueryClient, targetUserId: number) {
-  const friend = findFriendInListCaches(queryClient, targetUserId);
+  const friend = findFriendInResultCaches(queryClient, FRIEND_LIST_QUERY_KEY, targetUserId);
   return beginOptimisticQueryTransaction(queryClient, [
     optimisticQueryPatch<ApiResultListFriendResponse>({
       queryKey: FRIEND_LIST_QUERY_KEY,
@@ -93,21 +103,37 @@ export function beginBlockFriendRelationshipOptimisticMutation(queryClient: Quer
     }),
     optimisticQueryPatch<ApiResultFriendCheckResponse>({
       queryKey: [...FRIEND_CHECK_QUERY_KEY, targetUserId],
-      update: current => patchFriendCheckResult(current, { canSendMessage: false, isFriend: false, status: 3 }),
+      update: current => patchFriendCheckResult(current, {
+        canSendMessage: false,
+        isFriend: false,
+        status: 3,
+        statusDesc: "已拉黑",
+      }),
     }),
   ]);
 }
 
 export function beginUnblockFriendRelationshipOptimisticMutation(queryClient: QueryClient, targetUserId: number) {
+  const friend = findFriendInResultCaches(queryClient, FRIEND_BLACK_LIST_QUERY_KEY, targetUserId);
   return beginOptimisticQueryTransaction(queryClient, [
     optimisticQueryPatch<ApiResultListFriendResponse>({
       queryKey: FRIEND_BLACK_LIST_QUERY_KEY,
       exact: false,
       update: current => removeFriendFromResult(current, targetUserId),
     }),
+    optimisticQueryPatch<ApiResultListFriendResponse>({
+      queryKey: FRIEND_LIST_QUERY_KEY,
+      exact: false,
+      update: current => addFriendToResult(current, friend),
+    }),
     optimisticQueryPatch<ApiResultFriendCheckResponse>({
       queryKey: [...FRIEND_CHECK_QUERY_KEY, targetUserId],
-      update: current => patchFriendCheckResult(current, { canSendMessage: false, isFriend: false }),
+      update: current => patchFriendCheckResult(current, {
+        canSendMessage: true,
+        isFriend: true,
+        status: 2,
+        statusDesc: "已接受",
+      }),
     }),
   ]);
 }
@@ -144,7 +170,7 @@ function removeFriendRequestFromPageData(
 export async function optimisticRemoveFriendRequestFromPageCaches(
   queryClient: QueryClient,
   friendReqId: number,
-): Promise<FriendRequestPageSnapshot> {
+): Promise<FriendRequestPageTransaction> {
   return beginOptimisticQueryTransaction(queryClient, [
     optimisticQueryPatch<FriendRequestPageData>({
       queryKey: FRIEND_REQUEST_PAGE_QUERY_KEY,
@@ -156,9 +182,9 @@ export async function optimisticRemoveFriendRequestFromPageCaches(
 
 export function rollbackFriendRequestPageCaches(
   queryClient: QueryClient,
-  snapshot?: FriendRequestPageSnapshot,
+  transaction?: FriendRequestPageTransaction,
 ): void {
-  rollbackOptimisticQueryTransaction(queryClient, snapshot);
+  rollbackOptimisticQueryTransaction(queryClient, transaction);
 }
 
 export function reconcileFriendRequestPageCaches(

@@ -15,4 +15,3 @@ export type SpaceMaterialPackageImportRequest = {
      */
     packageId: number;
 };
-

@@ -72,10 +72,6 @@ vi.mock("wasm-webp/dist/esm/webp-wasm.wasm", () => ({
   default: 123,
 }));
 
-function base64(bytes: number[]): string {
-  return Buffer.from(bytes).toString("base64");
-}
-
 function patchPixel(r: number, g: number, b: number, a = 255) {
   return new Uint8ClampedArray([r, g, b, a]);
 }

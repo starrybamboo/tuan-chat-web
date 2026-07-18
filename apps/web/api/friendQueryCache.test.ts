@@ -70,12 +70,28 @@ describe("friendQueryCache", () => {
     rollbackFriendRelationshipOptimisticMutation(queryClient, blockTransaction);
     expect(queryClient.getQueryData<any>(friendListKey)?.data).toEqual([friend, { userId: 8 }]);
 
-    queryClient.setQueryData(blackListKey, { success: true, data: [friend] });
-    await beginUnblockFriendRelationshipOptimisticMutation(queryClient, 7);
+    const blockedTransaction = await beginBlockFriendRelationshipOptimisticMutation(queryClient, 7);
+    const unblockTransaction = await beginUnblockFriendRelationshipOptimisticMutation(queryClient, 7);
     expect(queryClient.getQueryData<any>(blackListKey)?.data).toEqual([]);
+    expect(queryClient.getQueryData<any>(friendListKey)?.data).toEqual([{ userId: 8 }, friend]);
+    expect(queryClient.getQueryData<any>(friendCheckKey)?.data).toMatchObject({
+      canSendMessage: true,
+      isFriend: true,
+      status: 2,
+      statusDesc: "已接受",
+    });
+    rollbackFriendRelationshipOptimisticMutation(queryClient, unblockTransaction);
+    expect(queryClient.getQueryData<any>(blackListKey)?.data).toEqual([friend]);
+    rollbackFriendRelationshipOptimisticMutation(queryClient, blockedTransaction);
 
     const deleteTransaction = await beginDeleteFriendRelationshipOptimisticMutation(queryClient, 7);
     expect(queryClient.getQueryData<any>(friendListKey)?.data).toEqual([{ userId: 8 }]);
+    expect(queryClient.getQueryData<any>(friendCheckKey)?.data).toMatchObject({
+      canSendMessage: false,
+      isFriend: false,
+      status: undefined,
+      statusDesc: "无关系",
+    });
     rollbackFriendRelationshipOptimisticMutation(queryClient, deleteTransaction);
   });
 

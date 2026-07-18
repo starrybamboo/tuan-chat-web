@@ -57,8 +57,8 @@ export function StandardHistoryPanel({
 }: StandardHistoryPanelProps) {
   return (
     <div className="
-      h-full min-h-0 w-[160px] shrink-0 overflow-hidden border-l
-      border-base-300 bg-base-200 p-3
+      h-full min-h-0 w-[160px] shrink-0 overflow-hidden rounded-md border
+      border-base-300 bg-base-100 p-3 shadow-sm
            ">
       <div className="flex h-full flex-col">
         <div className="mb-3 flex items-center gap-2 px-1">
@@ -137,8 +137,8 @@ export function StandardHistoryPanel({
             </AnimatePresence>
             {!currentResultCards.length && !archivedHistoryRows.length
               ? <div className="
-                col-span-1 w-full rounded-xl border border-dashed
-                border-base-300 bg-base-100 px-3 py-5 text-center text-sm
+                col-span-1 w-full rounded-md border border-dashed
+                border-base-300 bg-base-200/70 px-3 py-5 text-center text-sm
                 text-base-content/55
               ">暂无绘图记录</div>
               : null}

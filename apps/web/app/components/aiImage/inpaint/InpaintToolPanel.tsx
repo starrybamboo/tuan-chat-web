@@ -1,4 +1,4 @@
-import { PencilSimpleLineIcon } from "@phosphor-icons/react";
+import { PencilSimpleLineIcon, SelectionPlusIcon, XIcon } from "@phosphor-icons/react";
 
 import { Checkbox, RangeInput } from "@/components/common/FormField";
 
@@ -6,21 +6,33 @@ export function InpaintToolPanel({
   sharedPanelClassName,
   brushSize,
   isSquareBrush,
+  interactionMode,
+  hasFocusedArea,
+  overlayOriginalImage,
   onBrushSizeChange,
   onMaskDrawShapeChange,
   onToggleSquareBrush,
+  onToggleFocusedAreaTool,
+  onClearFocusedArea,
+  onOverlayOriginalImageChange,
 }: {
   sharedPanelClassName: string;
   brushSize: number;
   isSquareBrush: boolean;
+  interactionMode: "mask" | "focus";
+  hasFocusedArea: boolean;
+  overlayOriginalImage: boolean;
   onBrushSizeChange: (value: number) => void;
   onMaskDrawShapeChange: (shape: "circle" | "square") => void;
   onToggleSquareBrush: () => void;
+  onToggleFocusedAreaTool: () => void;
+  onClearFocusedArea: () => void;
+  onOverlayOriginalImageChange: (value: boolean) => void;
 }) {
   return (
     <div
       className={`
-        pointer-events-auto absolute left-4 top-4 z-20 w-[236px]
+        pointer-events-auto absolute left-4 top-4 z-20 w-[280px]
         ${sharedPanelClassName}
       `}
       onMouseDown={event => event.stopPropagation()}
@@ -48,6 +60,7 @@ export function InpaintToolPanel({
             <span>{brushSize}</span>
           </div>
           <RangeInput
+            aria-label="Pen Size"
             density="compact"
             min={4}
             max={50}
@@ -99,6 +112,55 @@ export function InpaintToolPanel({
             </button>
           </div>
         </div>
+      </div>
+      <div className="border-t border-base-300 px-3 py-2.5">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className={`
+              inline-flex h-8 flex-1 items-center justify-center gap-2 rounded-md
+              border px-2 text-[11px] font-semibold transition
+              focus:outline-none focus:ring-2 focus:ring-info/30
+              ${interactionMode === "focus"
+                ? "border-info/40 bg-info/10 text-info"
+                : "border-base-300 bg-base-100 text-base-content/76 hover:bg-base-200"}
+            `}
+            aria-pressed={interactionMode === "focus"}
+            onClick={onToggleFocusedAreaTool}
+          >
+            <SelectionPlusIcon className="size-4" weight="regular" />
+            Focused Area Selection
+          </button>
+          <button
+            type="button"
+            className="
+              inline-flex size-8 items-center justify-center rounded-md border
+              border-base-300 text-base-content/64 transition hover:bg-base-200
+              focus:outline-none focus:ring-2 focus:ring-info/30
+              disabled:cursor-not-allowed disabled:opacity-35
+            "
+            aria-label="清除焦点区域"
+            title="清除焦点区域"
+            disabled={!hasFocusedArea}
+            onClick={onClearFocusedArea}
+          >
+            <XIcon className="size-4" weight="regular" />
+          </button>
+        </div>
+        <label className="mt-2.5 flex cursor-pointer items-start gap-2 text-[11px] font-medium text-base-content/82">
+          <Checkbox
+            density="compact"
+            checked={overlayOriginalImage}
+            className="mt-0.5 size-3.5 rounded border border-base-300 bg-base-100 accent-primary"
+            onChange={event => onOverlayOriginalImageChange(event.target.checked)}
+          />
+          <span>
+            Overlay Original Image
+            <span className="mt-0.5 block font-normal text-base-content/52">
+              保持蒙版外像素不变，但边缘可能更明显。
+            </span>
+          </span>
+        </label>
       </div>
     </div>
   );

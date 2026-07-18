@@ -31,4 +31,3 @@ export type SpaceUpdateRequest = {
      */
     roomMap?: Record<string, Array<string>>;
 };
-

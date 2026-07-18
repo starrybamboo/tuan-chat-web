@@ -1,8 +1,17 @@
-import { findDirectReplyMessage } from "@tuanchat/domain/direct-message";
+import {
+  buildDirectMessageRetryRequest,
+  findDirectReplyMessage,
+  isFailedDirectMessage,
+} from "@tuanchat/domain/direct-message";
+import { useCallback } from "react";
+
+import { appToast } from "@/components/common/appToast/appToast";
+import { useGlobalWebSocket } from "@/components/globalContextProvider";
 
 import type { MessageDirectResponse } from "../../../../api";
 
 import { useScroll } from "../hooks/useScroll";
+import { sendDirectMessageWithOptimisticRetention } from "../hooks/usePrivateMessageSender";
 import { buildPrivateChatTimelineEntries } from "../utils/privateChatTimeline";
 import MessageBubble from "./MessageBubble";
 import UserSearch from "./UserSearch";
@@ -20,9 +29,48 @@ export default function MessageWindow({
   allMessages: MessageDirectResponse[];
   userId: number;
 }) {
+  const webSocketUtils = useGlobalWebSocket();
   // 消息列表滚动hook（消息）
   const { scrollContainerRef, messagesLatestRef } = useScroll({ currentContactUserId, allMessages });
   const timelineEntries = buildPrivateChatTimelineEntries(allMessages);
+  const handleRemoveFailedMessage = useCallback((message: MessageDirectResponse) => {
+    if (!isFailedDirectMessage(message) || typeof message.messageId !== "number") {
+      return;
+    }
+    webSocketUtils.removeOptimisticDirectMessage(message.messageId);
+  }, [webSocketUtils]);
+  const handleRetryFailedMessage = useCallback(async (message: MessageDirectResponse) => {
+    if (!isFailedDirectMessage(message) || typeof message.messageId !== "number") {
+      return;
+    }
+    const retryRequest = buildDirectMessageRetryRequest(message);
+    if (!retryRequest) {
+      appToast.error("这条消息暂时无法重新发送");
+      return;
+    }
+
+    let replacementCreated = false;
+    try {
+      const sent = await sendDirectMessageWithOptimisticRetention(
+        webSocketUtils,
+        retryRequest,
+        () => {
+          replacementCreated = true;
+          webSocketUtils.removeOptimisticDirectMessage(message.messageId!);
+        },
+      );
+      if (!replacementCreated) {
+        appToast.error("当前无法创建待发送消息，请稍后重试");
+      }
+      else if (!sent) {
+        appToast.error("私聊消息发送失败，可再次重试");
+      }
+    }
+    catch (error) {
+      console.error("重新发送私聊消息失败", error);
+      appToast.error("私聊消息发送失败，可再次重试");
+    }
+  }, [webSocketUtils]);
 
   return (
     <div
@@ -67,6 +115,8 @@ export default function MessageWindow({
                     replyMessage={replyMessage}
                     isOwn={entry.message.senderId === userId}
                     groupedWithPrevious={groupedWithPrevious}
+                    onRemoveFailed={() => handleRemoveFailedMessage(entry.message)}
+                    onRetryFailed={() => void handleRetryFailedMessage(entry.message)}
                   />
                 );
               })}

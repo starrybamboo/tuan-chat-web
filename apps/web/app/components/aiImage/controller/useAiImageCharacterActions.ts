@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 
 import { useCallback } from "react";
 
-import type { V4CharEditorRow, V4CharGender, VibeTransferReferenceRow } from "@/components/aiImage/types";
+import type { V4CharEditorRow, V4CharGender } from "@/components/aiImage/types";
 
 import { getNextAvailableV4CharGridCell, newV4CharEditorRow, normalizeV4CharGridRows } from "@/components/aiImage/helpers";
 
@@ -12,7 +12,6 @@ type UseAiImageCharacterActionsOptions = {
   setCharPromptTabs: Dispatch<SetStateAction<Record<string, "prompt" | "negative">>>;
   setProFeatureSectionOpen: (section: "characterPrompts", open: boolean) => void;
   setV4UseCoords: Dispatch<SetStateAction<boolean>>;
-  setVibeTransferReferences: Dispatch<SetStateAction<VibeTransferReferenceRow[]>>;
 };
 
 export function useAiImageCharacterActions({
@@ -21,7 +20,6 @@ export function useAiImageCharacterActions({
   setCharPromptTabs,
   setProFeatureSectionOpen,
   setV4UseCoords,
-  setVibeTransferReferences,
 }: UseAiImageCharacterActionsOptions) {
   const handleAddV4Char = useCallback((options?: { defaultPrompt?: string; gender?: V4CharGender }) => {
     const row = {
@@ -87,21 +85,11 @@ export function useAiImageCharacterActions({
     });
   }, [setV4Chars, setV4UseCoords]);
 
-  const handleUpdateVibeReference = useCallback((id: string, patch: Partial<VibeTransferReferenceRow>) => {
-    setVibeTransferReferences((prev: VibeTransferReferenceRow[]) => prev.map(item => (item.id === id ? { ...item, ...patch } : item)));
-  }, [setVibeTransferReferences]);
-
-  const handleRemoveVibeReference = useCallback((id: string) => {
-    setVibeTransferReferences((prev: VibeTransferReferenceRow[]) => prev.filter(item => item.id !== id));
-  }, [setVibeTransferReferences]);
-
   return {
     handleAddV4Char,
     handleRemoveV4Char,
     handleMoveV4Char,
     handleUpdateV4Char,
     handleSetV4UseCoords,
-    handleUpdateVibeReference,
-    handleRemoveVibeReference,
   };
 }

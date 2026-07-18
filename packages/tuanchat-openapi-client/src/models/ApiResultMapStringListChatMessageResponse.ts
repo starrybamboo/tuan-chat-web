@@ -24,4 +24,3 @@ export type ApiResultMapStringListChatMessageResponse = {
      */
     data?: Record<string, Array<ChatMessageResponse>>;
 };
-

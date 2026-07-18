@@ -51,3 +51,13 @@ export function resolveMessageScrollFallbackOffset(index: number, averageItemLen
   }
   return Math.max(0, Math.floor(index * averageItemLength));
 }
+
+export function shouldAnimateMessageJump(
+  targetIndex: number,
+  currentOffset: number,
+  averageItemLength = 72,
+  maximumAnimatedDistance = 900,
+): boolean {
+  const estimatedTargetOffset = Math.max(0, targetIndex) * Math.max(1, averageItemLength);
+  return Math.abs(estimatedTargetOffset - Math.max(0, currentOffset)) <= maximumAnimatedDistance;
+}

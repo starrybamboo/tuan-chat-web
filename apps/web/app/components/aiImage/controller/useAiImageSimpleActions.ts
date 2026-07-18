@@ -1,20 +1,18 @@
 import { useCallback, useEffect } from "react";
 
-import type { MetadataImportSelectionState, PendingMetadataImportState, ResolutionSelection } from "@/components/aiImage/types";
-import type { AiImageHistoryMode } from "@/utils/aiImageHistoryDb";
+import type { AiImageGenerationMode, MetadataImportSelectionState, PendingMetadataImportState, ResolutionSelection } from "@/components/aiImage/types";
 import type { NovelAiNl2TagsResult } from "@/utils/novelaiNl2Tags";
 
 import {
+  DEFAULT_INPAINT_NOISE,
+  DEFAULT_INPAINT_STRENGTH,
   DEFAULT_SIMPLE_IMAGE_SETTINGS,
 } from "@/components/aiImage/constants";
 import { resolveSimpleGenerateMode, sanitizeNovelAiTagInput, shouldKeepSimpleTagsEditor } from "@/components/aiImage/helpers";
 
-const DEFAULT_INPAINT_STRENGTH = 1;
-const DEFAULT_INPAINT_NOISE = 0;
-
 type UseAiImageSimpleActionsOptions = {
-  mode: AiImageHistoryMode;
-  simpleMode: AiImageHistoryMode;
+  mode: AiImageGenerationMode;
+  simpleMode: AiImageGenerationMode;
   simpleText: string;
   simplePrompt: string;
   simpleNegativePrompt: string;
@@ -27,7 +25,7 @@ type UseAiImageSimpleActionsOptions = {
   runGenerate: (args?: {
     prompt?: string;
     negativePrompt?: string;
-    mode?: AiImageHistoryMode;
+    mode?: AiImageGenerationMode;
   }) => Promise<boolean>;
   setSimpleConverted: (value: NovelAiNl2TagsResult | null) => void;
   setSimpleConvertedFromText: (value: string) => void;
@@ -39,8 +37,6 @@ type UseAiImageSimpleActionsOptions = {
   setSimpleText: (value: string) => void;
   setSimpleWidth: (value: number) => void;
   setSimpleHeight: (value: number) => void;
-  setSimpleImg2imgStrength: (value: number) => void;
-  setSimpleImg2imgNoise: (value: number) => void;
   setSimpleInfillStrength: (value: number) => void;
   setSimpleInfillNoise: (value: number) => void;
   setSimpleSeed: (value: number) => void;
@@ -80,8 +76,6 @@ export function useAiImageSimpleActions({
   setSimpleText,
   setSimpleWidth,
   setSimpleHeight,
-  setSimpleImg2imgStrength,
-  setSimpleImg2imgNoise,
   setSimpleInfillStrength,
   setSimpleInfillNoise,
   setSimpleSeed,
@@ -230,8 +224,6 @@ export function useAiImageSimpleActions({
     setSimplePromptTab("prompt");
     setSimpleWidth(DEFAULT_SIMPLE_IMAGE_SETTINGS.width);
     setSimpleHeight(DEFAULT_SIMPLE_IMAGE_SETTINGS.height);
-    setSimpleImg2imgStrength(DEFAULT_SIMPLE_IMAGE_SETTINGS.strength);
-    setSimpleImg2imgNoise(DEFAULT_SIMPLE_IMAGE_SETTINGS.noise);
     setSimpleInfillStrength(DEFAULT_INPAINT_STRENGTH);
     setSimpleInfillNoise(DEFAULT_INPAINT_NOISE);
     setSimpleSeed(DEFAULT_SIMPLE_IMAGE_SETTINGS.seed);
@@ -255,8 +247,6 @@ export function useAiImageSimpleActions({
     setSimpleConvertedFromText,
     setSimpleEditorMode,
     setSimpleHeight,
-    setSimpleImg2imgNoise,
-    setSimpleImg2imgStrength,
     setSimpleInfillNoise,
     setSimpleInfillStrength,
     setSimpleNegativePrompt,

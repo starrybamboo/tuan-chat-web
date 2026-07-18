@@ -1,14 +1,25 @@
 import type {
+  DirectMessageRepository,
   RoomMessageRepository,
   RoomMessageSqliteDriver,
   SqliteValue,
 } from "@tuanchat/local-db";
+import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 
-import { createRoomMessageRepository } from "@tuanchat/local-db";
+import { createDirectMessageRepository, createRoomMessageRepository } from "@tuanchat/local-db";
 
 import type { ChatMessageResponse } from "../../../../../api";
 
+import { waitForVisibleDocument } from "./localDbPageLifecycle";
 import { dispatchChatLocalDbUnavailableEvent } from "./localDbStatusEvents";
+import {
+  acquireExclusiveWebLock,
+  CHAT_LOCAL_DB_OWNERSHIP_CHANNEL_NAME,
+  CHAT_LOCAL_DB_WEB_LOCK_NAME,
+  createLocalDbOwnershipCoordinator,
+  type LocalDbOwnershipCoordinator,
+  type OwnershipRequestTransport,
+} from "./opfsExclusiveLock";
 
 const WEB_COLLECTION_TABLE_NAME = "web_local_collection";
 const WEB_KEY_VALUE_TABLE_NAME = "web_local_kv";
@@ -25,17 +36,46 @@ type SqliteWasmOpfsSupportCheck =
   | {
       message: string;
       ok: false;
-      reason: "insecure-context" | "missing-opfs-api" | "missing-worker-api";
+      reason: "insecure-context" | "missing-broadcast-channel-api" | "missing-opfs-api" | "missing-web-locks-api" | "missing-worker-api";
       suggestion: string;
     };
 
 type LocalDbContext = {
   collectionRepository: WebCollectionRepository;
+  directMessageRepository: DirectMessageRepository;
+  dispose: () => Promise<void>;
   keyValueRepository: WebKeyValueRepository;
   roomMessageRepository: RoomMessageRepository;
 };
 
 let contextPromise: Promise<LocalDbContext> | null = null;
+let contextAbortController: AbortController | null = null;
+let ownsLocalDbLock = false;
+
+function createOwnershipRequestTransport(): OwnershipRequestTransport | null {
+  if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") {
+    return null;
+  }
+  const channel = new BroadcastChannel(CHAT_LOCAL_DB_OWNERSHIP_CHANNEL_NAME);
+  return {
+    close: () => channel.close(),
+    publish: message => channel.postMessage(message),
+    subscribe(listener) {
+      const handleMessage = (event: MessageEvent<unknown>) => listener(event.data);
+      channel.addEventListener("message", handleMessage);
+      return () => channel.removeEventListener("message", handleMessage);
+    },
+  };
+}
+
+const ownershipRequestTransport = createOwnershipRequestTransport();
+const ownershipCoordinator: LocalDbOwnershipCoordinator | null = ownershipRequestTransport
+  ? createLocalDbOwnershipCoordinator(ownershipRequestTransport, () => {
+      if (ownsLocalDbLock) {
+        void disposeChatHistoryDb();
+      }
+    })
+  : null;
 
 type WebCollectionEntry<T> = {
   id: number;
@@ -89,6 +129,7 @@ type WebKeyValueRepository = {
 
 type SqliteWorkerRequestBody =
   | { type: "all"; sql: string; params?: SqliteValue[] }
+  | { type: "close" }
   | { type: "exec"; sql: string }
   | { type: "run"; sql: string; params?: SqliteValue[] };
 
@@ -99,7 +140,7 @@ type SqliteWorkerResponse =
   | { id: number; ok: false; error: string };
 
 type DisposableRoomMessageSqliteDriver = RoomMessageSqliteDriver & {
-  dispose: () => void;
+  dispose: () => Promise<void>;
 };
 
 function getOpfsStorage(): NavigatorWithOpfs["storage"] | null {
@@ -138,30 +179,69 @@ function checkSqliteWasmOpfsSupport(): SqliteWasmOpfsSupportCheck {
     };
   }
 
+  if (typeof navigator === "undefined" || typeof navigator.locks?.request !== "function") {
+    return {
+      message: "当前浏览器缺少本地缓存所需的跨标签页锁能力，已禁用本地消息缓存。",
+      ok: false,
+      reason: "missing-web-locks-api",
+      suggestion: "请升级浏览器后重试。",
+    };
+  }
+
+  if (!ownershipCoordinator) {
+    return {
+      message: "当前浏览器缺少本地缓存所需的跨标签页通信能力，已禁用本地消息缓存。",
+      ok: false,
+      reason: "missing-broadcast-channel-api",
+      suggestion: "请升级浏览器后重试。",
+    };
+  }
+
   return { ok: true };
 }
 
-function createDisabledSqliteDriver(): RoomMessageSqliteDriver {
+function createDisabledSqliteDriver(): DisposableRoomMessageSqliteDriver {
   return {
     all: async () => [],
+    dispose: async () => undefined,
     exec: async () => undefined,
     run: async () => undefined,
-    transaction: async task => task(),
   };
 }
 
-function createSqliteWasmWorkerDriver(): DisposableRoomMessageSqliteDriver {
+function createSqliteWasmWorkerDriver(onTerminated: () => void | Promise<void>): DisposableRoomMessageSqliteDriver {
   const worker = new Worker(new URL("./sqliteWasmWorker.ts", import.meta.url), { type: "module" });
   let nextId = 1;
   let queue = Promise.resolve();
-  let transactionDepth = 0;
+  let isDisposing = false;
+  let disposePromise: Promise<void> | null = null;
+  let terminationPromise: Promise<void> | null = null;
   const pending = new Map<number, {
     reject: (reason?: unknown) => void;
     resolve: (value: unknown) => void;
     timeoutId: ReturnType<typeof setTimeout>;
   }>();
 
-  function request<T>(message: SqliteWorkerRequestBody): Promise<T> {
+  function failPendingRequests(error: Error): void {
+    for (const entry of pending.values()) {
+      clearTimeout(entry.timeoutId);
+      entry.reject(error);
+    }
+    pending.clear();
+  }
+
+  function terminateWorker(): Promise<void> {
+    if (!terminationPromise) {
+      worker.terminate();
+      terminationPromise = Promise.resolve(onTerminated());
+    }
+    return terminationPromise;
+  }
+
+  function requestWorker<T>(message: SqliteWorkerRequestBody): Promise<T> {
+    if (terminationPromise) {
+      return Promise.reject(new Error("SQLite worker was terminated."));
+    }
     const id = nextId++;
     const payload = { ...message, id } as SqliteWorkerRequest;
     return new Promise<T>((resolve, reject) => {
@@ -195,70 +275,69 @@ function createSqliteWasmWorkerDriver(): DisposableRoomMessageSqliteDriver {
 
   worker.addEventListener("error", (event) => {
     const error = new Error(event.message || "SQLite worker failed.");
-    for (const entry of pending.values()) {
-      clearTimeout(entry.timeoutId);
-      entry.reject(error);
-    }
-    pending.clear();
+    failPendingRequests(error);
+    void terminateWorker();
   });
 
   worker.addEventListener("messageerror", () => {
     const error = new Error("SQLite worker failed to deserialize a message.");
-    for (const entry of pending.values()) {
-      clearTimeout(entry.timeoutId);
-      entry.reject(error);
-    }
-    pending.clear();
+    failPendingRequests(error);
+    void terminateWorker();
   });
 
-  function dispose(): void {
-    for (const entry of pending.values()) {
-      clearTimeout(entry.timeoutId);
-      entry.reject(new Error("SQLite worker was disposed."));
+  function dispose(): Promise<void> {
+    if (disposePromise) {
+      return disposePromise;
     }
-    pending.clear();
-    worker.terminate();
+    isDisposing = true;
+    const closePromise = queue.then(
+      () => requestWorker<void>({ type: "close" }),
+      () => requestWorker<void>({ type: "close" }),
+    );
+    queue = closePromise.then(() => undefined, () => undefined);
+    disposePromise = closePromise
+      .catch((error: unknown) => {
+        failPendingRequests(error instanceof Error ? error : new Error(String(error)));
+      })
+      .then(terminateWorker);
+    return disposePromise;
   }
 
   function enqueue<T>(task: () => Promise<T>): Promise<T> {
+    if (isDisposing) {
+      return Promise.reject(new Error("SQLite worker is closing."));
+    }
     const result = queue.then(task, task);
     queue = result.then(() => undefined, () => undefined);
     return result;
   }
 
-  function enqueueOrRun<T>(task: () => Promise<T>): Promise<T> {
-    if (transactionDepth > 0) {
-      return task();
-    }
-    return enqueue(task);
-  }
+  const transactionDriver: RoomMessageSqliteDriver = {
+    all: <T>(sql: string, params: SqliteValue[] = []) => requestWorker<T[]>({ params, sql, type: "all" }),
+    exec: sql => requestWorker<void>({ sql, type: "exec" }),
+    run: (sql, params: SqliteValue[] = []) => requestWorker<void>({ params, sql, type: "run" }),
+  };
 
   return {
     all<T>(sql: string, params: SqliteValue[] = []): Promise<T[]> {
-      return enqueueOrRun(() => request<T[]>({ params, sql, type: "all" }));
+      return enqueue(() => transactionDriver.all<T>(sql, params));
     },
     exec(sql: string): Promise<void> {
-      return enqueueOrRun(() => request<void>({ sql, type: "exec" }));
+      return enqueue(() => transactionDriver.exec(sql));
     },
     run(sql: string, params: SqliteValue[] = []): Promise<void> {
-      return enqueueOrRun(() => request<void>({ params, sql, type: "run" }));
+      return enqueue(() => transactionDriver.run(sql, params));
     },
-    transaction<T>(task: () => Promise<T>): Promise<T> {
+    transaction<T>(task: (transactionDriver: RoomMessageSqliteDriver) => Promise<T>): Promise<T> {
       return enqueue(async () => {
-        if (transactionDepth > 0) {
-          return task();
-        }
-        await request<void>({ sql: "BEGIN TRANSACTION", type: "exec" });
-        transactionDepth += 1;
+        await requestWorker<void>({ sql: "BEGIN TRANSACTION", type: "exec" });
         try {
-          const result = await task();
-          transactionDepth -= 1;
-          await request<void>({ sql: "COMMIT", type: "exec" });
+          const result = await task(transactionDriver);
+          await requestWorker<void>({ sql: "COMMIT", type: "exec" });
           return result;
         }
         catch (error) {
-          transactionDepth -= 1;
-          await request<void>({ sql: "ROLLBACK", type: "exec" }).catch(() => undefined);
+          await requestWorker<void>({ sql: "ROLLBACK", type: "exec" }).catch(() => undefined);
           throw error;
         }
       });
@@ -559,21 +638,33 @@ function createWebKeyValueRepository(driver: RoomMessageSqliteDriver): WebKeyVal
 }
 
 async function getLocalDbContext(): Promise<LocalDbContext> {
-  contextPromise ??= (async () => {
-    const driver = await createPreferredSqliteDriver();
-    const roomMessageRepository = createRoomMessageRepository(driver);
-    const keyValueRepository = createWebKeyValueRepository(driver);
-    const collectionRepository = createWebCollectionRepository(driver);
-    return {
-      collectionRepository,
-      keyValueRepository,
-      roomMessageRepository,
-    };
-  })();
+  if (!contextPromise) {
+    contextAbortController = new AbortController();
+    const signal = contextAbortController.signal;
+    contextPromise = (async () => {
+      await waitForVisibleDocument(typeof document === "undefined" ? undefined : document, signal);
+      const driver = await createPreferredSqliteDriver(signal);
+      const roomMessageRepository = createRoomMessageRepository(driver);
+      const directMessageRepository = createDirectMessageRepository(driver);
+      const keyValueRepository = createWebKeyValueRepository(driver);
+      const collectionRepository = createWebCollectionRepository(driver);
+      return {
+        collectionRepository,
+        directMessageRepository,
+        dispose: driver.dispose,
+        keyValueRepository,
+        roomMessageRepository,
+      };
+    })();
+  }
   return contextPromise;
 }
 
-async function createPreferredSqliteDriver(): Promise<RoomMessageSqliteDriver> {
+function isAbortError(error: unknown): boolean {
+  return typeof DOMException !== "undefined" && error instanceof DOMException && error.name === "AbortError";
+}
+
+async function createPreferredSqliteDriver(signal: AbortSignal): Promise<DisposableRoomMessageSqliteDriver> {
   const support = checkSqliteWasmOpfsSupport();
   if (!support.ok) {
     dispatchChatLocalDbUnavailableEvent({
@@ -584,25 +675,90 @@ async function createPreferredSqliteDriver(): Promise<RoomMessageSqliteDriver> {
     return createDisabledSqliteDriver();
   }
 
-  const driver = createSqliteWasmWorkerDriver();
+  let driver: DisposableRoomMessageSqliteDriver | null = null;
+  let releaseLock: (() => Promise<void>) | null = null;
   try {
+    ownershipCoordinator?.requestOwnership();
+    const lease = await acquireExclusiveWebLock(
+      (name, options, callback) => navigator.locks.request(name, options, callback),
+      CHAT_LOCAL_DB_WEB_LOCK_NAME,
+      signal,
+    );
+    ownsLocalDbLock = true;
+    releaseLock = () => {
+      ownsLocalDbLock = false;
+      return lease.release();
+    };
+    driver = createSqliteWasmWorkerDriver(releaseLock);
     await driver.all<{ ok: number }>("SELECT 1 AS ok");
     return driver;
   }
   catch (error) {
-    driver.dispose();
+    if (driver) {
+      await driver.dispose();
+    }
+    else if (releaseLock) {
+      await releaseLock();
+    }
+
+    if (signal.aborted || isAbortError(error)) {
+      throw error;
+    }
+
     console.warn("[ChatHistory] SQLite WASM OPFS SAH pool worker unavailable; disabling local message cache.", error);
     dispatchChatLocalDbUnavailableEvent({
       message: "高性能本地 SQLite 初始化失败，已禁用本地消息缓存。",
       reason: "sqlite-wasm-worker-failed",
-      suggestion: "常见原因是其他标签页占用同一个 OPFS SAH pool。请先关闭同站点其他标签页后刷新。",
+      suggestion: "请刷新页面重试；若问题持续出现，请升级浏览器或清理该站点的本地数据。",
     });
     return createDisabledSqliteDriver();
   }
 }
 
+/** 关闭当前页面的本地数据库上下文并释放跨标签页所有权。 */
+export async function disposeChatHistoryDb(): Promise<void> {
+  const pendingContext = contextPromise;
+  contextPromise = null;
+  contextAbortController?.abort();
+  contextAbortController = null;
+
+  if (!pendingContext) {
+    return;
+  }
+
+  try {
+    const context = await pendingContext;
+    await context.dispose();
+  }
+  catch (error) {
+    if (!isAbortError(error)) {
+      console.warn("[ChatHistory] Failed to dispose the local SQLite context cleanly.", error);
+    }
+  }
+}
+
+function handlePageHide(): void {
+  void disposeChatHistoryDb();
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", handlePageHide);
+}
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    window.removeEventListener("pagehide", handlePageHide);
+    ownershipCoordinator?.dispose();
+    void disposeChatHistoryDb();
+  });
+}
+
 async function getRoomMessageRepository(): Promise<RoomMessageRepository> {
   return (await getLocalDbContext()).roomMessageRepository;
+}
+
+async function getDirectMessageRepository(): Promise<DirectMessageRepository> {
+  return (await getLocalDbContext()).directMessageRepository;
 }
 
 export async function addOrUpdateMessagesBatch(messages: ChatMessageResponse[]): Promise<void> {
@@ -612,6 +768,21 @@ export async function addOrUpdateMessagesBatch(messages: ChatMessageResponse[]):
 
   const repository = await getRoomMessageRepository();
   await repository.upsertMessages(messages);
+}
+
+export async function addPendingRoomMessages(messages: ChatMessageResponse[]): Promise<void> {
+  await (await getRoomMessageRepository()).addPendingMessages(messages);
+}
+
+export async function promotePendingRoomMessage(
+  pendingMessageId: number,
+  confirmedMessage: ChatMessageResponse,
+): Promise<void> {
+  await (await getRoomMessageRepository()).promotePendingMessage(pendingMessageId, confirmedMessage);
+}
+
+export async function rollbackPendingRoomMessages(pendingMessageIds: number[]): Promise<void> {
+  await (await getRoomMessageRepository()).rollbackPendingMessages(pendingMessageIds);
 }
 
 export async function deleteMessagesByIds(messageIds: number[]): Promise<void> {
@@ -637,6 +808,39 @@ export async function getMessageById(messageId: number): Promise<ChatMessageResp
 export async function clearMessagesByRoomId(roomId: number): Promise<void> {
   const repository = await getRoomMessageRepository();
   await repository.clearRoomMessages(roomId);
+}
+
+/** Web 私聊与移动端复用同一 confirmed projection + pending overlay 仓储。 */
+export async function getCachedDirectMessages(currentUserId: number, contactId: number): Promise<MessageDirectResponse[]> {
+  return (await getDirectMessageRepository()).getMessagesByContact(currentUserId, contactId);
+}
+
+export async function getCachedDirectInboxMessages(currentUserId: number): Promise<MessageDirectResponse[]> {
+  return (await getDirectMessageRepository()).getMessagesByUser(currentUserId);
+}
+
+export async function getCachedDirectConversationMaxSyncId(currentUserId: number, contactId: number): Promise<number> {
+  return (await getDirectMessageRepository()).getMaxSyncIdByContact(currentUserId, contactId);
+}
+
+export async function upsertCachedDirectMessages(currentUserId: number, messages: MessageDirectResponse[]): Promise<void> {
+  await (await getDirectMessageRepository()).upsertMessages(currentUserId, messages);
+}
+
+export async function addPendingDirectMessage(currentUserId: number, message: MessageDirectResponse): Promise<void> {
+  await (await getDirectMessageRepository()).addPendingMessage(currentUserId, message);
+}
+
+export async function promotePendingDirectMessage(
+  currentUserId: number,
+  pendingMessageId: number,
+  confirmedMessage: MessageDirectResponse,
+): Promise<void> {
+  await (await getDirectMessageRepository()).promotePendingMessage(currentUserId, pendingMessageId, confirmedMessage);
+}
+
+export async function rollbackPendingDirectMessage(currentUserId: number, pendingMessageId: number): Promise<void> {
+  await (await getDirectMessageRepository()).rollbackPendingMessage(currentUserId, pendingMessageId);
 }
 
 export async function getLocalValue<T>(key: string, options?: LocalValueScopeOptions): Promise<T | null> {

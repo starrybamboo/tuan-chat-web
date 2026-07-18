@@ -5,8 +5,10 @@
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
 import type { ApiResultDirectBadgeSummaryResponse } from '../models/ApiResultDirectBadgeSummaryResponse';
 import type { ApiResultListMessageDirectResponse } from '../models/ApiResultListMessageDirectResponse';
+import type { ApiResultMessageDirectConversationSyncResponse } from '../models/ApiResultMessageDirectConversationSyncResponse';
 import type { ApiResultMessageDirectResponse } from '../models/ApiResultMessageDirectResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
+import type { MessageDirectConversationSyncRequest } from '../models/MessageDirectConversationSyncRequest';
 import type { MessageDirectReadUpdateRequest } from '../models/MessageDirectReadUpdateRequest';
 import type { MessageDirectRecallRequest } from '../models/MessageDirectRecallRequest';
 import type { MessageDirectSendRequest } from '../models/MessageDirectSendRequest';
@@ -76,6 +78,23 @@ export class MessageDirectControllerService {
         return this.httpRequest.request({
             method: 'POST',
             url: '/message/direct/inbox',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * 同步私聊会话
+     * syncId 为 0 时返回完整基线，否则返回从该 syncId（含边界）起的追加事件
+     * @param requestBody
+     * @returns ApiResultMessageDirectConversationSyncResponse OK
+     * @throws ApiError
+     */
+    public syncConversation(
+        requestBody: MessageDirectConversationSyncRequest,
+    ): CancelablePromise<ApiResultMessageDirectConversationSyncResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/message/direct/conversation-sync',
             body: requestBody,
             mediaType: 'application/json',
         });

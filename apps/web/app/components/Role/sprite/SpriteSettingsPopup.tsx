@@ -2,13 +2,9 @@ import type { RoleAvatar, RoleAvatarVariant, RoleAvatarVariantCompositionConfig 
 
 import {
   ArrowLeftIcon,
-  CaretDownIcon,
-  CheckCircleIcon,
-  ChecksIcon,
   FolderOpenIcon,
   GearIcon,
   ImageIcon,
-  PlusIcon,
   TrashIcon,
   UserCircleIcon,
   WarningCircleIcon,
@@ -38,11 +34,8 @@ import { appToast } from "@/components/common/appToast/appToast";
 import { Button } from "@/components/common/Button";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { surfaceClassName, textClassName } from "@/components/common/DesignLanguage";
-import { DialogActions, DialogFrame } from "@/components/common/DialogFrame";
-import { FieldGroup, FieldLabel, TextInput } from "@/components/common/FormField";
 import { IconButton } from "@/components/common/IconButton";
 import { MediaImage } from "@/components/common/mediaImage";
-import { DropdownMenu, MenuItem } from "@/components/common/MenuPopover";
 import { CountBadge, InlineAlert } from "@/components/common/StatusPrimitives";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ensureRoleAvatarDefaultMedia } from "@/components/Role/RoleCreation/hooks/createRoleDefaultAvatar";
@@ -77,6 +70,7 @@ import {
 import { SpriteCropper } from "./Tabs/SpriteCropper";
 import { getCropSubmitTaskKey, SpriteCropSubmissionCoordinator } from "./Tabs/spriteCropperUploadFlow";
 import { SpriteListGrid } from "./Tabs/SpriteListGrid";
+import { VariantAssignmentDialog } from "./Tabs/VariantAssignmentDialog";
 import {
 
   getEffectiveAvatarUrl,
@@ -88,6 +82,7 @@ import {
   parseTransformFromVariantConfig,
   toSpriteTransformPayload,
 } from "./utils";
+import { buildVariantAssignmentFailureToast } from "./variantAssignmentFailure";
 import { getVariantFolderClickAction } from "./variantFolderInteraction";
 
 export type SettingsTab = "cropper" | "avatarCropper" | "setting" | "trash";
@@ -347,111 +342,6 @@ async function runWithConcurrencyLimit<T, R>(
   return results;
 }
 
-type VariantNameDialogProps = {
-  initialName: string;
-  selectedCount: number;
-  onCancel: () => void;
-  onConfirm: (name: string) => void;
-}
-
-function VariantNameDialog({
-  initialName,
-  selectedCount,
-  onCancel,
-  onConfirm,
-}: VariantNameDialogProps) {
-  const [draft, setDraft] = useState(initialName);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const isComposingRef = useRef(false);
-  const trimmedDraft = draft.trim();
-
-  useEffect(() => {
-    setDraft(initialName);
-  }, [initialName]);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-    inputRef.current?.select();
-  }, []);
-
-  const handleSubmit = useCallback(() => {
-    if (!trimmedDraft) {
-      appToast.error("请输入立绘组名称");
-      return;
-    }
-    onConfirm(trimmedDraft);
-  }, [onConfirm, trimmedDraft]);
-
-  return (
-    <DialogFrame
-      open
-      mode="inline"
-      onClose={onCancel}
-      ariaLabel="新建立绘组"
-      closeButtonLabel="关闭新建立绘组弹窗"
-      rootClassName="absolute z-40 p-4 bg-black/55"
-      panelClassName="
-        relative z-10 w-full max-w-md rounded-md border border-base-300
-        bg-base-100 p-6 shadow-2xl
-      "
-    >
-        <h3 id="variant-name-dialog-title" className="text-lg font-bold">新建立绘组</h3>
-        <p className="py-3 text-sm text-base-content/60">
-          将使用当前选择的
-          {" "}
-          <span className="font-medium text-base-content">
-            {selectedCount}
-          </span>
-          {" "}
-          个头像初始化立绘组。
-        </p>
-        <FieldGroup className="w-full">
-          <FieldLabel htmlFor="sprite-variant-name">名称</FieldLabel>
-          <TextInput
-            id="sprite-variant-name"
-            ref={inputRef}
-            className="w-full"
-            autoComplete="off"
-            value={draft}
-            onChange={event => setDraft(event.currentTarget.value)}
-            onCompositionStart={() => {
-              isComposingRef.current = true;
-            }}
-            onCompositionEnd={() => {
-              isComposingRef.current = false;
-            }}
-            onKeyDown={(event) => {
-              if (event.nativeEvent.isComposing || isComposingRef.current) {
-                return;
-              }
-              if (event.key === "Enter") {
-                event.preventDefault();
-                handleSubmit();
-              }
-            }}
-            maxLength={40}
-            placeholder="立绘组名称"
-          />
-        </FieldGroup>
-        <DialogActions>
-          <Button
-            variant="ghost"
-            onClick={onCancel}
-          >
-            取消
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleSubmit}
-            disabled={!trimmedDraft}
-          >
-            继续裁剪
-          </Button>
-        </DialogActions>
-    </DialogFrame>
-  );
-}
-
 type SpriteSettingsPopupProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -498,7 +388,7 @@ export function SpriteSettingsPopup({
   const [pendingUploadAvatarWorkflows, setPendingUploadAvatarWorkflows] = useState<PendingUploadAvatarWorkflow[]>([]);
   const pendingUploadAvatarWorkflow = pendingUploadAvatarWorkflows[0] ?? null;
   const [pendingUploadSpriteCalibration, setPendingUploadSpriteCalibration] = useState<PendingUploadAvatarWorkflow | null>(null);
-  const [variantNameDialogOpen, setVariantNameDialogOpen] = useState(false);
+  const [variantDialogMode, setVariantDialogMode] = useState<"closed" | "select" | "create">("closed");
   const [variantNameDraft, setVariantNameDraft] = useState("");
   const [variantCreationIndices, setVariantCreationIndices] = useState<number[]>([]);
   const [pendingVariantSpriteCalibrationIndices, setPendingVariantSpriteCalibrationIndices] = useState<number[] | null>(null);
@@ -517,7 +407,6 @@ export function SpriteSettingsPopup({
     failedCount: number;
     totalCount: number;
   } | null>(null);
-  const [batchTargetVariantId, setBatchTargetVariantId] = useState("");
   const [draggedAvatarIndices, setDraggedAvatarIndices] = useState<number[]>([]);
   const [variantDropTarget, setVariantDropTarget] = useState<string | null>(null);
   const optimisticAvatarIds = useMemo(() => (
@@ -574,11 +463,6 @@ export function SpriteSettingsPopup({
   const setDefaultAvatarMutation = useSetDefaultRoleAvatarMutation(role?.id);
   const applyCropMutation = useApplyCropMutation();
   const applyCropAvatarMutation = useApplyCropAvatarMutation();
-  const [localDefaultAvatarId, setLocalDefaultAvatarId] = useState(role?.avatarId);
-
-  useEffect(() => {
-    setLocalDefaultAvatarId(role?.avatarId);
-  }, [role?.avatarId]);
 
   const variantGroups = useMemo(() => {
     const groupMap = new Map<number, RoleAvatarVariant>();
@@ -885,8 +769,6 @@ export function SpriteSettingsPopup({
     ? effectiveAvatarCropperSelectedIndices.size > 0
     : isMultiSelectMode;
 
-  const visibleCount = filteredIndices.length;
-
   useEffect(() => {
     setIsMultiSelectMode(false);
     setSelectedIndices(new Set());
@@ -957,9 +839,6 @@ export function SpriteSettingsPopup({
     const [variantKey] = Array.from(selectedVariantKeys);
     return variantLabelMap.get(variantKey) ?? getFallbackVariantLabel(variantKey);
   }, [isVariantFolderSelected, selectedVariantKeys, selectedVariantLabel, variantLabelMap]);
-  const selectedMissingCropContextCount = useMemo(() => (
-    effectiveSelectedAvatarItems.filter(({ avatar }) => !avatar.avatarCropContext).length
-  ), [effectiveSelectedAvatarItems]);
   const selectedWithVariantCount = useMemo(() => (
     effectiveSelectedAvatarItems.filter(({ avatar }) => getAvatarVariantKey(avatar) !== UNGROUPED_VARIANT_KEY).length
   ), [effectiveSelectedAvatarItems]);
@@ -1533,7 +1412,6 @@ export function SpriteSettingsPopup({
       return;
     }
 
-    setLocalDefaultAvatarId(avatar.avatarId);
     const nextIndex = spritesAvatars.findIndex(item => item.avatarId === avatar.avatarId);
     if (nextIndex === -1) {
       return;
@@ -1548,7 +1426,7 @@ export function SpriteSettingsPopup({
       appToast.error("头像信息缺失，无法设为默认头像");
       return;
     }
-    if (localDefaultAvatarId === avatar.avatarId || setDefaultAvatarMutation.isPending) {
+    if (role?.avatarId === avatar.avatarId || setDefaultAvatarMutation.isPending) {
       return;
     }
 
@@ -1563,7 +1441,7 @@ export function SpriteSettingsPopup({
     }
   }, [
     handleDefaultAvatarApplied,
-    localDefaultAvatarId,
+    role?.avatarId,
     role?.id,
     setDefaultAvatarMutation,
   ]);
@@ -1662,11 +1540,6 @@ export function SpriteSettingsPopup({
   }, [isOpen, queryClient, role?.id, spritesAvatars]);
   const { handleBatchDelete, isDeleting: isDeletingAvatar } = deletionHook;
 
-  // 应用完成后关闭弹窗
-  const handleApply = useCallback(() => {
-    onClose();
-  }, [onClose]);
-
   // 批量删除确认对话框状态
   const [batchDeleteConfirmOpen, setBatchDeleteConfirmOpen] = useState(false);
   const [variantRemovalConfirm, setVariantRemovalConfirm] = useState<PendingVariantRemovalConfirm | null>(null);
@@ -1723,15 +1596,16 @@ export function SpriteSettingsPopup({
   useEffect(() => {
     if (isOpen && !wasOpen) {
       setActiveTab(defaultTab);
-      // 弹窗打开默认进入未分组，避免当前应用头像把左侧列表带进某个立绘组。
-      const fallbackIndex = Math.max(0, Math.min(currentSpriteIndex, spritesAvatars.length - 1));
-      const ungroupedIndex = spritesAvatars.findIndex(avatar => (
-        getAvatarVariantKey(avatar) === UNGROUPED_VARIANT_KEY
-      ));
-      const validIndex = ungroupedIndex >= 0 ? ungroupedIndex : fallbackIndex;
+      const validIndex = Math.max(0, Math.min(currentSpriteIndex, spritesAvatars.length - 1));
+      const currentAvatar = spritesAvatars[validIndex];
+      const currentAvatarVariantKey = currentAvatar
+        ? getAvatarVariantKey(currentAvatar)
+        : UNGROUPED_VARIANT_KEY;
       setInternalIndex(validIndex);
-      setVariantFilter(UNGROUPED_VARIANT_KEY);
-      setSelectedVariantKey(null);
+      setVariantFilter(currentAvatarVariantKey);
+      setSelectedVariantKey(
+        currentAvatarVariantKey === UNGROUPED_VARIANT_KEY ? null : currentAvatarVariantKey,
+      );
       setIsMobileControlDrawerOpen(isMobile);
     }
     setWasOpen(isOpen);
@@ -1787,9 +1661,6 @@ export function SpriteSettingsPopup({
   }, [activeTab]);
 
   const roleDisplayName = characterName.trim() || "角色";
-  const avatarListTitle = isVariantGroupView
-    ? `${roleDisplayName}【${activeVariantLabel}】`
-    : roleDisplayName;
   const currentUploadVariantId = activeVariantId ?? undefined;
   const currentUploadVariantGroup = activeVariantGroup;
   const isVariantMutationPending = createVariantMutation.isPending
@@ -1834,17 +1705,18 @@ export function SpriteSettingsPopup({
     handleSelectVariantFolder(variantKey);
   }, [handleSelectVariantFolder, handleVariantFilterChange, selectedVariantKey]);
 
-  const getVariantCreationIndices = useCallback(() => {
+  const getSelectedVariantCreationIndices = useCallback(() => {
     if (!role?.id) {
       appToast.error("角色信息缺失，无法新建立绘组");
       return null;
     }
 
-    const sourceItems = isMultiSelectMode && selectedAvatarItems.length > 0
-      ? selectedAvatarItems
-      : currentAvatar
-        ? [{ index: internalIndex, avatar: currentAvatar }]
-        : [];
+    if (!isMultiSelectMode || selectedAvatarItems.length === 0) {
+      appToast.error("请先选择未分组头像");
+      return null;
+    }
+
+    const sourceItems = selectedAvatarItems;
     const validIndices: number[] = [];
     let needsSpriteCalibration = false;
     let allHaveOrigin = true;
@@ -1897,10 +1769,10 @@ export function SpriteSettingsPopup({
       indices: validIndices,
       needsSpriteCalibration,
     };
-  }, [currentAvatar, internalIndex, isMultiSelectMode, role?.id, selectedAvatarItems]);
+  }, [isMultiSelectMode, role?.id, selectedAvatarItems]);
 
-  const handleCreateVariantFromCurrentAvatar = useCallback(() => {
-    const creation = getVariantCreationIndices();
+  const handleCreateVariantFromSelection = useCallback(() => {
+    const creation = getSelectedVariantCreationIndices();
     if (!creation) {
       return;
     }
@@ -1922,8 +1794,8 @@ export function SpriteSettingsPopup({
 
     setVariantCreationIndices(validIndices);
     setVariantNameDraft(`立绘组 ${variantGroups.length + 1}`);
-    setVariantNameDialogOpen(true);
-  }, [getVariantCreationIndices, internalIndex, isMobile, variantGroups.length]);
+    setVariantDialogMode("create");
+  }, [getSelectedVariantCreationIndices, internalIndex, isMobile, variantGroups.length]);
 
   const handleConfirmVariantName = useCallback((nextName: string) => {
     const name = nextName.trim();
@@ -1953,7 +1825,7 @@ export function SpriteSettingsPopup({
       setSelectedIndices(new Set());
     }
     setPendingVariantInitialization({ name });
-    setVariantNameDialogOpen(false);
+    setVariantDialogMode("closed");
     setVariantCreationIndices([]);
     setActiveTab("avatarCropper");
     if (isMobile) {
@@ -1967,7 +1839,7 @@ export function SpriteSettingsPopup({
   ]);
 
   const handleCancelVariantName = useCallback(() => {
-    setVariantNameDialogOpen(false);
+    setVariantDialogMode("closed");
     setVariantCreationIndices([]);
   }, []);
 
@@ -2123,9 +1995,6 @@ export function SpriteSettingsPopup({
       if (isMobile) {
         setIsMobileControlDrawerOpen(false);
       }
-      appToast.info(pendingSpriteSubmissions.length > 0
-        ? "立绘已本地应用，后台保存中，请继续头像校正"
-        : "立绘校正完成，请继续头像校正");
     };
     if (pendingUploadSpriteCalibration) {
       const successfulUploadIds = pendingUploadSpriteCalibration.avatarIds
@@ -2180,7 +2049,7 @@ export function SpriteSettingsPopup({
       }
       setVariantCreationIndices(creationIndices);
       setVariantNameDraft(`立绘组 ${variantGroups.length + 1}`);
-      setVariantNameDialogOpen(true);
+      setVariantDialogMode("create");
       setPendingVariantSpriteCalibrationIndices(null);
       return;
     }
@@ -2276,7 +2145,7 @@ export function SpriteSettingsPopup({
 
     setVariantCreationIndices(validIndices);
     setVariantNameDraft(`立绘组 ${variantGroups.length + 1}`);
-    setVariantNameDialogOpen(true);
+    setVariantDialogMode("create");
     setBatchVariantCreationPrompt(null);
   }, [batchVariantCreationPrompt, spritesAvatars, variantGroups.length]);
 
@@ -2384,16 +2253,6 @@ export function SpriteSettingsPopup({
       throw new Error("头像信息缺失，无法移出立绘组");
     }
 
-    const avatarVariantKey = getAvatarVariantKey(avatar);
-    if (avatarVariantKey === UNGROUPED_VARIANT_KEY) {
-      appToast.error("当前头像未绑定立绘组");
-      return false;
-    }
-
-    const remainingGroupIndex = spritesAvatars.findIndex(item => (
-      item.avatarId !== avatar.avatarId
-      && getAvatarVariantKey(item) === avatarVariantKey
-    ));
     const result = await updateRoleAvatarMutation.mutateAsync({
       ...avatar,
       roleId: avatar.roleId ?? role.id,
@@ -2404,31 +2263,9 @@ export function SpriteSettingsPopup({
       throw new Error(result.errMsg || "移出立绘组失败");
     }
 
-    setSelectedIndices(new Set());
-    setIsMultiSelectMode(false);
-    if (isVariantGroupView && variantFilter === avatarVariantKey) {
-      if (remainingGroupIndex >= 0) {
-        handleInternalIndexChange(remainingGroupIndex);
-      }
-      else {
-        setVariantFilter(UNGROUPED_VARIANT_KEY);
-        setSelectedVariantKey(null);
-      }
-    }
-    else if (selectedVariantKey === avatarVariantKey && remainingGroupIndex < 0) {
-      setSelectedVariantKey(null);
-    }
     appToast.success("已移出立绘组");
     return true;
-  }, [
-    handleInternalIndexChange,
-    isVariantGroupView,
-    role?.id,
-    selectedVariantKey,
-    spritesAvatars,
-    updateRoleAvatarMutation,
-    variantFilter,
-  ]);
+  }, [role?.id, updateRoleAvatarMutation]);
 
   const assignAvatarItemsToVariant = useCallback(async (
     avatarItems: Array<{ index: number; avatar: RoleAvatar }>,
@@ -2485,10 +2322,10 @@ export function SpriteSettingsPopup({
     const variantSpriteTransform = toSpriteTransformPayload(variantTransform);
     let completedCount = 0;
     let successCount = 0;
-    let failedCount = 0;
+    const failures: Array<{ itemIndex: number; error: unknown }> = [];
     try {
       appToast.loading(`正在${actionLabel}：0/${itemsToAssign.length}`, { id: toastId });
-      await runWithConcurrencyLimit(itemsToAssign, 4, async ({ avatar }) => {
+      await runWithConcurrencyLimit(itemsToAssign, 4, async ({ avatar }, itemIndex) => {
         try {
           const roleId = avatar.roleId ?? role.id;
           if (!roleId || !avatar.avatarId) {
@@ -2547,7 +2384,7 @@ export function SpriteSettingsPopup({
           successCount += 1;
         }
         catch (error) {
-          failedCount += 1;
+          failures.push({ itemIndex, error });
           console.error("绑定立绘组时处理头像失败:", avatar.avatarId, error);
         }
         finally {
@@ -2556,8 +2393,11 @@ export function SpriteSettingsPopup({
         }
       });
 
+      const failureErrors = failures
+        .sort((first, second) => first.itemIndex - second.itemIndex)
+        .map(failure => failure.error);
       if (successCount === 0) {
-        appToast.error("绑定失败：所选头像无法应用该立绘组", { id: toastId });
+        appToast.error(buildVariantAssignmentFailureToast(0, failureErrors), { id: toastId });
         return false;
       }
 
@@ -2567,8 +2407,8 @@ export function SpriteSettingsPopup({
         setSelectedVariantKey(targetVariantKey);
         setVariantFilter(targetVariantKey);
       }
-      if (failedCount > 0) {
-        appToast.error(`部分绑定失败：成功 ${successCount} 个，失败 ${failedCount} 个`, { id: toastId });
+      if (failureErrors.length > 0) {
+        appToast.error(buildVariantAssignmentFailureToast(successCount, failureErrors), { id: toastId });
       }
       else {
         appToast.success(`已绑定 ${successCount} 个头像`, { id: toastId });
@@ -2577,7 +2417,7 @@ export function SpriteSettingsPopup({
     }
     catch (error) {
       console.error("批量绑定立绘组失败:", error);
-      appToast.error("绑定失败，请稍后重试", { id: toastId });
+      appToast.error(buildVariantAssignmentFailureToast(0, [error]), { id: toastId });
       return false;
     }
   }, [
@@ -2652,12 +2492,7 @@ export function SpriteSettingsPopup({
     spritesAvatars,
   ]);
 
-  const handleBatchAssignVariant = useCallback(async () => {
-    const variantId = normalizeVariantId(batchTargetVariantId);
-    if (!variantId) {
-      appToast.error("请选择要绑定的立绘组");
-      return;
-    }
+  const handleBatchAssignVariant = useCallback(async (variantId: number) => {
     const assigned = await assignAvatarItemsToVariant(effectiveSelectedAvatarItems, variantId, {
       allowReassign: false,
       actionLabel: "绑定立绘组",
@@ -2666,7 +2501,7 @@ export function SpriteSettingsPopup({
     if (assigned) {
       setSelectedVariantKey(String(variantId));
     }
-  }, [assignAvatarItemsToVariant, batchTargetVariantId, effectiveSelectedAvatarItems]);
+  }, [assignAvatarItemsToVariant, effectiveSelectedAvatarItems]);
 
   const handleAvatarListDragStart = useCallback((filteredIndex: number) => {
     const originalIndex = filteredIndices[filteredIndex];
@@ -2788,28 +2623,34 @@ export function SpriteSettingsPopup({
     variantGroupById,
   ]);
 
-  const variantFoldersSlot = !isVariantGroupView && (
-    <section className="min-w-0 space-y-2">
-      <div className="flex min-w-0 items-center justify-between gap-2 px-1">
-        <span className="truncate text-xs font-semibold text-base-content/75">
-          立绘组
-        </span>
-        <Button
-          variant="ghost"
-          size="xs"
-          className="h-6 min-h-0 gap-1 px-1.5"
-          onClick={handleCreateVariantFromCurrentAvatar}
-          disabled={isVariantWorkflowPending}
-        >
-          <PlusIcon className="size-3.5 shrink-0" aria-hidden="true" />
-          <span>{isVariantWorkflowPending ? "新建中" : "新建"}</span>
-        </Button>
-      </div>
-      <div
-        className="grid w-full min-w-0 gap-2"
-        style={{ gridTemplateColumns: AVATAR_FOLDER_GRID_TEMPLATE_COLUMNS }}
-      >
-        {variantFolderItems.map((item) => {
+  const variantFoldersSlot = isVariantGroupView
+    ? (
+        <div className="flex min-w-0 items-center gap-2 px-1">
+          <IconButton
+            size="xs"
+            shape="square"
+            onClick={() => handleVariantFilterChange(UNGROUPED_VARIANT_KEY)}
+            title="返回立绘组列表"
+            label="返回立绘组列表"
+            icon={<ArrowLeftIcon className="size-4" aria-hidden="true" />}
+          />
+          <span className="min-w-0 truncate text-xs font-semibold text-base-content/85">
+            {activeVariantLabel}
+          </span>
+        </div>
+      )
+    : (
+        <section className="min-w-0 space-y-2">
+          <div className="flex min-w-0 items-center gap-2 px-1.5 py-1 text-xs text-base-content/70">
+            <span className="truncate font-semibold text-base-content/85">
+              立绘组
+            </span>
+          </div>
+          <div
+            className="grid w-full min-w-0 gap-2"
+            style={{ gridTemplateColumns: AVATAR_FOLDER_GRID_TEMPLATE_COLUMNS }}
+          >
+            {variantFolderItems.map((item) => {
           const isDropTarget = item.variantKey === variantDropTarget;
           const isSelected = selectedVariantKey === item.variantKey;
           return (
@@ -2957,19 +2798,11 @@ export function SpriteSettingsPopup({
               </button>
             </div>
           );
-        })}
-      </div>
-    </section>
-  );
+            })}
+          </div>
+        </section>
+      );
 
-  const batchTargetVariantLabel = (() => {
-    const variantId = normalizeVariantId(batchTargetVariantId);
-    if (!variantId) {
-      return bindableVariantGroups.length === 0 ? "无可绑定立绘组" : "选择立绘组";
-    }
-    const variant = variantGroupById.get(variantId);
-    return variant ? getVariantDisplayName(variant) : "选择立绘组";
-  })();
   const batchPreviewBaseAvatarId = normalizeVariantId(editingVariantGroup?.baseAvatarId);
   const batchPreviewItem = (
     batchPreviewBaseAvatarId
@@ -3021,81 +2854,24 @@ export function SpriteSettingsPopup({
               个头像
             </span>
           )}
-          {selectedMissingCropContextCount > 0 && (
-            <span className="
-              inline-flex shrink-0 rounded-md border border-warning/30
-              bg-warning/10 px-2 py-1 text-xs font-medium text-warning-content
-            ">
-              {selectedMissingCropContextCount}
-              {" "}
-              个头像将自动校正
-            </span>
-          )}
         </div>
 
         <div className="
           ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-2
         ">
           {!isVariantBatchSelection && (
-            <>
-              <DropdownMenu
-                ariaLabel="选择目标立绘组"
-                placement="bottom-end"
-                className="w-44"
-                menuClassName="z-40 w-56 p-2 shadow-xl"
-                trigger={(
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 min-h-8 w-full justify-between gap-2 rounded-md px-3"
-                    disabled={isVariantMutationPending || bindableVariantGroups.length === 0}
-                    title={`目标立绘组：${batchTargetVariantLabel}`}
-                    aria-label="选择目标立绘组"
-                  >
-                    <span className="truncate">{batchTargetVariantLabel}</span>
-                    <CaretDownIcon className="size-3.5 shrink-0" aria-hidden="true" />
-                  </Button>
-                )}
-              >
-                  {bindableVariantGroups.length === 0
-                    ? (
-                        <li>
-                          <span className="text-base-content/50">无可绑定立绘组</span>
-                        </li>
-                      )
-                    : bindableVariantGroups.map((variant) => {
-                        const variantId = normalizeVariantId(variant.variantId);
-                        if (!variantId) {
-                          return null;
-                        }
-                        const variantLabel = getVariantDisplayName(variant);
-                        return (
-                          <li key={variantId}>
-                            <MenuItem
-                              selected={String(variantId) === batchTargetVariantId}
-                              className="justify-between gap-2"
-                              onClick={() => setBatchTargetVariantId(String(variantId))}
-                            >
-                              <span className="min-w-0 flex-1 truncate text-left">{variantLabel}</span>
-                            </MenuItem>
-                          </li>
-                        );
-                      })}
-              </DropdownMenu>
-              <Button
-                variant="primary"
-                size="sm"
-                className="h-8 min-h-8 rounded-md px-3"
-                onClick={handleBatchAssignVariant}
-                disabled={
-                  isVariantMutationPending
-                  || effectiveSelectedAvatarCount === 0
-                  || !batchTargetVariantId
-                }
-              >
-                {isVariantMutationPending ? "绑定中" : "绑定"}
-              </Button>
-            </>
+            <Button
+              tone="primary"
+              appearance="solid"
+              size="sm"
+              className="h-8 min-h-8 gap-2 rounded-md px-3"
+              onClick={() => setVariantDialogMode("select")}
+              disabled={isVariantWorkflowPending || effectiveSelectedAvatarCount === 0}
+              title="加入立绘组"
+              icon={<FolderOpenIcon className="size-4" aria-hidden="true" />}
+            >
+              加入立绘组
+            </Button>
           )}
 
           {!isVariantBatchSelection && (
@@ -3109,19 +2885,6 @@ export function SpriteSettingsPopup({
               title="移回未分组"
               label="移回未分组"
               loading={isVariantMutationPending}
-              icon={<TrashIcon className="size-4" aria-hidden="true" />}
-            />
-          )}
-          {!isVariantGroupView && !isVariantFolderSelected && (
-            <IconButton
-              variant="error"
-              size="sm"
-              shape="square"
-              className="h-8 min-h-8 rounded-md"
-              onClick={handleBatchDeleteRequest}
-              disabled={selectedAvatarCount === 0}
-              title="删除所选"
-              label="删除所选"
               icon={<TrashIcon className="size-4" aria-hidden="true" />}
             />
           )}
@@ -3150,103 +2913,6 @@ export function SpriteSettingsPopup({
 
   const avatarListPanel = (
     <>
-      {/* 头像列表标题栏 */}
-      <div className="shrink-0 border-b border-base-300 bg-base-200/50">
-        <div className="
-          flex items-center justify-between gap-2.5 p-2.5
-        ">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            {isVariantGroupView && (
-              <IconButton
-                size="xs"
-                shape="square"
-                className="shrink-0"
-                onClick={() => handleVariantFilterChange(UNGROUPED_VARIANT_KEY)}
-                title="返回未分组"
-                label="返回未分组"
-                icon={<ArrowLeftIcon className="size-4" aria-hidden="true" />}
-              />
-            )}
-            <span className="
-              flex size-10 shrink-0 items-center justify-center rounded-md
-              bg-base-300/40 text-base-content/55
-            ">
-              <ImageIcon className="size-5" aria-hidden="true" />
-            </span>
-            <div className="min-w-0">
-              <h3 className="min-w-0 truncate text-sm font-semibold" title={avatarListTitle}>
-                {avatarListTitle}
-              </h3>
-              <span className="block truncate text-[11px] text-base-content/50">
-                {visibleCount}
-                个头像
-              </span>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            {isMultiSelectMode && (
-              <>
-                <IconButton
-                  variant="outline"
-                  size="xs"
-                  shape="square"
-                  className="bg-base-200"
-                  onClick={() => {
-                    const allSelected = visibleCount > 0 && filteredSelectedIndices.size === visibleCount;
-                    const newSelected = allSelected
-                      ? new Set<number>()
-                      : new Set(filteredIndices);
-                    setSelectedIndices(newSelected);
-                  }}
-                  title={
-                    visibleCount > 0 && filteredSelectedIndices.size === visibleCount
-                      ? "取消全选"
-                      : filteredSelectedIndices.size > 0 && filteredSelectedIndices.size < visibleCount
-                        ? `已选 ${filteredSelectedIndices.size}`
-                        : "全选"
-                  }
-                  label={
-                    visibleCount > 0 && filteredSelectedIndices.size === visibleCount
-                      ? "取消全选"
-                      : filteredSelectedIndices.size > 0 && filteredSelectedIndices.size < visibleCount
-                        ? `已选 ${filteredSelectedIndices.size}`
-                        : "全选"
-                  }
-                  icon={<ChecksIcon className="size-5" aria-hidden="true" />}
-                />
-                <IconButton
-                  size="xs"
-                  shape="square"
-                  onClick={() => {
-                    setIsMultiSelectMode(false);
-                    setSelectedIndices(new Set());
-                  }}
-                  title="退出选择模式"
-                  label="退出选择模式"
-                  icon={<XIcon className="size-5" aria-hidden="true" />}
-                />
-              </>
-            )}
-            {!isMultiSelectMode && visibleCount > 1 && (
-              <IconButton
-                variant="outline"
-                size="xs"
-                shape="square"
-                className="bg-base-200"
-                onClick={() => {
-                  if (!isVariantGroupView) {
-                    setSelectedVariantKey(null);
-                  }
-                  setIsMultiSelectMode(true);
-                }}
-                title="进入选择模式"
-                label="进入选择模式"
-                icon={<CheckCircleIcon className="size-5" aria-hidden="true" />}
-              />
-            )}
-          </div>
-        </div>
-      </div>
       <div className="
         flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-2.5
         md:p-3
@@ -3273,7 +2939,7 @@ export function SpriteSettingsPopup({
           onAvatarChange={handleAvatarChange}
           onAvatarSelect={handleAvatarSelectById}
           onAvatarDeleted={handleAvatarDeleted}
-          defaultAvatarId={localDefaultAvatarId}
+          defaultAvatarId={role?.avatarId}
           onSetDefaultAvatar={handleSetDefaultAvatar}
           isSettingDefaultAvatar={setDefaultAvatarMutation.isPending}
           onReplaceAvatarSource={handleReplaceAvatarSource}
@@ -3286,6 +2952,9 @@ export function SpriteSettingsPopup({
           lockedUploadVariantGroup={currentUploadVariantGroup}
           availableVariants={variantGroups}
           beforeContentSlot={variantFoldersSlot}
+          onDeleteSelected={isVariantGroupView || isVariantFolderSelected
+            ? undefined
+            : handleBatchDeleteRequest}
           onAvatarDragStart={handleAvatarListDragStart}
           onAvatarDragEnd={handleAvatarListDragEnd}
           onMultiSelectChange={(indices, isMultiMode) => {
@@ -3655,8 +3324,6 @@ export function SpriteSettingsPopup({
                       selectedIndex={internalIndex}
                       characterName={characterName}
                       availableVariants={variantGroups}
-                      onApply={handleApply}
-                      showUnassignVariantAction={isVariantGroupView}
                       onUnassignVariant={handleUnassignSingleAvatarVariant}
                       onAssignVariant={(avatar, variantId) => assignAvatarItemsToVariant(
                         [{ index: internalIndex, avatar }],
@@ -3844,14 +3511,29 @@ export function SpriteSettingsPopup({
         </Drawer.Root>
       )}
 
-      {variantNameDialogOpen && (
-        <VariantNameDialog
-          initialName={variantNameDraft}
-          selectedCount={variantCreationIndices.length}
-          onCancel={handleCancelVariantName}
-          onConfirm={handleConfirmVariantName}
-        />
-      )}
+      <VariantAssignmentDialog
+        open={variantDialogMode !== "closed"}
+        mode={variantDialogMode === "create" ? "create" : "select"}
+        selectedCount={variantDialogMode === "create"
+          ? variantCreationIndices.length
+          : effectiveSelectedAvatarCount}
+        variants={bindableVariantGroups}
+        selectedVariantId={null}
+        allowUnassigned={false}
+        isPending={isVariantWorkflowPending}
+        onClose={handleCancelVariantName}
+        onSelectVariant={(variantId) => {
+          if (variantId == null) {
+            return;
+          }
+          setVariantDialogMode("closed");
+          void handleBatchAssignVariant(variantId);
+        }}
+        onRequestCreate={handleCreateVariantFromSelection}
+        onBackToSelection={() => setVariantDialogMode("select")}
+        initialVariantName={variantNameDraft}
+        onConfirmCreate={handleConfirmVariantName}
+      />
 
       <ConfirmDialog
         open={Boolean(batchVariantCreationPrompt)}

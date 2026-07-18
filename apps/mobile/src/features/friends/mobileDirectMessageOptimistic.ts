@@ -1,7 +1,13 @@
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 import type { MessageDirectSendRequest } from "@tuanchat/openapi-client/models/MessageDirectSendRequest";
 
-import { mergeDirectMessages } from "@tuanchat/domain/direct-message";
+import {
+  isFailedDirectMessage,
+  isLocalDirectMessage,
+  isOptimisticDirectMessage,
+  markDirectMessageFailed,
+  mergeDirectMessages,
+} from "@tuanchat/domain/direct-message";
 
 const OPTIMISTIC_DIRECT_SYNC_STATE = "optimistic";
 const FAILED_DIRECT_SYNC_STATE = "failed";
@@ -29,15 +35,15 @@ function isPositiveUserId(value: number | null | undefined): value is number {
 }
 
 export function isMobileOptimisticDirectMessage(message: MessageDirectResponse): boolean {
-  return (message as Partial<MobileOptimisticDirectMessage>).tcLocalSyncState === OPTIMISTIC_DIRECT_SYNC_STATE;
+  return isOptimisticDirectMessage(message);
 }
 
 export function isMobileFailedDirectMessage(message: MessageDirectResponse): boolean {
-  return (message as Partial<MobileFailedDirectMessage>).tcLocalSyncState === FAILED_DIRECT_SYNC_STATE;
+  return isFailedDirectMessage(message);
 }
 
 export function isMobileLocalDirectMessage(message: MessageDirectResponse): boolean {
-  return isMobileOptimisticDirectMessage(message) || isMobileFailedDirectMessage(message);
+  return isLocalDirectMessage(message);
 }
 
 export function filterPersistableDirectMessages(messages: readonly MessageDirectResponse[]): MessageDirectResponse[] {
@@ -94,10 +100,7 @@ export function markMobileOptimisticDirectMessageFailedData(
     if (message.messageId !== optimisticMessageId) {
       return message;
     }
-    return {
-      ...message,
-      tcLocalSyncState: FAILED_DIRECT_SYNC_STATE,
-    } satisfies MobileFailedDirectMessage;
+    return markDirectMessageFailed(message) satisfies MobileFailedDirectMessage;
   });
 }
 

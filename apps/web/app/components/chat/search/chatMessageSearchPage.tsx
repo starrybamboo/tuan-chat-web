@@ -1,7 +1,7 @@
+/* oxlint-disable jsx-a11y/no-autofocus -- 独立搜索页打开后应立即接收搜索输入。 */
 import { ArrowLeftIcon, MagnifyingGlassIcon, SortAscendingIcon, SortDescendingIcon, XIcon } from "@phosphor-icons/react";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
-
 import { useGetRoomAllRoleQuery, useGetRoomInfoQuery, useGetSpaceMembersQuery } from "api/hooks/chatQueryHooks";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
 import { filterVisibleChatMessages } from "@/components/chat/utils/hiddenDiceVisibility";
@@ -41,15 +41,15 @@ export default function ChatMessageSearchPage({
   const roomRolesQuery = useGetRoomAllRoleQuery(roomId);
   const spaceMembersQuery = useGetSpaceMembersQuery(spaceId);
   const currentUserId = useGlobalUserId();
-  const roomRoles = roomRolesQuery.data?.data?.allRoles ?? [];
-  const spaceMembers = spaceMembersQuery.data?.data ?? [];
+  const roomRoles = roomRolesQuery.data?.data?.allRoles;
+  const spaceMembers = spaceMembersQuery.data?.data;
 
   useEffect(() => {
     setDraftQuery(current => current === query ? current : query);
   }, [query]);
 
   const currentMember = useMemo(
-    () => spaceMembers.find(member => member.userId === currentUserId),
+    () => spaceMembers?.find(member => member.userId === currentUserId),
     [currentUserId, spaceMembers],
   );
   const visibleMessages = useMemo(() => filterVisibleChatMessages(history.messages, {
@@ -57,19 +57,19 @@ export default function ChatMessageSearchPage({
     memberType: currentMember?.memberType,
   }), [currentMember?.memberType, currentUserId, history.messages]);
   const rolesById = useMemo(
-    () => new Map(roomRoles.map(role => [role.roleId, role])),
+    () => new Map((roomRoles ?? []).map(role => [role.roleId, role])),
     [roomRoles],
   );
   const membersById = useMemo(
-    () => new Map(spaceMembers.map(member => [member.userId ?? -1, member])),
+    () => new Map((spaceMembers ?? []).map(member => [member.userId ?? -1, member])),
     [spaceMembers],
   );
   const roleNamesById = useMemo(
-    () => new Map(roomRoles.map(role => [role.roleId, role.roleName ?? ""])),
+    () => new Map((roomRoles ?? []).map(role => [role.roleId, role.roleName ?? ""])),
     [roomRoles],
   );
   const userNamesById = useMemo(
-    () => new Map(spaceMembers.map(member => [member.userId ?? -1, member.username ?? ""])),
+    () => new Map((spaceMembers ?? []).map(member => [member.userId ?? -1, member.username ?? ""])),
     [spaceMembers],
   );
   const results = useMemo(() => searchChatMessages(visibleMessages, deferredQuery, {
@@ -170,7 +170,6 @@ export default function ChatMessageSearchPage({
                       aria-pressed={order === "newest"}
                       size="xs"
                       className="gap-1"
-                      aria-pressed={order === "newest"}
                       onClick={() => setOrder("newest")}
                     >
                       <SortDescendingIcon className="size-4" />
@@ -181,7 +180,6 @@ export default function ChatMessageSearchPage({
                       aria-pressed={order === "oldest"}
                       size="xs"
                       className="gap-1"
-                      aria-pressed={order === "oldest"}
                       onClick={() => setOrder("oldest")}
                     >
                       <SortAscendingIcon className="size-4" />

@@ -2,6 +2,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 import { forwardRef } from "react";
 
+import { SEMANTIC_APPEARANCES, type SemanticAppearance } from "@/components/common/DesignLanguage";
 import { LoadingIndicator } from "@/components/common/StatusPrimitives";
 
 /**
@@ -16,17 +17,38 @@ export type ButtonVariant =
   | "success"
   | "outline"
   | "errorOutline";
+/** 公共按钮支持的完整颜色语义清单。 */
+export const BUTTON_TONES = ["neutral", "primary", "success", "warning", "error"] as const;
+export type ButtonTone = typeof BUTTON_TONES[number];
+/** 公共按钮支持的完整外观清单。 */
+export const BUTTON_APPEARANCES = SEMANTIC_APPEARANCES;
+export type ButtonAppearance = SemanticAppearance;
 export type ButtonSize = "xs" | "sm" | "md" | "lg";
 export type ButtonShape = "default" | "square" | "circle";
 
-const VARIANT_CLASS: Record<ButtonVariant, string> = {
-  primary: "tc-button-primary",
-  ghost: "tc-button-ghost",
-  error: "tc-button-error",
-  warning: "tc-button-warning",
-  success: "tc-button-success",
+const VARIANT_STYLE: Record<ButtonVariant, { tone: ButtonTone; appearance: ButtonAppearance }> = {
+  primary: { tone: "primary", appearance: "solid" },
+  ghost: { tone: "neutral", appearance: "ghost" },
+  error: { tone: "error", appearance: "solid" },
+  warning: { tone: "warning", appearance: "solid" },
+  success: { tone: "success", appearance: "solid" },
+  outline: { tone: "neutral", appearance: "outline" },
+  errorOutline: { tone: "error", appearance: "outline" },
+};
+
+const TONE_CLASS: Record<ButtonTone, string> = {
+  neutral: "tc-button-tone-neutral",
+  primary: "tc-button-tone-primary",
+  success: "tc-button-tone-success",
+  warning: "tc-button-tone-warning",
+  error: "tc-button-tone-error",
+};
+
+const APPEARANCE_CLASS: Record<ButtonAppearance, string> = {
+  solid: "tc-button-solid",
+  soft: "tc-button-soft",
   outline: "tc-button-outline",
-  errorOutline: "tc-button-error-outline",
+  ghost: "tc-button-ghost",
 };
 
 const SIZE_CLASS: Record<ButtonSize, string> = {
@@ -43,7 +65,12 @@ const SHAPE_CLASS: Record<ButtonShape, string> = {
 };
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  /** 旧版组合写法；新代码优先分别传入 tone 与 appearance。 */
   variant?: ButtonVariant;
+  /** 按钮的颜色语义。 */
+  tone?: ButtonTone;
+  /** 按钮的填充形式。 */
+  appearance?: ButtonAppearance;
   size?: ButtonSize;
   shape?: ButtonShape;
   loading?: boolean;
@@ -52,21 +79,30 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 export function buttonClassName({
-  variant = "ghost",
+  variant,
+  tone,
+  appearance,
   size = "md",
   shape = "default",
   loading = false,
   className,
 }: {
   variant?: ButtonVariant;
+  tone?: ButtonTone;
+  appearance?: ButtonAppearance;
   size?: ButtonSize;
   shape?: ButtonShape;
   loading?: boolean;
   className?: string;
 }) {
+  const legacyStyle = variant ? VARIANT_STYLE[variant] : undefined;
+  const resolvedTone = tone ?? legacyStyle?.tone ?? "neutral";
+  const resolvedAppearance = appearance ?? legacyStyle?.appearance ?? (tone ? "solid" : "ghost");
+
   return [
     "tc-button",
-    VARIANT_CLASS[variant],
+    TONE_CLASS[resolvedTone],
+    APPEARANCE_CLASS[resolvedAppearance],
     SIZE_CLASS[size],
     SHAPE_CLASS[shape],
     loading ? "pointer-events-none" : "",
@@ -76,7 +112,9 @@ export function buttonClassName({
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   {
-    variant = "ghost",
+    variant,
+    tone,
+    appearance,
     size = "md",
     shape = "default",
     loading = false,
@@ -88,7 +126,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   },
   ref,
 ) {
-  const classes = buttonClassName({ variant, size, shape, loading, className });
+  const classes = buttonClassName({ variant, tone, appearance, size, shape, loading, className });
 
   return (
     <button

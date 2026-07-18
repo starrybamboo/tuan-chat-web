@@ -1,4 +1,11 @@
-import type { InfiniteData, QueryClient, QueryKey } from "@tanstack/react-query";
+import type { InfiniteData, QueryClient } from "@tanstack/react-query";
+import type { OptimisticQueryTransaction } from "@tuanchat/query/optimistic-cache";
+
+import {
+  beginOptimisticQueryTransaction,
+  optimisticQueryPatch,
+  rollbackOptimisticQueryTransaction,
+} from "@tuanchat/query/optimistic-cache";
 
 import type {
   FeedbackIssueDetail,
@@ -12,11 +19,7 @@ export type FeedbackIssueListPatch = Pick<FeedbackIssueDetail, "feedbackIssueId"
   Pick<FeedbackIssueDetail, "status" | "archived" | "commentCount" | "updateTime">
 >;
 
-export type FeedbackIssueMutationContext = {
-  detailKey: ReturnType<typeof feedbackIssueDetailQueryKey>;
-  previousDetail?: FeedbackIssueDetail;
-  previousIssuePages: Array<[QueryKey, InfiniteData<FeedbackIssuePageResponse> | undefined]>;
-};
+export type FeedbackIssueMutationContext = OptimisticQueryTransaction;
 
 function omitUndefinedFields<T extends Record<string, unknown>>(record: T): Partial<T> {
   return Object.fromEntries(
@@ -64,33 +67,18 @@ export async function optimisticPatchFeedbackIssueCaches(
   patch: FeedbackIssueListPatch,
 ): Promise<FeedbackIssueMutationContext> {
   const detailKey = feedbackIssueDetailQueryKey(patch.feedbackIssueId);
-
-  await queryClient.cancelQueries({ queryKey: detailKey });
-  await queryClient.cancelQueries({ queryKey: FEEDBACK_ISSUES_QUERY_KEY });
-
-  const previousDetail = queryClient.getQueryData<FeedbackIssueDetail>(detailKey);
-  const previousIssuePages = queryClient.getQueriesData<InfiniteData<FeedbackIssuePageResponse>>({
-    queryKey: FEEDBACK_ISSUES_QUERY_KEY,
-  });
   const definedPatch = omitUndefinedFields(patch);
-
-  if (previousDetail) {
-    queryClient.setQueryData<FeedbackIssueDetail>(detailKey, {
-      ...previousDetail,
-      ...definedPatch,
-    });
-  }
-
-  queryClient.setQueriesData<InfiniteData<FeedbackIssuePageResponse>>(
-    { queryKey: FEEDBACK_ISSUES_QUERY_KEY },
-    data => patchFeedbackIssuePageData(data, definedPatch as FeedbackIssueListPatch),
-  );
-
-  return {
-    detailKey,
-    previousDetail,
-    previousIssuePages,
-  };
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<FeedbackIssueDetail>({
+      queryKey: detailKey,
+      update: current => current ? { ...current, ...definedPatch } : current,
+    }),
+    optimisticQueryPatch<InfiniteData<FeedbackIssuePageResponse>>({
+      queryKey: FEEDBACK_ISSUES_QUERY_KEY,
+      exact: false,
+      update: current => patchFeedbackIssuePageData(current, definedPatch as FeedbackIssueListPatch),
+    }),
+  ]);
 }
 
 export function rollbackFeedbackIssueCaches(
@@ -101,10 +89,7 @@ export function rollbackFeedbackIssueCaches(
     return;
   }
 
-  queryClient.setQueryData(context.detailKey, context.previousDetail);
-  context.previousIssuePages.forEach(([queryKey, previousData]) => {
-    queryClient.setQueryData(queryKey, previousData);
-  });
+  rollbackOptimisticQueryTransaction(queryClient, context);
 }
 
 export function reconcileFeedbackIssueCaches(queryClient: QueryClient, issue: FeedbackIssueDetail): void {

@@ -16,4 +16,3 @@ export type MaterialPackageContent = {
      */
     root?: Array<MaterialNode>;
 };
-

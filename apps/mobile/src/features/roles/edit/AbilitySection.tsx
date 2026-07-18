@@ -1,10 +1,16 @@
+import type { AbilityByRuleFieldUpdateRequest } from "@tuanchat/openapi-client/models/AbilityByRuleFieldUpdateRequest";
+import type { IconProps } from "phosphor-react-native";
 import type { ComponentType, ReactNode } from "react";
 
-import { CardsIcon, GaugeIcon, IdentificationCardIcon, ListChecksIcon, MaskHappyIcon, SwordIcon } from "phosphor-react-native";
+import { CardsIcon, GaugeIcon, IdentificationCardIcon, MaskHappyIcon, SwordIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Animated, KeyboardAvoidingView, PanResponder, Platform, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { cancelAnimation, ReduceMotion, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
+import { MobileStateView } from "@/components/MobileStateView";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import {
@@ -40,6 +46,11 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   carousel: {
+    overflow: "visible",
+  },
+  carouselTrack: {
+    alignItems: "flex-start",
+    flexDirection: "row",
     overflow: "visible",
   },
   carouselFooter: {
@@ -85,9 +96,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xxl,
     paddingTop: Spacing.lg,
   },
-  sheetKeyboardAvoiding: {
-    maxHeight: "100%",
-  },
   sheetLabel: {
     marginBottom: Spacing.xs,
   },
@@ -118,7 +126,7 @@ const styles = StyleSheet.create({
   },
 });
 
-type SectionKey = "act" | "basic" | "ability" | "skill" | "record" | "extra";
+type SectionKey = "act" | "basic" | "ability" | "skill" | "extra";
 
 type AbilityDisplaySection = {
   fields: Record<string, string>;
@@ -126,14 +134,13 @@ type AbilityDisplaySection = {
   label: string;
 };
 
-type SectionIconComponent = ComponentType<any>;
+type SectionIconComponent = ComponentType<IconProps>;
 
 const SECTION_ICON_MAP: Record<SectionKey, SectionIconComponent> = {
   act: MaskHappyIcon,
   basic: IdentificationCardIcon,
   ability: GaugeIcon,
   skill: SwordIcon,
-  record: ListChecksIcon,
   extra: CardsIcon,
 };
 
@@ -142,31 +149,66 @@ const SECTION_LABELS: Record<SectionKey, string> = {
   basic: "基础",
   ability: "属性",
   skill: "技能",
-  record: "记录",
   extra: "额外",
 };
 
 const NUMERIC_SECTIONS: SectionKey[] = ["basic", "ability", "skill"];
+const CAROUSEL_SWIPE_DISTANCE = 44;
+const CAROUSEL_SWIPE_VELOCITY = 350;
+const CAROUSEL_SPRING_CONFIG = {
+  damping: 22,
+  mass: 0.7,
+  reduceMotion: ReduceMotion.System,
+  stiffness: 220,
+} as const;
 
 function isNumericValue(value: string): boolean {
   return /^-?\d+(?:\.\d+)?$/.test(value.trim());
 }
 
+function getAbilityErrorMessage(error: unknown): string {
+  return error instanceof Error && error.message.trim() ? error.message : "请稍后重试";
+}
+
+function buildAbilityFieldUpdateRequest({
+  field,
+  nextField,
+  roleId,
+  ruleId,
+  section,
+}: {
+  field: string;
+  nextField: string | null;
+  roleId: number;
+  ruleId: number;
+  section: SectionKey;
+}): AbilityByRuleFieldUpdateRequest {
+  // 后端以 null 表示删除字段，但生成客户端仍把 map 值声明为 string。
+  const fields = { [field]: nextField } as Record<string, string>;
+  const base = { roleId, ruleId };
+  switch (section) {
+    case "act":
+      return { ...base, actFields: fields };
+    case "basic":
+      return { ...base, basicFields: fields };
+    case "ability":
+      return { ...base, abilityFields: fields };
+    case "skill":
+      return { ...base, skillFields: fields };
+    case "extra":
+      return { ...base, extraFields: fields };
+  }
+}
+
 function AbilitySheetContent({ children }: { children: ReactNode }) {
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={24}
-      style={styles.sheetKeyboardAvoiding}
+    <ScrollView
+      contentContainerStyle={styles.sheetContent}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
-      <ScrollView
-        contentContainerStyle={styles.sheetContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {children}
-      </ScrollView>
-    </KeyboardAvoidingView>
+      {children}
+    </ScrollView>
   );
 }
 
@@ -185,6 +227,22 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
   const setAbilityMutation = useSetRoleAbilityMutation();
   const updateAbilityMutation = useUpdateRoleAbilityByRoleIdMutation();
   const updateFieldMutation = useUpdateKeyFieldByRoleIdMutation();
+  const {
+    data: ability,
+    isError: abilityIsError,
+    isLoading: abilityIsLoading,
+    refetch: refetchAbility,
+  } = abilityQuery;
+  const {
+    data: rule,
+    isError: ruleIsError,
+    isLoading: ruleIsLoading,
+    refetch: refetchRule,
+  } = ruleDetailQuery;
+  const { isPending: abilityCreateIsPending, mutateAsync: setAbility } = setAbilityMutation;
+  const { mutateAsync: updateAbility } = updateAbilityMutation;
+  const { mutateAsync: updateAbilityField } = updateFieldMutation;
+  const abilityKey = `${roleId}:${ruleId}`;
 
   const [editingField, setEditingField] = useState<{
     section: SectionKey;
@@ -201,16 +259,14 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
   const [renameValue, setRenameValue] = useState("");
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const [measuredHeights, setMeasuredHeights] = useState<Partial<Record<SectionKey, number>>>({});
-
-  const ability = abilityQuery.data;
-  const rule = ruleDetailQuery.data;
+  const [abilityCreateError, setAbilityCreateError] = useState<{ key: string; message: string } | null>(null);
 
   const sections = useMemo(() => {
     const result: AbilityDisplaySection[] = [];
-    const sectionKeys: SectionKey[] = ["act", "basic", "ability", "skill", "record", "extra"];
+    const sectionKeys: SectionKey[] = ["act", "basic", "ability", "skill", "extra"];
 
     for (const key of sectionKeys) {
-      const data = (ability as any)?.[key] as Record<string, string> | undefined;
+      const data = ability?.[key];
       const template = key === "act"
         ? rule?.actTemplate
         : key === "basic"
@@ -221,16 +277,24 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
               ? rule?.skillDefault
               : undefined;
 
-      const merged = { ...(template as Record<string, string> | undefined), ...data };
-      if (Object.keys(merged).length > 0) {
-        result.push({ key, label: SECTION_LABELS[key], fields: merged });
+      const templateFields = template as Record<string, string> | undefined;
+      const fields = key === "extra"
+        ? data
+        : key === "act"
+          ? (data ?? templateFields)
+          : data && Object.keys(data).length > 0
+            ? data
+            : templateFields;
+      if (fields && Object.keys(fields).length > 0) {
+        result.push({ key, label: SECTION_LABELS[key], fields });
       }
     }
     return result;
   }, [ability, rule]);
   const carouselSidePeek = Spacing.xl;
   const pageWidth = Math.max(240, windowWidth - Spacing.xxl * 2 - carouselSidePeek * 2);
-  const [trackTranslateX] = useState(() => new Animated.Value(carouselSidePeek));
+  const trackTranslateX = useSharedValue(carouselSidePeek);
+  const activeSectionIndexShared = useSharedValue(0);
   const pageCount = sections.length;
   const resolvedActiveSectionIndex = pageCount === 0 ? 0 : Math.min(activeSectionIndex, pageCount - 1);
   const displayIndex = pageCount === 0 ? 0 : resolvedActiveSectionIndex + 1;
@@ -246,33 +310,34 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
     if (!editingField)
       return;
     try {
-      await updateAbilityMutation.mutateAsync({
+      await updateAbility({
         roleId,
         ruleId,
         [editingField.section]: { [editingField.key]: editValue },
       });
       setEditingField(null);
     }
-    catch (e: any) {
-      Alert.alert("保存失败", e?.message ?? "请稍后重试");
+    catch (error) {
+      Alert.alert("保存失败", getAbilityErrorMessage(error));
     }
-  }, [editingField, editValue, roleId, ruleId, updateAbilityMutation]);
+  }, [editingField, editValue, roleId, ruleId, updateAbility]);
 
   const handleFieldDelete = useCallback(async () => {
     if (!editingField)
       return;
     const doDelete = async () => {
       try {
-        const fieldKey = `${editingField.section}Fields` as const;
-        await updateFieldMutation.mutateAsync({
+        await updateAbilityField(buildAbilityFieldUpdateRequest({
+          field: editingField.key,
+          nextField: null,
           roleId,
           ruleId,
-          [fieldKey]: { [editingField.key]: null },
-        } as any);
+          section: editingField.section,
+        }));
         setEditingField(null);
       }
-      catch (e: any) {
-        Alert.alert("删除失败", e?.message ?? "请稍后重试");
+      catch (error) {
+        Alert.alert("删除失败", getAbilityErrorMessage(error));
       }
     };
     if (Platform.OS === "web") {
@@ -285,7 +350,7 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
         { text: "删除", style: "destructive", onPress: () => void doDelete() },
       ]);
     }
-  }, [editingField, roleId, ruleId, updateFieldMutation]);
+  }, [editingField, roleId, ruleId, updateAbilityField]);
 
   const handleFieldRename = useCallback(() => {
     if (!editingField)
@@ -301,24 +366,25 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
       return;
     }
     try {
-      const fieldKey = `${renamingField.section}Fields` as const;
-      await updateFieldMutation.mutateAsync({
+      await updateAbilityField(buildAbilityFieldUpdateRequest({
+        field: renamingField.key,
+        nextField: renameValue.trim(),
         roleId,
         ruleId,
-        [fieldKey]: { [renamingField.key]: renameValue.trim() },
-      } as any);
+        section: renamingField.section,
+      }));
       setRenamingField(null);
     }
-    catch (e: any) {
-      Alert.alert("重命名失败", e?.message ?? "请稍后重试");
+    catch (error) {
+      Alert.alert("重命名失败", getAbilityErrorMessage(error));
     }
-  }, [renamingField, renameValue, roleId, ruleId, updateFieldMutation]);
+  }, [renamingField, renameValue, roleId, ruleId, updateAbilityField]);
 
   const handleAddField = useCallback(async () => {
     if (!addingSection || !newFieldName.trim())
       return;
     try {
-      await updateAbilityMutation.mutateAsync({
+      await updateAbility({
         roleId,
         ruleId,
         [addingSection]: { [newFieldName.trim()]: "" },
@@ -326,14 +392,15 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
       setAddingSection(null);
       setNewFieldName("");
     }
-    catch (e: any) {
-      Alert.alert("添加失败", e?.message ?? "请稍后重试");
+    catch (error) {
+      Alert.alert("添加失败", getAbilityErrorMessage(error));
     }
-  }, [addingSection, newFieldName, roleId, ruleId, updateAbilityMutation]);
+  }, [addingSection, newFieldName, roleId, ruleId, updateAbility]);
 
   const handleCreateAbility = useCallback(async () => {
+    setAbilityCreateError(null);
     try {
-      await setAbilityMutation.mutateAsync({
+      await setAbility({
         roleId,
         ruleId,
         act: (rule?.actTemplate as Record<string, string>) ?? {},
@@ -342,36 +409,48 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
         skill: (rule?.skillDefault as Record<string, string>) ?? {},
       });
     }
-    catch (e: any) {
-      Alert.alert("创建失败", e?.message ?? "请稍后重试");
+    catch (error) {
+      setAbilityCreateError({ key: abilityKey, message: getAbilityErrorMessage(error) });
     }
-  }, [roleId, ruleId, rule, setAbilityMutation]);
+  }, [abilityKey, roleId, ruleId, rule, setAbility]);
 
-  const autoCreatedRef = useRef(false);
+  const autoCreatedAbilityKeyRef = useRef<string | null>(null);
+  const sectionChangeFrameRef = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (sectionChangeFrameRef.current != null) {
+      cancelAnimationFrame(sectionChangeFrameRef.current);
+      sectionChangeFrameRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
-    if (!ability && !abilityQuery.isLoading && rule && !autoCreatedRef.current) {
-      autoCreatedRef.current = true;
+    if (!ability && !abilityIsLoading && !abilityIsError && rule && autoCreatedAbilityKeyRef.current !== abilityKey) {
+      autoCreatedAbilityKeyRef.current = abilityKey;
       void handleCreateAbility();
     }
-  }, [ability, abilityQuery.isLoading, rule, handleCreateAbility]);
+  }, [ability, abilityIsError, abilityIsLoading, abilityKey, handleCreateAbility, rule]);
 
-  useEffect(() => {
-    autoCreatedRef.current = false;
-  }, [ruleId]);
+  const handleRetryAbility = useCallback(() => {
+    if (abilityIsError || ruleIsError) {
+      autoCreatedAbilityKeyRef.current = null;
+      void Promise.all([refetchAbility(), refetchRule()]);
+      return;
+    }
+    autoCreatedAbilityKeyRef.current = abilityKey;
+    void handleCreateAbility();
+  }, [abilityIsError, abilityKey, handleCreateAbility, refetchAbility, refetchRule, ruleIsError]);
 
   const animateTrackToIndex = useCallback((index: number) => {
-    Animated.spring(trackTranslateX, {
-      damping: 22,
-      mass: 0.7,
-      stiffness: 220,
-      toValue: carouselSidePeek - index * pageWidth,
-      useNativeDriver: true,
-    }).start();
+    trackTranslateX.set(withSpring(
+      carouselSidePeek - index * pageWidth,
+      CAROUSEL_SPRING_CONFIG,
+    ));
   }, [carouselSidePeek, pageWidth, trackTranslateX]);
 
   useEffect(() => {
+    activeSectionIndexShared.set(resolvedActiveSectionIndex);
     animateTrackToIndex(resolvedActiveSectionIndex);
-  }, [animateTrackToIndex, resolvedActiveSectionIndex]);
+  }, [activeSectionIndexShared, animateTrackToIndex, resolvedActiveSectionIndex]);
 
   const changeActiveSection = useCallback((index: number) => {
     const nextIndex = pageCount === 0 ? 0 : Math.max(0, Math.min(index, pageCount - 1));
@@ -381,7 +460,11 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
     }
 
     onBeforeActiveSectionChange?.();
-    requestAnimationFrame(() => {
+    if (sectionChangeFrameRef.current != null) {
+      cancelAnimationFrame(sectionChangeFrameRef.current);
+    }
+    sectionChangeFrameRef.current = requestAnimationFrame(() => {
+      sectionChangeFrameRef.current = null;
       setActiveSectionIndex(nextIndex);
       animateTrackToIndex(nextIndex);
     });
@@ -391,35 +474,45 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
     changeActiveSection(index);
   }, [changeActiveSection]);
 
-  const carouselPanResponder = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gestureState) => {
-      const absDx = Math.abs(gestureState.dx);
-      const absDy = Math.abs(gestureState.dy);
-      return absDx > 14 && absDx > absDy * 1.25;
-    },
-    onPanResponderGrant: () => {
-      trackTranslateX.stopAnimation();
-    },
-    onPanResponderMove: (_, gestureState) => {
-      const leftLimit = resolvedActiveSectionIndex < pageCount - 1 ? pageWidth : pageWidth * 0.18;
-      const rightLimit = resolvedActiveSectionIndex > 0 ? pageWidth : pageWidth * 0.18;
-      const clampedDx = Math.max(-leftLimit, Math.min(rightLimit, gestureState.dx));
-      trackTranslateX.setValue(carouselSidePeek - resolvedActiveSectionIndex * pageWidth + clampedDx);
-    },
-    onPanResponderRelease: (_, gestureState) => {
-      const shouldMove = Math.abs(gestureState.dx) > 44 || Math.abs(gestureState.vx) > 0.35;
-      let nextIndex = resolvedActiveSectionIndex;
+  const carouselPanGesture = useMemo(() => Gesture.Pan()
+    .activeOffsetX([-14, 14])
+    .failOffsetY([-12, 12])
+    .onBegin(() => {
+      cancelAnimation(trackTranslateX);
+    })
+    .onUpdate((event) => {
+      const activeIndex = activeSectionIndexShared.get();
+      const leftLimit = activeIndex < pageCount - 1 ? pageWidth : pageWidth * 0.18;
+      const rightLimit = activeIndex > 0 ? pageWidth : pageWidth * 0.18;
+      const clampedTranslation = Math.max(-leftLimit, Math.min(rightLimit, event.translationX));
+      trackTranslateX.set(carouselSidePeek - activeIndex * pageWidth + clampedTranslation);
+    })
+    .onEnd((event) => {
+      const activeIndex = activeSectionIndexShared.get();
+      const shouldMove = Math.abs(event.translationX) > CAROUSEL_SWIPE_DISTANCE
+        || Math.abs(event.velocityX) > CAROUSEL_SWIPE_VELOCITY;
       if (!shouldMove) {
-        animateTrackToIndex(nextIndex);
+        trackTranslateX.set(withSpring(
+          carouselSidePeek - activeIndex * pageWidth,
+          CAROUSEL_SPRING_CONFIG,
+        ));
         return;
       }
-      nextIndex = Math.max(0, Math.min(resolvedActiveSectionIndex + (gestureState.dx < 0 ? 1 : -1), pageCount - 1));
-      changeActiveSection(nextIndex);
-    },
-    onPanResponderTerminate: () => {
-      animateTrackToIndex(resolvedActiveSectionIndex);
-    },
-  }), [animateTrackToIndex, carouselSidePeek, changeActiveSection, pageCount, pageWidth, resolvedActiveSectionIndex, trackTranslateX]);
+      const nextIndex = Math.max(0, Math.min(activeIndex + (event.translationX < 0 ? 1 : -1), pageCount - 1));
+      scheduleOnRN(changeActiveSection, nextIndex);
+    })
+    .onFinalize((_event, success) => {
+      if (!success) {
+        const activeIndex = activeSectionIndexShared.get();
+        trackTranslateX.set(withSpring(
+          carouselSidePeek - activeIndex * pageWidth,
+          CAROUSEL_SPRING_CONFIG,
+        ));
+      }
+    }), [activeSectionIndexShared, carouselSidePeek, changeActiveSection, pageCount, pageWidth, trackTranslateX]);
+  const carouselAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: trackTranslateX.get() }],
+  }));
 
   const handleSectionLayout = useCallback((sectionKey: SectionKey, height: number) => {
     setMeasuredHeights((current) => {
@@ -526,7 +619,32 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
   }, [handleFieldPress, handleSectionLayout, pageWidth, theme.background, theme.backgroundElement, theme.border, theme.textSecondary]);
 
   if (!ability) {
-    return null;
+    if (abilityIsError || ruleIsError) {
+      return (
+        <MobileStateView
+          actionLabel="重试"
+          onAction={handleRetryAbility}
+          title="加载角色能力失败"
+          tone="error"
+        />
+      );
+    }
+    if (abilityCreateError?.key === abilityKey) {
+      return (
+        <MobileStateView
+          actionLabel="重试"
+          onAction={handleRetryAbility}
+          title={`创建角色能力失败：${abilityCreateError.message}`}
+          tone="error"
+        />
+      );
+    }
+    return (
+      <MobileStateView
+        loading={abilityIsLoading || ruleIsLoading || abilityCreateIsPending}
+        title="正在准备角色能力…"
+      />
+    );
   }
 
   return (
@@ -558,21 +676,13 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
             {pageCount}
           </ThemedText>
         </View>
-        <View
-          {...carouselPanResponder.panHandlers}
-          style={[styles.carousel, { height: activeCarouselHeight }]}
-        >
-          <Animated.View
-            style={{
-              alignItems: "flex-start",
-              flexDirection: "row",
-              overflow: "visible",
-              transform: [{ translateX: trackTranslateX }],
-            }}
-          >
-            {sections.map(section => renderAbilityCard({ item: section }))}
-          </Animated.View>
-        </View>
+        <GestureDetector gesture={carouselPanGesture}>
+          <View style={[styles.carousel, { height: activeCarouselHeight }]}>
+            <Animated.View style={[styles.carouselTrack, carouselAnimatedStyle]}>
+              {sections.map(section => renderAbilityCard({ item: section }))}
+            </Animated.View>
+          </View>
+        </GestureDetector>
       </View>
 
       {/* Edit field sheet */}

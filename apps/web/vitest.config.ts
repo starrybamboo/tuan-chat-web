@@ -22,6 +22,11 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: [
+        "apps/web/api/friendQueryCache.ts",
+        "apps/web/api/hooks/materialPackageOptimisticCache.ts",
+        "apps/web/api/hooks/roleWebOptimisticCache.ts",
+        "apps/web/api/hooks/ruleOptimisticCache.ts",
+        "apps/web/api/roomRoleQueryCache.ts",
         "apps/web/app/components/privateChat/privateUnreadStateStore.ts",
         "apps/web/app/components/privateChat/privateUnreadUtils.ts",
         "apps/web/app/components/privateChat/utils/privateChatTimeline.ts",
@@ -58,6 +63,7 @@ export default defineConfig({
         "apps/mobile/src/lib/use-mobile-query-snapshot.ts",
         "packages/tuanchat-domain/src/display-labels/index.ts",
         "packages/tuanchat-domain/src/media-url/media-url.ts",
+        "packages/tuanchat-query/src/optimistic-cache.ts",
       ],
       exclude: [
         "**/*.test.ts",

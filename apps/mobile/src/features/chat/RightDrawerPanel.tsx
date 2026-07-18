@@ -1,6 +1,8 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
+import type { RoomMember } from "@tuanchat/openapi-client/models/RoomMember";
+import type { SpaceMember } from "@tuanchat/openapi-client/models/SpaceMember";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { memo, useCallback } from "react";
@@ -9,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
+import { MobileMemberPanel } from "@/features/members/MobileMemberPanel";
 import { useTheme } from "@/hooks/use-theme";
 
 import type { RoomStateRuntimeValue } from "./useRoomStateRuntime";
@@ -19,7 +22,7 @@ import { MapPanel } from "./MapPanel";
 import { MobileCluePanel } from "./MobileCluePanel";
 import { useRoomStateRuntime } from "./useRoomStateRuntime";
 
-export type RightDrawerTabKey = "map" | "combat" | "clues";
+export type RightDrawerTabKey = "members" | "map" | "combat" | "clues";
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -57,21 +60,30 @@ const styles = StyleSheet.create({
 });
 
 type RightDrawerPanelProps = {
+  addableRoomRoles: UserRole[];
   activeTab: RightDrawerTabKey;
+  canInvitePlayers: boolean;
+  canInviteRoomMembers: boolean;
+  canInviteSpaceMembers: boolean;
+  canManageRoomRoles: boolean;
   clueUnreadCount?: number;
   clueRooms: Room[];
   currentUserId: number | null;
   currentRoleId: number | null;
   isKP: boolean;
+  isAddingRoomRole: boolean;
   messageResponses: ChatMessageResponse[];
   messages: Message[];
   onClose: () => void;
+  onAddRoomRole: (role: UserRole) => void;
   onChangeActiveTab: (tab: RightDrawerTabKey) => void;
   roomId: number | null;
+  roomMembers: RoomMember[];
   roomRoles: UserRole[];
   roomStateRuntime?: RoomStateRuntimeValue;
   ruleId: number | null | undefined;
   spaceId: number | null;
+  spaceMembers: SpaceMember[];
 };
 
 type RightDrawerPanelContentProps = Omit<RightDrawerPanelProps, "roomStateRuntime"> & {
@@ -89,20 +101,29 @@ function RightDrawerPanelInner({
 }
 
 function RightDrawerPanelWithRuntime({
+  addableRoomRoles,
   activeTab,
+  canInvitePlayers,
+  canInviteRoomMembers,
+  canInviteSpaceMembers,
+  canManageRoomRoles,
   clueUnreadCount = 0,
   clueRooms,
   currentRoleId,
   currentUserId,
   isKP,
+  isAddingRoomRole,
   messageResponses,
   messages,
   onChangeActiveTab,
   onClose,
+  onAddRoomRole,
   roomId,
+  roomMembers,
   roomRoles,
   ruleId,
   spaceId,
+  spaceMembers,
 }: Omit<RightDrawerPanelProps, "roomStateRuntime">) {
   const roomStateRuntime = useRoomStateRuntime({
     currentRoleId,
@@ -114,50 +135,93 @@ function RightDrawerPanelWithRuntime({
   return (
     <RightDrawerPanelContent
       activeTab={activeTab}
+      addableRoomRoles={addableRoomRoles}
+      canInvitePlayers={canInvitePlayers}
+      canInviteRoomMembers={canInviteRoomMembers}
+      canInviteSpaceMembers={canInviteSpaceMembers}
+      canManageRoomRoles={canManageRoomRoles}
       clueUnreadCount={clueUnreadCount}
       clueRooms={clueRooms}
       currentRoleId={currentRoleId}
       currentUserId={currentUserId}
       isKP={isKP}
+      isAddingRoomRole={isAddingRoomRole}
       messageResponses={messageResponses}
       messages={messages}
       onChangeActiveTab={onChangeActiveTab}
       onClose={onClose}
+      onAddRoomRole={onAddRoomRole}
       roomId={roomId}
+      roomMembers={roomMembers}
       roomRoles={roomRoles}
       roomStateRuntime={roomStateRuntime}
       ruleId={ruleId}
       spaceId={spaceId}
+      spaceMembers={spaceMembers}
     />
   );
 }
 
 function RightDrawerPanelContent({
+  addableRoomRoles,
   activeTab,
+  canInvitePlayers,
+  canInviteRoomMembers,
+  canInviteSpaceMembers,
+  canManageRoomRoles,
   clueUnreadCount = 0,
   clueRooms,
   currentUserId,
   currentRoleId,
   isKP,
+  isAddingRoomRole,
   messageResponses,
   messages,
   onChangeActiveTab,
   onClose: _onClose,
+  onAddRoomRole,
   roomId,
+  roomMembers,
   roomRoles,
   roomStateRuntime,
   ruleId,
   spaceId,
+  spaceMembers,
 }: RightDrawerPanelContentProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const handleShowClues = useCallback(() => onChangeActiveTab("clues"), [onChangeActiveTab]);
   const handleShowCombat = useCallback(() => onChangeActiveTab("combat"), [onChangeActiveTab]);
   const handleShowMap = useCallback(() => onChangeActiveTab("map"), [onChangeActiveTab]);
+  const handleShowMembers = useCallback(() => onChangeActiveTab("members"), [onChangeActiveTab]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.surface }]}>
       <View style={styles.content}>
+        <View
+          pointerEvents={activeTab === "members" ? "auto" : "none"}
+          style={[styles.tabPane, activeTab === "members" ? null : styles.hiddenTabPane]}
+        >
+          {roomId != null && spaceId != null
+            ? (
+                <MobileMemberPanel
+                  addableRoomRoles={addableRoomRoles}
+                  canInvitePlayers={canInvitePlayers}
+                  canInviteRoomMembers={canInviteRoomMembers}
+                  canInviteSpaceMembers={canInviteSpaceMembers}
+                  canManageRoomRoles={canManageRoomRoles}
+                  currentUserId={currentUserId}
+                  isAddingRoomRole={isAddingRoomRole}
+                  onAddRoomRole={onAddRoomRole}
+                  roomId={roomId}
+                  roomMembers={roomMembers}
+                  roomRoles={roomRoles}
+                  spaceId={spaceId}
+                  spaceMembers={spaceMembers}
+                />
+              )
+            : null}
+        </View>
         <View
           pointerEvents={activeTab === "map" ? "auto" : "none"}
           style={[styles.tabPane, activeTab === "map" ? null : styles.hiddenTabPane]}
@@ -202,6 +266,20 @@ function RightDrawerPanelContent({
       </View>
 
       <View style={[styles.tabBar, { borderTopColor: theme.border, paddingBottom: insets.bottom }]}>
+        <Pressable
+          style={styles.tab}
+          accessibilityLabel="成员"
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === "members" }}
+          onPress={handleShowMembers}
+        >
+          <ThemedText
+            type="smallBold"
+            themeColor={activeTab === "members" ? "accent" : "textSecondary"}
+          >
+            成员
+          </ThemedText>
+        </Pressable>
         <Pressable
           style={styles.tab}
           accessibilityLabel={formatClueUnreadAccessibilityLabel(clueUnreadCount)}

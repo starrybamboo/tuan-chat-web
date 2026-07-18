@@ -11,6 +11,7 @@ import {
   getDirectUnreadCount,
   getLatestIncomingSync,
   groupDirectConversations,
+  isLocalDirectMessage,
   mergeDirectMessages,
 } from "@tuanchat/domain/direct-message";
 
@@ -55,6 +56,16 @@ export function upsertDirectInboxMessagesData(
   incomingMessages: MessageDirectResponse[],
 ): MessageDirectResponse[] {
   return mergeDirectMessages(currentMessages, incomingMessages);
+}
+
+export function mergeDirectInboxServerSnapshot(
+  currentMessages: MessageDirectResponse[] | undefined,
+  serverMessages: MessageDirectResponse[],
+): MessageDirectResponse[] {
+  return mergeDirectMessages(
+    serverMessages,
+    (currentMessages ?? []).filter(isLocalDirectMessage),
+  );
 }
 
 export function upsertDirectInboxQueryData(
@@ -198,13 +209,18 @@ export function useDirectInboxMessagesQuery(
   currentUserId: number | null | undefined,
   options: { enabled?: boolean; staleTime?: number } = {},
 ) {
+  const queryClient = useQueryClient();
+  const queryKey = getDirectInboxQueryKey(currentUserId);
   return useQuery<MessageDirectResponse[]>({
     enabled: (options.enabled ?? true) && typeof currentUserId === "number" && currentUserId > 0,
     queryFn: async () => {
       const res = await client.messageDirectController.getInboxMessages();
-      return mergeDirectMessages(res.data ?? []);
+      return mergeDirectInboxServerSnapshot(
+        queryClient.getQueryData<MessageDirectResponse[]>(queryKey),
+        res.data ?? [],
+      );
     },
-    queryKey: getDirectInboxQueryKey(currentUserId),
+    queryKey,
     staleTime: options.staleTime ?? 30_000,
   });
 }

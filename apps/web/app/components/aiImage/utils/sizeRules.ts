@@ -1,8 +1,6 @@
 import type { AiImageHistoryMode } from "@/utils/aiImageHistoryDb";
 
 import {
-  AVAILABLE_MODEL_OPTIONS,
-  DEFAULT_IMAGE_MODEL,
   DEFAULT_PRO_IMAGE_SETTINGS,
   NOVELAI_DIMENSION_MIN,
   NOVELAI_DIMENSION_STEP,
@@ -89,8 +87,6 @@ export function getNovelAiFreeGenerationViolation(args: {
   sourceImageWidth?: number;
   sourceImageHeight?: number;
   maskBase64?: string;
-  vibeTransferReferenceCount?: number;
-  hasPreciseReference?: boolean;
 }) {
   if (args.mode === "infill") {
     if (!String(args.sourceImageBase64 || "").trim())
@@ -99,8 +95,7 @@ export function getNovelAiFreeGenerationViolation(args: {
       return "Inpaint 缺少蒙版。";
   }
   else if (args.mode === "img2img") {
-    if (!String(args.sourceImageBase64 || "").trim())
-      return "Base Img 缺少源图。";
+    return getNovelAiFreeOnlyMessage("普通图生图已禁用，请使用局部重绘。");
   }
   else if (args.mode !== "txt2img") {
     return getNovelAiFreeOnlyMessage("当前模式暂未开放。");
@@ -114,8 +109,6 @@ export function getNovelAiFreeGenerationViolation(args: {
   ) {
     return getNovelAiFreeOnlyMessage("导入图像总面积不能超过 1024x1024。");
   }
-  if ((args.vibeTransferReferenceCount ?? 0) > 0 || args.hasPreciseReference)
-    return getNovelAiFreeOnlyMessage("Reference Image、Vibe Transfer、Precise Reference 已禁用。");
   if (args.imageCount !== NOVELAI_FREE_FIXED_IMAGE_COUNT)
     return getNovelAiFreeOnlyMessage("当前仅允许单张生成。");
   if (args.steps > NOVELAI_FREE_MAX_STEPS)
@@ -123,10 +116,4 @@ export function getNovelAiFreeGenerationViolation(args: {
   if (!isNovelAiImageAreaWithinLimit(args.width, args.height))
     return getNovelAiFreeOnlyMessage("当前仅允许宽高乘积不超过 1024x1024。");
   return null;
-}
-
-export function resolveFixedImageModel() {
-  if (AVAILABLE_MODEL_OPTIONS.includes(DEFAULT_IMAGE_MODEL))
-    return DEFAULT_IMAGE_MODEL;
-  return AVAILABLE_MODEL_OPTIONS[0];
 }

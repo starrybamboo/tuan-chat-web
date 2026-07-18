@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import type { StyleProp, TextStyle, ViewStyle } from "react-native";
 
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
@@ -11,8 +10,8 @@ type MobileButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 type MobileButtonProps = {
   accessibilityLabel: string;
-  children?: ReactNode;
   disabled?: boolean;
+  label: string;
   loading?: boolean;
   onPress: () => void;
   style?: StyleProp<ViewStyle>;
@@ -43,8 +42,8 @@ const styles = StyleSheet.create({
 
 export function MobileButton({
   accessibilityLabel,
-  children,
   disabled = false,
+  label,
   loading = false,
   onPress,
   style,
@@ -77,13 +76,9 @@ export function MobileButton({
     >
       <View style={styles.row}>
         {loading ? <ActivityIndicator color={textColor} size="small" /> : null}
-        {children
-          ? (
-              <ThemedText style={[styles.text, { color: textColor }, textStyle]}>
-                {children}
-              </ThemedText>
-            )
-          : null}
+        <ThemedText style={[styles.text, { color: textColor }, textStyle]}>
+          {label}
+        </ThemedText>
       </View>
     </Pressable>
   );

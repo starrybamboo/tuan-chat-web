@@ -132,6 +132,27 @@ describe("memberQueryCache", () => {
     });
   });
 
+  it("成员身份失败回滚不会覆盖后续推送的新身份", async () => {
+    const queryClient = new QueryClient();
+    const queryKey = getSpaceMembersQueryKey(7);
+    queryClient.setQueryData(queryKey, spaceMemberList());
+
+    const transaction = await optimisticSetSpaceMemberTypeQueryCache(queryClient, {
+      spaceId: 7,
+      uidList: [11],
+      memberType: 2,
+    });
+    const pushedData = setSpaceMemberTypeInListData(
+      queryClient.getQueryData<ApiResultListSpaceMember>(queryKey),
+      [11],
+      4,
+    );
+    queryClient.setQueryData(queryKey, pushedData);
+    rollbackSpaceMemberTypeQueryCache(queryClient, 7, transaction);
+
+    expect(queryClient.getQueryData<ApiResultListSpaceMember>(queryKey)?.data?.[0].memberType).toBe(4);
+  });
+
   it("转让 KP 即时切换唯一 leader 并可回滚", async () => {
     const queryClient = new QueryClient();
     const queryKey = getSpaceMembersQueryKey(7);

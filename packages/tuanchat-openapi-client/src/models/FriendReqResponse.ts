@@ -48,4 +48,3 @@ export type FriendReqResponse = {
      */
     type?: string;
 };
-

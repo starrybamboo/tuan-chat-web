@@ -56,7 +56,7 @@ describe("buildUploadedReplayAssetManifest", () => {
     }));
 
     const manifest = await buildUploadedReplayAssetManifest({
-      package: { name: "Replay 导入素材 / opus-88" },
+      package: { name: "Replay 导入素材 / sample-replay" },
       roles: {
         烈: {
           avatars: {
@@ -107,7 +107,7 @@ describe("buildUploadedReplayAssetManifest", () => {
       groupKey: "bgm",
     }));
     expect(manifest).toMatchObject({
-      package: { name: "Replay 导入素材 / opus-88" },
+      package: { name: "Replay 导入素材 / sample-replay" },
       roles: {
         烈: {
           avatars: {
@@ -312,17 +312,17 @@ describe("createReplayAssetManifestUploadDepsFromUploadUtils", () => {
 
 describe("buildReplayAssetUploadFileMap", () => {
   it("用目录相对路径和去根目录路径索引本地文件", () => {
-    const scene = directoryFile("opus-88/bg/eientei.png");
+    const scene = directoryFile("sample-replay/bg/eientei.png");
     const fileMap = buildReplayAssetUploadFileMap([scene]);
 
-    expect(fileMap.get("opus-88/bg/eientei.png")).toBe(scene);
+    expect(fileMap.get("sample-replay/bg/eientei.png")).toBe(scene);
     expect(fileMap.get("bg/eientei.png")).toBe(scene);
     expect(fileMap.get("eientei.png")).toBe(scene);
   });
 
   it("重复文件名不会作为可静默匹配的短路径", () => {
-    const first = directoryFile("opus-88/bg/scene.png");
-    const second = directoryFile("opus-88/cg/scene.png");
+    const first = directoryFile("sample-replay/bg/scene.png");
+    const second = directoryFile("sample-replay/cg/scene.png");
     const fileMap = buildReplayAssetUploadFileMap([first, second]);
 
     expect(fileMap.get("scene.png")).toBeUndefined();
@@ -333,15 +333,15 @@ describe("buildReplayAssetUploadFileMap", () => {
 
 describe("findReplayLocalAssetManifestFile", () => {
   it("优先查找约定命名的素材清单 JSON", () => {
-    const readme = directoryFile("opus-88/readme.json", "application/json");
-    const manifest = directoryFile("opus-88/assets.json", "application/json");
+    const readme = directoryFile("sample-replay/readme.json", "application/json");
+    const manifest = directoryFile("sample-replay/assets.json", "application/json");
 
     expect(findReplayLocalAssetManifestFile([readme, manifest])).toBe(manifest);
   });
 
   it("也接受 replay-assets.json 和 local-assets.json", () => {
-    const replayManifest = directoryFile("opus-88/replay-assets.json", "application/json");
-    const localManifest = directoryFile("opus-88/local-assets.json", "application/json");
+    const replayManifest = directoryFile("sample-replay/replay-assets.json", "application/json");
+    const localManifest = directoryFile("sample-replay/local-assets.json", "application/json");
 
     expect(findReplayLocalAssetManifestFile([replayManifest])).toBe(replayManifest);
     expect(findReplayLocalAssetManifestFile([localManifest])).toBe(localManifest);
@@ -349,8 +349,8 @@ describe("findReplayLocalAssetManifestFile", () => {
 
   it("多个非约定 JSON 文件时失败，避免选错清单", () => {
     expect(() => findReplayLocalAssetManifestFile([
-      directoryFile("opus-88/a.json", "application/json"),
-      directoryFile("opus-88/b.json", "application/json"),
+      directoryFile("sample-replay/a.json", "application/json"),
+      directoryFile("sample-replay/b.json", "application/json"),
     ])).toThrow("本地素材目录存在多个 JSON 文件");
   });
 

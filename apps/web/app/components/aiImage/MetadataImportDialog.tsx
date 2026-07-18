@@ -1,14 +1,12 @@
 import type { Dispatch, SetStateAction } from "react";
 
+import { SelectionPlusIcon } from "@phosphor-icons/react";
+
 import type {
   MetadataImportSelectionState,
   PendingMetadataImportState,
 } from "@/components/aiImage/types";
 
-import image2imageIconSrc from "@/components/aiImage/assets/image2image.png";
-import preciseReferenceIconSrc from "@/components/aiImage/assets/precise-reference.png";
-import vibeTransferIconSrc from "@/components/aiImage/assets/vibe-transfer.png";
-import { ReferenceActionIcon } from "@/components/aiImage/ReferenceActionIcon";
 import { DialogFrame } from "@/components/common/DialogFrame";
 import { Checkbox } from "@/components/common/FormField";
 import { MediaImage } from "@/components/common/mediaImage";
@@ -25,7 +23,7 @@ type MetadataImportDialogProps = {
   metadataImportSelection: MetadataImportSelectionState;
   setMetadataImportSelection: Dispatch<SetStateAction<MetadataImportSelectionState>>;
   onClose: () => void;
-  onImportSourceImageTarget: (target: "img2img" | "vibe" | "precise") => void;
+  onOpenImportedImageInpaint: () => void;
   onConfirmMetadataImport: () => void;
 }
 
@@ -80,7 +78,7 @@ export function MetadataImportDialog({
   metadataImportSelection,
   setMetadataImportSelection,
   onClose,
-  onImportSourceImageTarget,
+  onOpenImportedImageInpaint,
   onConfirmMetadataImport,
 }: MetadataImportDialogProps) {
   const isOpen = Boolean(pendingMetadataImport);
@@ -148,33 +146,11 @@ export function MetadataImportDialog({
             <button
               type="button"
               className={IMAGE_TARGET_BUTTON_CLASS_NAME}
-              aria-label="导入源图片到图生图"
-              onClick={() => onImportSourceImageTarget("img2img")}
+              aria-label="使用导入图片进行局部重绘"
+              onClick={onOpenImportedImageInpaint}
             >
-              <ReferenceActionIcon className="size-[15px] shrink-0" src={image2imageIconSrc} />
-              图生图
-            </button>
-            <button
-              type="button"
-              className={IMAGE_TARGET_BUTTON_CLASS_NAME}
-              disabled
-              title="暂不可用"
-              aria-label="风格迁移，暂不可用"
-              onClick={() => onImportSourceImageTarget("vibe")}
-            >
-              <ReferenceActionIcon className="size-[15px] shrink-0" src={vibeTransferIconSrc} />
-              风格迁移
-            </button>
-            <button
-              type="button"
-              className={IMAGE_TARGET_BUTTON_CLASS_NAME}
-              disabled
-              title="暂不可用"
-              aria-label="精准参考，暂不可用"
-              onClick={() => onImportSourceImageTarget("precise")}
-            >
-              <ReferenceActionIcon className="size-[15px] shrink-0" src={preciseReferenceIconSrc} />
-              精准参考
+              <SelectionPlusIcon className="size-4 shrink-0" weight="regular" />
+              局部重绘
             </button>
           </div>
 

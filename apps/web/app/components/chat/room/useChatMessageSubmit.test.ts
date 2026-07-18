@@ -1631,6 +1631,94 @@ describe("useChatMessageSubmit", () => {
     expect(sendMessageWithInsert).not.toHaveBeenCalled();
   });
 
+  it("检定请求会将被提及角色写入执行白名单", async () => {
+    mocks.isCommandMock.mockReturnValue(true);
+    useChatInputUiStore.setState({
+      plainText: "@检定请求 @调查员A @调查员B .ra 侦查",
+      textWithoutMentions: ".ra 侦查",
+      mentionedRoles: [
+        { roleId: -9999, roleName: "检定请求" },
+        { roleId: 9, roleName: "调查员A" },
+        { roleId: 12, roleName: "调查员B" },
+      ] as UserRole[],
+    });
+
+    const sendMessageWithInsert = vi.fn(async () => createMessage(24));
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: true,
+      curRoleId: -1,
+      notMember: false,
+      noRole: true,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor: vi.fn(),
+      containsCommandRequestAllToken: vi.fn(() => true),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => ".ra 侦查"),
+      setInputText: vi.fn(),
+      roomUiStoreApi: createRoomUiStore(),
+    });
+
+    await handleMessageSubmit();
+
+    expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
+      messageType: MessageType.COMMAND_REQUEST,
+      extra: {
+        commandRequest: {
+          command: ".ra 侦查",
+          allowAll: false,
+          allowedRoleIds: [9, 12],
+        },
+      },
+    }));
+  });
+
+  it("检定请求未提及具体角色时仍允许全员执行", async () => {
+    mocks.isCommandMock.mockReturnValue(true);
+    useChatInputUiStore.setState({
+      plainText: "@检定请求 .ra 侦查",
+      textWithoutMentions: ".ra 侦查",
+      mentionedRoles: [{ roleId: -9999, roleName: "检定请求" }] as UserRole[],
+    });
+
+    const sendMessageWithInsert = vi.fn(async () => createMessage(25));
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: true,
+      curRoleId: -1,
+      notMember: false,
+      noRole: true,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor: vi.fn(),
+      containsCommandRequestAllToken: vi.fn(() => true),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => ".ra 侦查"),
+      setInputText: vi.fn(),
+      roomUiStoreApi: createRoomUiStore(),
+    });
+
+    await handleMessageSubmit();
+
+    expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
+      extra: {
+        commandRequest: {
+          command: ".ra 侦查",
+          allowAll: true,
+        },
+      },
+    }));
+  });
+
   it("@提及开头的骰子命令仍会走旧 cmdPre，支持旁白给其他角色代骰", async () => {
     mocks.isCommandMock.mockImplementation((text: string) => String(text).startsWith("."));
     const mentionedRoles = [{

@@ -5,6 +5,7 @@ import {
   resolveMessageScrollFallbackOffset,
   resolveBottomThresholdTransition,
   resolveVisibleMessageAppendAction,
+  shouldAnimateMessageJump,
   shouldAutoScrollOnContentSizeChange,
 } from "./messageListScrollState";
 
@@ -85,5 +86,11 @@ describe("messageListScrollState", () => {
     expect(resolveMessageScrollFallbackOffset(5, 48)).toBe(240);
     expect(resolveMessageScrollFallbackOffset(0, 48)).toBe(0);
     expect(resolveMessageScrollFallbackOffset(5, 0)).toBe(0);
+  });
+
+  it("回复目标较远时瞬间跳转，较近时保留动画", () => {
+    expect(shouldAnimateMessageJump(8, 0)).toBe(true);
+    expect(shouldAnimateMessageJump(40, 0)).toBe(false);
+    expect(shouldAnimateMessageJump(40, 40 * 72 - 200)).toBe(true);
   });
 });

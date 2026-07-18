@@ -1,6 +1,7 @@
 import type { StateEventMessageSummary } from "@tuanchat/domain/state-runtime";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
+import { FlashList } from "@shopify/flash-list";
 import {
   getClueCardRenderData,
   getDocCardRenderData,
@@ -17,8 +18,8 @@ import {
   getNormalizedStateEventExtra,
 } from "@tuanchat/domain/state-event";
 import { ArrowSquareOut, FileText, ListChecks, MapPinLine, X } from "phosphor-react-native";
-import { useMemo, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { useCallback, useMemo, useState } from "react";
+import { ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
@@ -133,6 +134,55 @@ type MessageCardProps = {
   extra: unknown;
 };
 
+type ForwardMessagePreviewItem = ReturnType<typeof getForwardMessageRenderData>["previewMessages"][number];
+
+type ForwardMessageDetailProps = {
+  backgroundColor: string;
+  extra: unknown;
+};
+
+function ForwardMessageDetail({ backgroundColor, extra }: ForwardMessageDetailProps) {
+  const { height: windowHeight } = useWindowDimensions();
+  const detailData = useMemo(
+    () => getForwardMessageRenderData(extra, Number.MAX_SAFE_INTEGER),
+    [extra],
+  );
+  const detailListHeight = Math.max(160, Math.min(windowHeight * 0.62, 520));
+  const renderForwardedMessage = useCallback(({
+    item,
+    index,
+  }: {
+    item: ForwardMessagePreviewItem;
+    index: number;
+  }) => (
+    <View
+      accessibilityLabel={`${item.message.customRoleName?.trim() || `消息 ${index + 1}`}：${getMessagePreview(item.message)}`}
+      style={[styles.forwardedMessageRow, { backgroundColor }]}
+    >
+      <ThemedText type="caption" themeColor="textSecondary" numberOfLines={1}>
+        {item.message.customRoleName?.trim() || `消息 ${index + 1}`}
+      </ThemedText>
+      <ThemedText style={{ fontSize: 14, lineHeight: 20 }}>{getMessagePreview(item.message)}</ThemedText>
+    </View>
+  ), [backgroundColor]);
+
+  return (
+    <FlashList
+      contentContainerStyle={styles.sheetContent}
+      data={detailData.previewMessages}
+      keyExtractor={(item, index) => `${item.message.messageId ?? index}:forward-detail`}
+      ListEmptyComponent={(
+        <View style={[styles.forwardedMessageRow, { backgroundColor }]}>
+          <ThemedText themeColor="textSecondary">没有可显示的转发消息。</ThemedText>
+        </View>
+      )}
+      renderItem={renderForwardedMessage}
+      showsVerticalScrollIndicator={false}
+      style={{ height: detailListHeight }}
+    />
+  );
+}
+
 export function IntroTextCard({ content }: Pick<MessageCardProps, "content">) {
   return (
     <View style={styles.introCard}>
@@ -145,7 +195,6 @@ export function ForwardMessageCard({ extra }: Pick<MessageCardProps, "extra">) {
   const theme = useTheme();
   const [detailVisible, setDetailVisible] = useState(false);
   const renderData = useMemo(() => getForwardMessageRenderData(extra, 3), [extra]);
-  const detailData = useMemo(() => getForwardMessageRenderData(extra, Number.MAX_SAFE_INTEGER), [extra]);
 
   return (
     <>
@@ -226,26 +275,7 @@ export function ForwardMessageCard({ extra }: Pick<MessageCardProps, "extra">) {
             <X color={theme.textSecondary} size={18} />
           </Pressable>
         </View>
-        <ScrollView contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
-          {detailData.previewMessages.length === 0
-            ? (
-                <View style={[styles.forwardedMessageRow, { backgroundColor: theme.backgroundElement }]}>
-                  <ThemedText themeColor="textSecondary">没有可显示的转发消息。</ThemedText>
-                </View>
-              )
-            : detailData.previewMessages.map((item, index) => (
-                <View
-                  key={`${item.message.messageId ?? index}:forward-detail`}
-                  accessibilityLabel={`${item.message.customRoleName?.trim() || `消息 ${index + 1}`}：${getMessagePreview(item.message)}`}
-                  style={[styles.forwardedMessageRow, { backgroundColor: theme.backgroundElement }]}
-                >
-                  <ThemedText type="caption" themeColor="textSecondary" numberOfLines={1}>
-                    {item.message.customRoleName?.trim() || `消息 ${index + 1}`}
-                  </ThemedText>
-                  <ThemedText style={{ fontSize: 14, lineHeight: 20 }}>{getMessagePreview(item.message)}</ThemedText>
-                </View>
-              ))}
-        </ScrollView>
+        <ForwardMessageDetail backgroundColor={theme.backgroundElement} extra={extra} />
       </BottomSheetModal>
     </>
   );

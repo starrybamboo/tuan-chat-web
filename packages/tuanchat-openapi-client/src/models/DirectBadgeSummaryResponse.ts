@@ -15,4 +15,3 @@ export type DirectBadgeSummaryResponse = {
      */
     pendingFriendRequestCount?: number;
 };
-

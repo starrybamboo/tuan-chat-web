@@ -130,7 +130,10 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
     return null;
   }, [dicerRoleId, linkedDicerRole]);
   const getRulesQuery = useGetRulePageInfiniteQuery({}, 100);
-  const rules = getRulesQuery.data?.pages.flatMap(page => page.data?.list ?? []) ?? [];
+  const rules = useMemo(
+    () => getRulesQuery.data?.pages.flatMap(page => page.data?.list ?? []) ?? [],
+    [getRulesQuery.data?.pages],
+  );
   const selectedRuleName = rules.find(rule => rule.ruleId === selectedRuleId)?.ruleName;
   const isSubmitting = isCreateFlowSubmitting || createSpaceMutation.isPending || setSpaceExtraMutation.isPending;
   const canSubmit = spaceName.trim().length > 0 && !isSubmitting;

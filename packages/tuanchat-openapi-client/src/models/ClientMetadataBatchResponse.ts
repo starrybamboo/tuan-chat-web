@@ -22,4 +22,3 @@ export type ClientMetadataBatchResponse = {
      */
     avatars?: Record<string, RoleAvatar>;
 };
-

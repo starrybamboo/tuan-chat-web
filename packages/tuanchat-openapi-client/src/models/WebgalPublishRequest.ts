@@ -17,4 +17,3 @@ export type WebgalPublishRequest = {
      */
     packageData?: WebgalPublishClientPackage;
 };
-

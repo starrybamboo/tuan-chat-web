@@ -7,6 +7,57 @@ import { getMessagePreviewText } from "./messagePreview";
 import { MESSAGE_TYPE } from "./messageType";
 
 export const DIRECT_MESSAGE_READ_LINE_TYPE = 10000;
+export const DIRECT_MESSAGE_RECALL_TYPE = 10001;
+
+export type DirectMessageLocalSyncState = "failed" | "optimistic";
+export type OptimisticDirectMessage = MessageDirectResponse & {
+  tcLocalSyncState: "optimistic";
+};
+export type FailedDirectMessage = MessageDirectResponse & {
+  tcLocalSyncState: "failed";
+};
+export type LocalDirectMessage = FailedDirectMessage | OptimisticDirectMessage;
+
+export function isOptimisticDirectMessage(message: MessageDirectResponse): message is OptimisticDirectMessage {
+  return (message as Partial<LocalDirectMessage>).tcLocalSyncState === "optimistic";
+}
+
+export function isFailedDirectMessage(message: MessageDirectResponse): message is FailedDirectMessage {
+  return (message as Partial<LocalDirectMessage>).tcLocalSyncState === "failed";
+}
+
+export function isLocalDirectMessage(message: MessageDirectResponse): message is LocalDirectMessage {
+  return isOptimisticDirectMessage(message) || isFailedDirectMessage(message);
+}
+
+export function markDirectMessageFailed(message: MessageDirectResponse): FailedDirectMessage {
+  return {
+    ...message,
+    tcLocalSyncState: "failed",
+  };
+}
+
+export function buildDirectMessageRetryRequest(message: MessageDirectResponse): MessageDirectSendRequest | null {
+  if (
+    typeof message.receiverId !== "number"
+    || !Number.isInteger(message.receiverId)
+    || message.receiverId <= 0
+    || typeof message.messageType !== "number"
+    || !Number.isInteger(message.messageType)
+  ) {
+    return null;
+  }
+
+  return {
+    receiverId: message.receiverId,
+    messageType: message.messageType,
+    content: message.content ?? "",
+    extra: message.extra ?? {},
+    ...(typeof message.replyMessageId === "number" && message.replyMessageId > 0
+      ? { replyMessageId: message.replyMessageId }
+      : {}),
+  };
+}
 
 export type DirectMessageLike = Pick<
   MessageDirectResponse,
@@ -79,6 +130,10 @@ export function compareDirectMessagesDescending(left: DirectMessageLike, right: 
 
 export function isDirectReadLineMessage(message: DirectMessageLike): boolean {
   return message.messageType === DIRECT_MESSAGE_READ_LINE_TYPE;
+}
+
+export function isDirectRecallEvent(message: DirectMessageLike): boolean {
+  return message.messageType === DIRECT_MESSAGE_RECALL_TYPE;
 }
 
 export function getDirectMessagePreviewText(message?: MessageDirectResponse | null): string {
@@ -195,12 +250,33 @@ export function mergeDirectMessages<T extends DirectMessageLike>(
   ].sort(compareDirectMessagesAscending);
 }
 
+/**
+ * 将 append-only 的私聊事件流投影为当前 UI：撤回事件隐藏自身并标记目标消息。
+ * 旧数据没有撤回事件时仍保留服务端既有的 status 字段语义。
+ */
+export function projectDirectMessageEvents<T extends DirectMessageLike>(events: readonly T[]): T[] {
+  const merged = mergeDirectMessages(events);
+  const recalledMessageIds = new Set(merged
+    .filter(isDirectRecallEvent)
+    .map(message => message.replyMessageId)
+    .filter((messageId): messageId is number => typeof messageId === "number" && messageId > 0));
+
+  return merged
+    .filter(message => !isDirectRecallEvent(message))
+    .map((message) => {
+      if (!recalledMessageIds.has(message.messageId ?? -1)) {
+        return message;
+      }
+      return { ...message, status: 1 } as T;
+    });
+}
+
 export function getLatestIncomingSync(
   messages: readonly DirectReadTrackedMessage[],
   contactId: number,
 ): number {
   return messages.reduce((max, message) => {
-    if (message.senderId === contactId && !isDirectReadLineMessage(message)) {
+    if (message.senderId === contactId && !isDirectReadLineMessage(message) && !isDirectRecallEvent(message)) {
       return Math.max(max, message.syncId ?? 0);
     }
     return max;
@@ -224,6 +300,7 @@ export function getDirectUnreadCount(
   return messages.filter(message =>
     message.senderId === contactId
     && !isDirectReadLineMessage(message)
+    && !isDirectRecallEvent(message)
     && (message.syncId ?? 0) > effectiveReadSync,
   ).length;
 }
@@ -271,7 +348,7 @@ export function groupDirectConversations<T extends DirectMessageLike>(
 
   return Array.from(grouped.entries())
     .map(([contactId, list]) => {
-      const merged = mergeDirectMessages(list);
+      const merged = projectDirectMessageEvents(list);
       const visibleMessages = merged.filter(message => !isDirectReadLineMessage(message));
       if (visibleMessages.length === 0) {
         return null;

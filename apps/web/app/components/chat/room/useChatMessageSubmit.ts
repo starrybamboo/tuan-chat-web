@@ -418,11 +418,8 @@ export default function useChatMessageSubmit({
     if (isSpaceArchived && !isKP) {
       appToast.error({
         title: "当前空间已归档",
-        description: "归档后仅主持人可继续发言。你可以联系主持人解除归档，或由主持人代为发送。",
-        terms: [{
-          label: "归档",
-          description: "用于结束或冻结空间内容的状态，普通成员不能继续新增消息。",
-        }],
+        description: "归档后仅主持人可继续发言。",
+        supportIssueId: "space-archived",
       });
       return;
     }
@@ -443,11 +440,8 @@ export default function useChatMessageSubmit({
       if (isNarrator && !isKP)
         appToast.error({
           title: "无法发送旁白",
-          description: "旁白只能由主持人发送。请选择你的角色，或让主持人代为发送。",
-          terms: [{
-            label: "旁白",
-            description: "不绑定具体角色、用于描述场景或推进剧情的主持人消息。",
-          }],
+          description: "旁白只能由主持人发送。",
+          supportIssueId: "narration-host-only",
         });
       return;
     }
@@ -547,11 +541,8 @@ export default function useChatMessageSubmit({
       if (isRoomJumpCommand && !roomJumpCommandPayload) {
         appToast.error({
           title: "群聊跳转格式错误",
-          description: "请使用 /roomjump <roomId> [标题] 或 /roomjump <spaceId> <roomId> [标题]。",
-          terms: [{
-            label: "群聊跳转",
-            description: "发送一个可点击入口，让成员从当前群聊跳到指定空间或群聊。",
-          }],
+          description: "指令缺少有效的空间或房间编号。",
+          supportIssueId: "room-jump-invalid-format",
         });
         return;
       }
@@ -676,6 +667,11 @@ export default function useChatMessageSubmit({
         regularInputText = "";
       }
       else if (shouldSendCommandRequest) {
+        const allowedRoleIds = Array.from(new Set(
+          mentionedRolesInInput
+            .map(role => role.roleId)
+            .filter(roleId => typeof roleId === "number" && roleId > 0),
+        ));
         const requestMsg: ChatMessageRequest = {
           content: requestCommand!,
           messageType: MessageType.COMMAND_REQUEST,
@@ -685,7 +681,8 @@ export default function useChatMessageSubmit({
           extra: {
             commandRequest: {
               command: requestCommand!,
-              allowAll: true,
+              allowAll: allowedRoleIds.length === 0,
+              ...(allowedRoleIds.length > 0 ? { allowedRoleIds } : {}),
             },
           },
         };

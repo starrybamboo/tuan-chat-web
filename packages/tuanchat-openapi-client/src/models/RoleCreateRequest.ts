@@ -27,4 +27,3 @@ export type RoleCreateRequest = {
      */
     extra?: Record<string, string>;
 };
-

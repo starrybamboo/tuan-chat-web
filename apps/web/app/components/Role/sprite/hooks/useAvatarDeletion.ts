@@ -1,9 +1,8 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
-
 import type { RoleAvatar } from "api";
 
-import { useBatchDeleteRoleAvatarsWithOptimisticMutation, useDeleteRoleAvatarWithOptimisticMutation } from "api/hooks/RoleAndAvatarHooks";
+import { useQueryClient } from "@tanstack/react-query";
+import { useBatchDeleteRoleAvatarsMutation, useDeleteRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
+import { useCallback, useState } from "react";
 
 import type { Role } from "../../types";
 
@@ -45,8 +44,8 @@ export function useAvatarDeletion({
   const queryClient = useQueryClient();
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const deleteAvatarMutation = useDeleteRoleAvatarWithOptimisticMutation(role?.id);
-  const batchDeleteMutation = useBatchDeleteRoleAvatarsWithOptimisticMutation(role?.id);
+  const deleteAvatarMutation = useDeleteRoleAvatarMutation(role?.id);
+  const batchDeleteMutation = useBatchDeleteRoleAvatarsMutation(role?.id);
   const avatarPool = allAvatars ?? avatars;
   const effectiveTotalAvatarsCount = totalAvatarsCount ?? avatarPool.length;
 

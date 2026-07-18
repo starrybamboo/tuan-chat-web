@@ -1,4 +1,5 @@
-import { createOptimisticRoomMessage, getNextAppendPosition } from "@tuanchat/query/room-message-lifecycle";
+import { isOpenApiResponseError } from "@tuanchat/domain/open-api-result";
+import { createOptimisticRoomMessage, getNextAppendPosition, markFailedRoomMessage } from "@tuanchat/query/room-message-lifecycle";
 import { useCallback, useRef } from "react";
 import { appToast } from "@/components/common/appToast/appToast";
 
@@ -101,6 +102,22 @@ export default function useRoomMessageActions({
     }
   }, [revertOptimisticMessage]);
 
+  const markOptimisticMessageFailed = useCallback(async (optimisticMessage: ChatMessageResponse) => {
+    if (!addOrUpdateMessage) {
+      return;
+    }
+    await addOrUpdateMessage({
+      ...optimisticMessage,
+      message: markFailedRoomMessage(optimisticMessage.message),
+    });
+  }, [addOrUpdateMessage]);
+
+  const markOptimisticMessagesFailed = useCallback(async (optimisticMessages: ChatMessageResponse[]) => {
+    for (const optimisticMessage of optimisticMessages) {
+      await markOptimisticMessageFailed(optimisticMessage);
+    }
+  }, [markOptimisticMessageFailed]);
+
   const insertLocalOptimisticMessages = useCallback((requests: ChatMessageRequest[]): ChatMessageResponse[] => {
     if (requests.length === 0) {
       return [];
@@ -148,7 +165,7 @@ export default function useRoomMessageActions({
     try {
       const result = await sendMessage(request);
       if (!result.success || !result.data) {
-        await revertOptimisticMessage(optimisticMessage);
+        await markOptimisticMessageFailed(optimisticMessage);
         appToast.error("发送消息失败，请检查网络后重试");
         return null;
       }
@@ -159,15 +176,20 @@ export default function useRoomMessageActions({
     }
     catch (error) {
       console.error(errorLogLabel, error);
-      await revertOptimisticMessage(optimisticMessage);
-      appToast.error("发送消息失败，请检查网络后重试");
+      if (isOpenApiResponseError(error)) {
+        await markOptimisticMessageFailed(optimisticMessage);
+        appToast.error(error.message || "发送消息失败，请重试");
+      }
+      else {
+        appToast.error("发送结果未知，正在等待消息同步");
+      }
       return null;
     }
   }, [
     addOrUpdateMessage,
     commitOptimisticMessage,
     createOptimisticMessage,
-    revertOptimisticMessage,
+    markOptimisticMessageFailed,
     roomUiStoreApi,
     sendMessage,
   ]);
@@ -209,7 +231,7 @@ export default function useRoomMessageActions({
     try {
       const result = await sendMessage(requestWithStablePosition);
       if (!result.success || !result.data) {
-        await revertOptimisticMessage(optimisticMessage);
+        await markOptimisticMessageFailed(optimisticMessage);
         appToast.error("发送消息失败，请检查网络后重试");
         return null;
       }
@@ -220,12 +242,18 @@ export default function useRoomMessageActions({
     }
     catch (error) {
       console.error(errorLogLabel, error);
-      await revertOptimisticMessage(optimisticMessage);
-      appToast.error("发送消息失败，请检查网络后重试");
+      if (isOpenApiResponseError(error)) {
+        await markOptimisticMessageFailed(optimisticMessage);
+        appToast.error(error.message || "发送消息失败，请重试");
+      }
+      else {
+        appToast.error("发送结果未知，正在等待消息同步");
+      }
       return null;
     }
   }, [
     commitOptimisticMessage,
+    markOptimisticMessageFailed,
     revertOptimisticMessage,
     roomUiStoreApi,
     sendMessage,
@@ -266,7 +294,7 @@ export default function useRoomMessageActions({
       const result = await insertMessages(requests, options);
       const createdMessages = Array.isArray(result?.data) ? result.data : [];
       if (!result?.success || createdMessages.length !== requests.length) {
-        await revertOptimisticMessages(optimisticMessages);
+        await markOptimisticMessagesFailed(optimisticMessages);
         appToast.error("批量发送消息失败，请检查网络后重试");
         return [];
       }
@@ -286,14 +314,20 @@ export default function useRoomMessageActions({
     }
     catch (error) {
       console.error(errorLogLabel, error);
-      await revertOptimisticMessages(optimisticMessages);
-      appToast.error("批量发送消息失败，请检查网络后重试");
+      if (isOpenApiResponseError(error)) {
+        await markOptimisticMessagesFailed(optimisticMessages);
+        appToast.error(error.message || "批量发送消息失败，请重试");
+      }
+      else {
+        appToast.error("批量发送结果未知，正在等待消息同步");
+      }
       return [];
     }
   }, [
     addOrUpdateMessage,
     addOrUpdateMessages,
     insertMessages,
+    markOptimisticMessagesFailed,
     createOptimisticMessages,
     replaceMessageById,
     revertOptimisticMessages,
@@ -357,7 +391,7 @@ export default function useRoomMessageActions({
       const result = await insertMessages(requestsWithStablePositions, options);
       const createdMessages = Array.isArray(result?.data) ? result.data : [];
       if (!result?.success || createdMessages.length !== requests.length) {
-        await revertOptimisticMessages(optimisticMessages);
+        await markOptimisticMessagesFailed(optimisticMessages);
         appToast.error("批量发送消息失败，请检查网络后重试");
         return [];
       }
@@ -377,14 +411,20 @@ export default function useRoomMessageActions({
     }
     catch (error) {
       console.error("批量发送消息失败", error);
-      await revertOptimisticMessages(optimisticMessages);
-      appToast.error("批量发送消息失败，请检查网络后重试");
+      if (isOpenApiResponseError(error)) {
+        await markOptimisticMessagesFailed(optimisticMessages);
+        appToast.error(error.message || "批量发送消息失败，请重试");
+      }
+      else {
+        appToast.error("批量发送结果未知，正在等待消息同步");
+      }
       return [];
     }
   }, [
     addOrUpdateMessage,
     addOrUpdateMessages,
     insertMessages,
+    markOptimisticMessagesFailed,
     replaceMessageById,
     revertOptimisticMessages,
     roomUiStoreApi,

@@ -9,6 +9,7 @@ import {
 export * from "./direct-messages";
 
 export const ROOM_MESSAGES_TABLE_NAME = "room_messages";
+export const ROOM_MESSAGE_PENDING_TABLE_NAME = "room_message_pending";
 
 export const ROOM_MESSAGE_SCHEMA_SQL = [
   `CREATE TABLE IF NOT EXISTS ${ROOM_MESSAGES_TABLE_NAME} (
@@ -24,6 +25,14 @@ export const ROOM_MESSAGE_SCHEMA_SQL = [
     ON ${ROOM_MESSAGES_TABLE_NAME} (room_id, position, sync_id, message_id)`,
   `CREATE INDEX IF NOT EXISTS room_messages_room_sync_idx
     ON ${ROOM_MESSAGES_TABLE_NAME} (room_id, sync_id)`,
+  `CREATE TABLE IF NOT EXISTS ${ROOM_MESSAGE_PENDING_TABLE_NAME} (
+    pending_message_id INTEGER PRIMARY KEY NOT NULL,
+    room_id INTEGER NOT NULL,
+    payload_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS room_message_pending_room_idx
+    ON ${ROOM_MESSAGE_PENDING_TABLE_NAME} (room_id, pending_message_id)`,
 ] as const;
 
 export const MOBILE_QUERY_SNAPSHOTS_TABLE_NAME = "mobile_query_snapshots";
@@ -69,7 +78,12 @@ export type RoomMessageRecord = {
   updated_at: string;
 };
 
+type PendingRoomMessageRecord = Pick<RoomMessageRecord, "payload_json"> & {
+  pending_message_id: number;
+};
+
 export type RoomMessageRepository = {
+  addPendingMessages: (messages: ChatMessageResponse[]) => Promise<void>;
   clearRoomMessages: (roomId: number) => Promise<void>;
   deleteMessagesByIds: (messageIds: number[]) => Promise<void>;
   getMaxSyncId: (roomId: number) => Promise<number>;
@@ -77,6 +91,8 @@ export type RoomMessageRepository = {
   getMessagesByRoomId: (roomId: number) => Promise<ChatMessageResponse[]>;
   getMessagesSinceSyncId: (roomId: number, syncId: number) => Promise<ChatMessageResponse[]>;
   markMessagesDeleted: (messageIds: number[]) => Promise<void>;
+  promotePendingMessage: (pendingMessageId: number, confirmedMessage: ChatMessageResponse) => Promise<void>;
+  rollbackPendingMessages: (pendingMessageIds: number[]) => Promise<void>;
   upsertMessages: (messages: ChatMessageResponse[]) => Promise<void>;
 };
 
@@ -86,7 +102,7 @@ export type LocalDbSqliteDriver = {
   all: <T>(sql: string, params?: SqliteValue[]) => Promise<T[]>;
   exec: (sql: string) => Promise<void>;
   run: (sql: string, params?: SqliteValue[]) => Promise<void>;
-  transaction?: <T>(task: () => Promise<T>) => Promise<T>;
+  transaction?: <T>(task: (transactionDriver: LocalDbSqliteDriver) => Promise<T>) => Promise<T>;
 };
 
 export type RoomMessageSqliteDriver = LocalDbSqliteDriver;
@@ -229,6 +245,10 @@ function normalizeMessageIds(messageIds: number[]): number[] {
   return Array.from(new Set((messageIds ?? []).filter(id => Number.isInteger(id))));
 }
 
+function isPendingRoomMessage(message: ChatMessageResponse): boolean {
+  return (requireMessageId(message) ?? 0) < 0;
+}
+
 function createPlaceholders(count: number): string {
   return Array.from({ length: count }, () => "?").join(", ");
 }
@@ -278,11 +298,11 @@ export function createRoomMessageRepository(driver: LocalDbSqliteDriver): RoomMe
     await schemaReadyPromise;
   }
 
-  async function inTransaction<T>(task: () => Promise<T>): Promise<T> {
+  async function inTransaction<T>(task: (transactionDriver: LocalDbSqliteDriver) => Promise<T>): Promise<T> {
     if (driver.transaction) {
       return driver.transaction(task);
     }
-    return task();
+    return task(driver);
   }
 
   async function upsertPreparedMessages(messages: ChatMessageResponse[]): Promise<void> {
@@ -291,12 +311,12 @@ export function createRoomMessageRepository(driver: LocalDbSqliteDriver): RoomMe
     }
 
     await ensureSchema();
-    await inTransaction(async () => {
+    await inTransaction(async (transactionDriver) => {
       const messageIds = normalizeMessageIds(messages
         .map(message => requireMessageId(message))
         .filter((messageId): messageId is number => messageId !== null));
       const existingRows = messageIds.length > 0
-        ? await driver.all<Pick<RoomMessageRecord, "payload_json">>(
+        ? await transactionDriver.all<Pick<RoomMessageRecord, "payload_json">>(
             `SELECT payload_json
               FROM ${ROOM_MESSAGES_TABLE_NAME}
               WHERE message_id IN (${createPlaceholders(messageIds.length)})`,
@@ -315,7 +335,7 @@ export function createRoomMessageRepository(driver: LocalDbSqliteDriver): RoomMe
           continue;
         }
 
-        await driver.run(
+        await transactionDriver.run(
           `INSERT OR REPLACE INTO ${ROOM_MESSAGES_TABLE_NAME}
             (message_id, room_id, sync_id, position, status, payload_json, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -333,14 +353,70 @@ export function createRoomMessageRepository(driver: LocalDbSqliteDriver): RoomMe
     });
   }
 
+  async function upsertPendingOverlays(entries: Array<{ message: ChatMessageResponse; pendingMessageId: number }>): Promise<void> {
+    if (entries.length === 0) {
+      return;
+    }
+    await ensureSchema();
+    await inTransaction(async (transactionDriver) => {
+      for (const { message, pendingMessageId } of entries) {
+        const record = toRoomMessageRecord(message);
+        if (!record || !Number.isInteger(pendingMessageId) || pendingMessageId >= 0) {
+          continue;
+        }
+        await transactionDriver.run(
+          `INSERT OR REPLACE INTO ${ROOM_MESSAGE_PENDING_TABLE_NAME}
+            (pending_message_id, room_id, payload_json, updated_at)
+            VALUES (?, ?, ?, ?)`,
+          [pendingMessageId, record.room_id, record.payload_json, record.updated_at],
+        );
+      }
+    });
+  }
+
+  async function readPendingRows(roomId: number): Promise<Array<Pick<RoomMessageRecord, "payload_json">>> {
+    const rows = await driver.all<PendingRoomMessageRecord>(
+      `SELECT pending_message_id, payload_json FROM ${ROOM_MESSAGE_PENDING_TABLE_NAME}
+        WHERE room_id = ? ORDER BY pending_message_id ASC`,
+      [roomId],
+    );
+    const recoverableRows: Array<Pick<RoomMessageRecord, "payload_json">> = [];
+    const stalePendingIds: number[] = [];
+    for (const row of rows) {
+      const message = fromRoomMessageRecord(row);
+      if (row.pending_message_id < 0 && message?.message.messageId === row.pending_message_id) {
+        recoverableRows.push({ payload_json: row.payload_json });
+      }
+      else {
+        stalePendingIds.push(row.pending_message_id);
+      }
+    }
+    if (stalePendingIds.length > 0) {
+      await driver.run(
+        `DELETE FROM ${ROOM_MESSAGE_PENDING_TABLE_NAME}
+          WHERE pending_message_id IN (${createPlaceholders(stalePendingIds.length)})`,
+        stalePendingIds,
+      );
+    }
+    return recoverableRows;
+  }
+
   return {
+    async addPendingMessages(messages) {
+      await upsertPendingOverlays(messages
+        .filter(isPendingRoomMessage)
+        .map(message => ({ message, pendingMessageId: requireMessageId(message)! })));
+    },
     async clearRoomMessages(roomId) {
       if (!isPositiveRoomId(roomId)) {
         return;
       }
 
       await ensureSchema();
-      await driver.run(`DELETE FROM ${ROOM_MESSAGES_TABLE_NAME} WHERE room_id = ?`, [roomId]);
+      await inTransaction(async (transactionDriver) => {
+        await transactionDriver.run(`DELETE FROM ${ROOM_MESSAGES_TABLE_NAME} WHERE room_id = ?`, [roomId]);
+        await transactionDriver.run(`DELETE FROM ${ROOM_MESSAGE_PENDING_TABLE_NAME} WHERE room_id = ?`, [roomId]);
+      });
     },
 
     async deleteMessagesByIds(messageIds) {
@@ -355,6 +431,14 @@ export function createRoomMessageRepository(driver: LocalDbSqliteDriver): RoomMe
           WHERE message_id IN (${createPlaceholders(ids.length)})`,
         ids,
       );
+      const pendingIds = ids.filter(id => id < 0);
+      if (pendingIds.length > 0) {
+        await driver.run(
+          `DELETE FROM ${ROOM_MESSAGE_PENDING_TABLE_NAME}
+            WHERE pending_message_id IN (${createPlaceholders(pendingIds.length)})`,
+          pendingIds,
+        );
+      }
     },
 
     async getMaxSyncId(roomId) {
@@ -387,7 +471,12 @@ export function createRoomMessageRepository(driver: LocalDbSqliteDriver): RoomMe
           LIMIT 1`,
         [ids[0]],
       );
-      return fromRoomMessageRecords(rows)[0] ?? null;
+      const pendingRows = await driver.all<Pick<RoomMessageRecord, "payload_json">>(
+        `SELECT payload_json FROM ${ROOM_MESSAGE_PENDING_TABLE_NAME}
+          WHERE pending_message_id = ? LIMIT 1`,
+        [ids[0]],
+      );
+      return fromRoomMessageRecords([...rows, ...pendingRows])[0] ?? null;
     },
 
     async getMessagesByRoomId(roomId) {
@@ -403,7 +492,7 @@ export function createRoomMessageRepository(driver: LocalDbSqliteDriver): RoomMe
           ORDER BY position ASC, sync_id ASC, message_id ASC`,
         [roomId],
       );
-      return fromRoomMessageRecords(rows);
+      return fromRoomMessageRecords([...rows, ...await readPendingRows(roomId)]);
     },
 
     async getMessagesSinceSyncId(roomId, syncId) {
@@ -438,8 +527,48 @@ export function createRoomMessageRepository(driver: LocalDbSqliteDriver): RoomMe
       await upsertPreparedMessages(markRoomMessagesDeleted(fromRoomMessageRecords(rows), ids));
     },
 
+    async promotePendingMessage(pendingMessageId, confirmedMessage) {
+      if (!Number.isInteger(pendingMessageId) || pendingMessageId >= 0) {
+        return;
+      }
+      await ensureSchema();
+      await inTransaction(async (transactionDriver) => {
+        await transactionDriver.run(
+          `DELETE FROM ${ROOM_MESSAGE_PENDING_TABLE_NAME} WHERE pending_message_id = ?`,
+          [pendingMessageId],
+        );
+        const record = toRoomMessageRecord(confirmedMessage);
+        if (!record || record.message_id <= 0) {
+          return;
+        }
+        await transactionDriver.run(
+          `INSERT OR REPLACE INTO ${ROOM_MESSAGES_TABLE_NAME}
+            (message_id, room_id, sync_id, position, status, payload_json, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [record.message_id, record.room_id, record.sync_id, record.position, record.status, record.payload_json, record.updated_at],
+        );
+      });
+    },
+
+    async rollbackPendingMessages(pendingMessageIds) {
+      const ids = normalizeMessageIds(pendingMessageIds).filter(id => id < 0);
+      if (ids.length === 0) {
+        return;
+      }
+      await ensureSchema();
+      await driver.run(
+        `DELETE FROM ${ROOM_MESSAGE_PENDING_TABLE_NAME}
+          WHERE pending_message_id IN (${createPlaceholders(ids.length)})`,
+        ids,
+      );
+    },
+
     async upsertMessages(messages) {
-      await upsertPreparedMessages(normalizeRoomMessagesForStorage(messages));
+      const normalizedMessages = normalizeRoomMessagesForStorage(messages);
+      await upsertPendingOverlays(normalizedMessages
+        .filter(isPendingRoomMessage)
+        .map(message => ({ message, pendingMessageId: requireMessageId(message)! })));
+      await upsertPreparedMessages(normalizedMessages.filter(message => !isPendingRoomMessage(message)));
     },
   };
 }

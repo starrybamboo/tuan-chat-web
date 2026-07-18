@@ -4,6 +4,7 @@ import type {
   MobileKeyValueRepository,
   QuerySnapshotRepository,
   RoomMessageRepository,
+  SqliteValue,
 } from "@tuanchat/local-db";
 
 import {
@@ -13,13 +14,13 @@ import {
   createRoomMessageRepository,
 } from "@tuanchat/local-db";
 import * as SQLite from "expo-sqlite";
+import { Platform } from "react-native";
 
 export const MOBILE_LOCAL_DB_NAME = "tuanchat-local.db";
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 let driverPromise: Promise<LocalDbSqliteDriver> | null = null;
 let operationQueue: Promise<unknown> = Promise.resolve();
-let transactionDepth = 0;
 let roomMessageRepositoryPromise: Promise<RoomMessageRepository> | null = null;
 let querySnapshotRepositoryPromise: Promise<QuerySnapshotRepository> | null = null;
 let keyValueRepositoryPromise: Promise<MobileKeyValueRepository> | null = null;
@@ -31,8 +32,12 @@ function enqueue<T>(task: () => Promise<T>): Promise<T> {
   return result;
 }
 
-function enqueueOrRun<T>(task: () => Promise<T>): Promise<T> {
-  return transactionDepth > 0 ? task() : enqueue(task);
+function createUnqueuedDriver(db: SQLite.SQLiteDatabase): LocalDbSqliteDriver {
+  return {
+    all: <T>(sql: string, params: SqliteValue[] = []) => db.getAllAsync<T>(sql, params),
+    exec: sql => db.execAsync(sql),
+    run: (sql, params: SqliteValue[] = []) => db.runAsync(sql, params).then(() => undefined),
+  };
 }
 
 export async function openMobileLocalDb(): Promise<SQLite.SQLiteDatabase> {
@@ -43,31 +48,27 @@ export async function openMobileLocalDb(): Promise<SQLite.SQLiteDatabase> {
 export async function getMobileLocalDbDriver(): Promise<LocalDbSqliteDriver> {
   driverPromise ??= (async () => {
     const db = await openMobileLocalDb();
-    return {
-      all: (sql, params = []) => enqueueOrRun(() => db.getAllAsync(sql, ...params)),
-      exec: sql => enqueueOrRun(() => db.execAsync(sql)),
-      run: (sql, params = []) => enqueueOrRun(() => db.runAsync(sql, ...params).then(() => undefined)),
+    const unqueuedDriver = createUnqueuedDriver(db);
+    const driver: LocalDbSqliteDriver = {
+      all: <T>(sql: string, params: SqliteValue[] = []) => enqueue(() => unqueuedDriver.all<T>(sql, params)),
+      exec: sql => enqueue(() => unqueuedDriver.exec(sql)),
+      run: (sql, params: SqliteValue[] = []) => enqueue(() => unqueuedDriver.run(sql, params)),
       transaction: task => enqueue(async () => {
         let result: Awaited<ReturnType<typeof task>>;
-        const runTask = async () => {
-          transactionDepth += 1;
-          try {
-            result = await task();
-          }
-          finally {
-            transactionDepth -= 1;
-          }
+        const runTask = async (transactionDb: SQLite.SQLiteDatabase) => {
+          result = await task(createUnqueuedDriver(transactionDb));
         };
 
-        if (db.withTransactionAsync) {
-          await db.withTransactionAsync(runTask);
+        if (Platform.OS !== "web") {
+          await db.withExclusiveTransactionAsync(runTask);
         }
         else {
-          await runTask();
+          await db.withTransactionAsync(() => runTask(db));
         }
         return result!;
       }),
     };
+    return driver;
   })();
   return driverPromise;
 }
@@ -96,7 +97,6 @@ export function resetMobileLocalDbForTests() {
   dbPromise = null;
   driverPromise = null;
   operationQueue = Promise.resolve();
-  transactionDepth = 0;
   roomMessageRepositoryPromise = null;
   querySnapshotRepositoryPromise = null;
   keyValueRepositoryPromise = null;

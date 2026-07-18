@@ -20,6 +20,7 @@ import { useSendRoomMessageMutation } from "@/features/messages/useSendRoomMessa
 import { useTheme } from "@/hooks/use-theme";
 import { mobileApiClient } from "@/lib/api";
 import { avatarThumbUrl } from "@/lib/media-url";
+import { MOBILE_MODAL_ORIENTATIONS } from "@/lib/modal";
 
 import type { RoomDndMapToken } from "./roomDndMap";
 import type { RoomStateRuntimeValue } from "./useRoomStateRuntime";
@@ -306,6 +307,8 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
     clearMapMutation,
     upsertMapMutation,
   } = useRoomDndMapMutations(roomId);
+  const { mutateAsync: clearMap } = clearMapMutation;
+  const { mutateAsync: upsertMap } = upsertMapMutation;
   const sendRoomMessageMutation = useSendRoomMessageMutation(roomId, 0, messageResponses);
 
   const map = roomDndMapQuery.data;
@@ -507,7 +510,7 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
       if (!image) {
         throw new Error("地图上传失败。");
       }
-      await upsertMapMutation.mutateAsync({
+      await upsertMap({
         clearTokens: true,
         gridColor: resolvedGridColor,
         gridCols: resolvedGridCols,
@@ -530,13 +533,40 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
   const saveGridSettings = useCallback((rows: number, cols: number, color: string) => {
     if (!map?.mapFileId)
       return;
-    void upsertMapMutation.mutateAsync({
+    void upsertMap({
       gridColor: color,
       gridCols: cols,
       gridRows: rows,
       mapFileId: map.mapFileId,
+    }).catch((error) => {
+      Alert.alert("保存网格失败", error instanceof Error ? error.message : "请稍后重试。");
     });
-  }, [map, upsertMapMutation]);
+  }, [map, upsertMap]);
+
+  const handleClearMap = useCallback(async () => {
+    try {
+      await clearMap();
+      setSelectedRoleId(null);
+    }
+    catch (error) {
+      Alert.alert("清空地图失败", error instanceof Error ? error.message : "请稍后重试。");
+      return;
+    }
+
+    const clearTokenEvents: StateEventAtom[] = tokens.map(token => ({
+      type: "mapTokenRemove",
+      roleId: token.roleId,
+    }));
+    if (clearTokenEvents.length === 0) {
+      return;
+    }
+    try {
+      await sendMapStateEvents(clearTokenEvents, ".combat map-clear");
+    }
+    catch (error) {
+      Alert.alert("地图已清空，但同步角色状态失败", error instanceof Error ? error.message : "请稍后重试。");
+    }
+  }, [clearMap, sendMapStateEvents, tokens]);
 
   const handleGridRowsBlur = useCallback(() => {
     if (!gridRowsInput)
@@ -568,8 +598,9 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
                       contentFit="contain"
                       style={StyleSheet.absoluteFill}
                     />
-                    {imageRect.width > 0 && (
-                      <View style={{ position: "absolute", left: imageRect.left, top: imageRect.top }}>
+                    {imageRect.width > 0
+                      ? (
+                          <View style={{ position: "absolute", left: imageRect.left, top: imageRect.top }}>
                         <MapGridOverlay
                           width={imageRect.width}
                           height={imageRect.height}
@@ -604,8 +635,9 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
                             </View>
                           );
                         })}
-                      </View>
-                    )}
+                          </View>
+                        )
+                      : null}
                   </>
                 )
               : (
@@ -665,15 +697,7 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
                           text: "清空",
                           style: "destructive",
                           onPress: () => {
-                            void clearMapMutation.mutateAsync();
-                            const clearTokenEvents: StateEventAtom[] = tokens.map(token => ({
-                              type: "mapTokenRemove",
-                              roleId: token.roleId,
-                            }));
-                            if (clearTokenEvents.length > 0) {
-                              void sendMapStateEvents(clearTokenEvents, ".combat map-clear");
-                            }
-                            setSelectedRoleId(null);
+                            void handleClearMap();
                           },
                         },
                       ]);
@@ -686,8 +710,9 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
               )
             : null}
 
-          {isKP && (
-            <View style={styles.gridSettings}>
+          {isKP
+            ? (
+                <View style={styles.gridSettings}>
               <TextInput
                 accessibilityLabel="地图网格行数"
                 ref={gridRowsRef}
@@ -711,8 +736,9 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
                 style={[styles.input, { backgroundColor: theme.backgroundElement, borderColor: theme.border, color: theme.text }]}
                 value={gridColsInput}
               />
-            </View>
-          )}
+                </View>
+              )
+            : null}
           <View style={styles.section}>
             <ThemedText style={styles.sectionLabel} themeColor="textSecondary" type="caption">
               {selectedRoleId ? "点击地图放置" : "角色"}
@@ -788,7 +814,12 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
         </View>
       </ScrollView>
 
-      <Modal animationType="fade" onRequestClose={closeFullscreenMap} visible={mapFullscreenVisible}>
+      <Modal
+        animationType="fade"
+        onRequestClose={closeFullscreenMap}
+        supportedOrientations={MOBILE_MODAL_ORIENTATIONS}
+        visible={mapFullscreenVisible}
+      >
         <SafeAreaView style={styles.fullscreenContainer}>
           <View style={styles.fullscreenContent}>
             <View style={styles.fullscreenHeader}>

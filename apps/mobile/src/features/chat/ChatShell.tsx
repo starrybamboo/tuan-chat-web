@@ -8,7 +8,7 @@ import type { AlertButton } from "react-native";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { containsCommandRequestAllToken, extractFirstCommandText, isCommand, stripCommandRequestAllToken } from "@tuanchat/domain/command-request";
-import { canManageMemberPermissions, canManageRoomRoles, SPACE_MEMBER_TYPE } from "@tuanchat/domain/member-permissions";
+import { canInviteSpectators, canManageMemberPermissions, canManageRoomRoles, SPACE_MEMBER_TYPE } from "@tuanchat/domain/member-permissions";
 import { buildMessageDraftsFromUploadedMedia } from "@tuanchat/domain/message-draft";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { buildDefaultPokeContent, buildPokeMessageRequest } from "@tuanchat/domain/poke-message";
@@ -25,7 +25,7 @@ import { selectVisibleMainRoomMessages } from "@tuanchat/query/room-message";
 import { getSpaceSidebarTreeQueryKey } from "@tuanchat/query/sidebar-tree";
 import { getUserActiveSpacesQueryKey, getUserRoomsQueryKey, upsertUserActiveSpaceQueryData, upsertUserRoomQueryData } from "@tuanchat/query/spaces";
 import { router, useLocalSearchParams, usePathname } from "expo-router";
-import { LightbulbIcon, MapPinLineIcon, SwordIcon } from "phosphor-react-native";
+import { LightbulbIcon, MapPinLineIcon, SwordIcon, UsersThree } from "phosphor-react-native";
 import {
   startTransition,
   type ComponentProps,
@@ -40,14 +40,16 @@ import {
   BackHandler,
   InteractionManager,
   Keyboard,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
   View,
 } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
-import Animated, { runOnJS, useAnimatedReaction } from "react-native-reanimated";
+import Animated, { useAnimatedReaction } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { scheduleOnRN } from "react-native-worklets";
 
 import type { DrawerMode } from "@/features/drawer/LeftDrawer";
 import type { MemberPreviewItem } from "@/features/members/memberUtils";
@@ -95,7 +97,9 @@ import {
   canMobileMessageModeUseAttachments,
   MOBILE_MESSAGE_MODE,
 } from "@/features/messages/mobileMessageComposer";
+import { writeCachedRoomMessages } from "@/features/messages/mobileRoomMessageCache";
 import { buildEditedRoomMessage } from "@/features/messages/roomMessageEditPayload";
+import { fetchRoomMessageByIdForRoom, upsertRoomMessagesToQueryAndDisk } from "@/features/messages/roomMessageSync";
 import { useMobileCommandRequests } from "@/features/messages/useMobileCommandRequests";
 import { useDeleteRoomMessageMutation, useEditRoomMessageMutation, useMoveRoomMessageMutation } from "@/features/messages/useRoomMessageMutations";
 import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
@@ -104,6 +108,7 @@ import { UserProfileSheet } from "@/features/profile/UserProfileSheet";
 import { RoleSwitchSheet } from "@/features/roles/RoleSwitchSheet";
 import { useMyRolesQuery } from "@/features/roles/useMyRolesQuery";
 import { useAddRoomRoleMutation, useRoomRolesQuery } from "@/features/roles/useRoomRolesQuery";
+import { CreateRoomCategorySheet } from "@/features/rooms/CreateRoomCategorySheet";
 import { CreateRoomSheet } from "@/features/rooms/CreateRoomSheet";
 import { useUserRoomsQuery } from "@/features/rooms/use-user-rooms-query";
 import { useRoomUnreadCounts } from "@/features/rooms/useRoomUnreadCounts";
@@ -120,8 +125,8 @@ import { DRAWER_EDGE_SWIPE_ZONE_WIDTH } from "@/lib/layout-constants";
 
 import type { StShowCardModel } from "../../components/common/dicer/cmdExe/stShowCard";
 import type { ChatComposerShortcutAction } from "./ChatComposer";
-import type { MessageActionMenuAnchor } from "./messageActionMenuLayout";
 import type { MessageAction } from "./MessageActionMenu";
+import type { MessageActionMenuAnchor } from "./messageActionMenuLayout";
 import type { RightDrawerTabKey } from "./RightDrawerPanel";
 
 import { buildRoomRolesById } from "./chat-avatar-utils";
@@ -211,7 +216,6 @@ type MobilePokeNormalDraft = {
   messageMode: MobileMessageMode;
 };
 
-/* PLACEHOLDER_STYLES */
 const styles = StyleSheet.create({
   shell: { flex: 1 },
   safeArea: { flex: 1 },
@@ -249,6 +253,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.lg,
   },
   contentLayer: { flex: 1 },
+  chatContent: { flex: 1 },
   dmOverlayLayer: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 2,
@@ -259,6 +264,7 @@ const styles = StyleSheet.create({
 });
 
 const RIGHT_DRAWER_SHORTCUTS = [
+  { Icon: UsersThree, label: "成员", tab: "members" },
   { Icon: LightbulbIcon, label: "线索", tab: "clues" },
   { Icon: SwordIcon, label: "战斗", tab: "combat" },
   { Icon: MapPinLineIcon, label: "地图", tab: "map" },
@@ -299,7 +305,7 @@ export default function ChatShell() {
     () => shouldDrawerOverlayCaptureTouches(translateX.get()),
     (isVisible, prev) => {
       if (isVisible !== prev) {
-        runOnJS(setIsOverlayInteractive)(isVisible);
+        scheduleOnRN(setIsOverlayInteractive, isVisible);
       }
     },
     [setIsOverlayInteractive],
@@ -320,13 +326,26 @@ export default function ChatShell() {
   const [currentContactId, setCurrentContactId] = useState<number | null>(null);
   const isRoomFocusedForRead = pathname === "/" && selectedRoomId != null && currentContactId == null;
   const sendRoomMessageMutation = useSendRoomMessageMutation(selectedRoomId, session?.userId ?? 0, roomMessagesQuery.messages);
+  const handleRetryFailedRoomMessage = useCallback((message: Message) => {
+    void sendRoomMessageMutation.retryFailedMessage(message).catch((error) => {
+      Alert.alert("重新发送失败", getErrorMessage(error, "请稍后重试"));
+    });
+  }, [sendRoomMessageMutation]);
+  const handleRemoveFailedRoomMessage = useCallback((message: Message) => {
+    void sendRoomMessageMutation.removeFailedMessage(message).catch((error) => {
+      Alert.alert("删除失败消息失败", getErrorMessage(error, "请稍后重试"));
+    });
+  }, [sendRoomMessageMutation]);
   const copyMessageToClueFolderMutation = useCopyMessageToClueFolderMutation(mobileApiClient);
+  const { mutateAsync: copyMessageToClueFolder } = copyMessageToClueFolderMutation;
   const { editMessage } = useEditRoomMessageMutation(selectedRoomId);
   const { moveMessage } = useMoveRoomMessageMutation(selectedRoomId);
   const { deleteMessage, deleteMessages } = useDeleteRoomMessageMutation(selectedRoomId);
   const roomRolesQuery = useRoomRolesQuery(selectedRoomId);
+  const { refetch: refetchRoomRoles } = roomRolesQuery;
   const myRolesQuery = useMyRolesQuery(currentUserId);
   const addRoomRoleMutation = useAddRoomRoleMutation();
+  const { mutateAsync: addRoomRole } = addRoomRoleMutation;
   const roomUnreadCounts = useRoomUnreadCounts(selectedRoomId, {
     currentRoomMessages: roomMessagesQuery.messages,
     isRoomFocused: isRoomFocusedForRead,
@@ -365,9 +384,11 @@ export default function ChatShell() {
   const deferredDmCloseTaskRef = useRef<ReturnType<typeof InteractionManager.runAfterInteractions> | null>(null);
   const [expressionPickerVisible, setExpressionPickerVisible] = useState(false);
   const [mapSheetVisible, setMapSheetVisible] = useState(false);
-  const [memberInviteVisible, setMemberInviteVisible] = useState(false);
   const [createSpaceVisible, setCreateSpaceVisible] = useState(false);
   const [createRoomVisible, setCreateRoomVisible] = useState(false);
+  const [createRoomCategoryId, setCreateRoomCategoryId] = useState<string | null>(null);
+  const [createCategoryVisible, setCreateCategoryVisible] = useState(false);
+  const [spaceInviteVisible, setSpaceInviteVisible] = useState(false);
   const [profileSheetState, setProfileSheetState] = useState<ProfileSheetState | null>(null);
   const [stShowCardModel, setStShowCardModel] = useState<StShowCardModel | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
@@ -471,6 +492,8 @@ export default function ChatShell() {
   const currentSpaceMember = useMemo(() => findCurrentMember(spaceMembers, currentUserId), [currentUserId, spaceMembers]);
   const currentRoomMember = useMemo(() => findCurrentMember(roomMembers, currentUserId), [currentUserId, roomMembers]);
   const isSpaceOwner = hasHostMemberType(currentSpaceMember?.memberType);
+  const canInviteSpaceMembers = canInviteSpectators(currentSpaceMember?.memberType);
+  const canInviteSpacePlayers = canManageMemberPermissions(currentSpaceMember?.memberType);
   const canInviteRoomMembers = canManageMemberPermissions(currentSpaceMember?.memberType);
   const isSpectator = !currentRoomMember && !isSpaceOwner;
   const myChatStatus = useMobileChatStatus(selectedRoomId, currentUserId);
@@ -519,6 +542,7 @@ export default function ChatShell() {
   }, [selectedRoomId]);
 
   const handleChangeDraftMessage = useCallback((nextMessage: string) => {
+    draftMessageRef.current = nextMessage;
     setDraftMessage(nextMessage);
     saveCurrentRoomComposerDraft(nextMessage);
 
@@ -537,6 +561,23 @@ export default function ChatShell() {
       hasHostPrivileges: isSpaceOwner,
     });
   }, [currentUserId, isSpaceOwner, roomMessagesQuery.messages]);
+  const handleResolveReplyTarget = useCallback(async (messageId: number) => {
+    if (!selectedRoomId) {
+      return false;
+    }
+
+    const response = await fetchRoomMessageByIdForRoom(selectedRoomId, messageId, mobileApiClient);
+    if (!response) {
+      return false;
+    }
+
+    upsertRoomMessagesToQueryAndDisk(selectedRoomId, [response], {
+      fetchHistoryMessages: async () => [],
+      queryClient,
+      writeCachedRoomMessages,
+    });
+    return true;
+  }, [queryClient, selectedRoomId]);
   const roomMessageModels = useMemo(() => roomMessages.map(item => item.message), [roomMessages]);
   const [searchPageVisible, setSearchPageVisible] = useState(false);
   const dmConversations = useMemo(() => dmInboxQuery.data ?? [], [dmInboxQuery.data]);
@@ -577,33 +618,35 @@ export default function ChatShell() {
   }, [fallbackSelectableRoleId, roomRoles, selectedRoleId]);
   const canValidateSelectedRoleId = roomRolesQuery.isSuccess && myRolesQuery.isSuccess;
 
-  const handleAddRoomRole = useCallback(async (role: UserRole) => {
+  const handleAddRoomRole = useCallback(async (role: UserRole, selectAddedRole = true) => {
     if (!canAddRoomRole || !selectedRoomId || addRoomRoleMutation.isPending) {
       return;
     }
 
     try {
-      await addRoomRoleMutation.mutateAsync({
+      await addRoomRole({
         roomId: selectedRoomId,
         roleIdList: [role.roleId],
       });
-      await roomRolesQuery.refetch();
-      setSelectedRoleId(role.roleId);
-      setSelectedAvatarId(undefined);
-      setSelectedAvatarFileId(undefined);
-      void writeMobileRoomRoleSelection({
-        avatarFileId: role.avatarFileId,
-        avatarId: role.avatarId,
-        roleId: role.roleId,
-        roomId: selectedRoomId,
-        userId: currentUserId,
-      });
-      setRoleSwitchVisible(false);
+      await refetchRoomRoles();
+      if (selectAddedRole) {
+        setSelectedRoleId(role.roleId);
+        setSelectedAvatarId(undefined);
+        setSelectedAvatarFileId(undefined);
+        void writeMobileRoomRoleSelection({
+          avatarFileId: role.avatarFileId,
+          avatarId: role.avatarId,
+          roleId: role.roleId,
+          roomId: selectedRoomId,
+          userId: currentUserId,
+        });
+        setRoleSwitchVisible(false);
+      }
     }
     catch (error) {
       Alert.alert("添加角色失败", getErrorMessage(error, "请稍后重试"));
     }
-  }, [addRoomRoleMutation, canAddRoomRole, currentUserId, roomRolesQuery, selectedRoomId]);
+  }, [addRoomRole, addRoomRoleMutation.isPending, canAddRoomRole, currentUserId, refetchRoomRoles, selectedRoomId]);
 
   const handleOpenCreateRoomRole = useCallback(() => {
     if (!canAddRoomRole || !selectedRoomId) {
@@ -714,8 +757,8 @@ export default function ChatShell() {
       }
       draftMessageRef.current = template;
       setDraftMessage(template);
-    }).catch(() => {
-      // 模板读取失败时继续使用默认正文，不影响发送流程。
+    }).catch((error) => {
+      console.warn("[ChatShell] 读取戳一戳模板失败，继续使用默认正文:", error);
     });
   }, [
     currentRole?.roleName,
@@ -846,7 +889,7 @@ export default function ChatShell() {
       }
 
       if (consumedNotificationTarget) {
-        router.replace("/(tabs)" as any);
+        router.replace("/(tabs)");
       }
     }, 0);
     return () => clearTimeout(timer);
@@ -879,8 +922,8 @@ export default function ChatShell() {
           startTransition(() => setWorkspaceSelection(spaceId, selectedRoomId));
         }
       })
-      .catch(() => {
-        // roomId 已经足够打开消息流；空间补齐失败时保留当前房间，避免再次丢目标。
+      .catch((error) => {
+        console.warn("[ChatShell] 补齐目标房间所属空间失败，保留当前房间:", error);
       });
 
     return () => {
@@ -998,10 +1041,13 @@ export default function ChatShell() {
   }, [setSelectedRoomId, setSelectedSpaceId]);
 
   const handleSelectRoom = useCallback((roomId: number) => {
+    if (selectedRoomId != null && !pokeTargetRef.current) {
+      saveCurrentRoomComposerDraft(draftMessageRef.current);
+    }
     setCurrentContactId(null);
     setSelectedRoomId(roomId);
     close();
-  }, [close, setSelectedRoomId]);
+  }, [close, saveCurrentRoomComposerDraft, selectedRoomId, setSelectedRoomId]);
 
   const handleBackToRoutePage = useCallback(() => {
     setSelectedRoomId(null);
@@ -1107,11 +1153,11 @@ export default function ChatShell() {
       expressionPickerVisible,
       isRoutePage,
       mapSheetVisible,
-      memberInviteVisible,
       profileSheetOpen: profileSheetState !== null,
       rightDrawerOpen: isOverlayInteractive,
       roleSwitchVisible,
       searchPageVisible,
+      spaceInviteVisible,
       stShowCardOpen: stShowCardModel !== null,
     });
 
@@ -1142,9 +1188,6 @@ export default function ChatShell() {
       case "close-map-sheet":
         setMapSheetVisible(false);
         return true;
-      case "close-member-invite":
-        setMemberInviteVisible(false);
-        return true;
       case "close-profile-sheet":
         setProfileSheetState(null);
         return true;
@@ -1156,6 +1199,9 @@ export default function ChatShell() {
         return true;
       case "close-search":
         setSearchPageVisible(false);
+        return true;
+      case "close-space-invite":
+        setSpaceInviteVisible(false);
         return true;
       case "close-st-show-card":
         setStShowCardModel(null);
@@ -1174,10 +1220,10 @@ export default function ChatShell() {
     isOverlayInteractive,
     isRoutePage,
     mapSheetVisible,
-    memberInviteVisible,
     profileSheetState,
     roleSwitchVisible,
     searchPageVisible,
+    spaceInviteVisible,
     stShowCardModel,
   ]);
 
@@ -1653,7 +1699,7 @@ export default function ChatShell() {
   const handleCopyMessageToClueFolder = useCallback(async (message: Message, scope: ClueFolderScope) => {
     setClueScopeMessage(null);
     try {
-      await copyMessageToClueFolderMutation.mutateAsync({
+      await copyMessageToClueFolder({
         currentUserId,
         fallbackRoleId: draftRoleId ?? null,
         hasHostPrivileges: isSpaceOwner,
@@ -1671,7 +1717,7 @@ export default function ChatShell() {
     }
   }, [
     closeImmediately,
-    copyMessageToClueFolderMutation,
+    copyMessageToClueFolder,
     currentUserId,
     draftRoleId,
     isSpaceOwner,
@@ -1755,13 +1801,41 @@ export default function ChatShell() {
     setCreateSpaceVisible(true);
   }, []);
 
-  const handleOpenCreateRoomSheet = useCallback(() => {
+  const handleOpenCreateRoomSheet = useCallback((categoryId?: string) => {
+    setCreateRoomCategoryId(categoryId ?? null);
     setCreateRoomVisible(true);
   }, []);
 
-  const handleOpenMemberInvite = useCallback(() => {
-    setMemberInviteVisible(true);
-  }, []);
+  const handleCreateCategory = useCallback(async (name: string) => {
+    if (!selectedSpaceId) {
+      return;
+    }
+    const baseTree = sidebarTree ?? buildDefaultSidebarTree({
+      roomsInSpace: availableRooms,
+      docMetas: [],
+      includeDocs: false,
+    });
+    const nextTree = {
+      ...baseTree,
+      categories: [
+        ...baseTree.categories,
+        {
+          categoryId: `cat:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`,
+          name,
+          items: [],
+        },
+      ],
+    };
+    const response = await mobileApiClient.spaceSidebarTreeController.setSidebarTree({
+      spaceId: selectedSpaceId,
+      expectedVersion: sidebarTreeVersion,
+      treeJson: JSON.stringify(nextTree),
+    });
+    if (!response.success) {
+      throw new Error(response.errMsg || "新建分类失败。");
+    }
+    await queryClient.invalidateQueries({ queryKey: getSpaceSidebarTreeQueryKey(selectedSpaceId) });
+  }, [availableRooms, queryClient, selectedSpaceId, sidebarTree, sidebarTreeVersion]);
 
   const handleLeftDrawerRefresh = useCallback(() => {
     void handleRefreshWorkspace();
@@ -1866,6 +1940,10 @@ export default function ChatShell() {
     void handleAddRoomRole(role);
   }, [handleAddRoomRole]);
 
+  const handleAddRoomRoleFromMemberPanel = useCallback((role: UserRole) => {
+    void handleAddRoomRole(role, false);
+  }, [handleAddRoomRole]);
+
   const handleSelectRoleAvatar = useCallback((avatarId: number | undefined, avatarFileId: number | undefined) => {
     const roleId = selectedRoleId ?? fallbackSelectableRoleId;
     setSelectedRoleId(roleId);
@@ -1933,10 +2011,6 @@ export default function ChatShell() {
     setCreateRoomVisible(false);
   }, []);
 
-  const handleCloseMemberInvite = useCallback(() => {
-    setMemberInviteVisible(false);
-  }, []);
-
   const handleCreateRoomCreated = useCallback((room: Parameters<NonNullable<ComponentProps<typeof CreateRoomSheet>["onCreated"]>>[0]) => {
     if (!selectedSpaceId) {
       return;
@@ -1954,7 +2028,7 @@ export default function ChatShell() {
       });
       const nextTree = appendSidebarNodeToCategory({
         tree: baseTree,
-        categoryId: baseTree.categories[0]?.categoryId ?? "cat:channels",
+        categoryId: createRoomCategoryId ?? baseTree.categories[0]?.categoryId ?? "cat:channels",
         node: buildSidebarRoomNode(room.roomId, room.name ?? String(room.roomId)),
       });
       if (JSON.stringify(nextTree) !== JSON.stringify(baseTree)) {
@@ -1972,7 +2046,7 @@ export default function ChatShell() {
       }
     }
     void refetchRooms();
-  }, [availableRooms, queryClient, refetchRooms, selectedSpaceId, setSelectedRoomId, sidebarTree, sidebarTreeVersion]);
+  }, [availableRooms, createRoomCategoryId, queryClient, refetchRooms, selectedSpaceId, setSelectedRoomId, sidebarTree, sidebarTreeVersion]);
 
   const handleCloseProfileSheet = useCallback(() => {
     setProfileSheetState(null);
@@ -1984,7 +2058,7 @@ export default function ChatShell() {
 
   const handleRoomContentLayout = useCallback((event: { nativeEvent: { layout: { height: number } } }) => {
     const nextHeight = Math.floor(event.nativeEvent.layout.height);
-    setRoomContentHeight(prev => (prev === nextHeight ? prev : nextHeight));
+    setRoomContentHeight(nextHeight);
   }, []);
 
   return (
@@ -2003,8 +2077,10 @@ export default function ChatShell() {
                     dmConversations={dmConversations}
                     dmIsPending={dmInboxQuery.isPending}
                     drawerMode={drawerMode}
+                    onCreateCategory={isSpaceOwner ? () => setCreateCategoryVisible(true) : undefined}
                     onCreateRoom={isSpaceOwner ? handleOpenCreateRoomSheet : undefined}
                     onCreateSpace={handleOpenCreateSpace}
+                    onInviteMembers={canInviteSpaceMembers ? () => setSpaceInviteVisible(true) : undefined}
                     onChangeDmTab={setActiveDmTab}
                     onRefresh={handleLeftDrawerRefresh}
                     onSelectConversation={handleSelectConversation}
@@ -2032,26 +2108,32 @@ export default function ChatShell() {
                             style={styles.contentLayer}
                             pointerEvents={currentContactId && !dmOverlayHidden ? "none" : "auto"}
                           >
-                            {!searchPageVisible && (
-                              <ChatHeader
-                                roomName={selectedRoom?.name ?? null}
-                                onBackToRoutePage={handleBackToRoutePage}
-                                onInviteMembers={canInviteRoomMembers ? handleOpenMemberInvite : undefined}
-                                onSearch={handleOpenSearch}
-                                unreadCount={currentRoomUnreadCount}
-                              />
-                            )}
-                            {searchPageVisible
+                            {!searchPageVisible
                               ? (
-                                  <ChatSearchPage
-                                    messages={roomMessages}
-                                    onClose={handleCloseSearch}
-                                    onScrollToMessage={handleScrollToSearchMessage}
-                                    roomRolesById={roomRolesById}
+                                  <ChatHeader
+                                    roomName={selectedRoom?.name ?? null}
+                                    onBackToRoutePage={handleBackToRoutePage}
+                                    onSearch={handleOpenSearch}
+                                    unreadCount={currentRoomUnreadCount}
                                   />
                                 )
-                              : (
-                                  <>
+                              : null}
+                            <KeyboardAvoidingView
+                              behavior={Platform.OS === "ios" ? "padding" : "height"}
+                              enabled
+                              style={styles.chatContent}
+                            >
+                              {searchPageVisible
+                                ? (
+                                    <ChatSearchPage
+                                      messages={roomMessages}
+                                      onClose={handleCloseSearch}
+                                      onScrollToMessage={handleScrollToSearchMessage}
+                                      roomRolesById={roomRolesById}
+                                    />
+                                  )
+                                : (
+                                    <>
                                     <ChatMessageList
                                       key={selectedRoomId ?? "room-none"}
                                       allowDeferredMetadataQueries={!roomMessagesQuery.isFetching && !messageSendInFlight}
@@ -2061,8 +2143,12 @@ export default function ChatShell() {
                                       selectedAnchorId={messageAnchorId}
                                       onDropMessage={handleDropMessage}
                                       onLongPressMessage={handleLongPressMessage}
+                                      onOpenAvatarPicker={handleOpenRoleSwitch}
                                       onPokeAvatar={beginPoke}
+                                      onRemoveFailedMessage={handleRemoveFailedRoomMessage}
+                                      onResolveReplyTarget={handleResolveReplyTarget}
                                       onRetry={handleRetryRoomMessages}
+                                      onRetryFailedMessage={handleRetryFailedRoomMessage}
                                       onToggleMultiSelect={handleToggleMultiSelect}
                                       isPending={roomMessagesQuery.isPending}
                                       isError={roomMessagesQuery.isError}
@@ -2142,8 +2228,9 @@ export default function ChatShell() {
                                             shortcutActions={rightDrawerShortcutActions}
                                           />
                                         )}
-                                  </>
-                                )}
+                                    </>
+                                  )}
+                            </KeyboardAvoidingView>
                           </View>
                         )
                       : null}
@@ -2194,20 +2281,29 @@ export default function ChatShell() {
                       : shouldRenderRightDrawer && selectedRoomId
                         ? (
                           <RightDrawerPanel
+                            addableRoomRoles={addableRoomRoles}
                             activeTab={rightDrawerTab}
+                            canInvitePlayers={canInviteSpacePlayers}
+                            canInviteRoomMembers={canInviteRoomMembers}
+                            canInviteSpaceMembers={canInviteSpaceMembers}
+                            canManageRoomRoles={canAddRoomRole}
                             clueUnreadCount={clueUnreadCount}
                             clueRooms={clueRooms}
                             currentUserId={currentUserId}
                             currentRoleId={draftRoleId ?? currentRole?.roleId ?? null}
                             isKP={isSpaceOwner}
+                            isAddingRoomRole={addRoomRoleMutation.isPending}
                             messageResponses={roomMessagesQuery.messages}
                             messages={roomMessageModels}
                             onChangeActiveTab={setRightDrawerTab}
                             onClose={close}
+                            onAddRoomRole={handleAddRoomRoleFromMemberPanel}
                             roomId={selectedRoomId}
+                            roomMembers={roomMembers}
                             roomRoles={roomRoles}
                             ruleId={selectedRuleId}
                             spaceId={selectedSpaceId}
+                            spaceMembers={spaceMembers}
                           />
                         )
                         : null}
@@ -2323,15 +2419,25 @@ export default function ChatShell() {
             />
           )
         : null}
-      {selectedSpaceId && selectedRoomId && memberInviteVisible
+      {selectedSpaceId && createCategoryVisible
+        ? (
+            <CreateRoomCategorySheet
+              onClose={() => setCreateCategoryVisible(false)}
+              onCreate={handleCreateCategory}
+              visible
+            />
+          )
+        : null}
+      {selectedSpaceId && spaceInviteVisible
         ? (
             <MemberInviteSheet
+              canInvitePlayers={canInviteSpacePlayers}
               currentUserId={currentUserId}
-              onClose={handleCloseMemberInvite}
-              roomId={selectedRoomId}
+              onClose={() => setSpaceInviteVisible(false)}
               roomMembers={roomMembers}
               spaceId={selectedSpaceId}
               spaceMembers={spaceMembers}
+              targetType="space"
               visible
             />
           )

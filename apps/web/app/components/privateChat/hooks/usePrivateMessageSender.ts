@@ -31,29 +31,33 @@ type EmojiAttachmentMeta = {
 const WEBSOCKET_DIRECT_MESSAGE_TYPE = 5;
 
 type DirectMessageOptimisticWebSocketUtils = {
+  markOptimisticDirectMessageFailed: (optimisticMessageId: number) => void;
   pushOptimisticDirectMessage: (request: MessageDirectSendRequest) => number | null;
-  removeOptimisticDirectMessage: (optimisticMessageId: number) => void;
   sendWithResult: (request: { type: number; data: MessageDirectSendRequest }) => Promise<boolean>;
 };
 
-export async function sendDirectMessageWithOptimisticRollback(
+export async function sendDirectMessageWithOptimisticRetention(
   webSocketUtils: DirectMessageOptimisticWebSocketUtils,
   message: MessageDirectSendRequest,
+  onOptimisticMessageCreated?: (optimisticMessageId: number) => void,
 ) {
   const optimisticMessageId = webSocketUtils.pushOptimisticDirectMessage(message);
+  if (optimisticMessageId != null) {
+    onOptimisticMessageCreated?.(optimisticMessageId);
+  }
   try {
     const sent = await webSocketUtils.sendWithResult({
       type: WEBSOCKET_DIRECT_MESSAGE_TYPE,
       data: message,
     });
     if (!sent && optimisticMessageId != null) {
-      webSocketUtils.removeOptimisticDirectMessage(optimisticMessageId);
+      webSocketUtils.markOptimisticDirectMessageFailed(optimisticMessageId);
     }
     return sent;
   }
   catch (error) {
     if (optimisticMessageId != null) {
-      webSocketUtils.removeOptimisticDirectMessage(optimisticMessageId);
+      webSocketUtils.markOptimisticDirectMessageFailed(optimisticMessageId);
     }
     throw error;
   }
@@ -114,7 +118,7 @@ export function usePrivateMessageSender({
 
   // 发送消息函数
   const sendDirectMessageWithOptimistic = async (message: MessageDirectSendRequest) => {
-    return sendDirectMessageWithOptimisticRollback(webSocketUtils, message);
+    return sendDirectMessageWithOptimisticRetention(webSocketUtils, message);
   };
 
   const handleSendMessage = async () => {

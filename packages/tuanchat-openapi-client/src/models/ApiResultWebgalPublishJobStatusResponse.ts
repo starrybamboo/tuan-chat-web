@@ -24,4 +24,3 @@ export type ApiResultWebgalPublishJobStatusResponse = {
      */
     data?: WebgalPublishJobStatusResponse;
 };
-

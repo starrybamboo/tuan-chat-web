@@ -1,6 +1,25 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
+import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 import type { MutableRefObject } from "react";
+
+import {
+  replaceDirectOptimisticMessageInCache,
+  upsertDirectInboxQueryData,
+} from "@tuanchat/query/direct-message";
+import { useCallback } from "react";
+
+import { resolveAudioAutoPlayPurposeFromAnnotationTransition } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayPolicy";
+import { triggerAudioAutoPlay } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayRuntime";
+import { loadChatHistoryDb } from "@/components/chat/infra/localDb/chatHistoryDbLoader";
+import { emitRoomMessagesReceived } from "@/components/chat/infra/localDb/roomMessageEvents";
+import { applyRoomDndMapChange, roomDndMapQueryKey } from "@/components/chat/shared/map/roomDndMapApi";
+import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
+import { FEEDBACK_ISSUE_TARGET_TYPE } from "@/components/feedback/feedbackTypes";
+import { getSoundMessageExtra } from "@/types/messageExtra";
+import { handleUnauthorized } from "@/utils/auth/unauthorized";
+import { mediaFileUrl } from "@/utils/media/mediaUrl";
+
 import type { ChatStatus, OptimisticDirectMessagePending, WsMessage } from "./webSocketRuntimeTypes";
 import type {
   ChatStatusEvent,
@@ -16,28 +35,13 @@ import type {
   UserNotificationPush,
 } from "./wsModels";
 
-import { triggerAudioAutoPlay } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayRuntime";
-import { resolveAudioAutoPlayPurposeFromAnnotationTransition } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayPolicy";
-import { emitRoomMessagesReceived } from "@/components/chat/infra/localDb/roomMessageEvents";
-import { applyRoomDndMapChange, roomDndMapQueryKey } from "@/components/chat/shared/map/roomDndMapApi";
-import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
-import { FEEDBACK_ISSUE_TARGET_TYPE } from "@/components/feedback/feedbackTypes";
-import { getSoundMessageExtra } from "@/types/messageExtra";
-import { handleUnauthorized } from "@/utils/auth/unauthorized";
-import { mediaFileUrl } from "@/utils/media/mediaUrl";
-import { useCallback } from "react";
-import {
-  replaceDirectOptimisticMessageInCache,
-  upsertDirectInboxQueryData,
-} from "@tuanchat/query/direct-message";
-import { loadChatHistoryDb } from "@/components/chat/infra/localDb/chatHistoryDbLoader";
 import { recoverAuthTokenFromSession } from "./authRecovery";
 import { FEEDBACK_ISSUES_QUERY_KEY, feedbackIssueDetailQueryKey } from "./feedbackQueryCache";
-import { prependNotificationToCaches } from "./notificationQueryCache";
-import { buildCommentPageQueryKey } from "./hooks/commentQueryHooks";
+import { buildCommentPageQueryPrefix } from "./hooks/commentQueryHooks";
 import { spaceSidebarTreeQueryKey } from "./hooks/spaceSidebarTreeHooks";
-import { MessageType } from "./wsModels";
+import { prependNotificationToCaches } from "./notificationQueryCache";
 import { invalidateMemberChangeQueries, invalidateRoleChangeQueries } from "./wsInvalidation";
+import { MessageType } from "./wsModels";
 
 const WS_HANDLER_DEBUG_LOG_ENABLED = import.meta.env.DEV;
 const GROUP_MESSAGE_PUSH_TYPE = 4;
@@ -77,17 +81,8 @@ function isChatMessageResponse(value: unknown): value is ChatMessageResponse {
   return !!(value as ChatMessageResponse | undefined)?.message;
 }
 
-function upsertDirectMessageIntoInboxCache(
-  queryClient: QueryClient,
-  selfUserId: number,
-  message: DirectMessageEvent,
-  optimisticMessageId?: number | null,
-): void {
-  if (!Number.isFinite(selfUserId) || selfUserId <= 0) {
-    return;
-  }
-
-  const inboxMessage = {
+function toDirectInboxMessage(message: DirectMessageEvent): MessageDirectResponse {
+  return {
     messageId: message.messageId,
     userId: message.userId,
     syncId: message.syncId,
@@ -105,7 +100,18 @@ function upsertDirectMessageIntoInboxCache(
     status: message.status,
     extra: message.extra,
     createTime: message.createTime,
-  };
+  } as MessageDirectResponse;
+}
+
+function upsertDirectMessageIntoInboxCache(
+  queryClient: QueryClient,
+  selfUserId: number,
+  inboxMessage: MessageDirectResponse,
+  optimisticMessageId?: number | null,
+): void {
+  if (!Number.isFinite(selfUserId) || selfUserId <= 0) {
+    return;
+  }
 
   if (typeof optimisticMessageId === "number") {
     replaceDirectOptimisticMessageInCache(queryClient, selfUserId, optimisticMessageId, inboxMessage);
@@ -269,6 +275,7 @@ export function useWebSocketMessageHandlers({
     const normalizedIncomingExtra = normalizeExtraForMatch(message.extra);
 
     let matchedOptimisticMessageId: number | null = null;
+    let matchedPendingWritePromise: Promise<void> | undefined;
     let matchedCreatedAt = Number.POSITIVE_INFINITY;
     if (message.senderId === selfUserId && channelId > 0) {
       for (const [optimisticMessageId, pending] of optimisticDirectMessageRequestMapRef.current.entries()) {
@@ -296,11 +303,24 @@ export function useWebSocketMessageHandlers({
       const pendingMessage = optimisticDirectMessageRequestMapRef.current.get(matchedOptimisticMessageId);
       if (pendingMessage) {
         clearTimeout(pendingMessage.cleanupTimer);
+        matchedPendingWritePromise = pendingMessage.pendingWritePromise;
         optimisticDirectMessageRequestMapRef.current.delete(matchedOptimisticMessageId);
       }
     }
 
-    upsertDirectMessageIntoInboxCache(queryClient, selfUserId, message, matchedOptimisticMessageId);
+    const inboxMessage = toDirectInboxMessage(message);
+    upsertDirectMessageIntoInboxCache(queryClient, selfUserId, inboxMessage, matchedOptimisticMessageId);
+    if (selfUserId > 0) {
+      void (matchedPendingWritePromise ?? Promise.resolve())
+        .then(() => loadChatHistoryDb())
+        .then((db) => {
+          if (matchedOptimisticMessageId !== null) {
+            return db.promotePendingDirectMessage(selfUserId, matchedOptimisticMessageId, inboxMessage);
+          }
+          return db.upsertCachedDirectMessages(selfUserId, [inboxMessage]);
+        })
+        .catch(error => console.warn("[WS] Failed to reconcile direct message in SQLite:", error));
+    }
     queryClient.invalidateQueries({ queryKey: ["dmInbox"] });
     queryClient.invalidateQueries({ queryKey: ["directBadgeSummary"] });
 
@@ -379,9 +399,7 @@ export function useWebSocketMessageHandlers({
         if (WS_HANDLER_DEBUG_LOG_ENABLED) {
           console.info("New friend request push:", event.data);
         }
-        queryClient.invalidateQueries({ queryKey: ["friendReqPage"] });
         queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
-        queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
         queryClient.invalidateQueries({ queryKey: ["directBadgeSummary"] });
         notifyNewFriendRequest(event);
       },
@@ -410,7 +428,7 @@ export function useWebSocketMessageHandlers({
           queryClient.invalidateQueries({ queryKey: feedbackIssueDetailQueryKey(feedbackIssueId) });
           if (hasCommentChange) {
             queryClient.invalidateQueries({
-              queryKey: buildCommentPageQueryKey({
+              queryKey: buildCommentPageQueryPrefix({
                 targetId: feedbackIssueId,
                 targetType: FEEDBACK_ISSUE_TARGET_TYPE,
               }),

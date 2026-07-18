@@ -49,6 +49,14 @@ describe("roomRoleQueryCache", () => {
     queryClient.setQueryData(["getRole", 12], { success: true, data: role(12, 2) });
     queryClient.setQueryData(roomRoleQueryKey(7), { success: true, data: [role(11)] });
     queryClient.setQueryData(roomNpcRoleQueryKey(7), { success: true, data: [] });
+    queryClient.setQueryData(roomAllRoleQueryKey(7), {
+      success: true,
+      data: {
+        allRoles: [role(11)],
+        baseRoles: [role(11)],
+        npcRoles: [],
+      },
+    });
 
     const snapshot = await optimisticAddRoomRoleQueryCache(queryClient, {
       roomId: 7,
@@ -57,11 +65,51 @@ describe("roomRoleQueryCache", () => {
 
     expect(queryClient.getQueryData<any>(roomRoleQueryKey(7))?.data.map((item: UserRole) => item.roleId)).toEqual([11]);
     expect(queryClient.getQueryData<any>(roomNpcRoleQueryKey(7))?.data.map((item: UserRole) => item.roleId)).toEqual([12]);
+    expect(queryClient.getQueryData<any>(roomAllRoleQueryKey(7))?.data).toMatchObject({
+      allRoles: [role(11), role(12, 2)],
+      baseRoles: [role(11)],
+      npcRoles: [role(12, 2)],
+    });
 
     rollbackAddRoomRoleQueryCache(queryClient, snapshot);
 
     expect(queryClient.getQueryData<any>(roomRoleQueryKey(7))?.data.map((item: UserRole) => item.roleId)).toEqual([11]);
     expect(queryClient.getQueryData<any>(roomNpcRoleQueryKey(7))?.data).toEqual([]);
+    expect(queryClient.getQueryData<any>(roomAllRoleQueryKey(7))?.data).toMatchObject({
+      allRoles: [role(11)],
+      baseRoles: [role(11)],
+      npcRoles: [],
+    });
+  });
+
+  it("旧添加请求回滚时不会覆盖后发角色缓存", async () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(["getRole", 12], { success: true, data: role(12) });
+    queryClient.setQueryData(["getRole", 13], { success: true, data: role(13) });
+    queryClient.setQueryData(roomRoleQueryKey(7), { success: true, data: [role(11)] });
+    queryClient.setQueryData(roomNpcRoleQueryKey(7), { success: true, data: [] });
+    queryClient.setQueryData(roomAllRoleQueryKey(7), {
+      success: true,
+      data: {
+        allRoles: [role(11)],
+        baseRoles: [role(11)],
+        npcRoles: [],
+      },
+    });
+
+    const staleTransaction = await optimisticAddRoomRoleQueryCache(queryClient, {
+      roomId: 7,
+      roleIdList: [12],
+    });
+    await optimisticAddRoomRoleQueryCache(queryClient, {
+      roomId: 7,
+      roleIdList: [13],
+    });
+
+    rollbackAddRoomRoleQueryCache(queryClient, staleTransaction);
+
+    expect(queryClient.getQueryData<any>(roomRoleQueryKey(7))?.data.map((item: UserRole) => item.roleId)).toContain(13);
+    expect(queryClient.getQueryData<any>(roomAllRoleQueryKey(7))?.data.allRoles.map((item: UserRole) => item.roleId)).toContain(13);
   });
 
   it("成功返回后会再次校准缓存，并在 settled 失效角色查询", async () => {

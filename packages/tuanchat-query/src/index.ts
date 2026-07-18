@@ -2,6 +2,7 @@ export * from "./chat";
 export * from "./clue-folder";
 export * from "./cancelable";
 export * from "./direct-message";
+export * from "./direct-message-conversation-sync";
 export * from "./friends";
 export * from "./members";
 export * from "./metadata";

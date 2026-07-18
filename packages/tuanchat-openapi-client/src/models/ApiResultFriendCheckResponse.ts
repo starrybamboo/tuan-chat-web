@@ -24,4 +24,3 @@ export type ApiResultFriendCheckResponse = {
      */
     data?: FriendCheckResponse;
 };
-

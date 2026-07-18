@@ -8,7 +8,7 @@ import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 
 import { mergeRoomMessages } from "./room-message";
 
-export type RoomMessageLocalSyncState = "optimistic";
+export type RoomMessageLocalSyncState = "failed" | "optimistic";
 
 export type RoomMessageSyncLike = {
   messageId?: number;
@@ -58,19 +58,37 @@ function createOptimisticRenderKey(messageId: number, now: string): string {
 }
 
 export function isOptimisticRoomMessage(message: RoomMessageSyncLike | null | undefined): boolean {
-  if (!message || message.status === 1) {
+  if (!message) {
     return false;
   }
-  if (message.tcLocalSyncState === "optimistic") {
-    return true;
+  if (message.tcLocalSyncState != null) {
+    return message.tcLocalSyncState === "optimistic";
+  }
+  if (message.status === 1) {
+    return false;
   }
   return typeof message.messageId === "number" && Number.isFinite(message.messageId) && message.messageId < 0;
+}
+
+export function isFailedRoomMessage(message: RoomMessageSyncLike | null | undefined): boolean {
+  return message?.tcLocalSyncState === "failed";
+}
+
+export function isLocalRoomMessage(message: RoomMessageSyncLike | null | undefined): boolean {
+  return isOptimisticRoomMessage(message) || isFailedRoomMessage(message);
 }
 
 export function markOptimisticRoomMessage<T extends RoomMessageSyncLike>(message: T): T {
   return {
     ...message,
     tcLocalSyncState: "optimistic",
+  };
+}
+
+export function markFailedRoomMessage<T extends RoomMessageSyncLike>(message: T): T {
+  return {
+    ...message,
+    tcLocalSyncState: "failed",
   };
 }
 
@@ -118,6 +136,36 @@ export function createOptimisticRoomMessage(
   };
   return {
     message: optimisticMessage,
+  };
+}
+
+export function buildRoomMessageRetryRequest(message: Message): ChatMessageRequest | null {
+  if (
+    typeof message.roomId !== "number"
+    || !Number.isInteger(message.roomId)
+    || message.roomId <= 0
+    || typeof message.messageType !== "number"
+    || !Number.isInteger(message.messageType)
+  ) {
+    return null;
+  }
+
+  return {
+    roomId: message.roomId,
+    messageType: message.messageType,
+    content: message.content ?? "",
+    extra: message.extra ?? {},
+    ...(Array.isArray(message.annotations) ? { annotations: message.annotations } : {}),
+    ...(typeof message.roleId === "number" ? { roleId: message.roleId } : {}),
+    ...(typeof message.avatarId === "number" ? { avatarId: message.avatarId } : {}),
+    ...(typeof message.customRoleName === "string" ? { customRoleName: message.customRoleName } : {}),
+    ...(typeof message.replyMessageId === "number" && message.replyMessageId > 0
+      ? { replayMessageId: message.replyMessageId }
+      : {}),
+    ...(message.webgal !== undefined ? { webgal: message.webgal } : {}),
+    ...(typeof message.position === "number" && Number.isFinite(message.position)
+      ? { position: message.position }
+      : {}),
   };
 }
 
@@ -358,6 +406,39 @@ export function restoreRoomMessageInList(
   return mergeRoomMessages(messages, [snapshot]);
 }
 
+/** 仅当缓存仍保留本次乐观消息对象时回滚，避免覆盖后续编辑或推送。 */
+export function restoreRoomMessageIfCurrentMatches(
+  currentMessages: ChatMessageResponse[] | undefined,
+  optimisticSnapshot: ChatMessageResponse,
+  previousSnapshot: ChatMessageResponse,
+): ChatMessageResponse[] {
+  const messageId = optimisticSnapshot.message?.messageId;
+  const current = (currentMessages ?? []).find(item => item.message?.messageId === messageId);
+  if (current?.message !== optimisticSnapshot.message) {
+    return currentMessages ?? [];
+  }
+  return restoreRoomMessageInList(currentMessages, previousSnapshot);
+}
+
+export function rollbackOptimisticRoomMessagesInList(
+  currentMessages: ChatMessageResponse[] | undefined,
+  optimisticSnapshots: ChatMessageResponse[],
+  previousSnapshots: ChatMessageResponse[],
+): ChatMessageResponse[] {
+  const previousById = new Map(previousSnapshots.map(snapshot => [snapshot.message.messageId, snapshot]));
+  return optimisticSnapshots.reduce((messages, optimisticSnapshot) => {
+    const messageId = optimisticSnapshot.message.messageId;
+    const current = messages.find(item => item.message.messageId === messageId);
+    if (current?.message !== optimisticSnapshot.message) {
+      return messages;
+    }
+    const previousSnapshot = previousById.get(messageId);
+    return previousSnapshot
+      ? restoreRoomMessageIfCurrentMatches(messages, optimisticSnapshot, previousSnapshot)
+      : messages.filter(item => item.message.messageId !== messageId);
+  }, currentMessages ?? []);
+}
+
 export function restoreRoomMessagesInList(
   currentMessages: ChatMessageResponse[] | undefined,
   snapshots: ChatMessageResponse[],
@@ -585,7 +666,11 @@ export function mergeRoomMessageSnapshotForLocalState(
 ): ChatMessageResponse {
   const existingMessage = existing.message;
   const incomingMessage = incoming.message;
-  if (existingMessage.status === 1 && incomingMessage.status !== 1) {
+  if (
+    existingMessage.status === 1
+    && incomingMessage.status !== 1
+    && !isOptimisticRoomMessage(existingMessage)
+  ) {
     return existing;
   }
 
@@ -612,8 +697,9 @@ export function mergeRoomMessageSnapshotForLocalState(
   if (!Array.isArray(incomingMessage.annotations) && Array.isArray(existingMessage.annotations)) {
     mergedMessage.annotations = existingMessage.annotations;
   }
-  if (isOptimisticRoomMessage(incomingMessage)) {
-    mergedMessage.tcLocalSyncState = "optimistic";
+  const incomingLocalSyncState = (incomingMessage as Message & RoomMessageSyncLike).tcLocalSyncState;
+  if (incomingLocalSyncState === "optimistic" || incomingLocalSyncState === "failed") {
+    mergedMessage.tcLocalSyncState = incomingLocalSyncState;
   }
   else {
     delete mergedMessage.tcLocalSyncState;

@@ -1,4 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import type { SetStateAction } from "react";
+
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { tuanchat } from "api/instance";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import type { DocTcHeaderPayload } from "@/components/chat/chatPage.types";
 import type { MinimalDocMeta } from "@/components/chat/room/sidebarTree";
@@ -10,7 +14,6 @@ import {
   removePendingSpaceDocTitleSync,
   upsertPendingSpaceDocTitleSync,
 } from "@/components/chat/infra/doc/space/spaceDocMetaPersistence";
-import { tuanchat } from "api/instance";
 
 type UseSpaceDocMetaStateParams = {
   activeSpaceId?: number | null;
@@ -18,34 +21,58 @@ type UseSpaceDocMetaStateParams = {
   docMetasFromSidebarTree: MinimalDocMeta[];
 };
 
-function isSameDocMetaList(a: MinimalDocMeta[] | null, b: MinimalDocMeta[] | null): boolean {
-  if (a === b)
-    return true;
-  if (!a || !b)
-    return false;
-  if (a.length !== b.length)
-    return false;
+export function spaceDocMetasQueryKey(spaceId: number) {
+  return ["spaceDocMetas", spaceId] as const;
+}
 
-  for (let i = 0; i < a.length; i++) {
-    const left = a[i];
-    const right = b[i];
-    if (!left || !right)
-      return false;
-    if (left.id !== right.id)
-      return false;
-    if ((left.title ?? "") !== (right.title ?? ""))
-      return false;
-    if ((left.imageUrl ?? "") !== (right.imageUrl ?? ""))
-      return false;
-    if ((left.imageFileId ?? 0) !== (right.imageFileId ?? 0))
-      return false;
-    if ((left.originalImageFileId ?? 0) !== (right.originalImageFileId ?? 0))
-      return false;
-    if ((left.imageMediaType ?? "") !== (right.imageMediaType ?? ""))
-      return false;
+export function mergeSpaceDocMetas(
+  ...sources: Array<MinimalDocMeta[] | null | undefined>
+): MinimalDocMeta[] {
+  const map = new Map<string, MinimalDocMeta>();
+
+  for (const list of sources) {
+    for (const meta of list ?? []) {
+      const id = typeof meta?.id === "string" ? meta.id : "";
+      if (!id || parseSpaceDocId(id)?.kind !== "independent")
+        continue;
+      const title = typeof meta?.title === "string" && meta.title.trim().length > 0 ? meta.title : undefined;
+      const imageUrl = typeof meta?.imageUrl === "string" && meta.imageUrl.trim().length > 0 ? meta.imageUrl : undefined;
+      const imageFileId = typeof meta?.imageFileId === "number" && meta.imageFileId > 0 ? meta.imageFileId : undefined;
+      const originalImageFileId = typeof meta?.originalImageFileId === "number" && meta.originalImageFileId > 0 ? meta.originalImageFileId : undefined;
+      const imageMediaType = typeof meta?.imageMediaType === "string" && meta.imageMediaType.trim().length > 0 ? meta.imageMediaType : undefined;
+
+      const existing = map.get(id);
+      if (!existing) {
+        map.set(id, { id, title, imageUrl, imageFileId, originalImageFileId, imageMediaType });
+        continue;
+      }
+      if (!existing.title && title)
+        existing.title = title;
+      if (!existing.imageUrl && imageUrl)
+        existing.imageUrl = imageUrl;
+      if (!existing.imageFileId && imageFileId)
+        existing.imageFileId = imageFileId;
+      if (!existing.originalImageFileId && originalImageFileId)
+        existing.originalImageFileId = originalImageFileId;
+      if (!existing.imageMediaType && imageMediaType)
+        existing.imageMediaType = imageMediaType;
+    }
   }
 
-  return true;
+  return [...map.values()];
+}
+
+async function fetchSpaceDocMetas(spaceId: number): Promise<MinimalDocMeta[]> {
+  const result = await tuanchat.spaceDocController.listDocs(spaceId);
+  const docs = Array.isArray(result.data) ? result.data : [];
+  return mergeSpaceDocMetas(docs.map((doc) => {
+    const docId = Number(doc.docId ?? doc.roomId);
+    const title = typeof doc.title === "string" && doc.title.trim() ? doc.title.trim() : undefined;
+    return {
+      id: Number.isFinite(docId) && docId > 0 ? String(docId) : "",
+      ...(title ? { title } : {}),
+    };
+  }));
 }
 
 export default function useSpaceDocMetaState({
@@ -53,49 +80,35 @@ export default function useSpaceDocMetaState({
   canViewDocs,
   docMetasFromSidebarTree,
 }: UseSpaceDocMetaStateParams) {
-  const [spaceDocMetas, setSpaceDocMetas] = useState<MinimalDocMeta[] | null>(null);
-
-  const mergeDocMetas = useCallback((...sources: Array<MinimalDocMeta[] | null | undefined>): MinimalDocMeta[] => {
-    const map = new Map<string, MinimalDocMeta>();
-
-    for (const list of sources) {
-      for (const meta of list ?? []) {
-        const id = typeof meta?.id === "string" ? meta.id : "";
-        if (!id)
-          continue;
-        if (parseSpaceDocId(id)?.kind !== "independent")
-          continue;
-        const title = typeof meta?.title === "string" && meta.title.trim().length > 0 ? meta.title : undefined;
-        const imageUrl = typeof meta?.imageUrl === "string" && meta.imageUrl.trim().length > 0 ? meta.imageUrl : undefined;
-        const imageFileId = typeof meta?.imageFileId === "number" && meta.imageFileId > 0 ? meta.imageFileId : undefined;
-        const originalImageFileId = typeof meta?.originalImageFileId === "number" && meta.originalImageFileId > 0 ? meta.originalImageFileId : undefined;
-        const imageMediaType = typeof meta?.imageMediaType === "string" && meta.imageMediaType.trim().length > 0 ? meta.imageMediaType : undefined;
-
-        const existing = map.get(id);
-        if (!existing) {
-          map.set(id, { id, title, imageUrl, imageFileId, originalImageFileId, imageMediaType });
-          continue;
-        }
-        if (!existing.title && title) {
-          existing.title = title;
-        }
-        if (!existing.imageUrl && imageUrl) {
-          existing.imageUrl = imageUrl;
-        }
-        if (!existing.imageFileId && imageFileId) {
-          existing.imageFileId = imageFileId;
-        }
-        if (!existing.originalImageFileId && originalImageFileId) {
-          existing.originalImageFileId = originalImageFileId;
-        }
-        if (!existing.imageMediaType && imageMediaType) {
-          existing.imageMediaType = imageMediaType;
-        }
-      }
-    }
-
-    return [...map.values()];
-  }, []);
+  const queryClient = useQueryClient();
+  const normalizedSpaceId = typeof activeSpaceId === "number" && activeSpaceId > 0 ? activeSpaceId : -1;
+  const queryKey = useMemo(() => spaceDocMetasQueryKey(normalizedSpaceId), [normalizedSpaceId]);
+  const spaceDocQuery = useQuery({
+    queryKey,
+    queryFn: () => fetchSpaceDocMetas(normalizedSpaceId),
+    enabled: normalizedSpaceId > 0 && canViewDocs,
+    staleTime: 300_000,
+  });
+  const mergeDocMetas = mergeSpaceDocMetas;
+  const spaceDocMetas = useMemo(() => {
+    if (normalizedSpaceId <= 0)
+      return null;
+    if (!canViewDocs)
+      return [];
+    if (spaceDocQuery.data)
+      return mergeSpaceDocMetas(spaceDocQuery.data, docMetasFromSidebarTree);
+    if (spaceDocQuery.isError)
+      return mergeSpaceDocMetas(docMetasFromSidebarTree);
+    return null;
+  }, [canViewDocs, docMetasFromSidebarTree, normalizedSpaceId, spaceDocQuery.data, spaceDocQuery.isError]);
+  const setSpaceDocMetas = useCallback((action: SetStateAction<MinimalDocMeta[] | null>) => {
+    if (normalizedSpaceId <= 0)
+      return;
+    queryClient.setQueryData<MinimalDocMeta[] | null>(queryKey, (current) => {
+      const previous = current ?? mergeSpaceDocMetas(docMetasFromSidebarTree);
+      return typeof action === "function" ? action(previous) : action;
+    });
+  }, [docMetasFromSidebarTree, normalizedSpaceId, queryClient, queryKey]);
 
   const spaceDocTitleSyncTimerRef = useRef<number | null>(null);
   const spaceDocTitleSyncPendingRef = useRef<{ docId: number; title: string } | null>(null);
@@ -250,7 +263,7 @@ export default function useSpaceDocMetaState({
         // ignore
       }
     }
-  }, [syncSpaceDocTitle]);
+  }, [setSpaceDocMetas, syncSpaceDocTitle]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -280,55 +293,15 @@ export default function useSpaceDocMetaState({
   }, [flushPendingSpaceDocTitleSyncQueue]);
 
   const loadSpaceDocMetas = useCallback(async (): Promise<MinimalDocMeta[]> => {
-    if (!activeSpaceId || activeSpaceId <= 0) {
+    if (normalizedSpaceId <= 0) {
       return [];
     }
-
-    const result = await tuanchat.spaceDocController.listDocs(activeSpaceId);
-    const docs = Array.isArray(result.data) ? result.data : [];
-    return mergeDocMetas(docs.map((doc) => {
-      const docId = Number(doc.docId ?? doc.roomId);
-      const title = typeof doc.title === "string" && doc.title.trim() ? doc.title.trim() : undefined;
-      return {
-        id: Number.isFinite(docId) && docId > 0 ? String(docId) : "",
-        ...(title ? { title } : {}),
-      };
-    }));
-  }, [activeSpaceId, mergeDocMetas]);
-
-  useEffect(() => {
-    if (!activeSpaceId || activeSpaceId <= 0) {
-      setSpaceDocMetas(null);
-      return;
-    }
-    if (!canViewDocs) {
-      setSpaceDocMetas([]);
-      return;
-    }
-
-    let cancelled = false;
-    setSpaceDocMetas(prev => (prev === null ? prev : null));
-    void loadSpaceDocMetas()
-      .then((remoteMetas) => {
-        if (cancelled) {
-          return;
-        }
-        const nextMetas = mergeDocMetas(remoteMetas, docMetasFromSidebarTree);
-        setSpaceDocMetas(prev => (isSameDocMetaList(prev, nextMetas) ? prev : nextMetas));
-      })
-      .catch((error) => {
-        console.warn("[space-doc] failed to load remote doc metas", error);
-        if (cancelled) {
-          return;
-        }
-        const nextMetas = mergeDocMetas(docMetasFromSidebarTree);
-        setSpaceDocMetas(prev => (isSameDocMetaList(prev, nextMetas) ? prev : nextMetas));
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeSpaceId, canViewDocs, docMetasFromSidebarTree, loadSpaceDocMetas, mergeDocMetas]);
+    return queryClient.fetchQuery({
+      queryKey,
+      queryFn: () => fetchSpaceDocMetas(normalizedSpaceId),
+      staleTime: 0,
+    }).then(metas => metas ?? []);
+  }, [normalizedSpaceId, queryClient, queryKey]);
 
   return {
     spaceDocMetas,

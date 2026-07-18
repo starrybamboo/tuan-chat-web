@@ -24,4 +24,3 @@ export type RoleAvatarVariantCreateRequest = {
      */
     compositionConfig?: RoleAvatarVariantCompositionConfig;
 };
-

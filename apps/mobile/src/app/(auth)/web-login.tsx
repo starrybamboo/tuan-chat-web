@@ -74,7 +74,7 @@ export default function WebLoginScreen() {
     }
 
     void replaceSession(callbackSession).then(() => {
-      router.replace("/(tabs)" as any);
+      router.replace("/(tabs)");
     });
     return true;
   }, [replaceSession]);
@@ -88,7 +88,7 @@ export default function WebLoginScreen() {
   }, [handleAuthCallback]);
 
   if (isAuthenticated) {
-    return <Redirect href={"/(tabs)" as any} />;
+    return <Redirect href="/(tabs)" />;
   }
 
   return (

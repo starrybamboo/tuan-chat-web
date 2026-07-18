@@ -53,6 +53,10 @@ function writeFile(filePath, content) {
   fs.writeFileSync(filePath, content, "utf8");
 }
 
+function hasLine(content, line) {
+  return content.split(/\r?\n/).includes(line);
+}
+
 function copyDirectory(sourceDir, targetDir) {
   fs.mkdirSync(targetDir, { recursive: true });
   for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
@@ -71,13 +75,13 @@ function patchMainApplication(androidRoot) {
   const mainApplicationPath = path.join(androidRoot, "app/src/main/java/com/tuanchat/mobile/MainApplication.kt");
   let content = readFile(mainApplicationPath);
 
-  if (!content.includes(PACKAGE_IMPORT)) {
+  if (!hasLine(content, PACKAGE_IMPORT)) {
     content = content.replace(
       "import expo.modules.ExpoReactHostFactory\n",
       `import expo.modules.ExpoReactHostFactory\n${PACKAGE_IMPORT}\n`,
     );
   }
-  if (!content.includes(SERVICE_IMPORT)) {
+  if (!hasLine(content, SERVICE_IMPORT)) {
     content = content.replace(
       `${PACKAGE_IMPORT}\n`,
       `${PACKAGE_IMPORT}\n${SERVICE_IMPORT}\n`,
@@ -118,7 +122,7 @@ function patchMainActivity(androidRoot) {
   const mainActivityPath = path.join(androidRoot, "app/src/main/java/com/tuanchat/mobile/MainActivity.kt");
   let content = readFile(mainActivityPath);
 
-  if (!content.includes(ACTIVITY_VISIBILITY_IMPORT)) {
+  if (!hasLine(content, ACTIVITY_VISIBILITY_IMPORT)) {
     content = content.replace(
       "import expo.modules.ReactActivityDelegateWrapper\n",
       `import expo.modules.ReactActivityDelegateWrapper\n${ACTIVITY_VISIBILITY_IMPORT}\n`,

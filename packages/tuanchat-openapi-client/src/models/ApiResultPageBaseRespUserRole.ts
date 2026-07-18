@@ -24,4 +24,3 @@ export type ApiResultPageBaseRespUserRole = {
      */
     data?: PageBaseRespUserRole;
 };
-

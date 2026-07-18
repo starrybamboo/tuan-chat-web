@@ -16,4 +16,3 @@ export type AbilityPageRequest = {
     pageSize?: number;
     roleId: number;
 };
-

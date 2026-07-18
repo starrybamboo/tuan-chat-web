@@ -27,4 +27,3 @@ export type MessageDraft = {
      */
     webgal?: Record<string, any>;
 };
-

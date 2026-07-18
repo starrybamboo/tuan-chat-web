@@ -24,4 +24,3 @@ export type ApiResultUserInfoResponse = {
      */
     data?: UserInfoResponse;
 };
-

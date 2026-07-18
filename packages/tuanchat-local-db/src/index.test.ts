@@ -2,7 +2,9 @@ import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMe
 import type { Database, SqlValue } from "sql.js";
 
 import initSqlJs from "sql.js";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+import type { LocalDbSqliteDriver } from "./index";
 
 import {
   createMobileKeyValueRepository,
@@ -13,6 +15,7 @@ import {
   MOBILE_KV_SCHEMA_SQL,
   MOBILE_QUERY_SNAPSHOT_SCHEMA_SQL,
   normalizeRoomMessagesForStorage,
+  ROOM_MESSAGE_PENDING_TABLE_NAME,
   ROOM_MESSAGE_SCHEMA_SQL,
   toRoomMessageRecord,
 } from "./index";
@@ -55,7 +58,7 @@ async function createMemoryDriver() {
     });
   }
 
-  return {
+  const driver: LocalDbSqliteDriver = {
     all: async (sql, params = []) => mapRows(db, sql, params as SqlValue[]),
     exec: async (sql) => {
       db.run(sql);
@@ -66,7 +69,7 @@ async function createMemoryDriver() {
     transaction: async (task) => {
       db.run("BEGIN TRANSACTION");
       try {
-        const result = await task();
+        const result = await task(driver);
         db.run("COMMIT");
         return result;
       }
@@ -76,6 +79,7 @@ async function createMemoryDriver() {
       }
     },
   };
+  return driver;
 }
 
 async function createMemoryRepository() {
@@ -83,6 +87,30 @@ async function createMemoryRepository() {
 }
 
 describe("tuanchat local db room message helpers", () => {
+  it("事务写入只使用 transaction-scoped driver", async () => {
+    const scopedRun = vi.fn<LocalDbSqliteDriver["run"]>(async () => undefined);
+    const transactionDriver: LocalDbSqliteDriver = {
+      all: async () => [],
+      exec: async () => undefined,
+      run: scopedRun,
+    };
+    const rootDriver: LocalDbSqliteDriver = {
+      all: async () => {
+        throw new Error("事务内不应使用根 driver");
+      },
+      exec: async () => undefined,
+      run: async () => {
+        throw new Error("事务内不应使用根 driver");
+      },
+      transaction: task => task(transactionDriver),
+    };
+    const repository = createRoomMessageRepository(rootDriver);
+
+    await repository.upsertMessages([createMessage(1)]);
+
+    expect(scopedRun).toHaveBeenCalledTimes(1);
+  });
+
   it("暴露可复用的房间消息 schema", () => {
     expect(ROOM_MESSAGE_SCHEMA_SQL.join("\n")).toContain("CREATE TABLE IF NOT EXISTS room_messages");
     expect(ROOM_MESSAGE_SCHEMA_SQL.join("\n")).toContain("room_messages_room_sync_idx");
@@ -167,6 +195,49 @@ describe("tuanchat local db room message helpers", () => {
     expect(messages[0].message.status).toBe(1);
     expect(messages[0].message.content).toBe("已删除");
     expect(messages[0].message.syncId).toBe(12);
+  });
+
+  it("将 pending overlay 与服务端 confirmed projection 分开持久化", async () => {
+    const repository = await createMemoryRepository();
+
+    await repository.upsertMessages([createMessage(1)]);
+    await repository.addPendingMessages([createMessage(-1, { position: 2, syncId: -1 })]);
+    expect((await repository.getMessagesByRoomId(9)).map(item => item.message.messageId)).toEqual([1, -1]);
+
+    await repository.promotePendingMessage(-1, createMessage(2));
+    expect((await repository.getMessagesByRoomId(9)).map(item => item.message.messageId)).toEqual([1, 2]);
+
+    await repository.addPendingMessages([createMessage(-2, { position: 3, syncId: -2 })]);
+    await repository.addPendingMessages([createMessage(-2, {
+      position: 3,
+      syncId: -2,
+      tcLocalSyncState: "failed",
+    } as Partial<ChatMessageResponse["message"]>)]);
+    expect((await repository.getMessagesByRoomId(9)).find(item => item.message.messageId === -2)?.message)
+      .toMatchObject({ tcLocalSyncState: "failed" });
+    await repository.rollbackPendingMessages([-2]);
+    expect((await repository.getMessagesByRoomId(9)).map(item => item.message.messageId)).toEqual([1, 2]);
+  });
+
+  it("冷读时清理旧版正消息 ID pending overlay", async () => {
+    const driver = await createMemoryDriver();
+    const repository = createRoomMessageRepository(driver);
+
+    await repository.upsertMessages([createMessage(7, { content: "服务端消息", status: 0 })]);
+    await driver.run(
+      `INSERT INTO ${ROOM_MESSAGE_PENDING_TABLE_NAME}
+        (pending_message_id, room_id, payload_json, updated_at) VALUES (?, ?, ?, ?)`,
+      [-7000, 9, JSON.stringify(createMessage(7, { content: "旧版删除 overlay", status: 1 })), new Date().toISOString()],
+    );
+
+    const messages = await repository.getMessagesByRoomId(9);
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0].message).toEqual(expect.objectContaining({
+      content: "服务端消息",
+      messageId: 7,
+      status: 0,
+    }));
   });
 });
 

@@ -33,5 +33,6 @@ describe("rule optimistic cache", () => {
 
     await beginRuleDeleteOptimisticMutation(queryClient, 3);
     expect(queryClient.getQueryData<any>(["getRulePage", {}])?.pages[0].data.list).toEqual([]);
+    expect(queryClient.getQueryData<any>(["rules", { page: 1 }])?.list).toEqual([]);
   });
 });

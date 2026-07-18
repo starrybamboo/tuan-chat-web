@@ -50,9 +50,6 @@ export function useAiImageStyleState() {
     return compareStylePreset?.negativeTags ?? [];
   }, [compareStylePreset]);
 
-  const activeStyleIds = styleSelectionMode === "compare"
-    ? (compareStyleId ? [compareStyleId] : [])
-    : selectedStyleIds;
   const activeStylePresets = styleSelectionMode === "compare"
     ? (compareStylePreset ? [compareStylePreset] : [])
     : selectedStylePresets;
@@ -81,14 +78,6 @@ export function useAiImageStyleState() {
     setSelectedStyleIds([]);
   }, []);
 
-  const handleClearActiveStyles = useCallback(() => {
-    if (styleSelectionMode === "compare") {
-      setCompareStyleId(null);
-      return;
-    }
-    setSelectedStyleIds([]);
-  }, [styleSelectionMode]);
-
   return {
     isStylePickerOpen,
     setIsStylePickerOpen,
@@ -100,14 +89,11 @@ export function useAiImageStyleState() {
     setCompareStyleId,
     stylePresets,
     compareStylePresets,
-    selectedStylePresets,
-    activeStyleIds,
     activeStylePresets,
     activeStyleTags,
     activeStyleNegativeTags,
     handleToggleStyle,
     handleSelectCompareStyle,
     handleClearStyles,
-    handleClearActiveStyles,
   };
 }

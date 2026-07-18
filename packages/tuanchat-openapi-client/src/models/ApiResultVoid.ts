@@ -23,4 +23,3 @@ export type ApiResultVoid = {
      */
     data?: any;
 };
-

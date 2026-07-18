@@ -32,7 +32,6 @@ export type SpaceMember = {
     avatarMediaType?: string;
     createTime?: string;
     updateTime?: string;
-    observer?: boolean;
     leader?: boolean;
+    observer?: boolean;
 };
-

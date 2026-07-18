@@ -53,6 +53,10 @@ export function extractOpenApiErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+export function isOpenApiResponseError(error: unknown): error is ApiError {
+  return error instanceof ApiError;
+}
+
 export function unwrapOpenApiResultData<T>(
   result: ApiResultLike<T> | null | undefined,
   fallback = "请求失败",

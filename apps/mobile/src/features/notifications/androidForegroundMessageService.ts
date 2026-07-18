@@ -1,6 +1,6 @@
-import { NativeModules, Platform } from "react-native";
-
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+
+import { NativeModules, Platform } from "react-native";
 
 import type { AndroidBackgroundPushDiagnostics } from "./androidBackgroundPushGuidance";
 

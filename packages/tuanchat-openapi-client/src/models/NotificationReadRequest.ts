@@ -11,4 +11,3 @@ export type NotificationReadRequest = {
      */
     notificationIdList: Array<number>;
 };
-

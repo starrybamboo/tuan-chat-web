@@ -35,6 +35,9 @@ const DEFAULT_WEBSOCKET_UTILS: WebsocketUtils = {
   updateChatStatus(chatStatusEvent: ChatStatusEvent): void {
     console.error(`Function not implemented.${chatStatusEvent}`);
   },
+  markOptimisticDirectMessageFailed(_: number): void {
+    console.error("Function not implemented.");
+  },
   pushOptimisticDirectMessage(): number | null {
     console.error("Function not implemented.");
     return null;

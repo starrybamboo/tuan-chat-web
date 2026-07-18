@@ -18,7 +18,7 @@
     "build:win:nsis": "pnpm -s build:app && pnpm --workspace-root exec electron-builder build --config apps/desktop/electron-builder.config.cjs --win nsis",
     "build:mac:zip": "pnpm -s build:app && pnpm --workspace-root exec electron-builder build --config apps/desktop/electron-builder.config.cjs --mac zip",
     "build:mac:dmg": "pnpm -s build:app && pnpm --workspace-root exec electron-builder build --config apps/desktop/electron-builder.config.cjs --mac dmg",
-    "lint": "oxlint . --config ./.oxlintrc.json --no-error-on-unmatched-pattern"
+    "lint": "node ../../scripts/run-oxlint.mjs . --config ./.oxlintrc.jsonc --no-error-on-unmatched-pattern"
   },
   "dependencies": {
     "@tuanchat/electron-ipc": "workspace:*",

@@ -1,10 +1,6 @@
 import type { InfiniteData } from "@tanstack/react-query";
 
 import { QueryClient } from "@tanstack/react-query";
-import { describe, expect, it } from "vitest";
-
-import type { FeedbackIssuePageResponse } from "@/components/feedback/feedbackTypes";
-
 import {
   FEEDBACK_ISSUES_QUERY_KEY,
   feedbackIssueDetailQueryKey,
@@ -14,6 +10,9 @@ import {
   reconcileFeedbackIssueCaches,
   rollbackFeedbackIssueCaches,
 } from "api/feedbackQueryCache";
+import { describe, expect, it } from "vitest";
+
+import type { FeedbackIssuePageResponse } from "@/components/feedback/feedbackTypes";
 
 function createPageData(): InfiniteData<FeedbackIssuePageResponse> {
   return {
@@ -138,6 +137,30 @@ describe("feedbackHooks", () => {
       status: 2,
       archived: false,
     });
+  });
+
+  it("反馈失败回滚不会覆盖并发到达的较新服务端数据", async () => {
+    const queryClient = new QueryClient();
+    const pageData = createPageData();
+    const detailKey = feedbackIssueDetailQueryKey(12);
+    queryClient.setQueryData(detailKey, {
+      ...pageData.pages[1].list[0],
+      content: "完整内容",
+    });
+
+    const context = await optimisticPatchFeedbackIssueCaches(queryClient, {
+      feedbackIssueId: 12,
+      status: 3,
+    });
+    const newerDetail = {
+      ...pageData.pages[1].list[0],
+      status: 4,
+      content: "服务端新版本",
+    };
+    queryClient.setQueryData(detailKey, newerDetail);
+    rollbackFeedbackIssueCaches(queryClient, context);
+
+    expect(queryClient.getQueryData(detailKey)).toEqual(newerDetail);
   });
 
   it("成功返回会用服务端反馈详情校准缓存，并在 settled 阶段失效查询", async () => {

@@ -1,13 +1,13 @@
 import type { QueryClient } from "@tanstack/react-query";
-
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import type { PageBaseRespRuleResponse } from "@tuanchat/openapi-client/models/PageBaseRespRuleResponse";
+import type {Rule} from "@tuanchat/openapi-client/models/Rule";
 import type {RuleCloneRequest} from "@tuanchat/openapi-client/models/RuleCloneRequest";
 import type {RuleCreateRequest} from "@tuanchat/openapi-client/models/RuleCreateRequest";
 import type {RulePageRequest} from "@tuanchat/openapi-client/models/RulePageRequest";
 import type {RuleUpdateRequest} from "@tuanchat/openapi-client/models/RuleUpdateRequest";
-import type {Rule} from "@tuanchat/openapi-client/models/Rule";
-import type { PageBaseRespRuleResponse } from "@tuanchat/openapi-client/models/PageBaseRespRuleResponse";
+
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 import {tuanchat} from "../instance";
 import {
@@ -20,6 +20,10 @@ export const RULE_DETAIL_STALE_TIME_MS = 300000;
 
 export function ruleDetailQueryKey(ruleId: number): readonly ["getRuleDetail", number] {
     return ["getRuleDetail", ruleId];
+}
+
+export function rulePageInfiniteQueryKey(requestBody: RulePageRequest, pageSize: number) {
+    return ["getRulePage", requestBody, pageSize] as const;
 }
 
 export function fetchRuleDetailWithCache(queryClient: QueryClient, ruleId: number) {
@@ -58,7 +62,7 @@ export function useGetRulePageInfiniteQuery(
     pageSize: number = 10
 ) {
     return useInfiniteQuery({
-        queryKey: ["getRulePage", requestBody],
+        queryKey: rulePageInfiniteQueryKey(requestBody, pageSize),
         queryFn: async ({ pageParam }) => {
             const params = { ...requestBody, ...pageParam };
             return tuanchat.ruleController.getRulePage(params);

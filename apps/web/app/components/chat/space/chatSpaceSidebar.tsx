@@ -1,6 +1,6 @@
 import { Link, useRouter } from "@tanstack/react-router";
 import { AnimatePresence, LayoutGroup, motion, useAnimate } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { chatSidebarFocusClassName, getChatSidebarActiveTextClassName } from "@/components/chat/shared/components/chatSidebarActiveTone";
 import SidebarActiveCursor from "@/components/chat/shared/components/sidebarActiveCursor";
@@ -100,7 +100,7 @@ export default function ChatSpaceSidebar({
   });
   const activeCursorTarget = optimisticCursorTarget ?? routeCursorTarget;
   const collapseAnimationTrigger = shouldShowCollapsedFeedback ? activeCursorTarget : null;
-  const runCollapseButtonAnimation = (target: ChatSidebarActiveCursorTarget) => {
+  const runCollapseButtonAnimation = useCallback((target: ChatSidebarActiveCursorTarget) => {
     if (target.type === "private") {
       void animatePrivateButton(privateButtonScope.current, collapsedButtonAnimation, collapsedButtonAnimationOptions);
       return;
@@ -108,7 +108,7 @@ export default function ChatSpaceSidebar({
     if (target.type === "discover") {
       void animateDiscoverButton(discoverButtonScope.current, collapsedButtonAnimation, collapsedButtonAnimationOptions);
     }
-  };
+  }, [animateDiscoverButton, animatePrivateButton, discoverButtonScope, privateButtonScope]);
 
   useEffect(() => {
     const shouldAnimateCollapse = !previousShouldShowCollapsedFeedbackRef.current && shouldShowCollapsedFeedback;
@@ -117,7 +117,7 @@ export default function ChatSpaceSidebar({
       return;
     }
     runCollapseButtonAnimation(activeCursorTarget);
-  }, [activeCursorTarget, shouldShowCollapsedFeedback]);
+  }, [activeCursorTarget, runCollapseButtonAnimation, shouldShowCollapsedFeedback]);
 
   useEffect(() => {
     if (!optimisticCursorTarget) {

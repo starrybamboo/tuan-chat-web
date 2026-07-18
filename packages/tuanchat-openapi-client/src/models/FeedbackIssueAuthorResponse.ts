@@ -23,4 +23,3 @@ export type FeedbackIssueAuthorResponse = {
      */
     avatarMediaType?: string;
 };
-

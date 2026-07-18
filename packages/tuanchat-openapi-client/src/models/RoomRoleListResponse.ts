@@ -20,4 +20,3 @@ export type RoomRoleListResponse = {
      */
     npcRoles?: Array<UserRole>;
 };
-

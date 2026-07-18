@@ -100,7 +100,7 @@ type SpriteLayoutPreset = {
   targetHeight: number;
 };
 
-const DEFAULT_REPLAY_ROLE_AVATAR_CATEGORY = "gululu-replay";
+const DEFAULT_REPLAY_ROLE_AVATAR_CATEGORY = "replay-import";
 const WEBGAL_STAGE_WIDTH = 2560;
 const WEBGAL_STAGE_HEIGHT = 1440;
 const SAFE_TOP_Y = 80;

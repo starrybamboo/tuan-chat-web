@@ -6,6 +6,7 @@ import {
   getDirectBadgeSummaryQueryKey,
   getDirectInboxQueryKey,
   markDirectMessageRecalledData,
+  mergeDirectInboxServerSnapshot,
   removeDirectInboxMessageData,
   replaceDirectOptimisticInboxMessageData,
   upsertDirectInboxMessagesData,
@@ -80,5 +81,36 @@ describe("direct message query helpers", () => {
       createDirectMessage(1, 1),
       committed,
     ]);
+  });
+
+  it("服务端快照替换 confirmed projection，但保留本地 pending overlay", () => {
+    const staleConfirmed = { ...createDirectMessage(1, 1), content: "stale" };
+    const serverConfirmed = { ...createDirectMessage(1, 1), content: "server" };
+    const failed = {
+      ...createDirectMessage(-1, 10),
+      content: "failed",
+      tcLocalSyncState: "failed",
+    } as MessageDirectResponse;
+    const optimistic = {
+      ...createDirectMessage(-2, 11),
+      content: "optimistic",
+      tcLocalSyncState: "optimistic",
+    } as MessageDirectResponse;
+
+    const merged = mergeDirectInboxServerSnapshot(
+      [staleConfirmed, failed, optimistic],
+      [serverConfirmed],
+    );
+
+    expect(merged).toHaveLength(3);
+    expect(merged.find(message => message.messageId === 1)?.content).toBe("server");
+    expect(merged.find(message => message.messageId === -1)).toMatchObject({
+      content: "failed",
+      tcLocalSyncState: "failed",
+    });
+    expect(merged.find(message => message.messageId === -2)).toMatchObject({
+      content: "optimistic",
+      tcLocalSyncState: "optimistic",
+    });
   });
 });

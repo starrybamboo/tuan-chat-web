@@ -11,7 +11,9 @@ function parsePositiveInteger(value: string | undefined): number | null {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
-function buildRouteHref(pathname: string, params?: Record<string, number | string | null | undefined>) {
+export type MobileNotificationHref = "/(tabs)" | "/(tabs)/explore" | "/(tabs)/role" | `/(tabs)?${string}`;
+
+function buildTabRouteHref(params?: Record<string, number | string | null | undefined>): "/(tabs)" | `/(tabs)?${string}` {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(params ?? {})) {
     if (value == null || value === "") {
@@ -21,7 +23,7 @@ function buildRouteHref(pathname: string, params?: Record<string, number | strin
   }
 
   const queryString = query.toString();
-  return queryString.length > 0 ? `${pathname}?${queryString}` : pathname;
+  return queryString.length > 0 ? `/(tabs)?${queryString}` : "/(tabs)";
 }
 
 function normalizeRoutePath(targetPath: string) {
@@ -29,18 +31,18 @@ function normalizeRoutePath(targetPath: string) {
   return pathOnly.trim();
 }
 
-export function resolveMobileNotificationRoute(payload: Pick<NativeAppNotificationPayload, "resourceId" | "resourceType" | "targetPath">) {
+export function resolveMobileNotificationRoute(payload: Pick<NativeAppNotificationPayload, "resourceId" | "resourceType" | "targetPath">): MobileNotificationHref | null {
   const normalizedTargetPath = normalizeNotificationTargetPath(payload.targetPath);
   const normalizedPath = normalizedTargetPath ? normalizeRoutePath(normalizedTargetPath) : "";
 
   if (normalizedPath.startsWith("/chat/private/")) {
     const contactId = parsePositiveInteger(normalizedPath.split("/")[3]);
-    return contactId ? buildRouteHref("/(tabs)", { contactId }) : "/(tabs)";
+    return contactId ? buildTabRouteHref({ contactId }) : "/(tabs)";
   }
 
   if (normalizedPath.startsWith("/chat/room/")) {
     const roomId = parsePositiveInteger(normalizedPath.split("/")[3]);
-    return roomId ? buildRouteHref("/(tabs)", { roomId }) : "/(tabs)";
+    return roomId ? buildTabRouteHref({ roomId }) : "/(tabs)";
   }
 
   if (normalizedPath.startsWith("/chat/")) {
@@ -48,7 +50,7 @@ export function resolveMobileNotificationRoute(payload: Pick<NativeAppNotificati
     const spaceId = parsePositiveInteger(segments[1]);
     const roomId = parsePositiveInteger(segments[2]);
     if (spaceId && roomId) {
-      return buildRouteHref("/(tabs)", { spaceId, roomId });
+      return buildTabRouteHref({ spaceId, roomId });
     }
     return "/(tabs)";
   }

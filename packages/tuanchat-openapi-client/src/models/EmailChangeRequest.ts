@@ -23,4 +23,3 @@ export type EmailChangeRequest = {
      */
     newCode: string;
 };
-

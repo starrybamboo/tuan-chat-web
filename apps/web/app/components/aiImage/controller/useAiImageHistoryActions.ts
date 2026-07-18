@@ -5,12 +5,10 @@ import { useCallback, useEffect } from "react";
 import type {
   HistoryRowClickMode,
   MetadataImportSelectionState,
-  PreciseReferenceRow,
   ProFeatureSectionKey,
   ResolutionSelection,
   UiMode,
   V4CharEditorRow,
-  VibeTransferReferenceRow,
 } from "@/components/aiImage/types";
 import type { AiImageHistoryMode, AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
 import type { NovelAiImageMetadataResult } from "@/utils/media/novelaiImageMetadata";
@@ -53,8 +51,6 @@ type UseAiImageHistoryActionsOptions = {
   setSimpleResolutionSelection: (value: ResolutionSelection) => void;
   setUiMode: (value: UiMode) => void;
   clearSourceImageForUi: (value: UiMode) => void;
-  setVibeTransferReferences: (value: VibeTransferReferenceRow[]) => void;
-  setPreciseReference: (value: PreciseReferenceRow | null) => void;
   setProFeatureSectionOpen: (section: ProFeatureSectionKey, open: boolean) => void;
   setPrompt: (value: string) => void;
   setNegativePrompt: (value: string) => void;
@@ -62,7 +58,6 @@ type UseAiImageHistoryActionsOptions = {
   setProWidth: (value: number) => void;
   setProHeight: (value: number) => void;
   setProResolutionSelection: (value: ResolutionSelection) => void;
-  setProImageCount: (value: number) => void;
   setProSteps: (value: number) => void;
   setProScale: (value: number) => void;
   setProSampler: (value: string) => void;
@@ -70,10 +65,9 @@ type UseAiImageHistoryActionsOptions = {
   setProCfgRescale: (value: number) => void;
   setProUcPreset: (value: number) => void;
   setProQualityToggle: (value: boolean) => void;
+  setProCfgDelay: (value: boolean) => void;
   setProDynamicThresholding: (value: boolean) => void;
-  setProSmea: (value: boolean) => void;
-  setProSmeaDyn: (value: boolean) => void;
-  applyModeStrengthAndNoise: (targetUiMode: UiMode, targetMode: AiImageHistoryMode | undefined, nextStrength: number | undefined, nextNoise: number | undefined) => void;
+  applyInfillStrengthAndNoise: (targetUiMode: UiMode, targetMode: AiImageHistoryMode | undefined, nextStrength: number | undefined, nextNoise: number | undefined) => void;
   setV4UseCoords: (value: boolean) => void;
   setV4UseOrder: (value: boolean) => void;
   setV4Chars: (value: V4CharEditorRow[]) => void;
@@ -84,12 +78,6 @@ type UseAiImageHistoryActionsOptions = {
   setSimpleNegativePrompt: (value: string) => void;
   setSimpleEditorMode: (value: "text" | "tags") => void;
   setProFeatureSections: (value: ProFeatureSectionsState) => void;
-  restoreSourceImageForUi: (targetUiMode: UiMode, args: {
-    dataUrl?: string | null;
-    name: string;
-    width?: number | null;
-    height?: number | null;
-  }) => boolean;
   showSuccessToast: (message: string) => void;
 };
 
@@ -126,8 +114,6 @@ export function useAiImageHistoryActions({
   setSimpleResolutionSelection,
   setUiMode,
   clearSourceImageForUi,
-  setVibeTransferReferences,
-  setPreciseReference,
   setProFeatureSectionOpen,
   setPrompt,
   setNegativePrompt,
@@ -135,7 +121,6 @@ export function useAiImageHistoryActions({
   setProWidth,
   setProHeight,
   setProResolutionSelection,
-  setProImageCount,
   setProSteps,
   setProScale,
   setProSampler,
@@ -143,10 +128,9 @@ export function useAiImageHistoryActions({
   setProCfgRescale,
   setProUcPreset,
   setProQualityToggle,
+  setProCfgDelay,
   setProDynamicThresholding,
-  setProSmea,
-  setProSmeaDyn,
-  applyModeStrengthAndNoise,
+  applyInfillStrengthAndNoise,
   setV4UseCoords,
   setV4UseOrder,
   setV4Chars,
@@ -157,7 +141,6 @@ export function useAiImageHistoryActions({
   setSimpleNegativePrompt,
   setSimpleEditorMode,
   setProFeatureSections,
-  restoreSourceImageForUi,
   showSuccessToast,
 }: UseAiImageHistoryActionsOptions) {
   const refreshHistory = useCallback(async () => {
@@ -187,7 +170,7 @@ export function useAiImageHistoryActions({
         setIsPageImageDragOver,
         setUiMode,
         clearSourceImageForUi,
-        applyModeStrengthAndNoise,
+        applyInfillStrengthAndNoise,
         inferResolutionSelection,
       },
       simple: {
@@ -206,7 +189,6 @@ export function useAiImageHistoryActions({
         setProWidth,
         setProHeight,
         setProResolutionSelection,
-        setProImageCount,
         setProSteps,
         setProScale,
         setProSampler,
@@ -214,9 +196,8 @@ export function useAiImageHistoryActions({
         setProCfgRescale,
         setProUcPreset,
         setProQualityToggle,
+        setProCfgDelay,
         setProDynamicThresholding,
-        setProSmea,
-        setProSmeaDyn,
         setProFeatureSectionOpen,
       },
       characters: {
@@ -225,13 +206,9 @@ export function useAiImageHistoryActions({
         setV4Chars,
         setCharPromptTabs,
       },
-      references: {
-        setVibeTransferReferences,
-        setPreciseReference,
-      },
     });
   }, [
-    applyModeStrengthAndNoise,
+    applyInfillStrengthAndNoise,
     clearSourceImageForUi,
     inferResolutionSelection,
     noiseScheduleOptions,
@@ -241,19 +218,16 @@ export function useAiImageHistoryActions({
     setCharPromptTabs,
     setIsPageImageDragOver,
     setNegativePrompt,
-    setPreciseReference,
     setProCfgRescale,
     setProDynamicThresholding,
+    setProCfgDelay,
     setProFeatureSectionOpen,
     setProHeight,
-    setProImageCount,
     setProNoiseSchedule,
     setProQualityToggle,
     setProResolutionSelection,
     setProScale,
     setProSeed,
-    setProSmea,
-    setProSmeaDyn,
     setProSampler,
     setProSteps,
     setProUcPreset,
@@ -270,7 +244,6 @@ export function useAiImageHistoryActions({
     setV4Chars,
     setV4UseCoords,
     setV4UseOrder,
-    setVibeTransferReferences,
     simpleHeight,
     simpleWidth,
     uiMode,
@@ -287,9 +260,8 @@ export function useAiImageHistoryActions({
       shared: {
         setSelectedHistoryPreviewKey,
         showSuccessToast,
-        restoreSourceImageForUi,
         clearSourceImageForUi,
-        applyModeStrengthAndNoise,
+        applyInfillStrengthAndNoise,
         inferResolutionSelection,
       },
       simple: {
@@ -313,7 +285,6 @@ export function useAiImageHistoryActions({
         setProWidth,
         setProHeight,
         setProResolutionSelection,
-        setProImageCount,
         setProSteps,
         setProScale,
         setProSampler,
@@ -321,9 +292,8 @@ export function useAiImageHistoryActions({
         setProCfgRescale,
         setProUcPreset,
         setProQualityToggle,
+        setProCfgDelay,
         setProDynamicThresholding,
-        setProSmea,
-        setProSmeaDyn,
       },
       characters: {
         setV4UseCoords,
@@ -331,33 +301,25 @@ export function useAiImageHistoryActions({
         setV4Chars,
         setCharPromptTabs,
       },
-      references: {
-        setVibeTransferReferences,
-        setPreciseReference,
-      },
     });
   }, [
-    applyModeStrengthAndNoise,
+    applyInfillStrengthAndNoise,
     clearSourceImageForUi,
     inferResolutionSelection,
     noiseScheduleOptions,
-    restoreSourceImageForUi,
     samplerOptions,
     setCharPromptTabs,
     setNegativePrompt,
-    setPreciseReference,
     setProCfgRescale,
     setProDynamicThresholding,
+    setProCfgDelay,
     setProFeatureSections,
     setProHeight,
-    setProImageCount,
     setProNoiseSchedule,
     setProQualityToggle,
     setProResolutionSelection,
     setProScale,
     setProSeed,
-    setProSmea,
-    setProSmeaDyn,
     setProSampler,
     setProSteps,
     setProUcPreset,
@@ -378,7 +340,6 @@ export function useAiImageHistoryActions({
     setV4Chars,
     setV4UseCoords,
     setV4UseOrder,
-    setVibeTransferReferences,
     showSuccessToast,
     uiMode,
   ]);
@@ -460,7 +421,6 @@ export function useAiImageHistoryActions({
   return {
     refreshHistory,
     applyImportedMetadata,
-    handleApplyHistorySettings,
     handleHistoryRowClick,
     handleCurrentResultCardClick,
     handleDeleteHistoryRow,

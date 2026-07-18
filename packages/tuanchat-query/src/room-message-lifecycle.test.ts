@@ -7,17 +7,24 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildCommittedRoomMessage,
   buildOptimisticRoomMessagesFromPatch,
+  buildRoomMessageRetryRequest,
   collectPersistedOptimisticDuplicateIds,
   commitOptimisticRoomMessageInList,
   createOptimisticRoomMessage,
   getNextAppendPosition,
   getRoomMessageLocalRenderKey,
+  isFailedRoomMessage,
+  isOptimisticRoomMessage,
+  markFailedRoomMessage,
+  markOptimisticRoomMessage,
   mergeRoomMessageSnapshotForLocalState,
   mergeRoomMessagesForLocalState,
   reconcileOptimisticRoomMessagesInList,
   removeRoomMessageFromList,
   removeRoomMessagesFromList,
+  rollbackOptimisticRoomMessagesInList,
   restoreRoomMessageInList,
+  restoreRoomMessageIfCurrentMatches,
   restoreRoomMessagesInList,
 } from "./room-message-lifecycle";
 
@@ -110,6 +117,35 @@ describe("createOptimisticRoomMessage", () => {
     expect(first.message.createTime).toBe("2026-07-09 01:00:19");
     expect(second.message.createTime).toBe("2026-07-09 01:00:19");
     expect(getRoomMessageLocalRenderKey(first.message)).not.toBe(getRoomMessageLocalRenderKey(second.message));
+  });
+
+  it("失败态不再被识别为发送中，并可重建为一条新发送请求", () => {
+    const failed = markFailedRoomMessage(createOptimisticRoomMessage({
+      annotations: ["强调"],
+      content: "重新发送",
+      extra: { commandRequest: { command: ".ra 侦查" } },
+      messageType: 10,
+      replayMessageId: 8,
+      roleId: 3,
+      roomId: 10,
+    }, {
+      currentUserId: 5,
+      optimisticId: -9,
+      position: 7,
+    }).message);
+
+    expect(isOptimisticRoomMessage(failed)).toBe(false);
+    expect(isFailedRoomMessage(failed)).toBe(true);
+    expect(buildRoomMessageRetryRequest(failed)).toEqual({
+      annotations: ["强调"],
+      content: "重新发送",
+      extra: { commandRequest: { command: ".ra 侦查" } },
+      messageType: 10,
+      position: 7,
+      replayMessageId: 8,
+      roleId: 3,
+      roomId: 10,
+    });
   });
 });
 
@@ -595,6 +631,19 @@ describe("mergeRoomMessagesForLocalState", () => {
     expect(mergeRoomMessagesForLocalState([deleted], [stale])).toEqual([deleted]);
   });
 
+  it("运行时乐观 tombstone 允许在请求失败后恢复确认快照", () => {
+    const confirmed = msg(10, 10, { content: "confirmed", status: 0, syncId: 10 });
+    const optimisticDeleted = {
+      ...confirmed,
+      message: markOptimisticRoomMessage({
+        ...confirmed.message,
+        status: 1,
+      }),
+    };
+
+    expect(mergeRoomMessagesForLocalState([optimisticDeleted], [confirmed])).toEqual([confirmed]);
+  });
+
   it("WebSocket 真消息替换匹配乐观消息并保留本地 render key", () => {
     const optimistic = createOptimisticRoomMessage({
       content: "hello",
@@ -660,6 +709,24 @@ describe("restoreRoomMessageInList / restoreRoomMessagesInList", () => {
     const current = [msg(1, 1), msg(3, 3)];
     const result = restoreRoomMessagesInList(current, snapshots);
     expect(result.length).toBe(4);
+  });
+
+  it("仅当缓存仍是本次乐观对象时回滚消息", () => {
+    const previous = msg(2, 2, { content: "original" });
+    const optimistic = msg(2, 2, { content: "optimistic" });
+    const newer = msg(2, 2, { content: "websocket" });
+
+    expect(restoreRoomMessageIfCurrentMatches([optimistic], optimistic, previous)).toEqual([previous]);
+    expect(restoreRoomMessageIfCurrentMatches([newer], optimistic, previous)).toEqual([newer]);
+  });
+
+  it("批量回滚只撤销仍属于本次 mutation 的乐观对象", () => {
+    const previous = msg(2, 2, { content: "original" });
+    const optimistic = msg(2, 2, { content: "optimistic", tcLocalSyncState: "optimistic" } as Partial<Message>);
+    const newer = msg(2, 2, { content: "newer", tcLocalSyncState: "optimistic" } as Partial<Message>);
+
+    expect(rollbackOptimisticRoomMessagesInList([optimistic], [optimistic], [previous])).toEqual([previous]);
+    expect(rollbackOptimisticRoomMessagesInList([newer], [optimistic], [previous])).toEqual([newer]);
   });
 });
 

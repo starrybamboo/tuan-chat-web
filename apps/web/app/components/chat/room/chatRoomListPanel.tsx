@@ -29,6 +29,7 @@ import { collectExistingDocIds, collectExistingRoomIds } from "./sidebarTree";
 import SidebarTreeOverlays from "./sidebarTreeOverlays";
 
 const ROOM_DOC_SECTION_KEY = "section:room-docs";
+const ROOM_DOC_SECTION_KEYS = [ROOM_DOC_SECTION_KEY];
 
 function RoomDocTreeLoadingSkeleton() {
   return (
@@ -144,7 +145,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     return partitionClueFolderRooms(roomsInSpace, currentUserId).mainRooms;
   }, [currentUserId, roomsInSpace]);
 
-  const { visibleDocMetas, docMetaMap, appendExtraDocMeta } = useRoomSidebarDocMetas({
+  const { visibleDocMetas, docMetaMap, upsertDocMeta } = useRoomSidebarDocMetas({
     activeSpaceId,
     canViewDocs,
     docMetas,
@@ -225,8 +226,8 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     activeSpaceId,
     currentUserId,
     storageScope: "sidebar-sections",
-    validKeys: [ROOM_DOC_SECTION_KEY],
-    initialExpandedKeys: [ROOM_DOC_SECTION_KEY],
+    validKeys: ROOM_DOC_SECTION_KEYS,
+    initialExpandedKeys: ROOM_DOC_SECTION_KEYS,
   });
   const isRoomDocSectionExpanded = Boolean(expandedSidebarSections?.[ROOM_DOC_SECTION_KEY]);
   const activeRoomDocSectionTargetKey = activeDocId
@@ -289,7 +290,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     isSpaceOwner,
     treeToRender,
     visibleDocMetas,
-    appendExtraDocMeta,
+    upsertDocMeta,
     normalizeAndSet,
     isDragging: Boolean(dragging),
   });

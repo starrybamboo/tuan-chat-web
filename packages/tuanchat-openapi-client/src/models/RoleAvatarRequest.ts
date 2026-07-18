@@ -51,4 +51,3 @@ export type RoleAvatarRequest = {
      */
     avatarCropContext?: AvatarCropContext;
 };
-

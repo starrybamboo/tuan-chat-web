@@ -16,4 +16,3 @@ export type SpaceSidebarTreeSetRequest = {
      */
     treeJson: string;
 };
-

@@ -3,6 +3,7 @@ import { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 import { getStoredAuthToken } from "../features/auth/auth-storage";
 
 export const LOCAL_TUANCHAT_API_BASE_URL = "http://10.0.2.2:8081";
+export const PRODUCTION_TUANCHAT_API_BASE_URL = "https://api.tuan.chat/api";
 
 function resolveDefaultApiBaseUrl() {
   const explicitBaseUrl = process.env.EXPO_PUBLIC_TUANCHAT_API_BASE_URL;
@@ -10,7 +11,7 @@ function resolveDefaultApiBaseUrl() {
     return explicitBaseUrl.trim();
   }
 
-  return LOCAL_TUANCHAT_API_BASE_URL;
+  return PRODUCTION_TUANCHAT_API_BASE_URL;
 }
 
 export const DEFAULT_TUANCHAT_API_BASE_URL = resolveDefaultApiBaseUrl();

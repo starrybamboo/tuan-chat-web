@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   canUseMobileUserScopedSnapshot,
+  createMobileQuerySnapshotIdentity,
   createMobileQuerySnapshotKey,
   createMobileQuerySnapshotWriteInput,
   createMobileQuerySnapshotWriteSignature,
@@ -42,11 +43,12 @@ describe("mobile query snapshot helpers", () => {
         updatedAt: 1,
         userId: 7,
       },
-      key: "friends",
+      identity: "friends:7",
     };
 
-    expect(getSnapshotHydratedData(undefined, snapshot, "friends", false)).toEqual(["cached"]);
-    expect(getSnapshotHydratedData([], snapshot, "friends", false)).toEqual(["cached"]);
+    expect(getSnapshotHydratedData(undefined, snapshot, "friends:7", false)).toEqual(["cached"]);
+    expect(getSnapshotHydratedData([], snapshot, "friends:7", false)).toEqual(["cached"]);
+    expect(getSnapshotHydratedData(undefined, snapshot, "friends:8", false)).toBeUndefined();
   });
 
   it("keeps successful network data authoritative over snapshot", () => {
@@ -59,10 +61,10 @@ describe("mobile query snapshot helpers", () => {
         updatedAt: 1,
         userId: 7,
       },
-      key: "friends",
+      identity: "friends:7",
     };
 
-    expect(getSnapshotHydratedData(["network"], snapshot, "friends", true)).toEqual(["network"]);
+    expect(getSnapshotHydratedData(["network"], snapshot, "friends:8", true)).toEqual(["network"]);
   });
 
   it("marks pending and loading false when snapshot data is available", () => {
@@ -101,6 +103,15 @@ describe("mobile query snapshot helpers", () => {
       ttlMs: 120_000,
       userId: 7,
     });
+  });
+
+  it("隔离相同 key 下不同账号和 scope 的 hydration 身份", () => {
+    const first = createMobileQuerySnapshotIdentity({ key: "profile", scope: "current-user", userId: 7 });
+    const second = createMobileQuerySnapshotIdentity({ key: "profile", scope: "current-user", userId: 8 });
+    const otherScope = createMobileQuerySnapshotIdentity({ key: "profile", scope: "member", userId: 7 });
+
+    expect(first).not.toBe(second);
+    expect(first).not.toBe(otherScope);
   });
 
   it("creates stable write signatures from equivalent payloads", () => {

@@ -24,4 +24,3 @@ export type ApiResultFeedbackIssueDetailResponse = {
      */
     data?: FeedbackIssueDetailResponse;
 };
-

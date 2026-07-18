@@ -24,4 +24,3 @@ export type ApiResultFeedWithStatsResponse = {
      */
     data?: FeedWithStatsResponse;
 };
-

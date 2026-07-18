@@ -1,16 +1,39 @@
+import type { AiImageGenerationMode, InpaintDialogSource, InpaintFocusRect, UiMode } from "@/components/aiImage/types";
+import type { AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
+
+import {
+  DEFAULT_INPAINT_NEGATIVE_PROMPT,
+  DEFAULT_INPAINT_PROMPT,
+  DEFAULT_INPAINT_STRENGTH,
+} from "@/components/aiImage/constants";
 import { clampRange, dataUrlToBase64 } from "@/components/aiImage/helpers";
 
-const DEFAULT_INPAINT_PROMPT = "very aesthetic, masterpiece, no text";
-const DEFAULT_INPAINT_NEGATIVE_PROMPT = "nsfw, lowres, artistic error, film grain, scan artifacts, worst quality, bad quality, jpeg artifacts, very displeasing, chromatic aberration, dithering, halftone, screentone, multiple views, logo, too many watermarks, negative space, blank page";
-const DEFAULT_INPAINT_STRENGTH = 1;
+type BuildInpaintSourceStateArgs = {
+  sourceImageDataUrl: string;
+  readImageSize: (dataUrl: string) => Promise<{ width: number; height: number }>;
+  history: AiImageHistoryRow[];
+  uiMode: UiMode;
+  simpleInfillPrompt: string;
+  proInfillPrompt: string;
+  simpleInfillNegativePrompt: string;
+  proInfillNegativePrompt: string;
+  infillMaskDataUrl: string;
+  width: number;
+  height: number;
+  seed: number;
+  model: string;
+  currentInfillStrength: number;
+  infillFocusedArea: InpaintFocusRect | null;
+  overlayOriginalImage: boolean;
+};
 
-export async function buildBaseImageInpaintStateAction(args: Record<string, any>) {
+export async function buildInpaintSourceStateAction(args: BuildInpaintSourceStateArgs): Promise<InpaintDialogSource | null> {
   if (!args.sourceImageDataUrl)
     return null;
 
   const sourceImageBase64 = dataUrlToBase64(args.sourceImageDataUrl);
   if (!sourceImageBase64)
-    throw new Error("当前 Base Img 读取失败，无法启动 Inpaint。");
+    throw new Error("当前 Inpaint 源图读取失败。");
 
   let sourceImageSize: { width: number; height: number } | null = null;
   try {
@@ -20,7 +43,7 @@ export async function buildBaseImageInpaintStateAction(args: Record<string, any>
     // Fall back to the current canvas size.
   }
 
-  const matchedSourceHistoryRow = args.history.find((row: any) =>
+  const matchedSourceHistoryRow = args.history.find(row =>
     row.dataUrl === args.sourceImageDataUrl
     || row.sourceDataUrl === args.sourceImageDataUrl,
   ) || null;
@@ -41,13 +64,46 @@ export async function buildBaseImageInpaintStateAction(args: Record<string, any>
     prompt: sourcePrompt || currentInfillPrompt || DEFAULT_INPAINT_PROMPT,
     negativePrompt: sourceNegativePrompt || currentInfillNegativePrompt || DEFAULT_INPAINT_NEGATIVE_PROMPT,
     strength: args.currentInfillStrength,
+    focusedArea: args.infillFocusedArea,
+    overlayOriginalImage: args.overlayOriginalImage,
   };
 }
 
-export function saveInpaintMaskAction(args: Record<string, any>) {
+type SaveInpaintMaskArgs = {
+  inpaintDialogSource: InpaintDialogSource | null;
+  payload: {
+    prompt: string;
+    negativePrompt: string;
+    strength: number;
+    maskDataUrl: string;
+    focusedArea: InpaintFocusRect | null;
+    overlayOriginalImage: boolean;
+  };
+  setSimpleInfillPrompt: (value: string) => void;
+  setSimpleInfillNegativePrompt: (value: string) => void;
+  setSimpleEditorMode: (value: "text" | "tags") => void;
+  setSimplePromptTab: (value: "prompt" | "negative") => void;
+  setSimpleInfillStrength: (value: number) => void;
+  setSimpleInfillMaskDataUrl: (value: string) => void;
+  setSimpleInfillFocusedArea: (value: InpaintFocusRect | null) => void;
+  setSimpleOverlayOriginalImage: (value: boolean) => void;
+  setProInfillPrompt: (value: string) => void;
+  setProInfillNegativePrompt: (value: string) => void;
+  setProInfillStrength: (value: number) => void;
+  setProInfillMaskDataUrl: (value: string) => void;
+  setProInfillFocusedArea: (value: InpaintFocusRect | null) => void;
+  setProOverlayOriginalImage: (value: boolean) => void;
+  setError: (value: string) => void;
+  setModeForUi: (mode: UiMode, nextMode: AiImageGenerationMode) => void;
+  setInpaintDialogSource: (value: InpaintDialogSource | null) => void;
+  syncInpaintSourceForUi: (mode: UiMode, source: InpaintDialogSource) => void;
+};
+
+export function saveInpaintMaskAction(args: SaveInpaintMaskArgs) {
   if (!args.inpaintDialogSource)
     return;
 
+  args.syncInpaintSourceForUi(args.inpaintDialogSource.mode, args.inpaintDialogSource);
   const payload = args.payload;
   const nextStrength = clampRange(Number(payload.strength), 0.01, 1, DEFAULT_INPAINT_STRENGTH);
   if (args.inpaintDialogSource.mode === "simple") {
@@ -57,12 +113,16 @@ export function saveInpaintMaskAction(args: Record<string, any>) {
     args.setSimplePromptTab("prompt");
     args.setSimpleInfillStrength(nextStrength);
     args.setSimpleInfillMaskDataUrl(payload.maskDataUrl);
+    args.setSimpleInfillFocusedArea(payload.focusedArea);
+    args.setSimpleOverlayOriginalImage(payload.overlayOriginalImage);
   }
   else {
     args.setProInfillPrompt(String(payload.prompt || "").trim() || DEFAULT_INPAINT_PROMPT);
     args.setProInfillNegativePrompt(String(payload.negativePrompt || "").trim() || DEFAULT_INPAINT_NEGATIVE_PROMPT);
     args.setProInfillStrength(nextStrength);
     args.setProInfillMaskDataUrl(payload.maskDataUrl);
+    args.setProInfillFocusedArea(payload.focusedArea);
+    args.setProOverlayOriginalImage(payload.overlayOriginalImage);
   }
 
   args.setError("");

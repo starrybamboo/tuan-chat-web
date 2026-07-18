@@ -1,8 +1,9 @@
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
 
+import { FlashList } from "@shopify/flash-list";
 import { GearSix, List } from "phosphor-react-native";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from "react-native";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
@@ -120,7 +121,7 @@ export function RuleSection({ selectedRuleId, onRuleChange }: RuleSectionProps) 
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.sm }}>
           <ThemedText type="smallBold">{item.ruleName ?? "未命名规则"}</ThemedText>
-          {isSelected && <ThemedText themeColor="accent" type="caption">当前</ThemedText>}
+          {isSelected ? <ThemedText themeColor="accent" type="caption">当前</ThemedText> : null}
         </View>
         {item.ruleDescription
           ? (
@@ -185,7 +186,7 @@ export function RuleSection({ selectedRuleId, onRuleChange }: RuleSectionProps) 
                 <ActivityIndicator color={theme.accent} style={{ paddingVertical: Spacing.xxl }} />
               )
             : (
-                <FlatList
+                <FlashList
                   data={rulePageQuery.data}
                   keyExtractor={item => String(item.ruleId)}
                   ListEmptyComponent={(

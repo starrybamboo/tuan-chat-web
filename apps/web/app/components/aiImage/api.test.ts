@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { augmentNovelImageViaProxy, buildNovelAiDirectorToolPayload, generateNovelImageViaProxy } from "@/components/aiImage/api";
+import {
+  augmentNovelImageViaProxy,
+  buildNovelAiDirectorToolPayload,
+  generateNovelImageViaProxy,
+  resolveNovelAiCfgDelaySigma,
+} from "@/components/aiImage/api";
 
 describe("aiImage api", () => {
   afterEach(() => {
@@ -23,27 +28,6 @@ describe("aiImage api", () => {
       height: 768,
       prompt: "warm sunset palette",
       defry: 2,
-    });
-  });
-
-  it("includes emotion-specific fields for emotion requests", () => {
-    expect(buildNovelAiDirectorToolPayload({
-      requestType: "emotion",
-      imageBase64: "emotion-base64",
-      width: 832,
-      height: 1216,
-      prompt: "soft smile",
-      defry: 4,
-      emotion: "happy",
-    })).toEqual({
-      req_type: "emotion",
-      use_new_shared_trial: true,
-      image: "emotion-base64",
-      width: 832,
-      height: 1216,
-      prompt: "soft smile",
-      defry: 4,
-      emotion: "happy",
     });
   });
 
@@ -97,13 +81,12 @@ describe("aiImage api", () => {
       mode: "infill",
       sourceImageBase64: "source-base64",
       maskBase64: "mask-base64",
-      strength: 0.7,
-      noise: 0.2,
+      strength: 1,
+      noise: 0,
       prompt: "repair face",
       negativePrompt: "",
-      model: "nai-diffusion-4-5-curated",
-      width: 1024,
-      height: 1024,
+      width: 832,
+      height: 1216,
       imageCount: 1,
       steps: 23,
       scale: 5,
@@ -111,10 +94,10 @@ describe("aiImage api", () => {
       noiseSchedule: "karras",
       cfgRescale: 0,
       ucPreset: 0,
-      smea: false,
-      smeaDyn: false,
       qualityToggle: false,
+      cfgDelay: true,
       dynamicThresholding: false,
+      overlayOriginalImage: false,
       seed: 1,
     });
 
@@ -131,20 +114,66 @@ describe("aiImage api", () => {
     expect(requestBody.action).toBe("infill");
     expect(requestBody.parameters.image).toBe("source-base64");
     expect(requestBody.parameters.mask).toBe("mask-base64");
-    expect(requestBody.parameters.noise).toBe(0.2);
-    expect(requestBody.parameters.inpaintImg2ImgStrength).toBe(0.7);
-    expect(requestBody.parameters.img2img).toEqual({
-      strength: 0.7,
-      color_correct: true,
-    });
+    expect(requestBody.parameters.strength).toBe(0.7);
+    expect(requestBody.parameters.noise).toBe(0);
+    expect(requestBody.parameters.inpaintImg2ImgStrength).toBe(1);
+    expect(requestBody.parameters.img2img).toBeUndefined();
     expect(requestBody.parameters.add_original_image).toBe(false);
     expect(requestBody.parameters.autoSmea).toBe(false);
     expect(requestBody.parameters.normalize_reference_strength_multiple).toBe(true);
     expect(requestBody.parameters.image_format).toBe("png");
     expect(requestBody.parameters.stream).toBe("msgpack");
     expect(requestBody.parameters.extra_noise_seed).toBe(0);
-    expect(requestBody.parameters.use_coords).toBe(true);
-    expect(requestBody.parameters.qualityToggle).toBe(true);
+    expect(requestBody.parameters.use_coords).toBe(false);
+    expect(requestBody.parameters.qualityToggle).toBe(false);
+    expect(requestBody.parameters.skip_cfg_above_sigma).toBe(19);
+  });
+
+  it("keeps Inpaint repair strength and original-image overlay as independent controls", async () => {
+    const pngBytes = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+    const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>().mockResolvedValue(new Response(pngBytes, {
+      status: 200,
+      headers: { "Content-Type": "image/png" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await generateNovelImageViaProxy({
+      mode: "infill",
+      sourceImageBase64: "source-base64",
+      maskBase64: "mask-base64",
+      strength: 0.65,
+      noise: 0,
+      prompt: "repair face",
+      negativePrompt: "",
+      width: 832,
+      height: 1216,
+      imageCount: 1,
+      steps: 23,
+      scale: 5,
+      sampler: "k_euler_a",
+      noiseSchedule: "karras",
+      cfgRescale: 0,
+      ucPreset: 0,
+      qualityToggle: true,
+      cfgDelay: false,
+      dynamicThresholding: false,
+      overlayOriginalImage: true,
+      seed: 1,
+    });
+
+    const [, requestInit] = fetchMock.mock.calls[0] ?? [];
+    if (!requestInit?.body)
+      throw new Error("missing multipart request body");
+    const requestPart = (requestInit.body as FormData).get("request") as Blob;
+    const requestBody = JSON.parse(await requestPart.text());
+    expect(requestBody.parameters.img2img).toEqual({ strength: 0.65, color_correct: true });
+    expect(requestBody.parameters.add_original_image).toBe(true);
+    expect(requestBody.parameters.skip_cfg_above_sigma).toBeNull();
+  });
+
+  it("scales Variety+ sigma from the official V4 latent baseline", () => {
+    expect(resolveNovelAiCfgDelaySigma(832, 1216)).toBe(19);
+    expect(resolveNovelAiCfgDelaySigma(1664, 2432)).toBe(38);
   });
 
   it("strips whole-line comments before sending prompt payloads", async () => {
@@ -163,7 +192,6 @@ describe("aiImage api", () => {
       noise: 0.2,
       prompt: "1girl\n// cinematic lighting\ncity lights",
       negativePrompt: "// blurry\nbad hands",
-      model: "nai-diffusion-4-5-curated",
       width: 1407,
       height: 702,
       imageCount: 1,
@@ -173,9 +201,8 @@ describe("aiImage api", () => {
       noiseSchedule: "karras",
       cfgRescale: 0,
       ucPreset: 0,
-      smea: false,
-      smeaDyn: false,
       qualityToggle: false,
+      cfgDelay: false,
       dynamicThresholding: false,
       seed: 1,
     });

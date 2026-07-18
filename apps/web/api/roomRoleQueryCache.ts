@@ -3,6 +3,7 @@ import type { RoomRoleAddRequest } from "@tuanchat/openapi-client/models/RoomRol
 import type { RoomRoleDeleteRequest } from "@tuanchat/openapi-client/models/RoomRoleDeleteRequest";
 import type { SpaceRole } from "@tuanchat/openapi-client/models/SpaceRole";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+
 import {
   beginOptimisticQueryTransaction,
   optimisticQueryPatch,
@@ -20,12 +21,6 @@ export function roomNpcRoleQueryKey(roomId: number) {
 export function roomAllRoleQueryKey(roomId: number) {
   return ["roomRoles", roomId] as const;
 }
-
-type RoomRoleQuerySnapshot = {
-  previousRoomRole: unknown;
-  previousRoomNpcRole: unknown;
-  roomId: number;
-};
 
 function normalizeRoomRoleIds(request: RoomRoleAddRequest): number[] {
   return Array.from(new Set(
@@ -79,6 +74,35 @@ function patchRoomRoleListData(old: unknown, addList: UserRole[]) {
   }
 
   return old;
+}
+
+function patchRoomAllRoleData(old: unknown, baseRolesToAdd: UserRole[], npcRolesToAdd: UserRole[]) {
+  const allRolesToAdd = [...baseRolesToAdd, ...npcRolesToAdd];
+  if (allRolesToAdd.length === 0) {
+    return old;
+  }
+
+  const nextGroups = (groups?: Record<string, unknown>) => ({
+    ...groups,
+    allRoles: mergeRoleList(Array.isArray(groups?.allRoles) ? groups.allRoles as UserRole[] : [], allRolesToAdd),
+    baseRoles: mergeRoleList(Array.isArray(groups?.baseRoles) ? groups.baseRoles as UserRole[] : [], baseRolesToAdd),
+    npcRoles: mergeRoleList(Array.isArray(groups?.npcRoles) ? groups.npcRoles as UserRole[] : [], npcRolesToAdd),
+  });
+
+  if (!old) {
+    return { success: true, data: nextGroups() };
+  }
+  if (typeof old !== "object" || Array.isArray(old)) {
+    return old;
+  }
+  const data = (old as { data?: unknown }).data;
+  if (data !== undefined && (typeof data !== "object" || data === null || Array.isArray(data))) {
+    return old;
+  }
+  return {
+    ...old,
+    data: nextGroups(data as Record<string, unknown> | undefined),
+  };
 }
 
 function removeRoomRolesFromData(old: unknown, roleIds: Set<number>): unknown {
@@ -179,39 +203,44 @@ function patchRoomRoleQueries(queryClient: QueryClient, roomId: number, roleIds:
   const { roomNpcRoleToAdd, roomRoleToAdd } = getRoomRolesToAdd(queryClient, roleIds);
   queryClient.setQueryData(roomRoleQueryKey(roomId), old => patchRoomRoleListData(old, roomRoleToAdd));
   queryClient.setQueryData(roomNpcRoleQueryKey(roomId), old => patchRoomRoleListData(old, roomNpcRoleToAdd));
+  queryClient.setQueryData(
+    roomAllRoleQueryKey(roomId),
+    old => patchRoomAllRoleData(old, roomRoleToAdd, roomNpcRoleToAdd),
+  );
 }
 
 export async function optimisticAddRoomRoleQueryCache(
   queryClient: QueryClient,
   request: RoomRoleAddRequest,
-): Promise<RoomRoleQuerySnapshot | undefined> {
+) {
   const roomId = request.roomId ?? -1;
   const roleIds = normalizeRoomRoleIds(request);
   if (roomId <= 0 || roleIds.length === 0) {
-    return undefined;
+    return beginOptimisticQueryTransaction(queryClient, []);
   }
 
-  await Promise.all([
-    queryClient.cancelQueries({ queryKey: roomRoleQueryKey(roomId) }),
-    queryClient.cancelQueries({ queryKey: roomNpcRoleQueryKey(roomId) }),
+  const { roomNpcRoleToAdd, roomRoleToAdd } = getRoomRolesToAdd(queryClient, roleIds);
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<unknown>({
+      queryKey: roomRoleQueryKey(roomId),
+      update: current => patchRoomRoleListData(current, roomRoleToAdd),
+    }),
+    optimisticQueryPatch<unknown>({
+      queryKey: roomNpcRoleQueryKey(roomId),
+      update: current => patchRoomRoleListData(current, roomNpcRoleToAdd),
+    }),
+    optimisticQueryPatch<unknown>({
+      queryKey: roomAllRoleQueryKey(roomId),
+      update: current => patchRoomAllRoleData(current, roomRoleToAdd, roomNpcRoleToAdd),
+    }),
   ]);
-
-  const previousRoomRole = queryClient.getQueryData(roomRoleQueryKey(roomId));
-  const previousRoomNpcRole = queryClient.getQueryData(roomNpcRoleQueryKey(roomId));
-  patchRoomRoleQueries(queryClient, roomId, roleIds);
-
-  return { previousRoomNpcRole, previousRoomRole, roomId };
 }
 
 export function rollbackAddRoomRoleQueryCache(
   queryClient: QueryClient,
-  snapshot?: RoomRoleQuerySnapshot,
+  transaction: Parameters<typeof rollbackOptimisticQueryTransaction>[1],
 ): void {
-  if (!snapshot) {
-    return;
-  }
-  queryClient.setQueryData(roomRoleQueryKey(snapshot.roomId), snapshot.previousRoomRole);
-  queryClient.setQueryData(roomNpcRoleQueryKey(snapshot.roomId), snapshot.previousRoomNpcRole);
+  rollbackOptimisticQueryTransaction(queryClient, transaction);
 }
 
 export function reconcileAddRoomRoleQueryCache(
@@ -234,7 +263,12 @@ export function optimisticAddSpaceRoleQueryCache(queryClient: QueryClient, reque
   }
   const cached = findCachedRoleById(queryClient, roleId);
   const role: UserRole = {
-    ...(cached ?? { roleId, roleName: `角色${roleId}` }),
+    ...(cached ?? {
+      roleId,
+      roleName: `角色${roleId}`,
+      type: request.type ?? 0,
+      userId: request.userId ?? 0,
+    }),
     ...(typeof request.type === "number" ? { type: request.type } : {}),
     ...(typeof request.userId === "number" ? { userId: request.userId } : {}),
   };

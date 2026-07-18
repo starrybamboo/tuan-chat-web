@@ -5,4 +5,3 @@
 export type SseEmitter = {
     timeout?: number | null;
 };
-

@@ -1,8 +1,6 @@
 import {
   ArrowRightIcon,
   ClipboardTextIcon,
-  FrameCornersIcon,
-  MagicWandIcon,
   PushPinIcon as PhosphorPushPinIcon,
   PlantIcon,
   SelectionPlusIcon,
@@ -10,7 +8,6 @@ import {
 
 import type { AiImagePreviewPaneProps } from "@/components/aiImage/preview/types";
 
-import { EmptyPreviewPlaceholder } from "@/components/aiImage/preview/EmptyPreviewPlaceholder";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ExpandCornersIcon, SharpDownload } from "@/icons";
 
@@ -24,8 +21,6 @@ export function StandardPreviewWorkspace({
   isBusy,
   isGeneratingImage,
   onToggleDirectorTools,
-  onRunUpscale,
-  onUseSelectedResultAsBaseImage,
   onSelectCurrentResult,
   onOpenPreviewImage,
   onTogglePinnedPreview,
@@ -34,11 +29,11 @@ export function StandardPreviewWorkspace({
   onDownloadCurrent,
   onApplySelectedPreviewSeed,
 }: AiImagePreviewPaneProps) {
-  const previewToolbarControlSurfaceClassName = "!rounded-none border-0 bg-base-300/70 shadow-none";
+  const previewToolbarControlSurfaceClassName = "rounded-md border-0 bg-base-200 shadow-none";
   const previewToolbarIconButtonClassName = `inline-flex size-9 shrink-0 items-center justify-center ${previewToolbarControlSurfaceClassName} text-base-content/70 transition-colors hover:bg-base-300/85 hover:text-base-content disabled:cursor-not-allowed disabled:opacity-50`;
   const previewToolbarPillClassName = `inline-flex h-9 items-center ${previewToolbarControlSurfaceClassName} px-3 text-xs font-medium text-base-content`;
   const previewToolbarActionButtonClassName = `inline-flex h-9 items-center gap-2 ${previewToolbarControlSurfaceClassName} px-3 text-xs text-base-content transition-colors hover:bg-base-300/85`;
-  const previewToolbarSectionClassName = "inline-flex w-fit max-w-full min-w-0 flex-wrap items-center gap-0 rounded-none bg-white/22 p-px shadow-sm";
+  const previewToolbarSectionClassName = "inline-flex w-fit max-w-full min-w-0 flex-wrap items-center gap-1 rounded-md border border-base-300 bg-base-100 p-1 shadow-sm";
   const previewThumbnailImageClassName = "block h-24 w-24 object-contain";
 
   return (
@@ -69,32 +64,12 @@ export function StandardPreviewWorkspace({
 
       <div className="
         flex min-h-[520px] flex-1 self-stretch flex-col overflow-hidden
-        rounded-none border-y border-base-300 bg-base-100
+        rounded-md border border-base-300 bg-base-100/85 shadow-sm
       ">
         {selectedPreviewResult
           ? (
-              <div className="flex justify-center px-3 py-2.5">
+              <div className="flex justify-center border-b border-base-300/70 px-3 py-2.5">
                 <div className={previewToolbarSectionClassName}>
-                  <button
-                    type="button"
-                    className={previewToolbarIconButtonClassName}
-                    title="放大功能暂不可用"
-                    aria-label="放大（暂不可用）"
-                    disabled
-                    onClick={() => void onRunUpscale()}
-                  >
-                    <FrameCornersIcon className="size-[18px]" weight="regular" />
-                  </button>
-                  <button
-                    type="button"
-                    className={previewToolbarIconButtonClassName}
-                    title="Use as Base Image"
-                    aria-label="Use as Base Image"
-                    disabled={isBusy}
-                    onClick={onUseSelectedResultAsBaseImage}
-                  >
-                    <MagicWandIcon className="size-[18px]" weight="regular" />
-                  </button>
                   <button
                     type="button"
                     className={previewToolbarIconButtonClassName}
@@ -123,7 +98,7 @@ export function StandardPreviewWorkspace({
           aria-busy={isGeneratingImage}
           className="
             relative flex min-h-0 flex-1 items-center justify-center
-            overflow-hidden p-3
+              overflow-hidden p-4
           "
         >
           {isGeneratingImage
@@ -156,13 +131,13 @@ export function StandardPreviewWorkspace({
                     alt={previewMeta || "result"}
                   />
                 )
-              : <EmptyPreviewPlaceholder />}
+              : null}
           </div>
         </div>
 
         {selectedPreviewResult
           ? (
-              <div className="flex flex-wrap items-center gap-3 px-3 py-2.5">
+              <div className="flex flex-wrap items-center gap-3 border-t border-base-300/70 px-3 py-2.5">
                 <div className={previewToolbarSectionClassName}>
                   <span className={previewToolbarPillClassName}>{`${selectedPreviewResult.width} × ${selectedPreviewResult.height}`}</span>
                   <button

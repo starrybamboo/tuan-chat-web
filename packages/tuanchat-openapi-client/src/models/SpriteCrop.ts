@@ -32,4 +32,3 @@ export type SpriteCrop = {
      */
     outputHeight?: number;
 };
-

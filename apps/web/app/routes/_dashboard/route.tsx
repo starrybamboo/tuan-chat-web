@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_dashboard")({
 
 function DashBoard() {
   return (
-    <div className="h-dvh w-full min-w-0 grid grid-rows-[auto_1fr]">
+    <div className="h-dvh w-full min-w-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_1fr]">
       <Topbar></Topbar>
       <div className="min-h-0 min-w-0 overflow-y-auto">
         <Outlet></Outlet>

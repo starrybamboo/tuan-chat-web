@@ -1,11 +1,10 @@
 import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useNotificationInit } from "@/features/notifications/useNotificationInit";
 import { installGlobalHandlers } from "@/lib/logger";
@@ -29,7 +28,6 @@ export default function RootLayout() {
       <GestureHandlerRootView style={styles.root}>
         <AppProviders>
           <ThemeProvider value={DarkTheme}>
-            <AnimatedSplashOverlay />
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(tabs)" options={{ gestureEnabled: false }} />
               <Stack.Screen name="(auth)" />

@@ -106,9 +106,9 @@ function SpaceTrpgSettingWindow() {
     return null;
   }, [currentDicerId, linkedDicerData]);
 
-  const updateSpaceMutation = useUpdateSpaceMutation();
-  const setSpaceExtraMutation = useSetSpaceExtraMutation();
-  const saveNow = async (params?: { dicerRoleId?: number; ruleId?: number }) => {
+  const { mutate: updateSpace } = useUpdateSpaceMutation();
+  const { mutateAsync: setSpaceExtra } = useSetSpaceExtraMutation();
+  const saveNow = useCallback(async (params?: { dicerRoleId?: number; ruleId?: number }) => {
     if (!canEdit)
       return;
     if (!Number.isFinite(spaceId) || spaceId <= 0)
@@ -126,7 +126,7 @@ function SpaceTrpgSettingWindow() {
     }
 
     const updatePromise = new Promise<void>((resolve, reject) => {
-      updateSpaceMutation.mutate({
+      updateSpace({
         spaceId,
         ruleId: nextRuleId,
       }, {
@@ -135,7 +135,7 @@ function SpaceTrpgSettingWindow() {
       });
     });
 
-    const extraPromise = setSpaceExtraMutation.mutateAsync({
+    const extraPromise = setSpaceExtra({
       spaceId,
       key: "dicerRoleId",
       value: String(dicerRoleId),
@@ -147,9 +147,9 @@ function SpaceTrpgSettingWindow() {
     lastSavedSnapshotRef.current = snapshot;
     dirtyRef.current = false;
     retryDelayMsRef.current = 2000;
-  };
+  }, [buildSnapshot, canEdit, setSpaceExtra, spaceId, updateSpace]);
 
-  const flushAutoSave = async () => {
+  const flushAutoSave = useCallback(async function flushAutoSaveImpl() {
     if (isSavingRef.current) {
       saveQueuedRef.current = true;
       return;
@@ -178,7 +178,7 @@ function SpaceTrpgSettingWindow() {
       retryDelayMsRef.current = Math.min(Math.floor(retryDelayMsRef.current * 1.6), 30000);
       retryTimerRef.current = window.setTimeout(() => {
         retryTimerRef.current = null;
-        flushAutoSave();
+        void flushAutoSaveImpl();
       }, delay);
     }
     finally {
@@ -186,20 +186,17 @@ function SpaceTrpgSettingWindow() {
       if (saveQueuedRef.current) {
         saveQueuedRef.current = false;
         if (dirtyRef.current) {
-          void flushAutoSave();
+          void flushAutoSaveImpl();
         }
       }
     }
-  };
+  }, [saveNow]);
 
-  const scheduleAutoSave = () => {
+  const scheduleAutoSave = useCallback((nextRuleId: number, nextDiceRollerId: number) => {
     if (!didInitRef.current || !canEdit)
       return;
 
-    dirtyRef.current = buildSnapshot(
-      latestRuleIdRef.current,
-      latestDiceRollerIdRef.current,
-    ) !== lastSavedSnapshotRef.current;
+    dirtyRef.current = buildSnapshot(nextRuleId, nextDiceRollerId) !== lastSavedSnapshotRef.current;
     if (!dirtyRef.current)
       return;
 
@@ -211,19 +208,19 @@ function SpaceTrpgSettingWindow() {
       saveDebounceTimerRef.current = null;
       void flushAutoSave();
     }, 800);
-  };
+  }, [buildSnapshot, canEdit, flushAutoSave]);
 
   useEffect(() => {
     if (!didInitRef.current)
       return;
-    scheduleAutoSave();
-  }, [ruleId]);
+    scheduleAutoSave(ruleId, latestDiceRollerIdRef.current);
+  }, [ruleId, scheduleAutoSave]);
 
   useEffect(() => {
     if (!didInitRef.current)
       return;
-    scheduleAutoSave();
-  }, [diceRollerId]);
+    scheduleAutoSave(latestRuleIdRef.current, diceRollerId);
+  }, [diceRollerId, scheduleAutoSave]);
 
   useEffect(() => {
     return () => {
@@ -237,7 +234,7 @@ function SpaceTrpgSettingWindow() {
       }
       void saveNow();
     };
-  }, []);
+  }, [saveNow]);
 
   const handleDiceMaidenLinkConfirm = (dicerRoleId: number) => {
     if (!canEdit)

@@ -24,4 +24,3 @@ export type ApiResultListRoomMember = {
      */
     data?: Array<RoomMember>;
 };
-

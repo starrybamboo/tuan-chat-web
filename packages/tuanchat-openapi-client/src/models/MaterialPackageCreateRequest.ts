@@ -28,4 +28,3 @@ export type MaterialPackageCreateRequest = {
      */
     content: MaterialPackageContent;
 };
-

@@ -2,7 +2,7 @@ import type { MessageDirectResponse, MessageDirectSendRequest } from "../../../.
 
 import { describe, expect, it, vi } from "vitest";
 
-import { sendDirectMessageWithOptimisticRollback, withPrivateReplyMessageId } from "./usePrivateMessageSender";
+import { sendDirectMessageWithOptimisticRetention, withPrivateReplyMessageId } from "./usePrivateMessageSender";
 
 function createDirectRequest(): MessageDirectSendRequest {
   return {
@@ -13,47 +13,64 @@ function createDirectRequest(): MessageDirectSendRequest {
   };
 }
 
-describe("sendDirectMessageWithOptimisticRollback", () => {
-  it("sendWithResult 返回 false 时移除已写入的乐观私聊消息", async () => {
+describe("sendDirectMessageWithOptimisticRetention", () => {
+  it("sendWithResult 返回 false 时保留并标记失败私聊消息", async () => {
     const request = createDirectRequest();
     const webSocketUtils = {
+      markOptimisticDirectMessageFailed: vi.fn(),
       pushOptimisticDirectMessage: vi.fn(() => -1),
-      removeOptimisticDirectMessage: vi.fn(),
       sendWithResult: vi.fn(async () => false),
     };
 
-    await expect(sendDirectMessageWithOptimisticRollback(webSocketUtils, request)).resolves.toBe(false);
+    await expect(sendDirectMessageWithOptimisticRetention(webSocketUtils, request)).resolves.toBe(false);
 
     expect(webSocketUtils.sendWithResult).toHaveBeenCalledWith({ type: 5, data: request });
-    expect(webSocketUtils.removeOptimisticDirectMessage).toHaveBeenCalledWith(-1);
+    expect(webSocketUtils.markOptimisticDirectMessageFailed).toHaveBeenCalledWith(-1);
   });
 
-  it("sendWithResult 抛错时也移除已写入的乐观私聊消息", async () => {
+  it("sendWithResult 抛错时也保留并标记失败私聊消息", async () => {
     const request = createDirectRequest();
     const error = new Error("socket send failed");
     const webSocketUtils = {
+      markOptimisticDirectMessageFailed: vi.fn(),
       pushOptimisticDirectMessage: vi.fn(() => -1),
-      removeOptimisticDirectMessage: vi.fn(),
       sendWithResult: vi.fn(async () => {
         throw error;
       }),
     };
 
-    await expect(sendDirectMessageWithOptimisticRollback(webSocketUtils, request)).rejects.toThrow(error);
+    await expect(sendDirectMessageWithOptimisticRetention(webSocketUtils, request)).rejects.toThrow(error);
 
-    expect(webSocketUtils.removeOptimisticDirectMessage).toHaveBeenCalledWith(-1);
+    expect(webSocketUtils.markOptimisticDirectMessageFailed).toHaveBeenCalledWith(-1);
   });
 
-  it("没有生成乐观消息时不执行回滚删除", async () => {
+  it("没有生成乐观消息时不标记失败", async () => {
     const webSocketUtils = {
+      markOptimisticDirectMessageFailed: vi.fn(),
       pushOptimisticDirectMessage: vi.fn(() => null),
-      removeOptimisticDirectMessage: vi.fn(),
       sendWithResult: vi.fn(async () => false),
     };
 
-    await expect(sendDirectMessageWithOptimisticRollback(webSocketUtils, createDirectRequest())).resolves.toBe(false);
+    await expect(sendDirectMessageWithOptimisticRetention(webSocketUtils, createDirectRequest())).resolves.toBe(false);
 
-    expect(webSocketUtils.removeOptimisticDirectMessage).not.toHaveBeenCalled();
+    expect(webSocketUtils.markOptimisticDirectMessageFailed).not.toHaveBeenCalled();
+  });
+
+  it("只在成功创建新乐观消息后通知重试方替换旧消息", async () => {
+    const onOptimisticMessageCreated = vi.fn();
+    const webSocketUtils = {
+      markOptimisticDirectMessageFailed: vi.fn(),
+      pushOptimisticDirectMessage: vi.fn(() => -2),
+      sendWithResult: vi.fn(async () => true),
+    };
+
+    await sendDirectMessageWithOptimisticRetention(
+      webSocketUtils,
+      createDirectRequest(),
+      onOptimisticMessageCreated,
+    );
+
+    expect(onOptimisticMessageCreated).toHaveBeenCalledWith(-2);
   });
 });
 

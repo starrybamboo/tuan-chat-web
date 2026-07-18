@@ -56,12 +56,12 @@ export function useVisibleClueFolderUnreadCount(spaceId?: number | null): number
     ? spaceId
     : -1;
   const roomsQuery = useGetUserRoomsQuery(resolvedSpaceId);
-  const rooms = roomsQuery.data?.data?.rooms ?? [];
+  const rooms = roomsQuery.data?.data?.rooms;
   const unreadMessagesNumber = webSocketUtils.unreadMessagesNumber as Record<number, number | undefined>;
 
   return useMemo(() => getVisibleClueFolderUnreadCount({
     currentUserId,
-    rooms,
+    rooms: rooms ?? [],
     spaceId: resolvedSpaceId,
     unreadMessagesNumber,
   }), [currentUserId, resolvedSpaceId, rooms, unreadMessagesNumber]);

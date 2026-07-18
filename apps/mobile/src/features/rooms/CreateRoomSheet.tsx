@@ -92,7 +92,7 @@ export function CreateRoomSheet({ onClose, onCreated, spaceId, visible }: Create
       });
       const room = result.data;
       if (!result.success || !room?.roomId) {
-        throw new Error(result.errMsg || "新建频道失败。");
+        throw new Error(result.errMsg || "新建房间失败。");
       }
       setName("");
       setAvatarAttachment(null);
@@ -100,7 +100,7 @@ export function CreateRoomSheet({ onClose, onCreated, spaceId, visible }: Create
       onCreated?.(room);
     }
     catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : "新建频道失败。");
+      setErrorMessage(err instanceof Error ? err.message : "新建房间失败。");
     }
     finally {
       setLoading(false);
@@ -114,20 +114,20 @@ export function CreateRoomSheet({ onClose, onCreated, spaceId, visible }: Create
       onClose={onClose}
       visible={visible}
     >
-      <ThemedText style={styles.title}>新建频道</ThemedText>
+      <ThemedText style={styles.title}>新建房间</ThemedText>
 
       <TextInput
-        accessibilityLabel="频道名称"
+        accessibilityLabel="房间名称"
         autoFocus
         onChangeText={setName}
-        placeholder="频道名称"
+        placeholder="房间名称"
         placeholderTextColor={theme.textSecondary}
         style={[styles.input, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
         value={name}
       />
 
       <Pressable
-        accessibilityLabel="选择频道头像"
+        accessibilityLabel="选择房间头像"
         accessibilityRole="button"
         accessibilityState={{ disabled: loading }}
         disabled={loading}
@@ -135,7 +135,7 @@ export function CreateRoomSheet({ onClose, onCreated, spaceId, visible }: Create
         style={[styles.avatarButton, { borderColor: theme.border, backgroundColor: theme.background }]}
       >
         <ThemedText type="small" themeColor={avatarAttachment ? "text" : "textSecondary"}>
-          {avatarAttachment ? `头像：${avatarAttachment.fileName}` : "选择频道头像（可选）"}
+          {avatarAttachment ? `头像：${avatarAttachment.fileName}` : "选择房间头像（可选）"}
         </ThemedText>
       </Pressable>
 
@@ -148,14 +148,13 @@ export function CreateRoomSheet({ onClose, onCreated, spaceId, visible }: Create
         : null}
 
       <MobileButton
-        accessibilityLabel={loading ? "正在新建频道" : "新建频道"}
+        accessibilityLabel={loading ? "正在新建房间" : "新建房间"}
         disabled={!name.trim() || loading}
+        label="创建"
         loading={loading}
         onPress={handleCreate}
         variant={name.trim() ? "primary" : "secondary"}
-      >
-        创建
-      </MobileButton>
+      />
     </BottomSheetModal>
   );
 }

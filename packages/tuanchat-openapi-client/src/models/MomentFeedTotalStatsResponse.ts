@@ -10,4 +10,3 @@ export type MomentFeedTotalStatsResponse = {
     totalCommentCount?: number;
     totalMomentFeedCount?: number;
 };
-

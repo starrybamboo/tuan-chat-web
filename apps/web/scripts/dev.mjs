@@ -12,10 +12,16 @@ process.chdir(projectRoot);
 
 const args = process.argv.slice(2);
 const hasOpen = args.some(arg => arg === "--open" || arg.startsWith("--open="));
+const hasMode = args.some((arg, index) => {
+  return arg === "--mode" || arg.startsWith("--mode=") || args[index - 1] === "--mode";
+});
 const finalArgs = [];
 
 if (!hasOpen)
   finalArgs.push("--open");
+
+if (!hasMode)
+  finalArgs.push("--mode", "dev");
 
 finalArgs.push(...args);
 

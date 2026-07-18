@@ -11,6 +11,7 @@ import {
   getClueAttachmentKind,
   getClueListPreviewText,
   getReorderedCluePosition,
+  hasUnsavedClueChanges,
   hasRenderableClueImage,
   normalizeClueDraftContent,
   resolveClueMessageSenderContext,
@@ -48,6 +49,30 @@ describe("clueFolderSidebar", () => {
 
     expect(normalizeClueDraftContent(contentAtLimit)).toBe(contentAtLimit);
     expect(normalizeClueDraftContent(contentOverLimit)).toBe(contentAtLimit);
+  });
+
+  it("只在新建或编辑内容实际变化时标记未保存", () => {
+    expect(hasUnsavedClueChanges({
+      mode: "create",
+      draftContent: "",
+      initialContent: "",
+    })).toBe(false);
+    expect(hasUnsavedClueChanges({
+      mode: "create",
+      draftContent: "",
+      initialContent: "",
+      hasAttachment: true,
+    })).toBe(true);
+    expect(hasUnsavedClueChanges({
+      mode: "edit",
+      draftContent: "原内容",
+      initialContent: "原内容",
+    })).toBe(false);
+    expect(hasUnsavedClueChanges({
+      mode: "edit",
+      draftContent: "修改后内容",
+      initialContent: "原内容",
+    })).toBe(true);
   });
 
   it("线索列表预览会压缩空白并截断长文本", () => {

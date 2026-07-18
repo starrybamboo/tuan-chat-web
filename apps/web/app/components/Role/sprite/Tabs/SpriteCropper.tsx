@@ -11,7 +11,7 @@ import { appToast } from "@/components/common/appToast/appToast";
 import { Button, buttonClassName } from "@/components/common/Button";
 import { surfaceClassName, textClassName } from "@/components/common/DesignLanguage";
 import { DialogFrame } from "@/components/common/DialogFrame";
-import { Badge } from "@/components/common/StatusPrimitives";
+import { Badge, ProgressBar } from "@/components/common/StatusPrimitives";
 import { useIsMobile } from "@/utils/getScreenSize";
 import {
   canvasPreview,
@@ -41,6 +41,11 @@ import {
   toSpriteTransformPayload,
 } from "../utils";
 import { useImageCropWorker } from "../worker/useImageCropWorker";
+import {
+  createBatchCropApplicationProgress,
+  createSingleCropApplicationProgress,
+  type CropApplicationProgress,
+} from "./cropApplicationProgress";
 import { createCropPreparationKey, CurrentCropPreparation } from "./cropPreparation";
 import { DeferredCropCommit } from "./deferredCropCommit";
 import { resolveSpriteCropperOperationMode } from "./spriteCropperMode";
@@ -280,6 +285,7 @@ const CROP_FLOW_STEPS = [
   { label: "立绘裁剪", step: 1 },
   { label: "头像裁剪", step: 2 },
 ] as const;
+const ignoreProgressDialogClose = () => undefined;
 
 export function SpriteCropper({
   spriteUrl,
@@ -484,6 +490,7 @@ export function SpriteCropper({
 
   // 加载状态 - 分离不同操作的loading״̬
   const [isCropping, setIsCropping] = useState(false);
+  const [cropApplicationProgress, setCropApplicationProgress] = useState<CropApplicationProgress | null>(null);
 
   // 裁剪应用mutation hook - 根据模式选择合适的hook
   const applyCropMutation = useApplyCropMutation();
@@ -530,6 +537,10 @@ export function SpriteCropper({
 
   // 移动端裁剪弹窗状态
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [desktopCropControlsTarget, setDesktopCropControlsTarget] = useState<HTMLDivElement | null>(null);
+  const handleDesktopCropControlsTarget = useCallback((node: HTMLDivElement | null) => {
+    setDesktopCropControlsTarget(previous => previous === node ? previous : node);
+  }, []);
 
   // 使用displayTransform作为实际的transform
   const transform = displayTransform;
@@ -780,6 +791,7 @@ export function SpriteCropper({
   async function handleApplyCrop(applyTransform: boolean = false) {
     try {
       setIsCropping(true);
+      setCropApplicationProgress(createSingleCropApplicationProgress("preparing"));
       let appliedAvatarResult: RoleAvatar | null = null;
 
       const currentAvatar = isMutiAvatars
@@ -811,6 +823,9 @@ export function SpriteCropper({
 
       // --- 共同的 Mutation 调用逻辑 ---
       if (isAvatarMode) {
+        if (waitForAvatarCropSubmit || isCropSubmitWaitingForUpload(currentAvatar)) {
+          setCropApplicationProgress(createSingleCropApplicationProgress("waitingForUpload"));
+        }
         const submitAvatar = waitForAvatarCropSubmit
           ? await waitForAvatarCropSubmit(currentAvatar)
           : await resolveCropSubmitAvatar(currentAvatar, waitForAvatarUpload);
@@ -826,6 +841,7 @@ export function SpriteCropper({
         if (!avatarCropContext) {
           throw new Error("无法生成头像裁剪上下文");
         }
+        setCropApplicationProgress(createSingleCropApplicationProgress("uploading"));
         const updateRes = await applyCropAvatarMutation.mutateAsync({
           roleId: submitAvatar.roleId,
           avatarId,
@@ -843,6 +859,7 @@ export function SpriteCropper({
           avatarCropContext,
         };
         appliedAvatarResult = updatedAvatar;
+        setCropApplicationProgress(createSingleCropApplicationProgress("saving"));
         if (isVariantGroupEditingMode) {
           const nextCompositionConfig = withFallbackSpriteCrop(
             createVariantCompositionConfigFromAvatarCropContext(
@@ -885,7 +902,10 @@ export function SpriteCropper({
         const spriteTransform = applyTransform
           ? toSpriteTransformPayload(transform)
           : currentAvatar.spriteTransform;
-        const submitSpriteCrop = async () => {
+        const submitSpriteCrop = async (reportProgress = false) => {
+          if (reportProgress && isCropSubmitWaitingForUpload(currentAvatar)) {
+            setCropApplicationProgress(createSingleCropApplicationProgress("waitingForUpload"));
+          }
           const submitAvatar = await resolveCropSubmitAvatar(currentAvatar, waitForAvatarUpload);
           const avatarId = getPositiveAvatarId(submitAvatar.avatarId);
           if (!submitAvatar.roleId || !avatarId) {
@@ -895,6 +915,9 @@ export function SpriteCropper({
             ...spriteCropContext,
             sourceOriginFileId: submitAvatar.originFileId ?? spriteCropContext.sourceOriginFileId,
           };
+          if (reportProgress) {
+            setCropApplicationProgress(createSingleCropApplicationProgress("uploading"));
+          }
           const updateRes = await applyCropMutation.mutateAsync({
             roleId: submitAvatar.roleId,
             avatarId,
@@ -905,6 +928,9 @@ export function SpriteCropper({
           });
           if (!updateRes?.success || !updateRes.data) {
             throw new Error(updateRes?.errMsg || "立绘上传失败");
+          }
+          if (reportProgress) {
+            setCropApplicationProgress(createSingleCropApplicationProgress("saving"));
           }
           if (isVariantGroupEditingMode) {
             await updateEditingVariantCompositionConfig(
@@ -946,11 +972,12 @@ export function SpriteCropper({
           });
         }
         else {
-          await submitSpriteCrop();
+          await submitSpriteCrop(true);
         }
       }
 
       // --- 共同的回调逻辑 ---
+      setCropApplicationProgress(createSingleCropApplicationProgress("updatingPreview"));
       if (isAvatarMode && appliedAvatarResult) {
         onAvatarCropApplied?.({
           avatars: [appliedAvatarResult],
@@ -968,6 +995,7 @@ export function SpriteCropper({
       appToast.error(error instanceof Error ? error.message : "应用裁剪失败");
     }
     finally {
+      setCropApplicationProgress(null);
       setIsCropping(false);
     }
   }
@@ -996,7 +1024,9 @@ export function SpriteCropper({
 
     try {
       setIsCropping(true);
-      appToast.loading("批量处理中：准备中...", { id: toastId });
+      setCropApplicationProgress(createBatchCropApplicationProgress("preparing", {
+        itemTotal: avatarsToProcess.length,
+      }));
       if (shouldRespectVariantLock && avatarsToProcess.some(avatar => isAvatarVariantLocked(avatar))) {
         throw new Error("所选头像包含已绑定立绘组，裁剪已锁定");
       }
@@ -1019,7 +1049,9 @@ export function SpriteCropper({
       }
 
       console.warn(`开始批量裁剪 ${avatarsToProcess.length} 张${isAvatarMode ? "头像" : "立绘"}（最大并发:${MAX_CONCURRENCY}）`);
-      appToast.loading(`批量处理中：加载图片 0/${avatarsToProcess.length}`, { id: toastId });
+      setCropApplicationProgress(createBatchCropApplicationProgress("loading", {
+        itemTotal: avatarsToProcess.length,
+      }));
 
       // 阶段1：加载图片（并发控制）
       let loadDone = 0;
@@ -1053,7 +1085,12 @@ export function SpriteCropper({
             loadFail += 1;
             loadDone += 1;
             if (loadDone % 2 === 0 || loadDone === avatarsToProcess.length) {
-              appToast.loading(`批量处理中：加载图片 ${loadDone}/${avatarsToProcess.length}（成功 ${loadSuccess} 失败 ${loadFail}）`, { id: toastId });
+              setCropApplicationProgress(createBatchCropApplicationProgress("loading", {
+                completed: loadDone,
+                itemTotal: avatarsToProcess.length,
+                success: loadSuccess,
+                failed: loadFail,
+              }));
             }
             console.warn("跳过无效头像数据", { index, imageUrl, avatarId: avatar.avatarId });
             return null;
@@ -1074,7 +1111,12 @@ export function SpriteCropper({
           finally {
             loadDone += 1;
             if (loadDone % 2 === 0 || loadDone === avatarsToProcess.length) {
-              appToast.loading(`批量处理中：加载图片 ${loadDone}/${avatarsToProcess.length}（成功 ${loadSuccess} 失败 ${loadFail}）`, { id: toastId });
+              setCropApplicationProgress(createBatchCropApplicationProgress("loading", {
+                completed: loadDone,
+                itemTotal: avatarsToProcess.length,
+                success: loadSuccess,
+                failed: loadFail,
+              }));
             }
           }
         },
@@ -1100,7 +1142,9 @@ export function SpriteCropper({
       if (failedLoadItems.length > 0) {
         console.warn("加载失败的图片（已重试）", failedLoadItems);
       }
-      appToast.loading(`批量处理中：裁剪图片 0/${loadedImages.length}`, { id: toastId });
+      setCropApplicationProgress(createBatchCropApplicationProgress("cropping", {
+        itemTotal: loadedImages.length,
+      }));
 
       console.warn("开始裁剪图片blob");
       let cropDone = 0;
@@ -1115,7 +1159,12 @@ export function SpriteCropper({
             cropFail += 1;
             cropDone += 1;
             if (cropDone % 2 === 0 || cropDone === loadedImages.length) {
-              appToast.loading(`批量处理中：裁剪图片 ${cropDone}/${loadedImages.length}（成功 ${cropSuccess} 失败 ${cropFail}）`, { id: toastId });
+              setCropApplicationProgress(createBatchCropApplicationProgress("cropping", {
+                completed: cropDone,
+                itemTotal: loadedImages.length,
+                success: cropSuccess,
+                failed: cropFail,
+              }));
             }
             return null;
           }
@@ -1137,7 +1186,12 @@ export function SpriteCropper({
           finally {
             cropDone += 1;
             if (cropDone % 2 === 0 || cropDone === loadedImages.length) {
-              appToast.loading(`批量处理中：裁剪图片 ${cropDone}/${loadedImages.length}（成功 ${cropSuccess} 失败 ${cropFail}）`, { id: toastId });
+              setCropApplicationProgress(createBatchCropApplicationProgress("cropping", {
+                completed: cropDone,
+                itemTotal: loadedImages.length,
+                success: cropSuccess,
+                failed: cropFail,
+              }));
             }
           }
         },
@@ -1149,7 +1203,9 @@ export function SpriteCropper({
 
       // 阶段3：上传结果（并发控制）
       console.warn(`进入上传阶段，待上传 ${croppedResults.length} 张图片`);
-      appToast.loading(`批量处理中：上传图片 0/${croppedResults.length}`, { id: toastId });
+      setCropApplicationProgress(createBatchCropApplicationProgress("uploading", {
+        itemTotal: croppedResults.length,
+      }));
 
       if (croppedResults.length === 0) {
         console.error("没有可上传的图片，跳过上传阶段");
@@ -1171,7 +1227,12 @@ export function SpriteCropper({
             uploadFail += 1;
             uploadDone += 1;
             if (uploadDone % 2 === 0 || uploadDone === croppedResults.length) {
-              appToast.loading(`批量处理中：上传图片 ${uploadDone}/${croppedResults.length}（成功 ${uploadSuccess} 失败 ${uploadFail}）`, { id: toastId });
+              setCropApplicationProgress(createBatchCropApplicationProgress("uploading", {
+                completed: uploadDone,
+                itemTotal: croppedResults.length,
+                success: uploadSuccess,
+                failed: uploadFail,
+              }));
             }
             console.warn("跳过无效上传项", { idx, item });
             return null;
@@ -1260,7 +1321,12 @@ export function SpriteCropper({
           finally {
             uploadDone += 1;
             if (uploadDone % 2 === 0 || uploadDone === croppedResults.length) {
-              appToast.loading(`批量处理中：上传图片 ${uploadDone}/${croppedResults.length}（成功 ${uploadSuccess} 失败 ${uploadFail}）`, { id: toastId });
+              setCropApplicationProgress(createBatchCropApplicationProgress("uploading", {
+                completed: uploadDone,
+                itemTotal: croppedResults.length,
+                success: uploadSuccess,
+                failed: uploadFail,
+              }));
             }
           }
         },
@@ -1270,6 +1336,12 @@ export function SpriteCropper({
       console.warn(`上传阶段完成，成功 ${uploadSuccessCount}/${croppedResults.length} 张`);
       const totalCount = avatarsToProcess.length;
       const totalFail = Math.max(0, totalCount - uploadSuccessCount);
+      setCropApplicationProgress(createBatchCropApplicationProgress("saving", {
+        completed: totalCount,
+        itemTotal: totalCount,
+        success: uploadSuccessCount,
+        failed: totalFail,
+      }));
       if (isVariantInitializationMode) {
         const baseCropResult = uploadedAvatarCropResults.find(item => (
           item.avatar.avatarId === currentAvatar?.avatarId
@@ -1363,6 +1435,7 @@ export function SpriteCropper({
       appToast.error(`批量裁剪失败：${errMsg}`, { id: toastId });
     }
     finally {
+      setCropApplicationProgress(null);
       setIsCropping(false);
     }
   }
@@ -1571,6 +1644,7 @@ export function SpriteCropper({
                   initialCoordinates={initialCropCoordinates}
                   disabled={isManualCropLocked}
                   className="h-[min(64vh,680px)] sm:h-full"
+                  controlsPortalTarget={desktopCropControlsTarget}
                   onAreaChange={handleZoomableCropAreaChange}
                   onAreaChangeEnd={flushPendingCropCommit}
                   onImageReady={handleCropperImageReady}
@@ -1597,79 +1671,85 @@ export function SpriteCropper({
           )}
 
           {/* 右侧：裁剪预览和控制 - 移动端放上面 */}
-          {completedCrop && (
+          {currentUrl && (
             <div className="
               order-1 flex w-full shrink-0 flex-col items-start p-2
               sm:order-2 sm:h-full sm:min-w-0 sm:w-auto sm:overflow-y-auto
             ">
               {/* 预览内容区域 */}
-              <div
-                className="
-                  relative flex w-full flex-col
-                  cursor-pointer
-                  sm:cursor-default
-                "
-                onClick={handlePreviewPanelClick}
-                onKeyDown={handlePreviewPanelKeyDown}
-                {...(isMobile
-                  ? { role: "button" as const, tabIndex: 0, "aria-label": "打开裁剪区域调整" }
-                  : {})}
-              >
-                {/* 移动端点击提示 */}
-                <div className="
-                  absolute bottom-3 right-3 rounded bg-base-100/70 px-2 py-1
-                  text-[11px] text-base-content/60 backdrop-blur-sm
-                  pointer-events-none z-10
-                  sm:hidden
-                ">
-                  {isManualCropLocked ? "裁剪已锁定" : "点击画布调整裁剪"}
-                </div>
+              {completedCrop && (
+                <div
+                  className="
+                    relative flex w-full flex-col cursor-pointer
+                    sm:cursor-default
+                  "
+                  onClick={handlePreviewPanelClick}
+                  onKeyDown={handlePreviewPanelKeyDown}
+                  {...(isMobile
+                    ? { role: "button" as const, tabIndex: 0, "aria-label": "打开裁剪区域调整" }
+                    : {})}
+                >
+                  {/* 移动端点击提示 */}
+                  <div className="
+                    absolute bottom-3 right-3 z-10 rounded bg-base-100/70 px-2 py-1
+                    pointer-events-none text-[11px] text-base-content/60 backdrop-blur-sm
+                    sm:hidden
+                  ">
+                    {isManualCropLocked ? "裁剪已锁定" : "点击画布调整裁剪"}
+                  </div>
 
-                {/* 预览内容（滚动由上层容器控制） */}
-                <div className="min-h-0 w-full">
-                  {isAvatarMode
-                    ? (
-                        <AvatarPreview
-                          previewCanvasRef={previewCanvasRef}
-                          previewRenderKey={renderKey}
-                          currentAvatarUrl={currentAvatarUrl}
-                          isAvatarMissing={isCurrentAvatarMissing}
-                          characterName={characterName}
-                          hideTitle={true}
-                          layout={isMobile ? "toggle" : "vertical"}
-                          chatMessages={["点击进行头像矫正"]}
-                        />
-                      )
-                    : (
-                        <>
-                          <div className="flex w-full flex-col gap-3">
-                            <div
-                              className="w-full"
-                              style={{ visibility: isPreviewReady ? "visible" : "hidden" }}
-                            >
-                              <RenderPreview
-                                previewCanvasRef={previewCanvasRef}
-                                transform={transform}
-                                anchorPosition={previewAnchorPosition}
-                                characterName={characterName}
-                                dialogContent="点击进行立绘矫正"
-                              />
-                            </div>
-
-                            <div data-no-crop-modal="true">
-                              <TransformControl
-                                transform={transform}
-                                setTransform={setDisplayTransform}
-                                anchorPosition={previewAnchorPosition}
-                                setAnchorPosition={setPreviewAnchorPosition}
-                                disabled={isManualCropLocked}
-                              />
-                            </div>
+                  {/* 预览内容（滚动由上层容器控制） */}
+                  <div className="min-h-0 w-full">
+                    {isAvatarMode
+                      ? (
+                          <AvatarPreview
+                            previewCanvasRef={previewCanvasRef}
+                            previewRenderKey={renderKey}
+                            currentAvatarUrl={currentAvatarUrl}
+                            isAvatarMissing={isCurrentAvatarMissing}
+                            characterName={characterName}
+                            hideTitle={true}
+                            layout={isMobile ? "toggle" : "vertical"}
+                            chatMessages={["点击进行头像矫正"]}
+                          />
+                        )
+                      : (
+                          <div
+                            className="w-full"
+                            style={{ visibility: isPreviewReady ? "visible" : "hidden" }}
+                          >
+                            <RenderPreview
+                              previewCanvasRef={previewCanvasRef}
+                              transform={transform}
+                              anchorPosition={previewAnchorPosition}
+                              characterName={characterName}
+                              dialogContent="点击进行立绘矫正"
+                            />
                           </div>
-                        </>
-                      )}
+                        )}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {!isMobile && (
+                <div
+                  ref={handleDesktopCropControlsTarget}
+                  className={completedCrop ? "mt-3 w-full" : "w-full"}
+                  data-no-crop-modal="true"
+                />
+              )}
+
+              {!isAvatarMode && completedCrop && (
+                <div className="mt-3 w-full" data-no-crop-modal="true">
+                  <TransformControl
+                    transform={transform}
+                    setTransform={setDisplayTransform}
+                    anchorPosition={previewAnchorPosition}
+                    setAnchorPosition={setPreviewAnchorPosition}
+                    disabled={isManualCropLocked}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1755,6 +1835,47 @@ export function SpriteCropper({
                 确定
               </Button>
             </div>
+      </DialogFrame>
+
+      <DialogFrame
+        open={cropApplicationProgress !== null}
+        mode="inline"
+        onClose={ignoreProgressDialogClose}
+        ariaLabel="正在应用裁剪"
+        closeOnOverlayClick={false}
+        closeOnEscape={false}
+        rootClassName="z-[80] bg-black/50"
+        panelClassName="!max-w-sm overflow-hidden !p-0"
+      >
+        {cropApplicationProgress && (
+          <div
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            className="p-5"
+          >
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h3 className="text-base font-semibold text-base-content">正在应用裁剪</h3>
+                <p className="mt-1 text-sm text-base-content/70">{cropApplicationProgress.label}</p>
+              </div>
+              <span className="shrink-0 text-sm font-medium tabular-nums text-base-content/55">
+                {cropApplicationProgress.current}
+                /
+                {cropApplicationProgress.total}
+              </span>
+            </div>
+            <ProgressBar
+              value={cropApplicationProgress.current}
+              max={cropApplicationProgress.total}
+              label={cropApplicationProgress.label}
+              className="h-2 w-full"
+            />
+            <p className="mt-3 text-xs text-base-content/55">
+              {cropApplicationProgress.detail}
+            </p>
+          </div>
+        )}
       </DialogFrame>
     </div>
   );

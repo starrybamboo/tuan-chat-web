@@ -4,6 +4,7 @@ import { ArrowCounterClockwiseIcon, MinusIcon, PlusIcon } from "@phosphor-icons/
 import { useReducedMotion } from "motion/react";
 import { memo, useCallback, useEffect, useId, useRef, useState, type WheelEvent as ReactWheelEvent } from "react";
 import { Cropper, ImageRestriction, type CropperRef } from "react-advanced-cropper";
+import { createPortal } from "react-dom";
 
 import { RangeInput } from "@/components/common/FormField";
 
@@ -17,6 +18,7 @@ type ZoomableCropperProps = {
   initialCoordinates?: Coordinates;
   disabled?: boolean;
   className?: string;
+  controlsPortalTarget?: HTMLElement | null;
   onAreaChange: ZoomableCropAreaChange;
   onAreaChangeEnd?: () => void;
   onImageReady: (image: HTMLImageElement) => void;
@@ -31,6 +33,7 @@ function ZoomableCropperComponent({
   initialCoordinates,
   disabled = false,
   className = "",
+  controlsPortalTarget,
   onAreaChange,
   onAreaChangeEnd,
   onImageReady,
@@ -160,45 +163,8 @@ function ZoomableCropperComponent({
     updateDisplayedZoom(MIN_ZOOM);
   }, [updateDisplayedZoom]);
 
-  return (
-    <div className={`flex min-h-0 w-full flex-col gap-2 ${className}`}>
-      <div
-        ref={containerRef}
-        className="relative min-h-0 flex-1 overflow-hidden rounded-md bg-base-300 shadow-inner"
-        onWheel={handleWheel}
-      >
-        <Cropper
-          ref={cropperRef}
-          src={image}
-          className="size-full !bg-base-300"
-          crossOrigin="anonymous"
-          disabled={disabled}
-          transitions={!shouldReduceMotion}
-          imageRestriction={ImageRestriction.fitArea}
-          backgroundWrapperProps={{
-            scaleImage: { touch: true, wheel: false },
-            moveImage: { touch: true, mouse: true },
-          }}
-          defaultSize={initialCoordinates
-            ? { width: initialCoordinates.width, height: initialCoordinates.height }
-            : undefined}
-          defaultPosition={initialCoordinates
-            ? { left: initialCoordinates.left, top: initialCoordinates.top }
-            : undefined}
-          stencilProps={{
-            aspectRatio: aspect,
-            handlers: true,
-            lines: true,
-            movable: true,
-            resizable: true,
-          }}
-          onReady={handleReady}
-          onChange={emitAreaChange}
-          onInteractionEnd={handleInteractionEnd}
-        />
-      </div>
-
-      <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-md border border-base-content/10 bg-base-100 px-2 py-2 shadow-sm">
+  const controls = (
+    <div className="flex w-full shrink-0 flex-wrap items-center gap-2 rounded-md border border-base-content/10 bg-base-100 px-2 py-2 shadow-sm">
         <div className="basis-full sm:basis-auto sm:pr-1">
           <div id={zoomLabelId} className="text-xs font-medium text-base-content/80">画面缩放</div>
           <div className="text-[11px] text-base-content/50">拖动画面定位，滚轮缩放</div>
@@ -250,7 +216,48 @@ function ZoomableCropperComponent({
           <ArrowCounterClockwiseIcon className="size-4" aria-hidden="true" />
           复位
         </button>
+    </div>
+  );
+
+  return (
+    <div className={`flex min-h-0 w-full flex-col gap-2 ${className}`}>
+      <div
+        ref={containerRef}
+        className="relative min-h-0 flex-1 overflow-hidden rounded-md bg-base-300 shadow-inner"
+        onWheel={handleWheel}
+      >
+        <Cropper
+          ref={cropperRef}
+          src={image}
+          className="size-full !bg-base-300"
+          crossOrigin="anonymous"
+          disabled={disabled}
+          transitions={!shouldReduceMotion}
+          imageRestriction={ImageRestriction.fitArea}
+          backgroundWrapperProps={{
+            scaleImage: { touch: true, wheel: false },
+            moveImage: { touch: true, mouse: true },
+          }}
+          defaultSize={initialCoordinates
+            ? { width: initialCoordinates.width, height: initialCoordinates.height }
+            : undefined}
+          defaultPosition={initialCoordinates
+            ? { left: initialCoordinates.left, top: initialCoordinates.top }
+            : undefined}
+          stencilProps={{
+            aspectRatio: aspect,
+            handlers: true,
+            lines: true,
+            movable: true,
+            resizable: true,
+          }}
+          onReady={handleReady}
+          onChange={emitAreaChange}
+          onInteractionEnd={handleInteractionEnd}
+        />
       </div>
+
+      {controlsPortalTarget ? createPortal(controls, controlsPortalTarget) : controls}
     </div>
   );
 }

@@ -308,7 +308,7 @@ export default function AudioMessage({
       });
       return false;
     }
-  }, [cacheKey, url]);
+  }, [cacheKey, instanceId, url]);
 
   const notifyBgmStopped = useCallback(() => {
     if (!isBgmMessage || roomIdNumber == null || messageIdNumber == null) {
@@ -629,6 +629,7 @@ export default function AudioMessage({
     cacheKey,
     hasMatchingPendingAutoPlay,
     hasUrl,
+    instanceId,
     messageIdNumber,
     pendingAutoPlay,
     pendingAutoPlayExpectedPurpose,

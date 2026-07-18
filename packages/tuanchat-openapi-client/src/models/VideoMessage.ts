@@ -21,4 +21,3 @@ export type VideoMessage = {
      */
     second?: number;
 };
-

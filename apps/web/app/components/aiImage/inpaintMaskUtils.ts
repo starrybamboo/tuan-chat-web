@@ -43,7 +43,7 @@ export type MaskOutlineSegment = {
   length: number;
 };
 
-export type PixelCircleMaskOutlineSegment = MaskOutlineSegment;
+type PixelCircleMaskOutlineSegment = MaskOutlineSegment;
 
 export type MaskGridBounds = {
   left: number;

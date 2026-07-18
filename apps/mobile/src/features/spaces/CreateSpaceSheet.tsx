@@ -149,12 +149,11 @@ export function CreateSpaceSheet({ onClose, onCreated, visible }: CreateSpaceShe
       <MobileButton
         accessibilityLabel={loading ? "正在创建空间" : "创建空间"}
         disabled={!name.trim() || loading}
+        label="创建"
         loading={loading}
         onPress={handleCreate}
         variant={name.trim() ? "primary" : "secondary"}
-      >
-        创建
-      </MobileButton>
+      />
     </BottomSheetModal>
   );
 }

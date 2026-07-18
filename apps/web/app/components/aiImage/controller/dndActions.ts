@@ -48,7 +48,7 @@ export async function pickSourceHistoryImageAction(args: {
 }
 
 export function historyImageDragStartAction(args: {
-  event: any;
+  event: DragEvent;
   payload: { dataUrl: string; seed: number; batchIndex?: number };
 }) {
   const fileName = historyImageDragFileName(args.payload.dataUrl, args.payload.seed, args.payload.batchIndex);
@@ -71,13 +71,16 @@ export function historyImageDragStartAction(args: {
 }
 
 export function pageImageDragEnterAction(args: {
-  event: any;
+  event: DragEvent;
   isDirectorToolsOpen: boolean;
   setIsPageImageDragOver: (value: boolean) => void;
 }) {
   if (args.isDirectorToolsOpen)
     return;
-  const nextIsImageDrag = hasFileDrag(args.event.dataTransfer) || hasInternalHistoryImageDrag(args.event.dataTransfer);
+  const dataTransfer = args.event.dataTransfer;
+  if (!dataTransfer)
+    return;
+  const nextIsImageDrag = hasFileDrag(dataTransfer) || hasInternalHistoryImageDrag(dataTransfer);
   if (!nextIsImageDrag)
     return;
   args.event.preventDefault();
@@ -86,7 +89,7 @@ export function pageImageDragEnterAction(args: {
 }
 
 export function pageImageDragLeaveAction(args: {
-  event: any;
+  event: DragEvent;
   isDirectorToolsOpen: boolean;
   setIsPageImageDragOver: (value: boolean) => void;
 }) {
@@ -100,30 +103,33 @@ export function pageImageDragLeaveAction(args: {
 }
 
 export function pageImageDragOverAction(args: {
-  event: any;
+  event: DragEvent;
   isDirectorToolsOpen: boolean;
   isPageImageDragOver: boolean;
   setIsPageImageDragOver: (value: boolean) => void;
 }) {
   if (args.isDirectorToolsOpen)
     return;
-  const nextIsImageDrag = hasFileDrag(args.event.dataTransfer) || hasInternalHistoryImageDrag(args.event.dataTransfer);
+  const dataTransfer = args.event.dataTransfer;
+  if (!dataTransfer)
+    return;
+  const nextIsImageDrag = hasFileDrag(dataTransfer) || hasInternalHistoryImageDrag(dataTransfer);
   if (!nextIsImageDrag)
     return;
   args.event.preventDefault();
   args.event.stopPropagation();
-  args.event.dataTransfer.dropEffect = "copy";
+  dataTransfer.dropEffect = "copy";
   if (nextIsImageDrag !== args.isPageImageDragOver)
     args.setIsPageImageDragOver(nextIsImageDrag);
 }
 
 export async function pageImageDropAction(args: {
-  event: any;
+  event: DragEvent;
   isDirectorToolsOpen: boolean;
   setIsPageImageDragOver: (value: boolean) => void;
   showErrorToast: (message: string) => void;
   handlePickSourceHistoryImage: (payload: InternalHistoryImageDragPayload, options?: { source?: ImageImportSource; imageCount?: number }) => Promise<void>;
-  handlePickSourceImage: (file: File, options?: { source?: ImageImportSource; imageCount?: number; target?: "img2img" }) => Promise<void>;
+  handlePickSourceImage: (file: File, options?: { source?: ImageImportSource; imageCount?: number }) => Promise<void>;
 }) {
   if (args.isDirectorToolsOpen)
     return;
@@ -150,7 +156,7 @@ export async function pageImageDropAction(args: {
 
 export async function pasteSourceImageAction(args: {
   event: ClipboardEvent;
-  handlePickSourceImage: (file: File, options?: { source?: ImageImportSource; imageCount?: number; target?: "img2img" }) => Promise<void>;
+  handlePickSourceImage: (file: File, options?: { source?: ImageImportSource; imageCount?: number }) => Promise<void>;
 }) {
   const files = extractImageFilesFromTransfer(args.event.clipboardData);
   if (!files.length)

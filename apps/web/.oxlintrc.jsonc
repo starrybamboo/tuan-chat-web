@@ -1,0 +1,150 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": [
+    "../../packages/oxlint-config/oxlint-base.jsonc"
+  ],
+  // Oxlint 原生规则之外，Web 端还需要 Query、Tailwind 和 DOM 专项检查。
+  "jsPlugins": [
+    {
+      "name": "tanstack-query",
+      "specifier": "@tanstack/eslint-plugin-query"
+    },
+    {
+      "name": "better-tailwindcss",
+      "specifier": "eslint-plugin-better-tailwindcss"
+    },
+    {
+      "name": "react-dom",
+      "specifier": "eslint-plugin-react-dom"
+    }
+  ],
+  // Web 页面需要原生 JSX 可访问性检查；暂时关闭的存量规则均在下方说明原因。
+  "plugins": [
+    "jsx-a11y"
+  ],
+  "rules": {
+    // 旧组件大量使用由子控件承担键盘行为的容器点击；完成语义元素迁移前不做全局阻断。
+    "jsx-a11y/click-events-have-key-events": "off",
+    "jsx-a11y/no-static-element-interactions": "off",
+    // FormField 等组合组件跨文件关联 label/control，静态规则无法稳定识别。
+    "jsx-a11y/label-has-associated-control": "off",
+    // 弹层、菜单和 Canvas 工具使用可编程焦点管理，允许非交互元素参与焦点顺序。
+    "jsx-a11y/no-noninteractive-tabindex": "off",
+    // 用户上传的音视频不保证存在字幕轨；字幕能力落地前避免对所有媒体产生误报。
+    "jsx-a11y/media-has-caption": "off",
+    // 设计系统存在多态组件，最终语义由 as/role 和运行时 props 共同决定。
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "jsx-a11y/role-supports-aria-props": "off",
+    // WebGAL/外部工具 iframe 的标题由上层容器表达，待统一 iframe 原语后再启用。
+    "jsx-a11y/iframe-has-title": "off",
+    // TanStack Router 与按钮式链接并非都使用原生 href，旧规则会误判路由组件。
+    "jsx-a11y/anchor-is-valid": "off",
+    // MediaImage 等媒体原语在组件内部处理替代文本；规则无法穿透全部封装。
+    "jsx-a11y/alt-text": "off",
+    // Vitest mock 的泛型通常可从实现推断，强制显式参数会增加测试噪音。
+    "vitest/require-mock-type-parameters": "off",
+    // Hook 调用顺序是运行时正确性约束，始终阻断违规代码。
+    "react-hooks/rules-of-hooks": "error",
+    // 存量 hook 包含稳定 ref、事件订阅和自定义依赖协议；先告警，存量诊断清零后再升为 error。
+    "react-hooks/exhaustive-deps": "warn",
+    // 历史 WebGAL/规则脚本兼容例外；当前 app 无直接 eval，完成回归验证后应删除此全局关闭。
+    "no-eval": "off",
+    // 手写 Web 代码禁止无边界的整文件规则关闭。
+    "eslint-comments/no-unlimited-disable": "error",
+    // Tailwind v4 与 daisyUI 会产生插件尚不能正确规范化的合法类名。
+    "better-tailwindcss/enforce-canonical-classes": "off",
+    "better-tailwindcss/enforce-consistent-line-wrapping": "off",
+    // 重复类通常是可读性或覆盖顺序问题，先告警而不阻断迁移。
+    "better-tailwindcss/no-duplicate-classes": "warn",
+    "better-tailwindcss/no-unnecessary-whitespace": "off"
+  },
+  "settings": {
+    // Tailwind 插件从 Web 入口样式解析 v4 主题和自定义 utility。
+    "better-tailwindcss": {
+      "cwd": ".",
+      "entryPoint": "./app/app.css"
+    }
+  },
+  "overrides": [
+    {
+      // React Compiler 已在 Web 构建启用；不兼容编译器的模式直接阻断。
+      "files": [
+        "**/*.{js,jsx,ts,tsx}"
+      ],
+      "rules": {
+        "react-hooks-js/component-hook-factories": "error",
+        "react-hooks-js/config": "error",
+        "react-hooks-js/error-boundaries": "error",
+        "react-hooks-js/gating": "error",
+        "react-hooks-js/globals": "error",
+        "react-hooks-js/incompatible-library": "warn",
+        "react-hooks-js/use-memo": "error",
+        "react-hooks-js/void-use-memo": "error"
+      }
+    },
+    {
+      // 非 JSX 逻辑文件采用更严格的 Query/类型/环境变量规则；扩大到 TSX 前需先清理存量告警。
+      "files": [
+        "**/*.js",
+        "**/*.ts"
+      ],
+      "rules": {
+        "tanstack-query/exhaustive-deps": "error",
+        "typescript/consistent-type-definitions": [
+          "error",
+          "type"
+        ],
+        "node/no-process-env": "error"
+      }
+    },
+    {
+      // WebGAL 预览需要 allow-scripts + allow-same-origin 运行本地引擎；Markdown 预览的 sandbox 由调用方白名单生成。
+      "files": [
+        "**/webGALPreview.tsx",
+        "**/markDownViewer.tsx"
+      ],
+      "rules": {
+        "react-dom/no-unsafe-iframe-sandbox": "off"
+      }
+    },
+    {
+      // 工具配置文件遵循生态固定命名，不强制业务源码的文件名规则。
+      "files": [
+        "*.config.ts"
+      ],
+      "rules": {
+        "unicorn/filename-case": "off"
+      }
+    },
+    {
+      // TanStack Router 的文件路由名编码路径结构，不适用普通模块命名规则。
+      "files": [
+        "app/routes/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "unicorn/filename-case": "off"
+      }
+    },
+    {
+      // 这些历史组件名与领域缩写已形成公开引用，重命名需单独迁移。
+      "files": [
+        "app/components/Role/RoleCreation/steps/AIGenerateModal.tsx",
+        "app/components/chat/shared/map/DNDMap.tsx",
+        "app/components/chat/shared/webgal/webGALPreview.tsx",
+        "app/components/profile/cards/GNSSpiderChart.tsx",
+        "app/components/profile/toastWindows/GNSEditorToastWindow.tsx"
+      ],
+      "rules": {
+        "unicorn/filename-case": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    // apps/web/api 是自动生成产物；规则应约束生成器和输入 schema，而不是生成结果。
+    "api/**",
+    // 公共静态资源不属于 JavaScript/TypeScript lint 范围。
+    "public/**",
+    // TanStack Router 自动生成路由树。
+    "app/routeTree.gen.ts"
+  ]
+}

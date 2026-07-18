@@ -1,7 +1,6 @@
+import type { MessageDraft } from "@tuanchat/domain/message-draft";
 import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
-
-import type { MessageDraft } from "@tuanchat/domain/message-draft";
 
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 

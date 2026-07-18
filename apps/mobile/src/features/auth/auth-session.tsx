@@ -7,6 +7,7 @@ import { createContext, use, useCallback, useEffect, useMemo, useState } from "r
 
 import { logNotificationTrace, logNotificationTraceError } from "@/features/notifications/notificationTrace";
 import { getMobileApiBaseUrl, mobileApiClient } from "@/lib/api";
+import { clearMobileUserQuerySnapshots } from "@/lib/mobile-query-snapshot-cache";
 import { mobileQueryClient } from "@/providers/query-client";
 
 import type { StoredAuthSession } from "./auth-storage";
@@ -140,14 +141,34 @@ async function enrichStoredAuthSession(session: StoredAuthSession): Promise<Stor
 }
 
 async function readStoredAuthSessionWithTimeout() {
-  return await Promise.race([
-    readStoredAuthSession(),
-    new Promise<null>((resolve) => {
-      setTimeout(() => {
-        resolve(null);
-      }, AUTH_SESSION_BOOTSTRAP_TIMEOUT_MS);
-    }),
-  ]);
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  try {
+    return await Promise.race([
+      readStoredAuthSession(),
+      new Promise<null>((resolve) => {
+        timeout = setTimeout(() => {
+          resolve(null);
+        }, AUTH_SESSION_BOOTSTRAP_TIMEOUT_MS);
+      }),
+    ]);
+  }
+  finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  }
+}
+
+async function clearUserQuerySnapshotsSafely(userId: number | undefined) {
+  if (!(typeof userId === "number" && userId > 0)) {
+    return;
+  }
+  try {
+    await clearMobileUserQuerySnapshots(userId);
+  }
+  catch (error) {
+    logNotificationTraceError("auth.cache.clear-error", error);
+  }
 }
 
 export function AuthSessionProvider({ children }: PropsWithChildren) {
@@ -163,7 +184,8 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
       try {
         storedSession = await readStoredAuthSessionWithTimeout();
       }
-      catch {
+      catch (error) {
+        logNotificationTraceError("auth.bootstrap.read-error", error);
         storedSession = null;
       }
 
@@ -186,10 +208,12 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
 
   const replaceSession = useCallback(async (nextSession: StoredAuthSession | null) => {
     const normalizedSession = normalizeStoredAuthSession(nextSession);
+    const previousUserId = session?.userId;
 
     if (!normalizedSession) {
       logNotificationTrace("auth.replace.clear");
       await clearStoredAuthSession();
+      await clearUserQuerySnapshotsSafely(previousUserId);
       setSession(null);
       mobileQueryClient.clear();
       return;
@@ -202,9 +226,13 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     await writeStoredAuthSession(normalizedSession);
     const enrichedSession = await enrichStoredAuthSession(normalizedSession);
     await writeStoredAuthSession(enrichedSession);
+    if (previousUserId && previousUserId !== enrichedSession.userId) {
+      await clearUserQuerySnapshotsSafely(previousUserId);
+      mobileQueryClient.clear();
+    }
     setSession(enrichedSession);
     await mobileQueryClient.invalidateQueries();
-  }, []);
+  }, [session?.userId]);
 
   const handleWebAuthCallback = useCallback(async (url: string | null | undefined) => {
     const callbackSession = resolveMobileWebAuthCallbackSession(url);

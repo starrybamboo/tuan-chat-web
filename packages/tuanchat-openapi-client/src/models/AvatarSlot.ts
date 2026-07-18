@@ -23,4 +23,3 @@ export type AvatarSlot = {
      */
     height?: number;
 };
-

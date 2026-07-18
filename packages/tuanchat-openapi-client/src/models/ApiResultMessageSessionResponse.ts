@@ -24,4 +24,3 @@ export type ApiResultMessageSessionResponse = {
      */
     data?: MessageSessionResponse;
 };
-

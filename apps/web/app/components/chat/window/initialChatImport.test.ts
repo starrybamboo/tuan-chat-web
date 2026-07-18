@@ -3,17 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 
-import { addRoomRoleWithSuccessGuard } from "../../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../../api/instance";
 import { MessageType } from "../../../../api/wsModels";
 import { buildInitialImportChatRequests, buildInitialImportRoomMemberAddRequest, buildInitialImportRoomRoleAddRequests, sendInitialImportChatMessages } from "./initialChatImport";
 
 vi.mock("@tuanchat/query", () => ({
   patchInsertMessages: vi.fn(),
-}));
-
-vi.mock("../../../../api/hooks/chatQueryHooks", () => ({
-  addRoomRoleWithSuccessGuard: vi.fn(),
 }));
 
 vi.mock("../../../../api/instance", () => ({
@@ -23,6 +18,9 @@ vi.mock("../../../../api/instance", () => ({
     },
     roomMemberController: {
       addMember1: vi.fn(),
+    },
+    roomRoleController: {
+      addRole: vi.fn(),
     },
   },
 }));
@@ -186,10 +184,10 @@ describe("buildInitialImportRoomMemberAddRequest", () => {
 
 describe("sendInitialImportChatMessages", () => {
   beforeEach(() => {
-    vi.mocked(addRoomRoleWithSuccessGuard).mockReset();
     vi.mocked(patchInsertMessages).mockReset();
     vi.mocked(tuanchat.roomMemberController.addMember1).mockReset();
-    vi.mocked(addRoomRoleWithSuccessGuard).mockResolvedValue({ success: true } as any);
+    vi.mocked(tuanchat.roomRoleController.addRole).mockReset();
+    vi.mocked(tuanchat.roomRoleController.addRole).mockResolvedValue({ success: true } as any);
     vi.mocked(patchInsertMessages).mockResolvedValue({ success: true } as any);
     vi.mocked(tuanchat.roomMemberController.addMember1).mockResolvedValue({ success: true } as any);
   });
@@ -212,20 +210,20 @@ describe("sendInitialImportChatMessages", () => {
       roomId: 7,
       userIdList: [101],
     });
-    expect(addRoomRoleWithSuccessGuard).toHaveBeenNthCalledWith(1, {
+    expect(tuanchat.roomRoleController.addRole).toHaveBeenNthCalledWith(1, {
       roomId: 7,
       roleIdList: [10],
       type: 0,
     });
-    expect(addRoomRoleWithSuccessGuard).toHaveBeenNthCalledWith(2, {
+    expect(tuanchat.roomRoleController.addRole).toHaveBeenNthCalledWith(2, {
       roomId: 7,
       roleIdList: [20],
       type: 2,
     });
     expect(patchInsertMessages).toHaveBeenCalledTimes(1);
     expect(vi.mocked(tuanchat.roomMemberController.addMember1).mock.invocationCallOrder[0])
-      .toBeLessThan(vi.mocked(addRoomRoleWithSuccessGuard).mock.invocationCallOrder[0]);
-    expect(vi.mocked(addRoomRoleWithSuccessGuard).mock.invocationCallOrder[1])
+      .toBeLessThan(vi.mocked(tuanchat.roomRoleController.addRole).mock.invocationCallOrder[0]);
+    expect(vi.mocked(tuanchat.roomRoleController.addRole).mock.invocationCallOrder[1])
       .toBeLessThan(vi.mocked(patchInsertMessages).mock.invocationCallOrder[0]);
   });
 

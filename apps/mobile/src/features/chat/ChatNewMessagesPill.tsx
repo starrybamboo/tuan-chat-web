@@ -15,9 +15,9 @@ const styles = StyleSheet.create({
   fab: {
     alignItems: "center",
     borderRadius: Radius.full,
+    borderCurve: "continuous",
     bottom: Spacing.xl,
     boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.3)",
-    elevation: 4,
     height: FAB_SIZE,
     justifyContent: "center",
     position: "absolute",
@@ -26,6 +26,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     borderRadius: Radius.full,
+    borderCurve: "continuous",
     height: 10,
     position: "absolute",
     right: 2,

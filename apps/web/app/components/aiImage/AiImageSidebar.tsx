@@ -1,6 +1,6 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
-import { CircleNotch, ImageSquareIcon, ImagesSquareIcon, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
+import { CircleNotch, SparkleIcon } from "@phosphor-icons/react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ProEditorContentLocalProps } from "@/components/aiImage/sidebar/ProEditorContent";
@@ -18,19 +18,18 @@ import {
   toggleNovelAiLineComments,
 } from "@/components/aiImage/helpers";
 import { useNovelAiV45TokenSnapshot } from "@/components/aiImage/novelaiV45TokenMeter";
-import { renderProInfillSectionContent, renderSimpleBaseImageSectionContent } from "@/components/aiImage/sidebar/baseImageSections";
+import { renderProInfillSectionContent, renderSimpleInfillSectionContent } from "@/components/aiImage/sidebar/inpaintSections";
 import { renderProBottomSettingsDrawerContent } from "@/components/aiImage/sidebar/ProBottomSettingsDrawer";
 import { ProEditorContent } from "@/components/aiImage/sidebar/ProEditorContent";
-import { renderResolutionGlyph as renderResolutionGlyphContent } from "@/components/aiImage/sidebar/renderResolutionGlyph";
+import { renderResolutionGlyph } from "@/components/aiImage/sidebar/renderResolutionGlyph";
 import { SimpleEditorContent } from "@/components/aiImage/sidebar/SimpleEditorContent";
+import { useDismissibleLayer } from "@/components/aiImage/sidebar/useDismissibleLayer";
+import { useFloatingPanelPosition } from "@/components/aiImage/sidebar/useFloatingPanelPosition";
 import { Button, buttonClassName } from "@/components/common/Button";
 import { controlGroupClassName } from "@/components/common/ControlGroup";
 import { surfaceClassName } from "@/components/common/DesignLanguage";
 import { formControlClassName, TextInput } from "@/components/common/FormField";
 import { Badge } from "@/components/common/StatusPrimitives";
-import { useDelayedPresence } from "@/components/aiImage/sidebar/useDelayedPresence";
-import { useDismissibleLayer } from "@/components/aiImage/sidebar/useDismissibleLayer";
-import { useFloatingPanelPosition } from "@/components/aiImage/sidebar/useFloatingPanelPosition";
 import { ChevronDown } from "@/icons";
 
 type AiImageSidebarProps = {
@@ -50,8 +49,6 @@ const MODE_OPTIONS = [
   },
 ] as const;
 
-const MODE_MODEL_LABEL = "NAI Diffusion V4.5 Curated";
-const MODE_SELECTOR_TRANSITION_MS = 180;
 const RESOLUTION_OPTIONS = [...RESOLUTION_PRESETS, { id: CUSTOM_RESOLUTION_ID, label: "自定义" }] as const;
 type ModeOptionValue = (typeof MODE_OPTIONS)[number]["value"];
 
@@ -61,13 +58,12 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     canGenerateFromSimpleTags,
     canTriggerProGenerate,
     cfgRescale,
+    cfgDelay,
     charPromptTabs,
     characterPromptDescription,
     hasSimpleTagsDraft,
     isBusy,
-    handleClearCurrentDisplayedImage,
     handleClearSourceImage,
-    handleOpenSourceImagePicker,
     handleCommitProDimensions,
     handleCommitSimpleDimensions,
     freeGenerationViolation,
@@ -82,18 +78,13 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     handleSimpleWidthChange,
     handleSwapImageDimensions,
     handleUpdateV4Char,
-    handleOpenBaseImageInpaint,
+    handleEditInpaintMask,
     handleReturnFromInfillSettings,
     infillAppendPrompt,
-    hasCurrentDisplayedImage,
-    imageCount,
     infillMaskDataUrl,
     isDirectorToolsOpen,
-    isNAI3,
-    isNAI4,
     mode,
     negativePrompt,
-    noise,
     noiseSchedule,
     noiseScheduleOptions,
     proFeatureSections,
@@ -102,6 +93,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     proResolutionSelection,
     prompt,
     qualityToggle,
+    dynamicThresholding,
     runGenerate,
     sampler,
     samplerOptions,
@@ -109,20 +101,17 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     seed,
     seedIsRandom,
     setCfgRescale,
-    setImageCount,
+    setCfgDelay,
+    setDynamicThresholding,
     setInfillAppendPrompt,
     setNegativePrompt,
-    setNoise,
     setNoiseSchedule,
     setPrompt,
-    setQualityToggle,
     setSampler,
     setScale,
     setSeed,
     setSimpleNegativePrompt,
     setSimplePrompt,
-    setSmea,
-    setSmeaDyn,
     setSteps,
     setStrength,
     setUiMode,
@@ -133,8 +122,6 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     simpleConverted,
     simplePromptTab,
     simpleResolutionSelection,
-    smea,
-    smeaDyn,
     sourceImageDataUrl,
     steps,
     strength,
@@ -221,14 +208,13 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     });
   }, [charPromptTabs, handleUpdateV4Char, isToggleLineCommentShortcut]);
 
-  const sideCardClassName = surfaceClassName({ level: "content", className: "border-x-0 border-b border-t-0 border-base-300 shadow-none" });
-  const editorPanelClassName = "rounded-2xl border border-base-300 bg-base-100 p-3 shadow-none";
+  const sideCardClassName = surfaceClassName({ level: "content", className: "border-x-0 border-t-0 border-base-300 bg-transparent shadow-none first:border-b-0" });
+  const editorPanelClassName = "min-w-0";
   const segmentedControlClassName = controlGroupClassName({ className: "bg-transparent p-0" });
   const segmentedButtonBaseClassName = buttonClassName({
     size: "xs",
     className: "border-0",
   });
-  const featureUploadActionClassName = "inline-flex size-11 items-center justify-center rounded-md border border-base-300 bg-base-100 text-base-content/78 transition hover:border-info/40 hover:bg-base-200 hover:text-info focus:outline-none focus:ring-2 focus:ring-info/20";
   const characterAddTriggerClassName = "inline-flex h-8 items-center gap-1 rounded-md border border-base-300 bg-base-100 px-2.5 text-xs font-semibold text-base-content transition hover:border-info/40 hover:bg-base-200 hover:text-info focus:outline-none focus:ring-2 focus:ring-info/20";
   const characterAddMenuPanelClassName = "absolute right-0 top-0 z-30 w-36 overflow-hidden rounded-md border border-base-300 bg-base-100 shadow-2xl";
   const characterAddMenuItemClassName = "flex h-8 w-full items-center gap-1.5 px-3 text-left text-xs font-medium leading-none text-base-content/90 transition hover:bg-base-200 focus:outline-none focus:ring-2 focus:ring-info/30";
@@ -256,12 +242,11 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
   });
   const floatingInputActionClassName = `${floatingInputActionBaseClassName} absolute right-3 top-3 z-10`;
   const baseImageToggleButtonClassName = "inline-flex size-11 items-center justify-center bg-transparent text-base-content/60 transition hover:text-base-content focus:outline-none focus:ring-2 focus:ring-info/30 focus-visible:text-base-content dark:text-white/58 dark:hover:text-white dark:focus-visible:text-white";
-  const baseImageActionButtonClassName = "inline-flex h-11 items-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 text-sm font-semibold text-base-content transition hover:border-info/40 hover:bg-base-200 hover:text-info focus:outline-none focus:ring-2 focus:ring-info/20";
   const baseImageRangeClassName = "mt-2 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-thumb]:mt-[-4px] [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:shadow-black/30 [&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:shadow-black/30 focus:ring-2 focus:ring-info/30";
-  const simpleBaseImageAttachmentClassName = "mt-[2px] overflow-hidden border-x border-b border-base-300 bg-base-100 shadow-none";
+  const simpleInfillAttachmentClassName = "mt-[2px] overflow-hidden border-x border-b border-base-300 bg-base-100 shadow-none";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState<boolean>(false);
   const [isProPromptSettingsOpen, setIsProPromptSettingsOpen] = useState<boolean>(false);
-  const [isBaseImageToolsOpen, setIsBaseImageToolsOpen] = useState<boolean>(() => mode === "img2img" || mode === "infill");
+  const [isBaseImageToolsOpen, setIsBaseImageToolsOpen] = useState<boolean>(() => mode === "infill");
   const [isProBottomSettingsOpen, setIsProBottomSettingsOpen] = useState<boolean>(false);
   const [isCharacterAddMenuOpen, setIsCharacterAddMenuOpen] = useState<boolean>(false);
   const [highlightEmphasisEnabled, setHighlightEmphasisEnabled] = useState<boolean>(true);
@@ -277,7 +262,6 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
   const proPromptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const simpleResolutionSelectorRef = useRef<HTMLDivElement | null>(null);
   const proResolutionSelectorRef = useRef<HTMLDivElement | null>(null);
-  const isModeSelectorMounted = useDelayedPresence(isModeSelectorOpen, MODE_SELECTOR_TRANSITION_MS);
   const proPromptSettingsPosition = useFloatingPanelPosition({
     isOpen: isProPromptSettingsOpen,
     anchorRef: sidebarSurfaceRef,
@@ -310,11 +294,6 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     : hasGeneratedSimpleTags
       ? "border-white/20 bg-white/10 text-white"
       : "border-white/20 bg-white/10 text-white";
-  const clearCurrentImageButtonClassName = `group flex size-11 shrink-0 items-center justify-center rounded-md border transition focus:outline-none focus:ring-2 focus:ring-info/20 disabled:cursor-not-allowed disabled:opacity-45 ${
-    hasCurrentDisplayedImage
-      ? "border-base-300 bg-base-200 text-base-content/60 hover:border-info/45 hover:text-info   dark:hover:border-info/45 dark:hover:text-info"
-      : "border-base-300 bg-base-200 text-base-content/50   dark:text-base-content/50"
-  }`;
   const tokenSnapshot = useNovelAiV45TokenSnapshot({
     prompt,
     negativePrompt,
@@ -345,9 +324,6 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     });
     return assignments;
   }, [activeCharacterPositionPickerCharacterId, activeCharacterPositionPickerCode, v4Chars]);
-  const baseImagePanelClassName = isBaseImageToolsOpen
-    ? "relative min-h-[220px] px-4 py-4"
-    : "relative min-h-[84px] px-4 py-4";
   const baseImageHeaderClassName = "relative flex items-start justify-between gap-4";
   const baseImageControlGroupClassName = "flex items-center gap-1.5";
   useEffect(() => {
@@ -360,7 +336,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     previousModeRef.current = mode;
     if (prev === mode)
       return;
-    if (mode === "img2img" || mode === "infill")
+    if (mode === "infill")
       queueMicrotask(() => setIsBaseImageToolsOpen(true));
   }, [mode]);
   const closeCharacterAddMenu = useCallback(() => {
@@ -471,7 +447,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
       baseImageToggleButtonClassName,
       baseImageRangeClassName,
       infillAppendInputClassName,
-      onOpenBaseImageInpaint: handleOpenBaseImageInpaint,
+      onEditInpaintMask: handleEditInpaintMask,
       onClearSourceImage: handleClearSourceImage,
       onReturnFromInfillSettings: handleReturnFromInfillSettings,
       onToggleBaseImageTools: () => setIsBaseImageToolsOpen(prev => !prev),
@@ -487,7 +463,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     baseImageRangeClassName,
     baseImageToggleButtonClassName,
     handleClearSourceImage,
-    handleOpenBaseImageInpaint,
+    handleEditInpaintMask,
     handleReturnFromInfillSettings,
     infillMaskDataUrl,
     isBaseImageToolsOpen,
@@ -498,64 +474,49 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     strength,
   ]);
 
-  const renderSimpleBaseImageSection = useCallback(() => {
-    return renderSimpleBaseImageSectionContent({
+  const renderSimpleInfillSection = useCallback(() => {
+    if (mode !== "infill")
+      return null;
+    return renderSimpleInfillSectionContent({
       sourceImageDataUrl,
       infillMaskDataUrl,
-      mode,
       isBusy,
       isBaseImageToolsOpen,
       strength,
-      noise,
-      featureUploadActionClassName,
-      simpleBaseImageAttachmentClassName,
-      baseImagePanelClassName,
+      simpleInfillAttachmentClassName,
       baseImageHeaderClassName,
       baseImageControlGroupClassName,
       baseImageToggleButtonClassName,
-      baseImageActionButtonClassName,
       baseImageRangeClassName,
       infillAppendInputClassName,
-      onOpenSourceImagePicker: handleOpenSourceImagePicker,
-      onOpenBaseImageInpaint: handleOpenBaseImageInpaint,
+      onEditInpaintMask: handleEditInpaintMask,
       onClearSourceImage: handleClearSourceImage,
       onReturnFromInfillSettings: handleReturnFromInfillSettings,
       onToggleBaseImageTools: () => setIsBaseImageToolsOpen(prev => !prev),
       infillAppendPrompt,
       onInfillAppendPromptChange: setInfillAppendPrompt,
       setStrength,
-      setNoise,
     });
   }, [
-    baseImageActionButtonClassName,
     baseImageControlGroupClassName,
     baseImageHeaderClassName,
     infillAppendInputClassName,
     infillAppendPrompt,
-    baseImagePanelClassName,
     baseImageRangeClassName,
     baseImageToggleButtonClassName,
-    featureUploadActionClassName,
     handleClearSourceImage,
-    handleOpenBaseImageInpaint,
-    handleOpenSourceImagePicker,
+    handleEditInpaintMask,
     handleReturnFromInfillSettings,
     infillMaskDataUrl,
     isBaseImageToolsOpen,
     isBusy,
     mode,
-    noise,
-    setNoise,
     setInfillAppendPrompt,
     setStrength,
-    simpleBaseImageAttachmentClassName,
+    simpleInfillAttachmentClassName,
     sourceImageDataUrl,
     strength,
   ]);
-
-  function renderResolutionGlyph(optionId: string) {
-    return renderResolutionGlyphContent(optionId);
-  }
 
   function renderProBottomSettingsDrawer() {
     return renderProBottomSettingsDrawerContent({
@@ -569,24 +530,20 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
       samplerOptions,
       noiseScheduleOptions,
       noiseSchedule,
-      isNAI4,
-      isNAI3,
       cfgRescale,
-      qualityToggle,
-      smea,
-      smeaDyn,
+      cfgDelay,
+      dynamicThresholding,
       onResetCurrentImageSettings: handleResetCurrentImageSettings,
       onOpenDrawer: () => setIsProBottomSettingsOpen(true),
       onCloseDrawer: () => setIsProBottomSettingsOpen(false),
       setSteps,
-      setQualityToggle,
+      setCfgDelay,
+      setDynamicThresholding,
       setScale,
       setSeed,
       setSampler,
       setCfgRescale,
       setNoiseSchedule,
-      setSmea,
-      setSmeaDyn,
     });
   }
 
@@ -603,7 +560,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     highlightPromptSurfaceClassName,
     highlightPromptContentClassName,
     highlightEmphasisEnabled,
-    renderSimpleBaseImageSection,
+    renderSimpleInfillSection,
     handleToggleLineCommentForSimpleTags,
   }), [
     editorPanelClassName,
@@ -616,7 +573,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     isSimplePreviewingConverted,
     isSimpleTagsEditor,
     isSimpleTextEditor,
-    renderSimpleBaseImageSection,
+    renderSimpleInfillSection,
     segmentedButtonBaseClassName,
     segmentedControlClassName,
     simplePromptTextareaClassName,
@@ -642,18 +599,13 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     activeChannelSnapshot,
     proPromptFooterLabel,
     proPromptFooterHint,
-    featureUploadActionClassName,
     renderProInfillSection,
-    baseImagePanelClassName,
     baseImageHeaderClassName,
     baseImageControlGroupClassName,
     baseImageToggleButtonClassName,
     baseImageRangeClassName,
-    baseImageActionButtonClassName,
     strength,
     setStrength,
-    noise,
-    setNoise,
     characterAddMenuRef,
     isCharacterAddMenuOpen,
     setIsCharacterAddMenuOpen,
@@ -684,10 +636,8 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
   }), [
     activeBaseMeter,
     activeChannelSnapshot,
-    baseImageActionButtonClassName,
     baseImageControlGroupClassName,
     baseImageHeaderClassName,
-    baseImagePanelClassName,
     baseImageRangeClassName,
     baseImageToggleButtonClassName,
     characterAddMenuItemClassName,
@@ -703,7 +653,6 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     characterPositionsToggleBaseClassName,
     characterPromptDescription,
     editorPanelClassName,
-    featureUploadActionClassName,
     handleOpenCharacterPositionPicker,
     handleSaveCharacterPosition,
     handleSelectCharacterPositionCode,
@@ -719,7 +668,6 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     isCharacterAddMenuOpen,
     isCharacterPositionAiChoiceEnabled,
     isProPromptSettingsOpen,
-    noise,
     proPromptEditorPanelRef,
     proPromptFooterHint,
     proPromptFooterLabel,
@@ -734,7 +682,6 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     setIsBaseImageToolsOpen,
     setIsCharacterAddMenuOpen,
     setIsProPromptSettingsOpen,
-    setNoise,
     setStrength,
     showCharacterPositionsGlobalSection,
     strength,
@@ -748,70 +695,29 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
       className={`
         ${isDirectorToolsOpen ? "hidden" : "flex"}
         relative h-full min-h-0 w-full min-w-0 flex-col gap-0 overflow-hidden
-        border-r border-base-300 bg-base-100 p-0 shadow-none
-        after:pointer-events-none after:absolute after:inset-y-0 after:right-0
-        after:w-5 after:bg-linear-to-l after:from-[rgba(15,23,42,0.08)]
-        after:via-[rgba(15,23,42,0.03)] after:to-transparent after:content-['']
-        dark:after:from-[rgba(0,0,0,0.2)] dark:after:via-[rgba(0,0,0,0.08)]
+        rounded-md border border-base-300 bg-base-100 p-0 shadow-sm
       `}
     >
       <div className="ai-image-fade-scrollbar min-h-0 flex-1 overflow-y-auto">
-        {isModeSelectorMounted
-          ? (
-              <div
-                aria-hidden="true"
-                className={`
-                  fixed inset-0 z-30 bg-black/20 backdrop-blur-[1.5px]
-                  transition-opacity duration-200 ease-out
-                  dark:bg-black/35
-                  ${
-                  isModeSelectorOpen ? "pointer-events-auto opacity-100" : `
-                    pointer-events-none opacity-0
-                  `
-                }
-                `}
-                onClick={closeModeSelector}
-              />
-            )
-          : null}
         <div className={sideCardClassName}>
-          <div className="p-4">
-            <div className="mb-3 flex items-stretch gap-2">
-              <button
-                type="button"
-                className={clearCurrentImageButtonClassName}
-                aria-label="取消当前图片"
-                title={hasCurrentDisplayedImage ? "取消当前图片" : "当前没有可取消的图片"}
-                disabled={!hasCurrentDisplayedImage}
-                onClick={handleClearCurrentDisplayedImage}
-              >
-                <span className="
-                  relative inline-flex size-5 items-center justify-center
-                ">
-                  <ImageSquareIcon className="size-5" weight="regular" aria-hidden="true" />
-                  <XCircleIcon className="
-                    absolute -right-1 -top-1 size-4 text-info
-                  " weight="fill" aria-hidden="true" />
-                </span>
-              </button>
-
+          <div className="px-4 pb-2 pt-4">
+            <div className="flex items-stretch">
               <div className="relative min-w-0 flex-1" ref={modeSelectorContainerRef}>
                 <button
                   type="button"
                   className={`
                     flex w-full items-center justify-between rounded-md border
-                    px-3 py-3 text-left transition
+                    px-3.5 py-3 text-left transition
                     focus:border-info focus:outline-none focus:ring-2
                     focus:ring-info/20
                     ${
                     isModeSelectorOpen
                       ? `
-                        border-info bg-info/5 shadow-sm
-                        dark:bg-info/10
+                        border-info/55 bg-info/10 shadow-sm
                       `
                       : `
-                        border-base-300 bg-base-200
-                        hover:border-info/40 hover:bg-base-300
+                        border-base-300 bg-base-200/70
+                        hover:border-info/40 hover:bg-info/5
                                                                        `
                   }
                   `}
@@ -819,12 +725,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                   aria-controls="ai-image-mode-selector-panel"
                   onClick={() => setIsModeSelectorOpen(prev => !prev)}
                 >
-                  <div className="flex min-w-0 items-baseline gap-2">
-                    <span className="font-medium leading-none text-base-content">{activeModeOption.label}</span>
-                    <span className="
-                      truncate text-[11px] leading-none text-base-content/50
-                    ">{MODE_MODEL_LABEL}</span>
-                  </div>
+                  <span className="font-semibold leading-none text-base-content">{activeModeOption.label}</span>
                   <ChevronDown className={`
                     ml-3 size-4 shrink-0 text-base-content/60
                     transition-transform
@@ -833,80 +734,39 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                 </button>
 
                 {isModeSelectorOpen
-                  || isModeSelectorMounted
                   ? (
                       <div
                         id="ai-image-mode-selector-panel"
-                        className={`
+                        className="
                           ai-image-fade-scrollbar absolute left-0 right-0
-                          top-[calc(100%+0.5rem)] z-40 max-h-[calc(100vh-12rem)]
-                          overflow-y-auto rounded-xl border border-base-300
-                          bg-base-200 p-3 shadow-2xl ring-1 ring-black/5
-                          transform-gpu transition-all duration-200 ease-out
-                                                     dark:ring-white/5
-                          ${
-                          isModeSelectorOpen
-                            ? `
-                              pointer-events-auto translate-y-0 scale-100
-                              opacity-100
-                            `
-                            : `
-                              pointer-events-none translate-y-2 scale-[0.985]
-                              opacity-0
-                            `
-                        }
-                        `}
+                          top-[calc(100%+0.375rem)] z-40
+                          overflow-y-auto rounded-md border border-base-300
+                          bg-base-100 p-1 shadow-lg
+                        "
                       >
-                        <div className="
-                          mb-3 flex items-start justify-between gap-3
-                        ">
-                          <div className="min-w-0">
-                            <div className="
-                              text-sm font-medium text-base-content
-                            ">模式选择</div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="xs"
-                            onClick={closeModeSelector}
-                          >
-                            关闭
-                          </Button>
-                        </div>
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-0.5">
                           {MODE_OPTIONS.map(option => (
                             <button
                               key={option.value}
                               type="button"
                               className={`
-                                w-full rounded-lg border px-3 py-3 text-left
-                                transition
+                                w-full rounded-md px-3 py-2.5 text-left transition
                                 focus:outline-none focus:ring-2
                                 focus:ring-info/20
                                 ${
                                 uiMode === option.value
                                   ? `
-                                    border-info bg-info/5
-                                    text-base-content shadow-sm
+                                    bg-info/10 text-info
                                   `
                                   : `
-                                    border-base-300 bg-base-100
-                                    text-base-content/80
-                                    hover:border-info/40 hover:bg-base-300
-                                                                         dark:hover:border-info/40
-                                                                      `
+                                    text-base-content/80 hover:bg-base-200
+                                  `
                               }
                               `}
                               onClick={() => handleSelectMode(option.value)}
                             >
-                              <div className="flex min-w-0 items-baseline gap-2">
-                                <span className="font-medium leading-none">{option.label}</span>
-                                <span className="
-                                  truncate text-[11px] leading-none
-                                  text-base-content/50
-                                ">{MODE_MODEL_LABEL}</span>
-                              </div>
-                              <div className="mt-1 text-xs text-base-content/60">
+                              <div className="text-sm font-medium leading-none">{option.label}</div>
+                              <div className="mt-1 text-xs text-base-content/55">
                                 {option.description}
                               </div>
                             </button>
@@ -922,7 +782,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
 
         <div className={sideCardClassName}>
           <div className={`
-            p-4
+            px-4 pb-4 pt-2
             ${uiMode === "simple" && isSimpleTagsEditor ? `gap-2` : `gap-3`}
           `}>
             {uiMode === "simple"
@@ -950,7 +810,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                   <>
                     <div className="
                       grid w-full max-w-full grid-cols-[minmax(0,1fr)_135px]
-                      items-start gap-[50px]
+                      items-start gap-3
                     ">
                       <div className="relative" ref={simpleResolutionSelectorRef}>
                         <button
@@ -1034,6 +894,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                         bg-base-200 px-3 py-2 shadow-sm
                                                ">
                         <TextInput
+                          aria-label="图片宽度"
                           appearance="bare"
                           density="compact"
                           className={`!min-h-0 !p-0 ${simpleResolutionValueInputClassName}`}
@@ -1048,6 +909,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                           text-center text-xs font-medium text-base-content/55
                         ">×</span>
                         <TextInput
+                          aria-label="图片高度"
                           appearance="bare"
                           density="compact"
                           className={`!min-h-0 !p-0 ${simpleResolutionValueInputClassName}`}
@@ -1061,10 +923,6 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                       </div>
                     </div>
 
-                    <div className="text-[11px] leading-5 text-base-content/55">
-                      自动按 64 舍入；总面积超过 1024×1024 时将禁用生成。
-                    </div>
-
                     <div className="flex flex-col gap-2">
                       <div className="
                         flex items-center text-xs text-base-content/70
@@ -1072,6 +930,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                         <span>种子 (Seed)</span>
                       </div>
                       <TextInput
+                        aria-label="种子"
                         density="compact"
                         surface="muted"
                         className="
@@ -1093,7 +952,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                   <>
                     <div className="
                       grid w-full max-w-full grid-cols-[minmax(0,1fr)_135px]
-                      items-start gap-[50px]
+                      items-start gap-3
                     ">
                       <div className="relative" ref={proResolutionSelectorRef}>
                         <button
@@ -1177,6 +1036,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                         bg-base-200 px-3 py-2 shadow-sm
                                                ">
                         <TextInput
+                          aria-label="图片宽度"
                           appearance="bare"
                           density="compact"
                           className={`!min-h-0 !p-0 ${simpleResolutionValueInputClassName}`}
@@ -1201,6 +1061,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                           ×
                         </button>
                         <TextInput
+                          aria-label="图片高度"
                           appearance="bare"
                           density="compact"
                           className={`!min-h-0 !p-0 ${simpleResolutionValueInputClassName}`}
@@ -1211,50 +1072,6 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                           onChange={e => handleProHeightChange(e.target.value)}
                           onBlur={handleCommitProDimensions}
                         />
-                      </div>
-                    </div>
-
-                    <div className="text-[11px] leading-5 text-base-content/55">
-                      自动按 64 舍入；总面积超过 1024×1024 时将禁用生成。
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      <div className="
-                        grid h-11 w-full grid-cols-9 overflow-hidden border
-                        border-base-300 bg-base-100 shadow-none
-                      ">
-                        <div className="
-                          flex h-11 items-center justify-center border-r
-                          border-base-300 text-base-content/90
-                        " aria-hidden="true">
-                          <ImagesSquareIcon className="size-4.5" weight="regular" />
-                        </div>
-                        {[1, 2, 3, 4, 5, 6, 7, 8].map((count) => {
-                          const isActive = imageCount === count;
-                          const isDisabled = count !== 1;
-                          return (
-                            <button
-                              key={count}
-                              type="button"
-                              className={`
-                                flex h-11 w-11 items-center justify-center
-                                border-r border-base-300 text-sm
-                                font-semibold leading-none transition
-                                last:border-r-0
-                                ${
-                                isActive
-                                  ? "bg-info/10 text-info"
-                                  : "bg-transparent text-base-content/50"
-                              }
-                              `}
-                              disabled={isDisabled}
-                              aria-pressed={isActive}
-                              onClick={() => setImageCount(count)}
-                            >
-                              {count}
-                            </button>
-                          );
-                        })}
                       </div>
                     </div>
 
@@ -1269,7 +1086,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
 
       {uiMode === "simple" || uiMode === "pro"
         ? (
-            <div className="shrink-0 bg-base-100 p-4 backdrop-blur">
+            <div className="shrink-0 border-t border-base-300 bg-base-100/95 p-4 backdrop-blur">
               <Button
                 variant={uiMode === "simple" ? "ghost" : "primary"}
                 className={`
@@ -1312,7 +1129,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
                     )
                   : (
                       <Badge appearance="outline" className="px-2 py-1 font-semibold text-current">
-                        {`${imageCount}x`}
+                        1x
                       </Badge>
                     )}
               </Button>

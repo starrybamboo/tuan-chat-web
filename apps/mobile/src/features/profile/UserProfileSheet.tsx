@@ -1,6 +1,6 @@
+import { Galeria } from "@nandorojo/galeria";
 import { useGetUserProfileQuery } from "@tuanchat/query/users";
-import { useState } from "react";
-import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { CachedImage } from "@/components/CachedImage";
@@ -16,8 +16,6 @@ const styles = StyleSheet.create({
   profileSection: { alignItems: "center", gap: Spacing.lg, paddingVertical: Spacing.xl },
   avatar: { borderRadius: Radius.full, height: AVATAR_SIZE, width: AVATAR_SIZE },
   avatarFallback: { alignItems: "center", backgroundColor: "#6366f1", borderRadius: Radius.full, height: AVATAR_SIZE, justifyContent: "center", width: AVATAR_SIZE },
-  avatarPreviewOverlay: { alignItems: "center", backgroundColor: "rgba(0,0,0,0.9)", flex: 1, justifyContent: "center" },
-  avatarPreviewImage: { borderRadius: Radius.lg, height: 280, width: 280 },
   closeBtn: { alignItems: "center", borderRadius: Radius.md, minHeight: 44, justifyContent: "center", marginTop: Spacing.xl },
 });
 
@@ -31,7 +29,6 @@ type UserProfileSheetProps = {
 
 export function UserProfileSheet({ avatarFileId, onClose, userId, username, visible }: UserProfileSheetProps) {
   const theme = useTheme();
-  const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
   const profileQuery = useGetUserProfileQuery(mobileApiClient, userId ?? -1, {
     enabled: visible && typeof userId === "number" && userId > 0,
   });
@@ -43,31 +40,30 @@ export function UserProfileSheet({ avatarFileId, onClose, userId, username, visi
   const avatarPreviewUrl = displayAvatarFileId ? mediaFileUrl(displayAvatarFileId, "image", "original") : "";
 
   return (
-    <>
-      <BottomSheetModal
-        backgroundColor={theme.surface}
-        handleColor={theme.border}
-        onClose={onClose}
-        visible={visible}
-      >
+    <BottomSheetModal
+      backgroundColor={theme.surface}
+      handleColor={theme.border}
+      onClose={onClose}
+      visible={visible}
+    >
         <View style={styles.profileSection}>
-          <Pressable
-            onPress={() => avatarUrl && setAvatarPreviewVisible(true)}
-            accessibilityLabel="查看用户头像"
-            accessibilityRole="imagebutton"
-          >
-            {avatarUrl
-              ? (
-                  <CachedImage uri={avatarUrl} style={styles.avatar} />
-                )
-              : (
-                  <View style={styles.avatarFallback}>
-                    <ThemedText style={{ color: "#fff", fontSize: 24, fontWeight: "700" }}>
-                      {displayName.slice(0, 1).toUpperCase()}
-                    </ThemedText>
-                  </View>
-                )}
-          </Pressable>
+          {avatarUrl && avatarPreviewUrl
+            ? (
+                <Galeria urls={[avatarPreviewUrl]}>
+                  <Galeria.Image>
+                    <View accessible accessibilityLabel="查看用户头像" accessibilityRole="imagebutton">
+                      <CachedImage uri={avatarUrl} style={styles.avatar} />
+                    </View>
+                  </Galeria.Image>
+                </Galeria>
+              )
+            : (
+                <View style={styles.avatarFallback}>
+                  <ThemedText style={{ color: "#fff", fontSize: 24, fontWeight: "700" }}>
+                    {displayName.slice(0, 1).toUpperCase()}
+                  </ThemedText>
+                </View>
+              )}
           <ThemedText type="title">{displayName}</ThemedText>
           <ThemedText themeColor="textSecondary">
             用户 ID:
@@ -103,30 +99,6 @@ export function UserProfileSheet({ avatarFileId, onClose, userId, username, visi
         >
           <ThemedText>关闭</ThemedText>
         </Pressable>
-      </BottomSheetModal>
-      <Modal
-        visible={visible && avatarPreviewVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setAvatarPreviewVisible(false)}
-      >
-        <Pressable
-          accessibilityLabel="关闭头像预览"
-          accessibilityRole="button"
-          style={styles.avatarPreviewOverlay}
-          onPress={() => setAvatarPreviewVisible(false)}
-        >
-          {avatarPreviewUrl
-            ? (
-                <CachedImage
-                  uri={avatarPreviewUrl}
-                  style={styles.avatarPreviewImage}
-                  contentFit="cover"
-                />
-              )
-            : null}
-        </Pressable>
-      </Modal>
-    </>
+    </BottomSheetModal>
   );
 }

@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./oxlint-base.json": "./oxlint-base.json"
+    "./oxlint-base.json": "./oxlint-base.jsonc",
+    "./oxlint-base.jsonc": "./oxlint-base.jsonc"
   },
   "dependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "^4.7.2",

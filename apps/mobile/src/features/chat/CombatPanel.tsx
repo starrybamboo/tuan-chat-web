@@ -182,12 +182,14 @@ function CombatPanelContent({
       <ThemedText style={styles.title}>战斗</ThemedText>
 
       <View style={styles.section}>
-        {runtime.isAbilityLoading && (
-          <View style={styles.loadingRow}>
-            <ActivityIndicator size="small" color={theme.accent} />
-            <ThemedText type="caption" themeColor="textSecondary">正在同步角色基础变量...</ThemedText>
-          </View>
-        )}
+        {runtime.isAbilityLoading
+          ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" color={theme.accent} />
+                <ThemedText type="caption" themeColor="textSecondary">正在同步角色基础变量...</ThemedText>
+              </View>
+            )
+          : null}
 
         <View style={[styles.panel, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
           <View style={{ alignItems: "center", flexDirection: "row", justifyContent: "space-between", gap: Spacing.md }}>
@@ -202,19 +204,21 @@ function CombatPanelContent({
             </View>
           </View>
 
-          {roomDisplayKeys.length > 0 && (
-            <View style={styles.pillRow}>
-              {roomDisplayKeys.map(key => (
-                <View key={key} style={[styles.pill, { backgroundColor: theme.surface }]}>
-                  <ThemedText type="caption">
-                    {formatStateKeyLabel(key)}
-                    {" "}
-                    {compareStateValueText(runtime.baseDisplayValues.room[key] ?? 0, runtime.derivedDisplayValues.room[key] ?? 0)}
-                  </ThemedText>
+          {roomDisplayKeys.length > 0
+            ? (
+                <View style={styles.pillRow}>
+                  {roomDisplayKeys.map(key => (
+                    <View key={key} style={[styles.pill, { backgroundColor: theme.surface }]}>
+                      <ThemedText type="caption">
+                        {formatStateKeyLabel(key)}
+                        {" "}
+                        {compareStateValueText(runtime.baseDisplayValues.room[key] ?? 0, runtime.derivedDisplayValues.room[key] ?? 0)}
+                      </ThemedText>
+                    </View>
+                  ))}
                 </View>
-              ))}
-            </View>
-          )}
+              )
+            : null}
         </View>
 
         <View style={styles.section}>
@@ -250,11 +254,13 @@ function CombatPanelContent({
                           {typeof initiative === "number" ? initiative : "--"}
                         </ThemedText>
                       </View>
-                      {isCurrentRole && (
-                        <View style={[styles.currentBadge, { backgroundColor: theme.accentMuted }]}>
-                          <ThemedText type="caption" style={{ color: theme.accent }}>当前</ThemedText>
-                        </View>
-                      )}
+                      {isCurrentRole
+                        ? (
+                            <View style={[styles.currentBadge, { backgroundColor: theme.accentMuted }]}>
+                              <ThemedText type="caption" style={{ color: theme.accent }}>当前</ThemedText>
+                            </View>
+                          )
+                        : null}
                     </View>
                     <View style={styles.pillRow}>
                       {primaryKeys.map((key) => {
@@ -306,31 +312,33 @@ function CombatPanelContent({
               })}
         </View>
 
-        {runtime.unresolvedStates.length > 0 && (
-          <View style={styles.section}>
-            <ThemedText type="smallBold">未解析状态</ThemedText>
-            {runtime.unresolvedStates.map((item, index) => (
-              <View
-                key={`${item.messageId}-${item.statusId}-${index}`}
-                style={[styles.panel, { backgroundColor: theme.backgroundElement, borderColor: theme.warning }]}
-              >
-                <ThemedText type="smallBold">{item.statusId}</ThemedText>
-                <ThemedText themeColor="textSecondary" type="caption">
-                  消息 #
-                  {item.messageId}
-                  {" "}
-                  ·
-                  {" "}
-                  {formatStateScopeLabel(item.scope, { roleNameById })}
-                  {" "}
-                  ·
-                  {" "}
-                  {item.reason}
-                </ThemedText>
+        {runtime.unresolvedStates.length > 0
+          ? (
+              <View style={styles.section}>
+                <ThemedText type="smallBold">未解析状态</ThemedText>
+                {runtime.unresolvedStates.map((item, index) => (
+                  <View
+                    key={`${item.messageId}-${item.statusId}-${index}`}
+                    style={[styles.panel, { backgroundColor: theme.backgroundElement, borderColor: theme.warning }]}
+                  >
+                    <ThemedText type="smallBold">{item.statusId}</ThemedText>
+                    <ThemedText themeColor="textSecondary" type="caption">
+                      消息 #
+                      {item.messageId}
+                      {" "}
+                      ·
+                      {" "}
+                      {formatStateScopeLabel(item.scope, { roleNameById })}
+                      {" "}
+                      ·
+                      {" "}
+                      {item.reason}
+                    </ThemedText>
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
-        )}
+            )
+          : null}
       </View>
     </ScrollView>
   );

@@ -23,4 +23,3 @@ export type RoomUpdateRequest = {
      */
     description?: string;
 };
-

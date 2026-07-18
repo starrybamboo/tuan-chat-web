@@ -32,4 +32,3 @@ export type MediaPrepareUploadResponse = {
      */
     uploadTargets?: Record<string, MediaUploadTarget>;
 };
-

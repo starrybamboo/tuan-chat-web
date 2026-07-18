@@ -6,7 +6,7 @@ describe("buildReplayMaterialPackageFromAssetManifest", () => {
   it("把导入期 manifest 的通用素材编译成素材包树", () => {
     const result = buildReplayMaterialPackageFromAssetManifest({
       package: {
-        name: "Replay 导入素材 / opus-88",
+        name: "Replay 导入素材 / sample-replay",
         description: "测试素材包",
       },
       media: {
@@ -56,7 +56,7 @@ describe("buildReplayMaterialPackageFromAssetManifest", () => {
       },
     });
 
-    expect(result.name).toBe("Replay 导入素材 / opus-88");
+    expect(result.name).toBe("Replay 导入素材 / sample-replay");
     expect(result.description).toBe("测试素材包");
     expect(result.content.root?.map(node => node.name)).toEqual(["背景", "BGM", "SE", "CG", "资料"]);
     expect(result.content.root).toMatchObject([
@@ -302,7 +302,7 @@ describe("buildReplayMaterialPackageFromAssetManifest", () => {
 
   it("导入通用素材时没有同名素材包则创建", async () => {
     const replayPackage = buildReplayMaterialPackageFromAssetManifest({
-      package: { name: "Replay 导入素材 / opus-88" },
+      package: { name: "Replay 导入素材 / sample-replay" },
       media: {
         backgrounds: {
           永远亭夜晚: { fileId: 9101 },
@@ -323,21 +323,21 @@ describe("buildReplayMaterialPackageFromAssetManifest", () => {
 
     expect(createPackage).toHaveBeenCalledWith(expect.objectContaining({
       spaceId: 10788,
-      name: "Replay 导入素材 / opus-88",
+      name: "Replay 导入素材 / sample-replay",
       content: replayPackage.content,
     }));
     expect(updatePackage).not.toHaveBeenCalled();
     expect(result).toEqual({
       action: "create",
       materialCount: 1,
-      name: "Replay 导入素材 / opus-88",
+      name: "Replay 导入素材 / sample-replay",
       spacePackageId: 7001,
     });
   });
 
   it("导入通用素材时存在同名素材包则破坏性重写", async () => {
     const replayPackage = buildReplayMaterialPackageFromAssetManifest({
-      package: { name: "Replay 导入素材 / opus-88" },
+      package: { name: "Replay 导入素材 / sample-replay" },
       media: {
         bgm: {
           战斗曲: { fileId: 9201 },
@@ -363,13 +363,13 @@ describe("buildReplayMaterialPackageFromAssetManifest", () => {
     expect(updatePackage).toHaveBeenCalledWith(expect.objectContaining({
       spaceId: 10788,
       spacePackageId: 7002,
-      name: "Replay 导入素材 / opus-88",
+      name: "Replay 导入素材 / sample-replay",
       content: replayPackage.content,
     }));
     expect(result).toEqual({
       action: "update",
       materialCount: 2,
-      name: "Replay 导入素材 / opus-88",
+      name: "Replay 导入素材 / sample-replay",
       spacePackageId: 7002,
     });
   });

@@ -24,4 +24,3 @@ export type ApiResultAiGatewayModelCatalogResponse = {
      */
     data?: AiGatewayModelCatalogResponse;
 };
-

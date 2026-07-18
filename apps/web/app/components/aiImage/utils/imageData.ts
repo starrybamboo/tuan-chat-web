@@ -1,9 +1,7 @@
 import { unzipSync } from "fflate";
 
-import type {
-  ImportedSourceImagePayload,
-  NovelAiEmotion,
-} from "@/components/aiImage/types";
+import type { ImportedSourceImagePayload } from "@/components/aiImage/types";
+import type { AiImageGenerationMode } from "@/components/aiImage/types";
 import type { AiImageHistoryMode } from "@/utils/aiImageHistoryDb";
 
 import { JPEG_REJECT_ERROR } from "@/components/aiImage/constants";
@@ -29,7 +27,18 @@ export function mimeFromFilename(name: string) {
     return "image/webp";
   if (lower.endsWith(".jpg") || lower.endsWith(".jpeg"))
     return "image/jpeg";
+  if (lower.endsWith(".gif"))
+    return "image/gif";
+  if (lower.endsWith(".bmp"))
+    return "image/bmp";
+  if (lower.endsWith(".avif"))
+    return "image/avif";
   return "application/octet-stream";
+}
+
+export function isSupportedImageFile(file: Pick<File, "name" | "type">) {
+  const declaredType = String(file.type || "").toLowerCase();
+  return declaredType.startsWith("image/") || mimeFromFilename(file.name).startsWith("image/");
 }
 
 export function extensionFromDataUrl(dataUrl: string) {
@@ -80,13 +89,7 @@ export function buildImportedSourceImagePayloadFromDataUrl(args: {
   };
 }
 
-export function resolveEditorImageMode(sourceDataUrl?: string | null): "txt2img" | "img2img" {
-  return buildImportedSourceImagePayloadFromDataUrl({ dataUrl: String(sourceDataUrl || "") })
-    ? "img2img"
-    : "txt2img";
-}
-
-export function resolveSimpleGenerateMode(mode: AiImageHistoryMode): AiImageHistoryMode {
+export function resolveSimpleGenerateMode(mode: AiImageHistoryMode): AiImageGenerationMode {
   return mode === "infill" ? "infill" : "txt2img";
 }
 
@@ -240,10 +243,6 @@ async function loadImageElement(dataUrl: string): Promise<HTMLImageElement> {
     img.onerror = () => reject(new Error("读取图片失败"));
     img.src = dataUrl;
   });
-}
-
-export function formatDirectorEmotionLabel(value: NovelAiEmotion) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 export async function readImageSize(dataUrl: string): Promise<{ width: number; height: number }> {

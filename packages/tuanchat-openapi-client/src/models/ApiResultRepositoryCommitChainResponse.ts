@@ -24,4 +24,3 @@ export type ApiResultRepositoryCommitChainResponse = {
      */
     data?: RepositoryCommitChainResponse;
 };
-

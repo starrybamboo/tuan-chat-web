@@ -11,7 +11,7 @@ describe("executeLoginAction", () => {
       identifier: "alice",
       loginMethod: "username",
       password: "secret",
-      router: { replace },
+      replace,
       signIn,
     });
 
@@ -32,7 +32,7 @@ describe("executeLoginAction", () => {
       identifier: "alice",
       loginMethod: "username",
       password: "secret",
-      router: { replace },
+      replace,
       signIn,
     })).rejects.toThrow(signInError);
 

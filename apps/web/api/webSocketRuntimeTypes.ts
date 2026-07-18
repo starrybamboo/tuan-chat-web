@@ -1,19 +1,21 @@
 import type { MessageDirectSendRequest } from "@tuanchat/openapi-client/models/MessageDirectSendRequest";
+
 import type { ChatStatusPayload } from "./wsModels";
 
-export interface ChatStatus {
+export type ChatStatus = {
   userId: number;
   status: ChatStatusPayload;
-}
+};
 
-export interface WsMessage<T> {
+export type WsMessage<T> = {
   type: number;
   data?: T;
-}
+};
 
 export type OptimisticDirectMessagePending = {
   channelId: number;
   cleanupTimer: ReturnType<typeof setTimeout>;
+  pendingWritePromise: Promise<void>;
   request: MessageDirectSendRequest;
   createdAt: number;
 };

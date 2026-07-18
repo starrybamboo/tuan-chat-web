@@ -28,4 +28,3 @@ export type RoomJumpExtra = {
      */
     label?: string;
 };
-

@@ -24,4 +24,3 @@ export type ApiResultOssResp = {
      */
     data?: OssResp;
 };
-

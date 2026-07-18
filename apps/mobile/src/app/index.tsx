@@ -27,5 +27,5 @@ export default function IndexRedirect() {
     );
   }
 
-  return <Redirect href={redirectHref as any} />;
+  return redirectHref ? <Redirect href={redirectHref} /> : null;
 }

@@ -1,0 +1,88 @@
+{
+  // 所有手写 TypeScript/JavaScript 共享的最低规则集；各运行端只覆盖平台差异。
+  "jsPlugins": [
+    {
+      "name": "react-hooks-js",
+      "specifier": "eslint-plugin-react-hooks"
+    },
+    {
+      "name": "perfectionist",
+      "specifier": "eslint-plugin-perfectionist"
+    },
+    {
+      "name": "eslint-comments",
+      "specifier": "@eslint-community/eslint-plugin-eslint-comments"
+    }
+  ],
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "react",
+    "vitest",
+    "node",
+    "import"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "**/*.{js,jsx,ts,tsx}"
+      ],
+      "rules": {
+        // TypeScript 已负责声明合并与类型空间检查，避免误报合法的类型/值同名声明。
+        "typescript/no-redeclare": "off",
+        // 允许函数、类型和模块级 helper 按阅读顺序组织；运行时初始化顺序仍由编译器与测试兜底。
+        "typescript/no-use-before-define": "off",
+        // 统一使用 type 是迁移目标，先以 warning 推进，避免一次性阻断存量代码。
+        "typescript/consistent-type-definitions": [
+          "warn",
+          "type"
+        ],
+        // 静态展示列表和固定占位列表仍有 index key；领域长列表的稳定 key 由专项规则和评审保证。
+        "react/no-array-index-key": "off",
+        // 导入排序属于可机械修复的风格问题，不阻断本地 lint。
+        "perfectionist/sort-imports": [
+          "warn",
+          {
+            "tsconfigRootDir": "."
+          }
+        ],
+        // 仓库同时存在框架约定文件、React 组件和普通模块，因此接受三种既有命名形式。
+        "unicorn/filename-case": [
+          "error",
+          {
+            "cases": {
+              "camelCase": true,
+              "kebabCase": true,
+              "pascalCase": true
+            },
+            "ignore": [
+              "README.md"
+            ]
+          }
+        ],
+        // React Compiler 新规则在共享基线中保持关闭，由 Web/Mobile 按成熟度分别启用。
+        "react-hooks-js/immutability": "off",
+        "react-hooks-js/preserve-manual-memoization": "off",
+        "react-hooks-js/purity": "off",
+        "react-hooks-js/refs": "off",
+        "react-hooks-js/set-state-in-effect": "off",
+        "react-hooks-js/static-components": "off",
+        // 渲染阶段写状态通常会形成循环，所有 React 运行端都直接视为错误。
+        "react-hooks-js/set-state-in-render": "error",
+        // 暂不支持的编译器语法先告警，给旧代码保留迁移窗口。
+        "react-hooks-js/unsupported-syntax": "warn"
+      }
+    }
+  ],
+  // 只排除依赖、缓存和构建产物；业务源码由根或应用配置负责纳入。
+  "ignorePatterns": [
+    ".codex-tmp/**",
+    ".pnpm-patch-work/**",
+    "build/**",
+    "coverage/**",
+    "dist/**",
+    "node_modules/.cache/**",
+    "node_modules/**",
+    "release/**"
+  ]
+}

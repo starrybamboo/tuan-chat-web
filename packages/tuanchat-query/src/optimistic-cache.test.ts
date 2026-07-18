@@ -45,6 +45,22 @@ describe("optimistic-cache", () => {
     expect(queryClient.getQueryData(["item", 1])).toEqual({ count: 3 });
   });
 
+  it("后续同值写入发生结构共享时也不回滚", async () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(["item", 1], { count: 1 });
+
+    const transaction = await beginOptimisticQueryTransaction(queryClient, [
+      optimisticQueryPatch<{ count: number }>({
+        queryKey: ["item", 1],
+        update: () => ({ count: 2 }),
+      }),
+    ]);
+    queryClient.setQueryData(["item", 1], { count: 2 });
+
+    rollbackOptimisticQueryTransaction(queryClient, transaction);
+    expect(queryClient.getQueryData(["item", 1])).toEqual({ count: 2 });
+  });
+
   it("回滚事务创建的临时缓存", async () => {
     const queryClient = new QueryClient();
     const transaction = await beginOptimisticQueryTransaction(queryClient, [
@@ -57,5 +73,25 @@ describe("optimistic-cache", () => {
     expect(queryClient.getQueryData(["selection", 7])).toEqual({ selected: true });
     rollbackOptimisticQueryTransaction(queryClient, transaction);
     expect(queryClient.getQueryData(["selection", 7])).toBeUndefined();
+  });
+
+  it("同一事务多次更新同一缓存时会回到事务前状态", async () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(["item", 1], { count: 1 });
+
+    const transaction = await beginOptimisticQueryTransaction(queryClient, [
+      optimisticQueryPatch<{ count: number }>({
+        queryKey: ["item", 1],
+        update: current => ({ count: (current?.count ?? 0) + 1 }),
+      }),
+      optimisticQueryPatch<{ count: number }>({
+        queryKey: ["item", 1],
+        update: current => ({ count: (current?.count ?? 0) + 1 }),
+      }),
+    ]);
+
+    expect(queryClient.getQueryData(["item", 1])).toEqual({ count: 3 });
+    rollbackOptimisticQueryTransaction(queryClient, transaction);
+    expect(queryClient.getQueryData(["item", 1])).toEqual({ count: 1 });
   });
 });

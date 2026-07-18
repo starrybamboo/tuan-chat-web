@@ -1,5 +1,7 @@
 import { getClueCardRenderData, getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 import { isSystemRowMessageType } from "@tuanchat/domain/poke-message";
+import { ArrowClockwiseIcon, TrashSimpleIcon } from "@phosphor-icons/react";
+import { buildRoomMessageRetryRequest, isFailedRoomMessage } from "@tuanchat/query/room-message-lifecycle";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
@@ -15,8 +17,6 @@ import MessageAnnotationsBar from "@/components/chat/message/annotations/message
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
 import { buildMessageTextDiff } from "@/components/chat/message/diff/messageTextDiff";
 import MessageTextDiffPreview from "@/components/chat/message/diff/MessageTextDiffPreview";
-import { MediaImage } from "@/components/common/mediaImage";
-import PortalTooltip from "@/components/common/portalTooltip";
 import EditableMessageContent from "@/components/chat/message/editableMessageContent";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
 import ForwardMessage from "@/components/chat/message/preview/forwardMessage";
@@ -34,13 +34,16 @@ import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
 import { appToast } from "@/components/common/appToast/appToast";
 import { Button } from "@/components/common/Button";
-import { DialogActions, DialogFrame } from "@/components/common/DialogFrame";
-import { Badge } from "@/components/common/StatusPrimitives";
+import { DialogFrame } from "@/components/common/DialogFrame";
+import { IconButton } from "@/components/common/IconButton";
+import { MediaImage } from "@/components/common/mediaImage";
+import PortalTooltip from "@/components/common/portalTooltip";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { Badge } from "@/components/common/StatusPrimitives";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { CommentOutline, Edit2Outline, EmojiIconWhite, InsertLineBelow, ListUnordered, MoreMenu, NarratorIcon, ScreenIcon } from "@/icons";
+import { CloseIcon, CommentOutline, Edit2Outline, EmojiIconWhite, InsertLineBelow, ListUnordered, MoreMenu, NarratorIcon, ScreenIcon } from "@/icons";
 import {
   ANNOTATION_IDS,
   areAnnotationsEqual,
@@ -241,8 +244,16 @@ function ClueCardReadonlyModal({
       rootClassName="z-9999"
       panelClassName="max-w-2xl"
     >
-        <div className="mb-3">
+        <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="text-base font-semibold">查看线索</h3>
+          <IconButton
+            variant="ghost"
+            size="sm"
+            shape="square"
+            label="关闭线索"
+            onClick={onClose}
+            icon={<CloseIcon className="size-4" />}
+          />
         </div>
 
         <div className="
@@ -257,12 +268,6 @@ function ClueCardReadonlyModal({
             cacheKeyBase={`clue-card-modal:${message.messageId ?? "snapshot"}`}
           />
         </div>
-
-        <DialogActions>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            关闭
-          </Button>
-        </DialogActions>
     </DialogFrame>
   );
 }
@@ -387,6 +392,23 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     }
   }, []);
   const roomContext = use(RoomContext);
+  const isFailedMessage = isFailedRoomMessage(message);
+  const handleRetryFailedMessage = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const request = buildRoomMessageRetryRequest(message);
+    if (!request || !roomContext.sendMessageWithInsert || !roomContext.chatHistory) {
+      appToast.error("这条消息暂时无法重新发送");
+      return;
+    }
+    await roomContext.chatHistory.removeMessageById(message.messageId);
+    await roomContext.sendMessageWithInsert(request);
+  }, [message, roomContext]);
+  const handleRemoveFailedMessage = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    await roomContext.chatHistory?.removeMessageById(message.messageId);
+  }, [message.messageId, roomContext.chatHistory]);
   const roleFromRoom = roomContext.roomAllRoles?.find(item => item.roleId === chatMessageResponse.message.roleId);
   const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId ?? 0, { enabled: !roleFromRoom });
   const role = roleFromRoom ?? useRoleRequest.data?.data;
@@ -1764,6 +1786,30 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                 </div>
               </div>
             )}
+      {isFailedMessage && (
+        <div className="mt-1 flex items-center justify-end gap-1.5 pr-2 text-xs text-error">
+          <span>发送失败</span>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 hover:bg-error/10"
+            title="重新发送"
+            aria-label="重新发送失败消息"
+            onClick={handleRetryFailedMessage}
+          >
+            <ArrowClockwiseIcon className="size-3.5" />
+            重试
+          </button>
+          <button
+            type="button"
+            className="inline-flex size-6 items-center justify-center rounded-md hover:bg-error/10"
+            title="删除失败消息"
+            aria-label="删除失败消息"
+            onClick={handleRemoveFailedMessage}
+          >
+            <TrashSimpleIcon className="size-3.5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1789,6 +1835,7 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
     && prevMsg.updateTime === nextMsg.updateTime
     && prevMsg.messageType === nextMsg.messageType
     && prevMsg.status === nextMsg.status
+    && (prevMsg as { tcLocalSyncState?: string }).tcLocalSyncState === (nextMsg as { tcLocalSyncState?: string }).tcLocalSyncState
     && prevMsg.replyMessageId === nextMsg.replyMessageId
     && prevMsg.inheritedArchiveMessageId === nextMsg.inheritedArchiveMessageId
     && prevMsg.versionState === nextMsg.versionState

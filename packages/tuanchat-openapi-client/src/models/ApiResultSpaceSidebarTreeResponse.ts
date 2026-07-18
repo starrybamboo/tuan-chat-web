@@ -24,4 +24,3 @@ export type ApiResultSpaceSidebarTreeResponse = {
      */
     data?: SpaceSidebarTreeResponse;
 };
-

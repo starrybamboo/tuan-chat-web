@@ -95,7 +95,7 @@ export default function WebGALPreview({
   });
   const webgalEditorUrl = useMemo(() => buildWebGALEditorUrl({
     previewUrl,
-    terreBaseUrl: getTerreBaseUrl(),
+    terreBaseUrl: getTerreBaseUrl(terrePort),
   }) ?? previewUrl ?? "#", [previewUrl, terrePort]);
   const combatVisualActive = useMemo(() => {
     const messages = roomContext.chatHistory?.messages ?? [];

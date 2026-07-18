@@ -24,4 +24,3 @@ export type ApiResultMediaPrepareUploadResponse = {
      */
     data?: MediaPrepareUploadResponse;
 };
-

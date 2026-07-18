@@ -2,7 +2,6 @@ import type {
   ActivePreviewAction,
   DirectorToolId,
   DirectorToolOption,
-  NovelAiEmotion,
   ProFeatureSectionKey,
   ResolutionPreset,
   ResolutionSelection,
@@ -19,18 +18,11 @@ export const NOVELAI_FREE_MAX_IMAGE_AREA = 1024 * 1024;
 export const NOVELAI_FREE_MAX_STEPS = 28;
 export const NOVELAI_FREE_FIXED_IMAGE_COUNT = 1;
 export const NOVELAI_FREE_ONLY_NOTICE = `当前默认禁用大部分会消耗 NovelAI Anlas 的操作；保留免费单张 txt2img，并单独开放 Inpaint（仍限制为单张、自定义尺寸总面积不超过 1024x1024、steps <= 28）。`;
-
-export const AVAILABLE_MODEL_OPTIONS = [
-  "nai-diffusion-4-5-curated",
-  "nai-diffusion-4-5-full",
-  "nai-diffusion-4-curated-preview",
-  "nai-diffusion-4-full",
-  "nai-diffusion-3",
-  "nai-diffusion-furry",
-  "safe-diffusion",
-  "nai-diffusion-2",
-  "nai-diffusion",
-] as const;
+export const DEFAULT_INPAINT_PROMPT = "very aesthetic, masterpiece, no text";
+export const DEFAULT_INPAINT_NEGATIVE_PROMPT = "nsfw, lowres, artistic error, film grain, scan artifacts, worst quality, bad quality, jpeg artifacts, very displeasing, chromatic aberration, dithering, halftone, screentone, multiple views, logo, too many watermarks, negative space, blank page";
+export const DEFAULT_INPAINT_STRENGTH = 1;
+export const DEFAULT_INPAINT_NOISE = 0;
+export const DEFAULT_OVERLAY_ORIGINAL_IMAGE = false;
 
 export const SAMPLERS_NAI4 = [
   "k_euler",
@@ -45,33 +37,6 @@ export const NOISE_SCHEDULES_NAI4 = [
   "karras",
   "exponential",
   "polyexponential",
-] as const;
-
-export const DIRECTOR_EMOTION_OPTIONS: readonly NovelAiEmotion[] = [
-  "neutral",
-  "happy",
-  "sad",
-  "angry",
-  "scared",
-  "surprised",
-  "tired",
-  "excited",
-  "nervous",
-  "thinking",
-  "confused",
-  "shy",
-  "disgusted",
-  "smug",
-  "bored",
-  "laughing",
-  "irritated",
-  "aroused",
-  "embarrassed",
-  "worried",
-  "love",
-  "determined",
-  "hurt",
-  "playful",
 ] as const;
 
 export const RESOLUTION_PRESETS: ResolutionPreset[] = [
@@ -90,10 +55,9 @@ export const DEFAULT_PRO_IMAGE_SETTINGS = {
   noiseSchedule: "karras",
   cfgRescale: 0,
   ucPreset: 0,
-  qualityToggle: false,
+  qualityToggle: true,
+  cfgDelay: false,
   dynamicThresholding: false,
-  smea: false,
-  smeaDyn: false,
   strength: 0.7,
   noise: 0.2,
   seed: -1,
@@ -111,18 +75,12 @@ export const DEFAULT_SIMPLE_IMAGE_SETTINGS = {
   cfgRescale: 0,
   ucPreset: DEFAULT_PRO_IMAGE_SETTINGS.ucPreset,
   qualityToggle: DEFAULT_PRO_IMAGE_SETTINGS.qualityToggle,
+  cfgDelay: DEFAULT_PRO_IMAGE_SETTINGS.cfgDelay,
   dynamicThresholding: DEFAULT_PRO_IMAGE_SETTINGS.dynamicThresholding,
-  smea: DEFAULT_PRO_IMAGE_SETTINGS.smea,
-  smeaDyn: DEFAULT_PRO_IMAGE_SETTINGS.smeaDyn,
   strength: DEFAULT_PRO_IMAGE_SETTINGS.strength,
   noise: DEFAULT_PRO_IMAGE_SETTINGS.noise,
   seed: DEFAULT_PRO_IMAGE_SETTINGS.seed,
   simpleResolutionSelection: DEFAULT_PRO_IMAGE_SETTINGS.simpleResolutionSelection,
-} as const;
-
-export const DEFAULT_IMG2IMG_SETTINGS = {
-  strength: DEFAULT_PRO_IMAGE_SETTINGS.strength,
-  noise: DEFAULT_PRO_IMAGE_SETTINGS.noise,
 } as const;
 
 export const UC_PRESET_OPTIONS = [
@@ -132,18 +90,13 @@ export const UC_PRESET_OPTIONS = [
 ] as const;
 
 export const DEFAULT_PRO_FEATURE_SECTION_OPEN: Record<ProFeatureSectionKey, boolean> = {
-  baseImage: false,
   characterPrompts: false,
-  vibeTransfer: false,
-  preciseReference: false,
 };
 
 export const DIRECTOR_TOOL_OPTIONS: readonly DirectorToolOption[] = [
-  { id: "removeBackground", label: "Remove BG", description: "自动抠出主体并移除背景。", requestType: "bg-removal", parameterMode: "none" },
   { id: "lineArt", label: "Line Art", description: "把当前图提取成更干净的线稿。", requestType: "lineart", parameterMode: "none" },
   { id: "sketch", label: "Sketch", description: "把当前图转成更粗放的草图层。", requestType: "sketch", parameterMode: "none" },
   { id: "colorize", label: "Colorize", description: "为线稿或草图重新着色。", requestType: "colorize", parameterMode: "colorize" },
-  { id: "emotion", label: "Emotion", description: "在保留主体的前提下调整表情。", requestType: "emotion", parameterMode: "emotion" },
   { id: "declutter", label: "Declutter", description: "清理背景杂物和干扰元素。", requestType: "declutter", parameterMode: "none" },
 ] as const;
 
@@ -153,20 +106,11 @@ export const DIRECTOR_TOOL_OPTIONS_BY_ID = Object.fromEntries(
 
 export const DEFAULT_DIRECTOR_TOOL_ID: DirectorToolId = "lineArt";
 
-const DISABLED_DIRECTOR_TOOL_IDS = new Set<DirectorToolId>(["removeBackground", "emotion"]);
-
-export function isDirectorToolDisabled(toolId: DirectorToolId) {
-  return DISABLED_DIRECTOR_TOOL_IDS.has(toolId);
-}
-
 export const PREVIEW_ACTION_LABELS: Record<Exclude<ActivePreviewAction, "">, string> = {
-  upscale: "Upscale 4x",
-  removeBackground: "Remove BG",
   declutter: "Declutter",
   lineArt: "Line Art",
   sketch: "Sketch",
   colorize: "Colorize",
-  emotion: "Emotion",
 };
 
 export const SAMPLER_LABELS: Record<string, string> = {
@@ -187,16 +131,4 @@ export const SCHEDULE_LABELS: Record<string, string> = {
   karras: "Karras",
   exponential: "Exponential",
   polyexponential: "Polyexponential",
-};
-
-export const MODEL_DESCRIPTIONS: Record<string, string> = {
-  "nai-diffusion-4-5-curated": "A version of our newest model trained on a curated subset of images. Recommended for streaming.",
-  "nai-diffusion-4-5-full": "Our newest and best model.",
-  "nai-diffusion-4-curated-preview": "A curated preview model with stronger prompt adherence.",
-  "nai-diffusion-4-full": "NAI Diffusion V4 full model.",
-  "nai-diffusion-3": "Balanced anime image model with classic NAI controls.",
-  "nai-diffusion-furry": "Optimized for furry and kemono content.",
-  "safe-diffusion": "A safer general-purpose diffusion model.",
-  "nai-diffusion-2": "NAI Diffusion V2 model.",
-  "nai-diffusion": "Original NAI Diffusion model.",
 };

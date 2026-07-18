@@ -239,7 +239,6 @@ export default function useRoomImportActions({
     isSubmitting,
     notMember,
     roomId,
-    roomUiStoreApi,
     sendMessageWithInsert,
   ]);
 
@@ -364,7 +363,6 @@ export default function useRoomImportActions({
     isSubmitting,
     notMember,
     roomId,
-    roomUiStoreApi,
     sendMessageWithInsert,
     spaceId,
   ]);
@@ -422,7 +420,6 @@ export default function useRoomImportActions({
     isSubmitting,
     notMember,
     roomId,
-    roomUiStoreApi,
     sendMessageWithInsert,
     spaceId,
   ]);

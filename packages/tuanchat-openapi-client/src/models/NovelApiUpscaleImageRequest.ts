@@ -23,4 +23,3 @@ export type NovelApiUpscaleImageRequest = {
      */
     scale: number;
 };
-

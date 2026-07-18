@@ -10,8 +10,8 @@ import {
   getClosestValidImageSize,
   getNovelAiFreeGenerationViolation,
   historyRowResultMatchKey,
+  isSupportedImageFile,
   mergeTagString,
-  resolveEditorImageMode,
   resolveHistoryRowClickMode,
   resolveImportedValue,
   resolveSimpleGenerateMode,
@@ -122,7 +122,7 @@ describe("aiImage helpers", () => {
     expect(row.preciseReference).not.toBe(sourceHistoryRow.preciseReference);
   });
 
-  it("falls back to img2img metadata when the director source has no history row", () => {
+  it("falls back to txt2img metadata when the director source has no history row", () => {
     expect(buildDirectorToolHistoryRow({
       createdAt: 7,
       output: {
@@ -149,7 +149,7 @@ describe("aiImage helpers", () => {
       sourceHistoryRow: null,
     })).toMatchObject({
       createdAt: 7,
-      mode: "img2img",
+      mode: "txt2img",
       prompt: "",
       negativePrompt: "",
       sourceDataUrl: "data:image/png;base64,source-image",
@@ -179,17 +179,17 @@ describe("aiImage helpers", () => {
     });
   });
 
+  it("rejects named non-image files while accepting extension-only image files", () => {
+    expect(isSupportedImageFile({ name: "notes.txt", type: "text/plain" })).toBe(false);
+    expect(isSupportedImageFile({ name: "reference.avif", type: "" })).toBe(true);
+    expect(isSupportedImageFile({ name: "clipboard", type: "image/png" })).toBe(true);
+  });
+
   it("maps Ctrl/Cmd and Shift modifiers to the expected history import actions", () => {
     expect(resolveHistoryRowClickMode({ ctrlKey: false, metaKey: false, shiftKey: false })).toBe("preview");
     expect(resolveHistoryRowClickMode({ ctrlKey: true, metaKey: false, shiftKey: false })).toBe("settings");
     expect(resolveHistoryRowClickMode({ ctrlKey: false, metaKey: false, shiftKey: true })).toBe("seed");
     expect(resolveHistoryRowClickMode({ ctrlKey: false, metaKey: true, shiftKey: true })).toBe("settings-with-seed");
-  });
-
-  it("maps history source images back to editable img2img mode", () => {
-    expect(resolveEditorImageMode("data:image/png;base64,abc123")).toBe("img2img");
-    expect(resolveEditorImageMode("not-a-data-url")).toBe("txt2img");
-    expect(resolveEditorImageMode("")).toBe("txt2img");
   });
 
   it("keeps simple mode generation on infill after an inpaint save", () => {
@@ -235,7 +235,7 @@ describe("aiImage helpers", () => {
     })).toBeNull();
   });
 
-  it("permits img2img generation when a source image is provided", () => {
+  it("blocks img2img generation even when a source image is provided", () => {
     expect(getNovelAiFreeGenerationViolation({
       mode: "img2img",
       width: 704,
@@ -243,7 +243,7 @@ describe("aiImage helpers", () => {
       imageCount: 1,
       steps: 23,
       sourceImageBase64: "abc123",
-    })).toBeNull();
+    })).toContain("普通图生图已禁用");
   });
 
   it("blocks imported source images when the total area exceeds 1024x1024", () => {

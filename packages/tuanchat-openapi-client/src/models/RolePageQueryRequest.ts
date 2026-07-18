@@ -23,4 +23,3 @@ export type RolePageQueryRequest = {
      */
     roleName?: string;
 };
-

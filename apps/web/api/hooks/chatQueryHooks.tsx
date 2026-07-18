@@ -1,31 +1,30 @@
 import type { QueryClient } from "@tanstack/react-query";
-
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { tuanchat } from "../instance";
-import type { RoomAddRequest } from "@tuanchat/openapi-client/models/RoomAddRequest";
-import type { SpaceMemberDeleteRequest } from "@tuanchat/openapi-client/models/SpaceMemberDeleteRequest";
-import type { SpaceMemberAddRequest } from "@tuanchat/openapi-client/models/SpaceMemberAddRequest";
-import type { SpaceAddRequest } from "@tuanchat/openapi-client/models/SpaceAddRequest";
-import type { SpaceOwnerTransferRequest } from "@tuanchat/openapi-client/models/SpaceOwnerTransferRequest";
-import type { PlayerGrantRequest } from "@tuanchat/openapi-client/models/PlayerGrantRequest";
-import type { SpaceMemberTypeUpdateRequest } from "@tuanchat/openapi-client/models/SpaceMemberTypeUpdateRequest";
-import type { RoomRoleDeleteRequest } from "@tuanchat/openapi-client/models/RoomRoleDeleteRequest";
-import type { RoomRoleAddRequest } from "@tuanchat/openapi-client/models/RoomRoleAddRequest";
-import type { RoomMemberAddRequest } from "@tuanchat/openapi-client/models/RoomMemberAddRequest";
-import type { RoomMemberDeleteRequest } from "@tuanchat/openapi-client/models/RoomMemberDeleteRequest";
-import type { RoomUpdateRequest } from "@tuanchat/openapi-client/models/RoomUpdateRequest";
-import type { SpaceUpdateRequest } from "@tuanchat/openapi-client/models/SpaceUpdateRequest";
-import type { Message } from "@tuanchat/openapi-client/models/Message";
-import type { RoomExtraRequest } from "@tuanchat/openapi-client/models/RoomExtraRequest";
-import type { RoomExtraSetRequest } from "@tuanchat/openapi-client/models/RoomExtraSetRequest";
-import type { SpaceExtraSetRequest } from "@tuanchat/openapi-client/models/SpaceExtraSetRequest";
-import type { SpaceRole } from "@tuanchat/openapi-client/models/SpaceRole";
-import type { SpaceArchiveRequest } from "@tuanchat/openapi-client/models/SpaceArchiveRequest";
-import type { SpaceRecoverRequest } from "@tuanchat/openapi-client/models/SpaceRecoverRequest";
-import type { LeaderTransferRequest } from "@tuanchat/openapi-client/models/LeaderTransferRequest";
-import type { ApiResultString } from "@tuanchat/openapi-client/models/ApiResultString";
 import type { ApiResultRoom } from "@tuanchat/openapi-client/models/ApiResultRoom";
 import type { ApiResultRoomListResponse } from "@tuanchat/openapi-client/models/ApiResultRoomListResponse";
+import type { ApiResultString } from "@tuanchat/openapi-client/models/ApiResultString";
+import type { LeaderTransferRequest } from "@tuanchat/openapi-client/models/LeaderTransferRequest";
+import type { Message } from "@tuanchat/openapi-client/models/Message";
+import type { PlayerGrantRequest } from "@tuanchat/openapi-client/models/PlayerGrantRequest";
+import type { RoomAddRequest } from "@tuanchat/openapi-client/models/RoomAddRequest";
+import type { RoomExtraRequest } from "@tuanchat/openapi-client/models/RoomExtraRequest";
+import type { RoomExtraSetRequest } from "@tuanchat/openapi-client/models/RoomExtraSetRequest";
+import type { RoomMemberAddRequest } from "@tuanchat/openapi-client/models/RoomMemberAddRequest";
+import type { RoomMemberDeleteRequest } from "@tuanchat/openapi-client/models/RoomMemberDeleteRequest";
+import type { RoomRoleAddRequest } from "@tuanchat/openapi-client/models/RoomRoleAddRequest";
+import type { RoomRoleDeleteRequest } from "@tuanchat/openapi-client/models/RoomRoleDeleteRequest";
+import type { RoomUpdateRequest } from "@tuanchat/openapi-client/models/RoomUpdateRequest";
+import type { SpaceAddRequest } from "@tuanchat/openapi-client/models/SpaceAddRequest";
+import type { SpaceArchiveRequest } from "@tuanchat/openapi-client/models/SpaceArchiveRequest";
+import type { SpaceExtraSetRequest } from "@tuanchat/openapi-client/models/SpaceExtraSetRequest";
+import type { SpaceMemberAddRequest } from "@tuanchat/openapi-client/models/SpaceMemberAddRequest";
+import type { SpaceMemberDeleteRequest } from "@tuanchat/openapi-client/models/SpaceMemberDeleteRequest";
+import type { SpaceMemberTypeUpdateRequest } from "@tuanchat/openapi-client/models/SpaceMemberTypeUpdateRequest";
+import type { SpaceOwnerTransferRequest } from "@tuanchat/openapi-client/models/SpaceOwnerTransferRequest";
+import type { SpaceRecoverRequest } from "@tuanchat/openapi-client/models/SpaceRecoverRequest";
+import type { SpaceRole } from "@tuanchat/openapi-client/models/SpaceRole";
+import type { SpaceUpdateRequest } from "@tuanchat/openapi-client/models/SpaceUpdateRequest";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     usePatchMessagesMutation as useSharedPatchMessagesMutation,
     useSendMessageMutation as useSharedSendMessageMutation,
@@ -34,6 +33,11 @@ import {
     useGetRoomMembersQuery as useSharedGetRoomMembersQuery,
     useGetSpaceMembersQuery as useSharedGetSpaceMembersQuery,
 } from "@tuanchat/query/members";
+import {
+    beginOptimisticQueryTransaction,
+    optimisticQueryPatch,
+    rollbackOptimisticQueryTransaction,
+} from "@tuanchat/query/optimistic-cache";
 import {
     fetchUserRoomsWithCache as fetchSharedUserRoomsWithCache,
     getMyArchivedSpacesQueryKey,
@@ -46,6 +50,8 @@ import {
     useGetUserRoomsQuery as useSharedGetUserRoomsQuery,
     useGetUserSpacesQuery as useSharedGetUserSpacesQuery,
 } from "@tuanchat/query/spaces";
+
+import { tuanchat } from "../instance";
 import {
     invalidateRoomMemberQueries,
     invalidateSpaceMemberQueries,
@@ -79,11 +85,6 @@ import {
     beginSpaceUpdateOptimisticMutation,
     rollbackSpaceOptimisticMutation,
 } from "./spaceOptimisticCache";
-import {
-    beginOptimisticQueryTransaction,
-    optimisticQueryPatch,
-    rollbackOptimisticQueryTransaction,
-} from "@tuanchat/query/optimistic-cache";
 
 export const ROOM_INFO_STALE_TIME_MS = 300_000;
 export const SPACE_INFO_STALE_TIME_MS = 300_000;
@@ -135,70 +136,6 @@ function isSuccessfulApiResult(result: { success?: boolean } | null | undefined)
 function getApiResultErrorMessage(result: { errMsg?: string } | null | undefined, fallback: string): string {
     const message = result?.errMsg?.trim();
     return message || fallback;
-}
-
-export async function updateSpaceMemberTypeWithSuccessGuard(requestBody: SpaceMemberTypeUpdateRequest) {
-    const result = await tuanchat.spaceMemberController.updateMemberType(requestBody);
-    if (!isSuccessfulApiResult(result)) {
-        throw new Error(getApiResultErrorMessage(result, "更新空间成员身份失败"));
-    }
-    return result;
-}
-
-export async function addRoomRoleWithSuccessGuard(requestBody: RoomRoleAddRequest) {
-    const result = await tuanchat.roomRoleController.addRole(requestBody);
-    if (!isSuccessfulApiResult(result)) {
-        throw new Error(getApiResultErrorMessage(result, "添加房间角色失败"));
-    }
-    return result;
-}
-
-export async function addSpaceMemberWithSuccessGuard(requestBody: SpaceMemberAddRequest) {
-    const result = await tuanchat.spaceMemberController.addMember(requestBody);
-    if (!isSuccessfulApiResult(result)) {
-        throw new Error(getApiResultErrorMessage(result, "添加空间成员失败"));
-    }
-    return result;
-}
-
-export async function addRoomMemberWithSuccessGuard(requestBody: RoomMemberAddRequest) {
-    const result = await tuanchat.roomMemberController.addMember1(requestBody);
-    if (!isSuccessfulApiResult(result)) {
-        throw new Error(getApiResultErrorMessage(result, "添加房间成员失败"));
-    }
-    return result;
-}
-
-export async function deleteSpaceMemberWithSuccessGuard(requestBody: SpaceMemberDeleteRequest) {
-    const result = await tuanchat.spaceMemberController.deleteMember(requestBody);
-    if (!isSuccessfulApiResult(result)) {
-        throw new Error(getApiResultErrorMessage(result, "移除空间成员失败"));
-    }
-    return result;
-}
-
-export async function deleteRoomMemberWithSuccessGuard(requestBody: RoomMemberDeleteRequest) {
-    const result = await tuanchat.roomMemberController.deleteMember1(requestBody);
-    if (!isSuccessfulApiResult(result)) {
-        throw new Error(getApiResultErrorMessage(result, "移除房间成员失败"));
-    }
-    return result;
-}
-
-export async function setPlayerWithSuccessGuard(requestBody: PlayerGrantRequest) {
-    const result = await tuanchat.spaceMemberController.grantPlayer(requestBody);
-    if (!isSuccessfulApiResult(result)) {
-        throw new Error(getApiResultErrorMessage(result, "设置玩家失败"));
-    }
-    return result;
-}
-
-async function updateRoomWithSuccessGuard(requestBody: RoomUpdateRequest) {
-    const result = await tuanchat.roomController.updateRoom(requestBody);
-    if (!isSuccessfulApiResult(result)) {
-        throw new Error(getApiResultErrorMessage(result, "更新房间信息失败"));
-    }
-    return result;
 }
 
 export function fetchRoomInfoWithCache(queryClient: QueryClient, roomId: number) {
@@ -294,45 +231,31 @@ function setExtraStringCache(queryClient: QueryClient, queryKey: readonly unknow
     }));
 }
 
-function patchApiResultData(queryClient: QueryClient, queryKey: readonly unknown[], patch: object) {
-    queryClient.setQueryData(queryKey, (old: any) => {
-        if (!old?.data) {
-            return old;
-        }
-        return {
-            ...old,
-            data: {
-                ...old.data,
-                ...patch,
-            },
-        };
-    });
+function patchRoomInfoQueryData(current: ApiResultRoom | undefined, request: RoomUpdateRequest) {
+    if (!current?.data) {
+        return current;
+    }
+    return {
+        ...current,
+        data: {
+            ...current.data,
+            ...request,
+        },
+    };
 }
 
-type RoomUpdateQuerySnapshot = {
-    roomInfoQueryKey: readonly ["getRoomInfo", number];
-    roomInfo?: ApiResultRoom;
-    userRoomsEntries: Array<[readonly unknown[], ApiResultRoomListResponse | undefined]>;
-};
-
-function patchRoomUpdateQueryCache(queryClient: QueryClient, request: RoomUpdateRequest) {
-    patchApiResultData(queryClient, roomInfoQueryKey(request.roomId), request);
-    for (const [queryKey] of queryClient.getQueriesData<ApiResultRoomListResponse>({ queryKey: ["getUserRooms"] })) {
-        queryClient.setQueryData<ApiResultRoomListResponse>(
-            queryKey,
-            current => patchExistingUserRoomData(current, request),
-        );
-    }
-}
-
-function rollbackRoomUpdateQueryCache(queryClient: QueryClient, snapshot?: RoomUpdateQuerySnapshot) {
-    if (!snapshot) {
-        return;
-    }
-    queryClient.setQueryData(snapshot.roomInfoQueryKey, snapshot.roomInfo);
-    for (const [queryKey, data] of snapshot.userRoomsEntries) {
-        queryClient.setQueryData(queryKey, data);
-    }
+export function beginRoomUpdateOptimisticMutation(queryClient: QueryClient, request: RoomUpdateRequest) {
+    return beginOptimisticQueryTransaction(queryClient, [
+        optimisticQueryPatch<ApiResultRoom>({
+            queryKey: roomInfoQueryKey(request.roomId),
+            update: current => patchRoomInfoQueryData(current, request),
+        }),
+        optimisticQueryPatch<ApiResultRoomListResponse>({
+            queryKey: ["getUserRooms"],
+            exact: false,
+            update: current => patchExistingUserRoomData(current, request),
+        }),
+    ]);
 }
 
 export function patchSpaceExtraData(old: any, request: SpaceExtraSetRequest) {
@@ -455,7 +378,7 @@ export function useGetSpaceMembersQuery(spaceId: number) {
 export function useAddSpaceMemberMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: addSpaceMemberWithSuccessGuard,
+        mutationFn: (requestBody: SpaceMemberAddRequest) => tuanchat.spaceMemberController.addMember(requestBody),
         mutationKey: ['addMember'],
         onMutate: async (variables) => {
             const optimisticContext = await optimisticAddSpaceMembersQueryCache(queryClient, variables);
@@ -489,9 +412,15 @@ export function useSpaceInviteCodeQuery(spaceId: number, type: number = 0, durat
  * 通过邀请链接加入空间
  */
 export function useSpaceInvitedMutation(code: string) {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationKey: ['spaceInvited', code],
-        mutationFn:() => tuanchat.spaceMemberController.invited(code)
+        mutationFn:() => tuanchat.spaceMemberController.invited(code),
+        onSuccess: () => Promise.all([
+            queryClient.invalidateQueries({ queryKey: ["getUserSpaces"] }),
+            queryClient.invalidateQueries({ queryKey: ["getUserActiveSpaces"] }),
+            queryClient.invalidateQueries({ queryKey: ["getUserRooms"] }),
+        ]),
     })
 }
 
@@ -501,7 +430,7 @@ export function useSpaceInvitedMutation(code: string) {
 export function useDeleteSpaceMemberMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: deleteSpaceMemberWithSuccessGuard,
+        mutationFn: (requestBody: SpaceMemberDeleteRequest) => tuanchat.spaceMemberController.deleteMember(requestBody),
         mutationKey: ['deleteMember'],
         onMutate: async (variables) => {
             const transaction = await optimisticRemoveSpaceMembersQueryCache(queryClient, variables);
@@ -538,7 +467,7 @@ export function useGetMemberListQuery(roomId: number) {
 export function useAddRoomMemberMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: addRoomMemberWithSuccessGuard,
+        mutationFn: (requestBody: RoomMemberAddRequest) => tuanchat.roomMemberController.addMember1(requestBody),
         mutationKey: ['addMember'],
         onMutate: async (variables) => {
             const optimisticContext = await optimisticAddRoomMembersQueryCache(queryClient, variables);
@@ -563,7 +492,7 @@ export function useAddRoomMemberMutation() {
 export function useDeleteRoomMemberMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: deleteRoomMemberWithSuccessGuard,
+        mutationFn: (requestBody: RoomMemberDeleteRequest) => tuanchat.roomMemberController.deleteMember1(requestBody),
         mutationKey: ['deleteMember'],
         onMutate: async (variables) => {
             const transaction = await optimisticRemoveRoomMembersQueryCache(queryClient, variables);
@@ -588,27 +517,11 @@ export function useDeleteRoomMemberMutation() {
 export function useUpdateRoomMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: updateRoomWithSuccessGuard,
+        mutationFn: (requestBody: RoomUpdateRequest) => tuanchat.roomController.updateRoom(requestBody),
         mutationKey: ['updateRoom'],
-        onMutate: async (variables) => {
-            await Promise.all([
-                queryClient.cancelQueries({ queryKey: roomInfoQueryKey(variables.roomId) }),
-                queryClient.cancelQueries({ queryKey: ["getUserRooms"] }),
-            ]);
-
-            const snapshot: RoomUpdateQuerySnapshot = {
-                roomInfoQueryKey: roomInfoQueryKey(variables.roomId),
-                roomInfo: queryClient.getQueryData<ApiResultRoom>(roomInfoQueryKey(variables.roomId)),
-                userRoomsEntries: queryClient.getQueriesData<ApiResultRoomListResponse>({ queryKey: ["getUserRooms"] }),
-            };
-            patchRoomUpdateQueryCache(queryClient, variables);
-            return snapshot;
-        },
-        onError: (_error, _variables, context) => {
-            rollbackRoomUpdateQueryCache(queryClient, context);
-        },
-        onSuccess: (_result, variables) => {
-            patchRoomUpdateQueryCache(queryClient, variables);
+        onMutate: variables => beginRoomUpdateOptimisticMutation(queryClient, variables),
+        onError: (_error, _variables, transaction) => {
+            rollbackOptimisticQueryTransaction(queryClient, transaction);
         },
         onSettled: (_result, _error, variables) => {
             if (!variables) {
@@ -871,18 +784,18 @@ export function useGetMessageBySyncIdQuery(requestBody: { roomId: number; syncId
 export function useSetPlayerMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: setPlayerWithSuccessGuard,
+        mutationFn: (requestBody: PlayerGrantRequest) => tuanchat.spaceMemberController.grantPlayer(requestBody),
         mutationKey: ['setPlayer'],
         onMutate: async (variables) => {
-            const previousSpaceMembers = await optimisticSetSpaceMemberTypeQueryCache(queryClient, {
+            const transaction = await optimisticSetSpaceMemberTypeQueryCache(queryClient, {
                 spaceId: variables.spaceId,
                 uidList: variables.uidList,
                 memberType: 2,
             });
-            return { previousSpaceMembers };
+            return { transaction };
         },
         onError: (_error, variables, context) => {
-            rollbackSpaceMemberTypeQueryCache(queryClient, variables.spaceId, context?.previousSpaceMembers);
+            rollbackSpaceMemberTypeQueryCache(queryClient, variables.spaceId, context?.transaction);
         },
         onSuccess: (_, variables) => {
             reconcileSpaceMemberTypeQueryCache(queryClient, {
@@ -903,14 +816,14 @@ export function useSetPlayerMutation() {
 export function useUpdateSpaceMemberTypeMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: updateSpaceMemberTypeWithSuccessGuard,
+        mutationFn: (requestBody: SpaceMemberTypeUpdateRequest) => tuanchat.spaceMemberController.updateMemberType(requestBody),
         mutationKey: ['updateSpaceMemberType'],
         onMutate: async (variables) => {
-            const previousSpaceMembers = await optimisticSetSpaceMemberTypeQueryCache(queryClient, variables);
-            return { previousSpaceMembers };
+            const transaction = await optimisticSetSpaceMemberTypeQueryCache(queryClient, variables);
+            return { transaction };
         },
         onError: (_error, variables, context) => {
-            rollbackSpaceMemberTypeQueryCache(queryClient, variables.spaceId, context?.previousSpaceMembers);
+            rollbackSpaceMemberTypeQueryCache(queryClient, variables.spaceId, context?.transaction);
         },
         onSuccess: (_, variables) => {
             reconcileSpaceMemberTypeQueryCache(queryClient, variables);
@@ -979,7 +892,7 @@ export function useAddRoomRoleMutation() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: addRoomRoleWithSuccessGuard,
+        mutationFn: (requestBody: RoomRoleAddRequest) => tuanchat.roomRoleController.addRole(requestBody),
         mutationKey: ['addRole1'],
         onMutate: variables => optimisticAddRoomRoleQueryCache(queryClient, variables),
         onError: (_error, _variables, context) => {

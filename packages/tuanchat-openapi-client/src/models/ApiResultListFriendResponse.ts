@@ -24,4 +24,3 @@ export type ApiResultListFriendResponse = {
      */
     data?: Array<FriendResponse>;
 };
-

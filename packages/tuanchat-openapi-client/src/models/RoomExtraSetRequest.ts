@@ -16,4 +16,3 @@ export type RoomExtraSetRequest = {
      */
     value: string;
 };
-

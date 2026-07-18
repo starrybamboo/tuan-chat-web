@@ -5,7 +5,6 @@ import type {
   DirectorToolId,
   DirectorToolOption,
   GeneratedImageItem,
-  NovelAiEmotion,
 } from "@/components/aiImage/types";
 
 export type AiImagePreviewPaneProps = {
@@ -27,13 +26,7 @@ export type AiImagePreviewPaneProps = {
   directorOutputPreview: GeneratedImageItem | null;
   directorColorizePrompt: string;
   directorColorizeDefry: number;
-  directorEmotion: NovelAiEmotion;
-  directorEmotionExtraPrompt: string;
-  directorEmotionDefry: number;
   onToggleDirectorTools: () => void;
-  onRunUpscale: () => void | Promise<void>;
-  onRunDirectorInputUpscale: () => void | Promise<void>;
-  onUseSelectedResultAsBaseImage: () => void;
   onPickDirectorSourceImages: (files: FileList | File[]) => void | Promise<void>;
   onSelectDirectorSourceItem: (item: GeneratedImageItem) => void;
   onRemoveDirectorSourceItem: (item: GeneratedImageItem) => void;
@@ -44,9 +37,6 @@ export type AiImagePreviewPaneProps = {
   onDirectorImageDrop: (event: DragEvent<HTMLDivElement>) => void;
   onDirectorColorizePromptChange: (value: string) => void;
   onDirectorColorizeDefryChange: (value: number) => void;
-  onDirectorEmotionChange: (value: NovelAiEmotion) => void;
-  onDirectorEmotionExtraPromptChange: (value: string) => void;
-  onDirectorEmotionDefryChange: (value: number) => void;
   onActiveDirectorToolChange: (value: DirectorToolId) => void;
   onRunDirectorTool: () => void | Promise<void>;
   onSelectCurrentResult: (index: number) => void;
@@ -59,5 +49,4 @@ export type AiImagePreviewPaneProps = {
   onDownloadCurrent: () => void;
   onDownloadDirectorOutputImage: () => void;
   onApplySelectedPreviewSeed: () => void;
-  formatDirectorEmotionLabel: (value: NovelAiEmotion) => string;
 };

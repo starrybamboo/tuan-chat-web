@@ -6,7 +6,12 @@ import type { NotificationItemResponse } from "@tuanchat/openapi-client/models/N
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { type QueryClient, useQueryClient } from "@tanstack/react-query";
-import { getDirectContactId, getDirectMessagePreviewText, isDirectReadLineMessage } from "@tuanchat/domain/direct-message";
+import {
+  getDirectContactId,
+  getDirectMessagePreviewText,
+  isDirectReadLineMessage,
+  isDirectRecallEvent,
+} from "@tuanchat/domain/direct-message";
 import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 import { getDirectInboxQueryKey, upsertDirectInboxMessagesData } from "@tuanchat/query/direct-message";
 import {
@@ -42,7 +47,6 @@ import {
 } from "@/features/rooms/roomReadPositionSync";
 import { mobileApiClient } from "@/lib/api";
 
-import { createMobileWebSocketUrl, maskMobileWebSocketUrl } from "./mobileWebSocketUrl";
 import {
   MobileRoomMessageDeliveryUnknownError,
   parseMobileRoomMessageSendResult,
@@ -51,6 +55,7 @@ import {
   ROOM_MESSAGE_SEND_RESULT_TYPE,
   type MobileRoomMessageSendResult,
 } from "./mobileRoomMessageTransport";
+import { createMobileWebSocketUrl, maskMobileWebSocketUrl } from "./mobileWebSocketUrl";
 
 const GROUP_MESSAGE_PUSH_TYPE = 4;
 const GROUP_MESSAGE_BATCH_PUSH_TYPE = 25;
@@ -411,6 +416,7 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
       return;
     }
 
+    const pendingRoomMessageSends = pendingRoomMessageSendsRef.current;
     const resolvedWebSocketUrl = webSocketUrl;
     let disposed = false;
 
@@ -471,10 +477,10 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
         rejectPending = reject;
       });
       const timeout = setTimeout(() => {
-        pendingRoomMessageSendsRef.current.delete(requestId);
+        pendingRoomMessageSends.delete(requestId);
         rejectPending(new MobileRoomMessageDeliveryUnknownError());
       }, ROOM_MESSAGE_SEND_ACK_TIMEOUT_MS);
-      pendingRoomMessageSendsRef.current.set(requestId, {
+      pendingRoomMessageSends.set(requestId, {
         reject: rejectPending,
         resolve: resolvePending,
         timeout,
@@ -490,7 +496,7 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
       }
       catch {
         clearTimeout(timeout);
-        pendingRoomMessageSendsRef.current.delete(requestId);
+        pendingRoomMessageSends.delete(requestId);
         return null;
       }
     });
@@ -802,10 +808,10 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
 
         if (envelope?.type === ROOM_MESSAGE_SEND_RESULT_TYPE) {
           const result = parseMobileRoomMessageSendResult(envelope.data);
-          const pending = result ? pendingRoomMessageSendsRef.current.get(result.requestId) : undefined;
+          const pending = result ? pendingRoomMessageSends.get(result.requestId) : undefined;
           if (result && pending) {
             clearTimeout(pending.timeout);
-            pendingRoomMessageSendsRef.current.delete(result.requestId);
+            pendingRoomMessageSends.delete(result.requestId);
             pending.resolve(result);
           }
           return;
@@ -847,22 +853,25 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
           void writeCachedDirectMessages(currentUserId, [directMessage]).catch((error) => {
             console.warn("[useRoomMessagesLiveSync] 写入私聊 WebSocket 磁盘缓存失败:", error);
           });
-          void presentDirectMessageNotification(directMessage).catch((error) => {
-            console.warn("[useRoomMessagesLiveSync] 私聊本地通知失败:", error);
-          });
+          if (!isDirectReadLineMessage(directMessage) && !isDirectRecallEvent(directMessage)) {
+            void presentDirectMessageNotification(directMessage).catch((error) => {
+              console.warn("[useRoomMessagesLiveSync] 私聊本地通知失败:", error);
+            });
+          }
           return;
         }
 
         const notification = parseIncomingNotification(event.data);
         if (notification) {
+          const normalizedNotification = normalizeIncomingNotification(notification);
           logNotificationTrace("system.received", {
             category: readString(notification.category),
             notificationId: isPositiveId(notification.notificationId) ? notification.notificationId : null,
             targetPath: readString(notification.targetPath),
           });
-          prependNotificationToCaches(queryClient, notification as any);
+          prependNotificationToCaches(queryClient, normalizedNotification);
           queryClient.invalidateQueries({ queryKey: getNotificationsUnreadCountQueryKey() });
-          void presentUserNotification(normalizeIncomingNotification(notification)).catch((error) => {
+          void presentUserNotification(normalizedNotification).catch((error) => {
             console.warn("[useRoomMessagesLiveSync] 站内本地通知失败:", error);
           });
           return;
@@ -1008,11 +1017,11 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
       disposed = true;
       unregisterStatusSender();
       unregisterRoomMessageSender();
-      for (const pending of pendingRoomMessageSendsRef.current.values()) {
+      for (const pending of pendingRoomMessageSends.values()) {
         clearTimeout(pending.timeout);
         pending.reject(new MobileRoomMessageDeliveryUnknownError());
       }
-      pendingRoomMessageSendsRef.current.clear();
+      pendingRoomMessageSends.clear();
       foregroundSubscription.remove();
       stopHeartbeat();
       stopWatchdog();

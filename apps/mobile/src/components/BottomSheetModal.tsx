@@ -1,16 +1,27 @@
 import type { ReactNode } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 
-import { useEffect, useMemo, useState } from "react";
-import { Animated, Modal, PanResponder, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
+import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
+import Animated, { cancelAnimation, ReduceMotion, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { Radius, Spacing } from "@/constants/theme";
+import { MOBILE_MODAL_ORIENTATIONS } from "@/lib/modal";
 
 const ENTER_BACKDROP_DURATION_MS = 250;
 const EXIT_BACKDROP_DURATION_MS = 200;
 const EXIT_SHEET_DURATION_MS = 200;
 const DISMISS_THRESHOLD = 120;
+const DISMISS_VELOCITY = 500;
+const SHEET_SPRING_CONFIG = {
+  damping: 20,
+  mass: 0.8,
+  reduceMotion: ReduceMotion.System,
+  stiffness: 200,
+} as const;
 
 const styles = StyleSheet.create({
   backdrop: {
@@ -19,6 +30,10 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  sheetAnchor: {
+    flex: 1,
+    justifyContent: "flex-end",
   },
   handleArea: {
     alignItems: "center",
@@ -67,55 +82,60 @@ export function BottomSheetModal({
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const [modalVisible, setModalVisible] = useState(visible);
-  const [backdropOpacity] = useState(() => new Animated.Value(0));
-  const [sheetTranslateY] = useState(() => new Animated.Value(windowHeight));
+  const backdropOpacity = useSharedValue(0);
+  const gestureStartTranslateY = useSharedValue(0);
+  const sheetTranslateY = useSharedValue(windowHeight);
+  const onCloseRef = useRef(onClose);
   const resolvedMaxHeight = resolveBottomSheetMaxHeight(maxHeight, windowHeight);
+  const hideModal = useCallback(() => setModalVisible(false), []);
+  const requestClose = useCallback(() => onCloseRef.current(), []);
 
-  const panResponder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 5,
-    onPanResponderMove: (_, gestureState) => {
-      if (gestureState.dy > 0) {
-        sheetTranslateY.setValue(gestureState.dy);
-      }
-    },
-    onPanResponderRelease: (_, gestureState) => {
-      if (gestureState.dy > DISMISS_THRESHOLD || gestureState.vy > 0.5) {
-        onClose();
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  const panGesture = useMemo(() => Gesture.Pan()
+    .activeOffsetY(5)
+    .onStart(() => {
+      cancelAnimation(sheetTranslateY);
+      gestureStartTranslateY.set(sheetTranslateY.get());
+    })
+    .onUpdate((event) => {
+      sheetTranslateY.set(Math.max(0, gestureStartTranslateY.get() + event.translationY));
+    })
+    .onEnd((event) => {
+      if (sheetTranslateY.get() > DISMISS_THRESHOLD || event.velocityY > DISMISS_VELOCITY) {
+        scheduleOnRN(requestClose);
       }
       else {
-        Animated.spring(sheetTranslateY, {
-          damping: 20,
-          mass: 0.8,
-          stiffness: 200,
-          toValue: 0,
-          useNativeDriver: true,
-        }).start();
+        sheetTranslateY.set(withSpring(0, SHEET_SPRING_CONFIG));
       }
-    },
-  }), [onClose, sheetTranslateY]);
+    })
+    .onFinalize((_event, success) => {
+      if (!success) {
+        sheetTranslateY.set(withSpring(0, SHEET_SPRING_CONFIG));
+      }
+    }), [gestureStartTranslateY, requestClose, sheetTranslateY]);
+
+  const backdropAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: backdropOpacity.get(),
+  }));
+  const sheetAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: sheetTranslateY.get() }],
+  }));
 
   useEffect(() => {
     if (visible) {
       queueMicrotask(() => setModalVisible(true));
-      backdropOpacity.stopAnimation();
-      sheetTranslateY.stopAnimation();
-      sheetTranslateY.setValue(windowHeight);
-
-      Animated.parallel([
-        Animated.timing(backdropOpacity, {
-          duration: ENTER_BACKDROP_DURATION_MS,
-          toValue: 1,
-          useNativeDriver: true,
-        }),
-        Animated.spring(sheetTranslateY, {
-          damping: 20,
-          mass: 0.8,
-          stiffness: 200,
-          toValue: 0,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      cancelAnimation(backdropOpacity);
+      cancelAnimation(sheetTranslateY);
+      backdropOpacity.set(0);
+      sheetTranslateY.set(windowHeight);
+      backdropOpacity.set(withTiming(1, {
+        duration: ENTER_BACKDROP_DURATION_MS,
+        reduceMotion: ReduceMotion.System,
+      }));
+      sheetTranslateY.set(withSpring(0, SHEET_SPRING_CONFIG));
       return;
     }
 
@@ -123,55 +143,66 @@ export function BottomSheetModal({
       return;
     }
 
-    backdropOpacity.stopAnimation();
-    sheetTranslateY.stopAnimation();
-    Animated.parallel([
-      Animated.timing(backdropOpacity, {
-        duration: EXIT_BACKDROP_DURATION_MS,
-        toValue: 0,
-        useNativeDriver: true,
-      }),
-      Animated.timing(sheetTranslateY, {
-        duration: EXIT_SHEET_DURATION_MS,
-        toValue: windowHeight,
-        useNativeDriver: true,
-      }),
-    ]).start(({ finished }) => {
+    cancelAnimation(backdropOpacity);
+    cancelAnimation(sheetTranslateY);
+    backdropOpacity.set(withTiming(0, {
+      duration: EXIT_BACKDROP_DURATION_MS,
+      reduceMotion: ReduceMotion.System,
+    }));
+    sheetTranslateY.set(withTiming(windowHeight, {
+      duration: EXIT_SHEET_DURATION_MS,
+      reduceMotion: ReduceMotion.System,
+    }, (finished) => {
       if (finished) {
-        setModalVisible(false);
+        scheduleOnRN(hideModal);
       }
-    });
-  }, [backdropOpacity, modalVisible, sheetTranslateY, visible, windowHeight]);
+    }));
+  }, [backdropOpacity, hideModal, modalVisible, sheetTranslateY, visible, windowHeight]);
 
   if (!modalVisible) {
     return null;
   }
 
   return (
-    <Modal animationType="none" transparent visible={modalVisible} onRequestClose={onClose}>
-      <View style={styles.container}>
-        <Pressable
-          accessibilityLabel="关闭弹窗"
-          accessibilityRole="button"
-          style={StyleSheet.absoluteFill}
-          onPress={onClose}
+    <Modal
+      animationType="none"
+      onRequestClose={requestClose}
+      supportedOrientations={MOBILE_MODAL_ORIENTATIONS}
+      transparent
+      visible={modalVisible}
+    >
+      <GestureHandlerRootView style={styles.container}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          enabled
+          style={styles.container}
         >
-          <Animated.View pointerEvents="none" style={[styles.backdrop, { opacity: backdropOpacity }]} />
-        </Pressable>
-        <Animated.View style={{ position: "absolute", bottom: 0, left: 0, right: 0, transform: [{ translateY: sheetTranslateY }] }}>
-          <View style={[styles.sheet, { backgroundColor, maxHeight: resolvedMaxHeight, paddingBottom: insets.bottom || Spacing.xl }, sheetStyle]}>
-            <View
-              {...panResponder.panHandlers}
-              accessibilityLabel="拖拽把手"
-              accessibilityHint="可向下拖拽关闭"
-              style={styles.handleArea}
-            >
-              <View style={[styles.handle, { backgroundColor: handleColor }]} />
-            </View>
-            {children}
+          <Pressable
+            accessibilityLabel="关闭弹窗"
+            accessibilityRole="button"
+            style={StyleSheet.absoluteFill}
+            onPress={requestClose}
+          >
+            <Animated.View pointerEvents="none" style={[styles.backdrop, backdropAnimatedStyle]} />
+          </Pressable>
+          <View pointerEvents="box-none" style={styles.sheetAnchor}>
+            <Animated.View style={sheetAnimatedStyle}>
+              <View style={[styles.sheet, { backgroundColor, maxHeight: resolvedMaxHeight, paddingBottom: insets.bottom || Spacing.xl }, sheetStyle]}>
+                <GestureDetector gesture={panGesture}>
+                  <View
+                    accessibilityLabel="拖拽把手"
+                    accessibilityHint="可向下拖拽关闭"
+                    style={styles.handleArea}
+                  >
+                    <View style={[styles.handle, { backgroundColor: handleColor }]} />
+                  </View>
+                </GestureDetector>
+                {children}
+              </View>
+            </Animated.View>
           </View>
-        </Animated.View>
-      </View>
+        </KeyboardAvoidingView>
+      </GestureHandlerRootView>
     </Modal>
   );
 }

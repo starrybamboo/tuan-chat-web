@@ -1,6 +1,8 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+# This repo keeps only project-specific config and Expo entrypoints here. The
+# machine-local Android dev plumbing is shared with Watch-Maid.
 $sharedAndroidScriptPath = Join-Path $env:USERPROFILE ".codex\scripts\android-mobile-dev-common.ps1"
 if (-not (Test-Path $sharedAndroidScriptPath)) {
     throw "Shared Android dev script not found: $sharedAndroidScriptPath"
@@ -10,36 +12,37 @@ if (-not (Test-Path $sharedAndroidScriptPath)) {
 function Get-TuanChatMobileAndroidConfig {
     $workspaceRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
     $workspaceContainerRoot = Split-Path $workspaceRoot -Parent
-    $buildAndroidSdkRoot = "D:\AndroidSdk"
 
     return [PSCustomObject]@{
-        WorkspaceRoot                         = $workspaceRoot
-        WorkspaceContainerRoot                = $workspaceContainerRoot
-        MobileDir                             = Join-Path $workspaceRoot "apps/mobile"
-        AndroidDir                            = Join-Path $workspaceRoot "apps/mobile/android"
-        JavaHome                              = "D:\.jdks\jbr-17.0.9"
-        BuildAndroidSdkRoot                   = $buildAndroidSdkRoot
-        EmulatorAndroidSdkRoot                = "D:\AndroidSdk"
-        AdbSdkRoot                            = "D:\AndroidSdk"
-        GradleUserHome                        = Join-Path $workspaceContainerRoot ".gradle-home2"
-        TempRoot                              = Join-Path $workspaceContainerRoot ".tmp\expo-temp"
-        DefaultAvdName                        = "WatchMaid_API_36_Fresh"
-        MetroPort                             = 8082
-        ApiPort                               = 8081
-        AppPackage                            = "com.tuanchat.mobile"
-        MainActivity                          = "com.tuanchat.mobile/.MainActivity"
-        ProjectDisplayName                    = "TuanChat Mobile"
-        IncludeAppPackageInTopActivityPattern = $true
-        RequiredPaths                         = @(
+        WorkspaceRoot                       = $workspaceRoot
+        WorkspaceContainerRoot              = $workspaceContainerRoot
+        MobileDir                           = Join-Path $workspaceRoot "apps/mobile"
+        AndroidDir                          = Join-Path $workspaceRoot "apps/mobile/android"
+        JavaHome                            = "D:\.jdks\jbr-17.0.9"
+        BuildAndroidSdkRoot                 = "D:\AndroidSdk"
+        EmulatorAndroidSdkRoot              = "D:\android-sdk"
+        AdbSdkRoot                          = "D:\android-sdk"
+        GradleUserHome                      = Join-Path $workspaceContainerRoot ".gradle-home2"
+        TempRoot                            = Join-Path $workspaceContainerRoot ".tmp\expo-temp"
+        DefaultAvdName                      = "WatchMaid_API_36_Fresh"
+        MetroPort                           = 8082
+        ApiPort                             = 8081
+        WebSocketPort                       = 8090
+        AppPackage                          = "com.tuanchat.mobile"
+        MainActivity                        = "com.tuanchat.mobile/.MainActivity"
+        ProjectDisplayName                  = "TuanChat Mobile"
+        SkipLocalPropertiesWhenAndroidDirMissing = $true
+        RequiredPaths                       = @(
             $workspaceRoot
             (Join-Path $workspaceRoot "apps/mobile")
             "D:\.jdks\jbr-17.0.9"
-            $buildAndroidSdkRoot
             "D:\AndroidSdk"
+            "D:\android-sdk"
         )
-        AdditionalEmulatorArgs                = @(
+        AdditionalEmulatorArgs              = @(
             "-crash-report-mode", "never"
         )
+        TcpStatusHosts                      = @("localhost", "[::1]", "127.0.0.1")
     }
 }
 
@@ -77,7 +80,7 @@ function Invoke-TuanChatAndroidReversePorts {
     )
 
     $adbPath = Get-AndroidDevAdbPath -Config $Config
-    $reversePorts = @($MetroPort, $Config.ApiPort) | Select-Object -Unique
+    $reversePorts = @($MetroPort, $Config.ApiPort, $Config.WebSocketPort) | Select-Object -Unique
 
     foreach ($reversePort in $reversePorts) {
         & $adbPath -s $DeviceSerial reverse "tcp:$reversePort" "tcp:$reversePort" | Out-Null
@@ -88,51 +91,26 @@ function Invoke-TuanChatAndroidReversePorts {
 function Invoke-TuanChatExpoRunAndroid {
     param(
         [Parameter(Mandatory = $true)]$Config,
-        [Parameter(Mandatory = $true)][string]$DeviceSerial,
+        [Parameter(Mandatory = $true)][string]$AvdName,
         [int]$Port = $Config.MetroPort
     )
 
     Set-AndroidDevBuildEnvironment -Config $Config
 
-    $adbPath = Get-AndroidDevAdbPath -Config $Config
-    $deviceAbi = (& $adbPath -s $DeviceSerial shell getprop ro.product.cpu.abi).Trim()
-    $reactNativeArchitectures = switch -Wildcard ($deviceAbi) {
-        "arm64-v8a" { "arm64-v8a"; break }
-        "armeabi-v7a" { "armeabi-v7a"; break }
-        "x86_64" { "x86_64"; break }
-        "x86" { "x86"; break }
-        default { "arm64-v8a"; break }
-    }
-
-    $gradleWrapper = Join-Path $Config.AndroidDir "gradlew.bat"
-    if (-not (Test-Path $gradleWrapper)) {
-        throw "gradlew.bat not found: $gradleWrapper"
-    }
-
-    Push-Location $Config.AndroidDir
+    Push-Location $Config.WorkspaceRoot
     try {
-        & $gradleWrapper "app:assembleDebug" "-x" "lint" "-PreactNativeDevServerPort=$Port" "-PreactNativeArchitectures=$reactNativeArchitectures" "--console=plain" | Out-Host
-        $gradleExitCode = $LASTEXITCODE
+        $expoArgs = @(
+            "--filter", "@tuanchat/mobile",
+            "exec", "expo", "run:android",
+            "-d", $AvdName,
+            "--port", "$Port",
+            "--no-build-cache"
+        )
+
+        & pnpm @expoArgs
+        return $LASTEXITCODE
     }
     finally {
         Pop-Location
     }
-
-    if ($gradleExitCode -ne 0) {
-        return $gradleExitCode
-    }
-
-    $apkPath = Join-Path $Config.AndroidDir "app\build\outputs\apk\debug\app-debug.apk"
-    if (-not (Test-Path $apkPath)) {
-        throw "Debug APK was not generated: $apkPath"
-    }
-
-    Invoke-TuanChatAndroidReversePorts -Config $Config -DeviceSerial $DeviceSerial -MetroPort $Port
-    & $adbPath -s $DeviceSerial install -r $apkPath | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        return $LASTEXITCODE
-    }
-
-    & $adbPath -s $DeviceSerial shell am start -n $Config.MainActivity | Out-Null
-    return $LASTEXITCODE
 }

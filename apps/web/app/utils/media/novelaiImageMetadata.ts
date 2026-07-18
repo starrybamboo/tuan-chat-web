@@ -31,6 +31,7 @@ export type NovelAiImportedSettings = {
   cfgRescale?: number;
   ucPreset?: number;
   qualityToggle?: boolean;
+  cfgDelay?: boolean;
   dynamicThresholding?: boolean;
   smea?: boolean;
   smeaDyn?: boolean;
@@ -657,46 +658,6 @@ function stripImageDataUrlPrefix(value: string) {
   return match ? match[1].trim() : trimmed;
 }
 
-export function decodeBase64Prefix(value: string, byteCount = 16) {
-  const normalized = stripImageDataUrlPrefix(value).replace(/\s+/g, "");
-  if (!normalized)
-    return new Uint8Array();
-
-  try {
-    const paddedLength = Math.ceil((byteCount * 4) / 3);
-    const binary = atob(normalized.slice(0, paddedLength));
-    const bytes = new Uint8Array(binary.length);
-    for (let index = 0; index < binary.length; index += 1) {
-      bytes[index] = binary.charCodeAt(index);
-    }
-    return bytes;
-  }
-  catch {
-    return new Uint8Array();
-  }
-}
-
-export function detectImageMime(bytes: Uint8Array) {
-  if (bytes.length >= 8 && PNG_SIGNATURE.every((value, index) => bytes[index] === value))
-    return "image/png";
-  if (bytes.length >= 3 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF)
-    return "image/jpeg";
-  if (
-    bytes.length >= 12
-    && bytes[0] === 0x52
-    && bytes[1] === 0x49
-    && bytes[2] === 0x46
-    && bytes[3] === 0x46
-    && bytes[8] === 0x57
-    && bytes[9] === 0x45
-    && bytes[10] === 0x42
-    && bytes[11] === 0x50
-  ) {
-    return "image/webp";
-  }
-  return "image/png";
-}
-
 export function normalizeNovelAiMetadata(raw: unknown): NovelAiImportedSettings | null {
   const rawRecord = asRecord(raw);
   if (!rawRecord)
@@ -796,6 +757,15 @@ export function normalizeNovelAiMetadata(raw: unknown): NovelAiImportedSettings 
   ]));
   if (noiseSchedule != null) {
     settings.noiseSchedule = noiseSchedule;
+    recognized += 1;
+  }
+
+  const cfgDelaySigma = readNumber(mergedRoot, [
+    ["parameters", "skip_cfg_above_sigma"],
+    ["skip_cfg_above_sigma"],
+  ]);
+  if (cfgDelaySigma != null) {
+    settings.cfgDelay = cfgDelaySigma > 0;
     recognized += 1;
   }
 

@@ -15,4 +15,3 @@ export type SpaceCloneByCommitRequest = {
      */
     commitId: number;
 };
-

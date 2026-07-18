@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
 import * as ImageManipulator from "expo-image-manipulator";
-import { useCallback, useState } from "react";
-import { Dimensions, Modal, Pressable, StyleSheet, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
   ReduceMotion,
@@ -9,19 +9,18 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { MOBILE_MODAL_ORIENTATIONS } from "@/lib/modal";
 
 import { clampAvatarCropTranslation } from "./avatarCropGeometry";
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-const CROP_SIZE = SCREEN_WIDTH * 0.8;
-const CROP_TOP = (SCREEN_HEIGHT - CROP_SIZE) / 2;
-const CROP_LEFT = (SCREEN_WIDTH - CROP_SIZE) / 2;
 const DEFAULT_OUTPUT_SIZE = 256;
 const DEFAULT_OUTPUT_COMPRESS = 0.85;
+const CROP_CONTROLS_RESERVED_HEIGHT = 88;
 const CROP_SETTLE_ANIMATION_CONFIG = {
   duration: 150,
   reduceMotion: ReduceMotion.System,
@@ -38,64 +37,61 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   imageContainer: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
+    position: "absolute",
   },
   cropFrame: {
-    position: "absolute",
-    top: CROP_TOP,
-    left: CROP_LEFT,
-    width: CROP_SIZE,
-    height: CROP_SIZE,
-    borderWidth: 2,
     borderColor: "rgba(255,255,255,0.7)",
     borderRadius: 4,
+    borderCurve: "continuous",
+    borderWidth: 2,
+    position: "absolute",
   },
   maskTop: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: CROP_TOP,
     backgroundColor: "rgba(0,0,0,0.5)",
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
   },
   maskBottom: {
-    position: "absolute",
+    backgroundColor: "rgba(0,0,0,0.5)",
     bottom: 0,
     left: 0,
+    position: "absolute",
     right: 0,
-    height: SCREEN_HEIGHT - CROP_TOP - CROP_SIZE,
-    backgroundColor: "rgba(0,0,0,0.5)",
   },
   maskLeft: {
-    position: "absolute",
-    top: CROP_TOP,
-    left: 0,
-    width: CROP_LEFT,
-    height: CROP_SIZE,
     backgroundColor: "rgba(0,0,0,0.5)",
+    left: 0,
+    position: "absolute",
   },
   maskRight: {
-    position: "absolute",
-    top: CROP_TOP,
-    right: 0,
-    width: SCREEN_WIDTH - CROP_LEFT - CROP_SIZE,
-    height: CROP_SIZE,
     backgroundColor: "rgba(0,0,0,0.5)",
+    position: "absolute",
+    right: 0,
   },
   actions: {
-    position: "absolute",
-    bottom: 60,
-    left: 0,
-    right: 0,
     flexDirection: "row",
     justifyContent: "space-around",
+    left: 0,
     paddingHorizontal: Spacing.xxl,
+    position: "absolute",
+    right: 0,
   },
   actionButton: {
     paddingHorizontal: Spacing.xxl,
     paddingVertical: Spacing.lg,
+  },
+  image: {
+    height: "100%",
+    width: "100%",
+  },
+  error: {
+    left: Spacing.xxl,
+    position: "absolute",
+    right: Spacing.xxl,
   },
 });
 
@@ -125,12 +121,24 @@ export function AvatarCropModal({
   processingErrorMessage = "头像处理失败，请重试。",
 }: AvatarCropModalProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const baseScale = Math.max(CROP_SIZE / imageWidth, CROP_SIZE / imageHeight);
-  const displayWidth = imageWidth * baseScale;
-  const displayHeight = imageHeight * baseScale;
+  const cropViewportTop = insets.top + Spacing.xl;
+  const cropViewportHeight = Math.max(
+    1,
+    windowHeight - cropViewportTop - insets.bottom - CROP_CONTROLS_RESERVED_HEIGHT,
+  );
+  const cropSize = Math.max(1, Math.min(windowWidth * 0.8, cropViewportHeight));
+  const cropTop = cropViewportTop + (cropViewportHeight - cropSize) / 2;
+  const cropLeft = (windowWidth - cropSize) / 2;
+  const safeImageWidth = Math.max(1, imageWidth);
+  const safeImageHeight = Math.max(1, imageHeight);
+  const baseScale = Math.max(cropSize / safeImageWidth, cropSize / safeImageHeight);
+  const displayWidth = safeImageWidth * baseScale;
+  const displayHeight = safeImageHeight * baseScale;
 
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
@@ -139,14 +147,27 @@ export function AvatarCropModal({
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
 
-  const pinchGesture = Gesture.Pinch()
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+    scale.set(1);
+    savedScale.set(1);
+    translateX.set(0);
+    translateY.set(0);
+    savedTranslateX.set(0);
+    savedTranslateY.set(0);
+    setErrorMessage(null);
+  }, [cropSize, imageUri, savedScale, savedTranslateX, savedTranslateY, scale, translateX, translateY, visible]);
+
+  const pinchGesture = useMemo(() => Gesture.Pinch()
     .onUpdate((e) => {
       scale.set(Math.max(1, Math.min(5, savedScale.get() * e.scale)));
     })
     .onEnd(() => {
       savedScale.set(scale.get());
       const clamped = clampAvatarCropTranslation({
-        cropSize: CROP_SIZE,
+        cropSize,
         displayHeight,
         displayWidth,
         scale: scale.get(),
@@ -157,16 +178,16 @@ export function AvatarCropModal({
       translateY.set(withTiming(clamped.y, CROP_SETTLE_ANIMATION_CONFIG));
       savedTranslateX.set(clamped.x);
       savedTranslateY.set(clamped.y);
-    });
+    }), [cropSize, displayHeight, displayWidth, savedScale, savedTranslateX, savedTranslateY, scale, translateX, translateY]);
 
-  const panGesture = Gesture.Pan()
+  const panGesture = useMemo(() => Gesture.Pan()
     .onUpdate((e) => {
       translateX.set(savedTranslateX.get() + e.translationX);
       translateY.set(savedTranslateY.get() + e.translationY);
     })
     .onEnd(() => {
       const clamped = clampAvatarCropTranslation({
-        cropSize: CROP_SIZE,
+        cropSize,
         displayHeight,
         displayWidth,
         scale: scale.get(),
@@ -177,9 +198,12 @@ export function AvatarCropModal({
       translateY.set(withTiming(clamped.y, CROP_SETTLE_ANIMATION_CONFIG));
       savedTranslateX.set(clamped.x);
       savedTranslateY.set(clamped.y);
-    });
+    }), [cropSize, displayHeight, displayWidth, savedTranslateX, savedTranslateY, scale, translateX, translateY]);
 
-  const composedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
+  const composedGesture = useMemo(
+    () => Gesture.Simultaneous(pinchGesture, panGesture),
+    [panGesture, pinchGesture],
+  );
 
   const animatedStyle = useAnimatedStyle(() => ({
     width: displayWidth,
@@ -202,14 +226,14 @@ export function AvatarCropModal({
       const currentTx = translateX.get();
       const currentTy = translateY.get();
 
-      const cropX = (imageWidth / 2) - (CROP_SIZE / (2 * currentScale)) - (currentTx / currentScale);
-      const cropY = (imageHeight / 2) - (CROP_SIZE / (2 * currentScale)) - (currentTy / currentScale);
-      const cropSide = CROP_SIZE / currentScale;
+      const cropX = (safeImageWidth / 2) - (cropSize / (2 * currentScale)) - (currentTx / currentScale);
+      const cropY = (safeImageHeight / 2) - (cropSize / (2 * currentScale)) - (currentTy / currentScale);
+      const cropSide = cropSize / currentScale;
 
       const originX = Math.max(0, Math.round(cropX));
       const originY = Math.max(0, Math.round(cropY));
-      const width = Math.min(Math.round(cropSide), imageWidth - originX);
-      const height = Math.min(Math.round(cropSide), imageHeight - originY);
+      const width = Math.min(Math.round(cropSide), safeImageWidth - originX);
+      const height = Math.min(Math.round(cropSide), safeImageHeight - originY);
 
       if (width <= 0 || height <= 0) {
         throw new Error("裁剪区域无效，请重新调整图片。");
@@ -232,7 +256,7 @@ export function AvatarCropModal({
     finally {
       setIsProcessing(false);
     }
-  }, [imageUri, imageWidth, imageHeight, baseScale, scale, translateX, translateY, outputCompress, outputFormat, outputSize, onConfirm, processingErrorMessage, isProcessing]);
+  }, [baseScale, cropSize, imageUri, isProcessing, onConfirm, outputCompress, outputFormat, outputSize, processingErrorMessage, safeImageHeight, safeImageWidth, scale, translateX, translateY]);
 
   const handleCancel = useCallback(() => {
     if (isProcessing) {
@@ -256,29 +280,35 @@ export function AvatarCropModal({
       visible={visible}
       animationType="fade"
       statusBarTranslucent
+      supportedOrientations={MOBILE_MODAL_ORIENTATIONS}
       onRequestClose={handleCancel}
     >
       <GestureHandlerRootView style={styles.modalRoot}>
         <View style={styles.overlay}>
           <GestureDetector gesture={composedGesture}>
-            <Animated.View style={[styles.imageContainer]}>
+            <Animated.View
+              style={[
+                styles.imageContainer,
+                { height: cropSize, left: cropLeft, top: cropTop, width: cropSize },
+              ]}
+            >
               <Animated.View style={animatedStyle}>
                 <Image
                   source={{ uri: imageUri }}
-                  style={{ width: "100%", height: "100%" }}
+                  style={styles.image}
                   contentFit="fill"
                 />
               </Animated.View>
             </Animated.View>
           </GestureDetector>
 
-          <View style={styles.maskTop} pointerEvents="none" />
-          <View style={styles.maskBottom} pointerEvents="none" />
-          <View style={styles.maskLeft} pointerEvents="none" />
-          <View style={styles.maskRight} pointerEvents="none" />
-          <View style={styles.cropFrame} pointerEvents="none" />
+          <View style={[styles.maskTop, { height: cropTop }]} pointerEvents="none" />
+          <View style={[styles.maskBottom, { height: windowHeight - cropTop - cropSize }]} pointerEvents="none" />
+          <View style={[styles.maskLeft, { height: cropSize, top: cropTop, width: cropLeft }]} pointerEvents="none" />
+          <View style={[styles.maskRight, { height: cropSize, top: cropTop, width: windowWidth - cropLeft - cropSize }]} pointerEvents="none" />
+          <View style={[styles.cropFrame, { height: cropSize, left: cropLeft, top: cropTop, width: cropSize }]} pointerEvents="none" />
 
-          <View style={styles.actions}>
+          <View style={[styles.actions, { bottom: insets.bottom + Spacing.xxl }]}>
             <Pressable
               accessibilityHint="放弃裁剪并关闭"
               accessibilityRole="button"
@@ -304,7 +334,7 @@ export function AvatarCropModal({
           </View>
           {errorMessage
             ? (
-                <View style={{ bottom: 120, left: Spacing.xxl, position: "absolute", right: Spacing.xxl }}>
+                <View style={[styles.error, { bottom: insets.bottom + 112 }]}>
                   <ThemedText style={{ color: "#fca5a5", textAlign: "center" }}>
                     {errorMessage}
                   </ThemedText>

@@ -46,7 +46,8 @@ export const AiImageWorkspace = memo(({
 
   return (
     <div className="
-      relative z-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-visible bg-base-200 md:flex-row
+      relative z-0 flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-visible
+      bg-transparent p-2 md:flex-row md:pl-0
     ">
       {isPinnedDrawerOpen && pinnedPreviewResult && !isDirectorToolsOpen
         ? (

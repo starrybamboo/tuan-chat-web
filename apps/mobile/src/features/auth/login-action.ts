@@ -1,9 +1,5 @@
 import type { LoginMethod } from "./auth-session";
 
-type LoginRouter = {
-  replace: (href: "/(tabs)") => void;
-};
-
 type SignInInput = {
   identifier: string;
   method: LoginMethod;
@@ -14,7 +10,7 @@ type ExecuteLoginActionInput = {
   identifier: string;
   loginMethod: LoginMethod;
   password: string;
-  router: LoginRouter;
+  replace: (href: "/(tabs)") => void;
   signIn: (input: SignInInput) => Promise<void>;
 };
 
@@ -26,9 +22,9 @@ export async function executeLoginAction({
   identifier,
   loginMethod,
   password,
-  router,
+  replace,
   signIn,
 }: ExecuteLoginActionInput) {
   await signIn({ identifier, method: loginMethod, password });
-  router.replace("/(tabs)");
+  replace("/(tabs)");
 }

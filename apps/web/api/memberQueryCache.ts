@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { ApiResultListRoomMember } from "@tuanchat/openapi-client/models/ApiResultListRoomMember";
 import type { ApiResultListSpaceMember } from "@tuanchat/openapi-client/models/ApiResultListSpaceMember";
+import type { LeaderTransferRequest } from "@tuanchat/openapi-client/models/LeaderTransferRequest";
 import type { RoomMember } from "@tuanchat/openapi-client/models/RoomMember";
 import type { RoomMemberAddRequest } from "@tuanchat/openapi-client/models/RoomMemberAddRequest";
 import type { RoomMemberDeleteRequest } from "@tuanchat/openapi-client/models/RoomMemberDeleteRequest";
@@ -8,7 +9,6 @@ import type { SpaceMember } from "@tuanchat/openapi-client/models/SpaceMember";
 import type { SpaceMemberAddRequest } from "@tuanchat/openapi-client/models/SpaceMemberAddRequest";
 import type { SpaceMemberDeleteRequest } from "@tuanchat/openapi-client/models/SpaceMemberDeleteRequest";
 import type { SpaceMemberTypeUpdateRequest } from "@tuanchat/openapi-client/models/SpaceMemberTypeUpdateRequest";
-import type { LeaderTransferRequest } from "@tuanchat/openapi-client/models/LeaderTransferRequest";
 import type { OptimisticQueryTransaction } from "@tuanchat/query/optimistic-cache";
 
 import { getRoomMembersQueryKey, getSpaceMembersQueryKey } from "@tuanchat/query/members";
@@ -254,27 +254,21 @@ export function setSpaceMemberTypeInListData(
 export async function optimisticSetSpaceMemberTypeQueryCache(
   queryClient: QueryClient,
   request: SpaceMemberTypeUpdateRequest,
-): Promise<SpaceMemberListSnapshot> {
-  const queryKey = getSpaceMembersQueryKey(request.spaceId);
-  await queryClient.cancelQueries({ queryKey });
-  const previous = queryClient.getQueryData<ApiResultListSpaceMember>(queryKey);
-  queryClient.setQueryData<ApiResultListSpaceMember>(
-    queryKey,
-    current => setSpaceMemberTypeInListData(current, request.uidList ?? [], request.memberType),
-  );
-  return previous;
+): Promise<OptimisticQueryTransaction> {
+  return beginOptimisticQueryTransaction(queryClient, [
+    optimisticQueryPatch<ApiResultListSpaceMember>({
+      queryKey: getSpaceMembersQueryKey(request.spaceId),
+      update: current => setSpaceMemberTypeInListData(current, request.uidList ?? [], request.memberType),
+    }),
+  ]);
 }
 
 export function rollbackSpaceMemberTypeQueryCache(
   queryClient: QueryClient,
-  spaceId: number,
-  previous?: SpaceMemberListSnapshot,
+  _spaceId: number,
+  transaction?: OptimisticQueryTransaction,
 ): void {
-  if (previous) {
-    queryClient.setQueryData(getSpaceMembersQueryKey(spaceId), previous);
-    return;
-  }
-  queryClient.invalidateQueries({ queryKey: getSpaceMembersQueryKey(spaceId) });
+  rollbackOptimisticQueryTransaction(queryClient, transaction);
 }
 
 export function reconcileSpaceMemberTypeQueryCache(

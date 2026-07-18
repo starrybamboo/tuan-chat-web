@@ -139,4 +139,3 @@ export class TuanChat {
         this.websocketDoc = new WebsocketDocService(this.request);
     }
 }
-

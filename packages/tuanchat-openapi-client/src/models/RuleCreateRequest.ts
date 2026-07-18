@@ -23,4 +23,3 @@ export type RuleCreateRequest = {
     basicDefault?: Record<string, string>;
     dicerConfig?: Record<string, string>;
 };
-

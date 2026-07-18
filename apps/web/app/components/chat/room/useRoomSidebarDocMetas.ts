@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
 
+import { mergeSpaceDocMetas, spaceDocMetasQueryKey } from "@/components/chat/hooks/useSpaceDocMetaState";
 import { parseSpaceDocId } from "@/components/chat/infra/doc/space/spaceDocId";
 import { buildDocCardCoverReferenceFields } from "@/components/chat/message/docCard/docCardMedia";
 
@@ -14,7 +16,7 @@ type UseRoomSidebarDocMetasParams = {
 type UseRoomSidebarDocMetasResult = {
   visibleDocMetas: MinimalDocMeta[];
   docMetaMap: Map<string, MinimalDocMeta>;
-  appendExtraDocMeta: (meta: MinimalDocMeta) => void;
+  upsertDocMeta: (meta: MinimalDocMeta) => void;
 };
 
 export default function useRoomSidebarDocMetas({
@@ -22,11 +24,7 @@ export default function useRoomSidebarDocMetas({
   canViewDocs,
   docMetas,
 }: UseRoomSidebarDocMetasParams): UseRoomSidebarDocMetasResult {
-  const [extraDocMetas, setExtraDocMetas] = useState<MinimalDocMeta[]>([]);
-
-  useEffect(() => {
-    queueMicrotask(() => setExtraDocMetas([]));
-  }, [activeSpaceId]);
+  const queryClient = useQueryClient();
 
   const visibleDocMetas = useMemo(() => {
     if (!canViewDocs) {
@@ -34,7 +32,7 @@ export default function useRoomSidebarDocMetas({
     }
 
     const merged = new Map<string, MinimalDocMeta>();
-    for (const m of [...(docMetas ?? []), ...(extraDocMetas ?? [])]) {
+    for (const m of docMetas ?? []) {
       const id = typeof m?.id === "string" ? m.id : "";
       if (!id) {
         continue;
@@ -78,7 +76,7 @@ export default function useRoomSidebarDocMetas({
     }
 
     return [...merged.values()];
-  }, [canViewDocs, docMetas, extraDocMetas]);
+  }, [canViewDocs, docMetas]);
 
   const docMetaMap = useMemo(() => {
     const map = new Map<string, MinimalDocMeta>();
@@ -90,28 +88,25 @@ export default function useRoomSidebarDocMetas({
     return map;
   }, [visibleDocMetas]);
 
-  const appendExtraDocMeta = useCallback((meta: MinimalDocMeta) => {
+  const upsertDocMeta = useCallback((meta: MinimalDocMeta) => {
     const id = typeof meta?.id === "string" ? meta.id : "";
-    if (!id) {
+    if (!id || !activeSpaceId || activeSpaceId <= 0) {
       return;
     }
     const coverFields = buildDocCardCoverReferenceFields(meta);
-    setExtraDocMetas((prev) => {
-      const base = [...(prev ?? [])];
-      if (base.some(m => m.id === id)) {
-        return base;
-      }
-      return [...base, {
+    queryClient.setQueryData<MinimalDocMeta[]>(spaceDocMetasQueryKey(activeSpaceId), current => mergeSpaceDocMetas(
+      current,
+      [{
         id,
         ...(meta.title ? { title: meta.title } : {}),
         ...coverFields,
-      }];
-    });
-  }, []);
+      }],
+    ));
+  }, [activeSpaceId, queryClient]);
 
   return {
     visibleDocMetas,
     docMetaMap,
-    appendExtraDocMeta,
+    upsertDocMeta,
   };
 }

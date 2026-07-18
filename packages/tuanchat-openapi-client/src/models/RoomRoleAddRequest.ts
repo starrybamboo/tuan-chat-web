@@ -16,4 +16,3 @@ export type RoomRoleAddRequest = {
      */
     type?: number;
 };
-

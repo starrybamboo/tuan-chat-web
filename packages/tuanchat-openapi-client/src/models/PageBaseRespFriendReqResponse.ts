@@ -28,4 +28,3 @@ export type PageBaseRespFriendReqResponse = {
      */
     list?: Array<FriendReqResponse>;
 };
-

@@ -226,6 +226,7 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
   const canViewDocs = props.canViewDocs ?? isKPInSpace;
   const tcHeaderTitle = props.tcHeaderTitle ?? activeDocTitleForTcHeader;
   const handleBack = props.onBack;
+  const onRemoteMessagesSaved = props.onRemoteMessagesSaved;
   const showToolbar = props.showToolbar ?? true;
   const initialMessages = props.initialMessages ?? EMPTY_DOC_MESSAGES;
   const resolvedDocRoomId = resolvedDocId && /^\d+$/.test(resolvedDocId) ? Number(resolvedDocId) : null;
@@ -250,7 +251,7 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
   });
 
   const handleRemoteMessagesSaved = React.useCallback(async (messages: Message[]) => {
-    if (!props.onRemoteMessagesSaved && isRoomDocument && resolvedDocRoomId && roomHistory) {
+    if (!onRemoteMessagesSaved && isRoomDocument && resolvedDocRoomId && roomHistory) {
       const roomMessages = messages
         .filter(message => message.roomId === resolvedDocRoomId)
         .map(message => ({ message }) as ChatMessageResponse);
@@ -258,8 +259,8 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
         await roomHistory.addOrUpdateMessages(roomMessages);
       }
     }
-    await props.onRemoteMessagesSaved?.(messages);
-  }, [isRoomDocument, props.onRemoteMessagesSaved, resolvedDocRoomId, roomHistory]);
+    await onRemoteMessagesSaved?.(messages);
+  }, [isRoomDocument, onRemoteMessagesSaved, resolvedDocRoomId, roomHistory]);
 
   if (!resolvedSpaceId || !resolvedDocId) {
     return (

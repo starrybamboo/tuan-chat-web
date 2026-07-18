@@ -1,9 +1,10 @@
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
+import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
 import { Check, CheckCircle, DiceSix, MagnifyingGlass, Trash, UserCircle, X } from "phosphor-react-native";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CachedImage } from "@/components/CachedImage";
@@ -149,24 +150,25 @@ function getRoleColor(roleId: number) {
 function RoleListItem({
   backgroundColor,
   borderColor,
-  onPress,
+  onPressRole,
   role,
   selected = false,
   selectionMode = false,
 }: {
   backgroundColor: string;
   borderColor: string;
-  onPress: () => void;
+  onPressRole: (role: UserRole) => void;
   role: UserRole;
   selected?: boolean;
   selectionMode?: boolean;
 }) {
   const theme = useTheme();
+  const handlePress = useCallback(() => onPressRole(role), [onPressRole, role]);
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={selectionMode ? { selected } : undefined}
-      onPress={onPress}
+      onPress={handlePress}
       style={[
         styles.roleItem,
         {
@@ -275,12 +277,17 @@ type RoleListRow =
   | { key: "normal-empty"; type: "normalEmpty" }
   | { key: string; role: UserRole; type: "diceRole" | "normalRole" };
 
+function getRoleListRowType(item: RoleListRow): RoleListRow["type"] {
+  return item.type;
+}
+
 export default function RoleScreen() {
   const theme = useTheme();
   const { session } = useAuthSession();
   const userId = session?.userId ?? null;
   const myRolesQuery = useMyRolesQuery(userId);
   const deleteRoleMutation = useDeleteRoleMutation();
+  const { mutateAsync: deleteRoles } = deleteRoleMutation;
   const roleCardBackground = theme.backgroundElement;
   const diceCardBackground = theme.surface;
 
@@ -303,13 +310,14 @@ export default function RoleScreen() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedRoleIds, setSelectedRoleIds] = useState<Set<number>>(() => new Set());
   const selectedRoleCount = selectedRoleIds.size;
+  const roleListExtraData = useMemo(() => ({ selectedRoleIds, selectionMode }), [selectedRoleIds, selectionMode]);
 
   const handleOpenCreate = useCallback(() => {
     router.push("/role-edit");
   }, []);
 
   const handleOpenTrash = useCallback(() => {
-    router.push("/role-trash" as any);
+    router.push("/role-trash");
   }, []);
 
   const toggleRoleSelection = useCallback((roleId: number) => {
@@ -355,13 +363,13 @@ export default function RoleScreen() {
     }
 
     try {
-      await deleteRoleMutation.mutateAsync(roleIds);
+      await deleteRoles(roleIds);
       exitSelectionMode();
     }
-    catch (error: any) {
-      Alert.alert("删除失败", error?.message ?? "请稍后重试");
+    catch (error) {
+      Alert.alert("删除失败", error instanceof Error ? error.message : "请稍后重试");
     }
-  }, [deleteRoleMutation, exitSelectionMode, selectedRoleCount, selectedRoleIds]);
+  }, [deleteRoleMutation.isPending, deleteRoles, exitSelectionMode, selectedRoleCount, selectedRoleIds]);
 
   const enterSelectionMode = useCallback(() => {
     setSelectionMode(true);
@@ -564,7 +572,7 @@ export default function RoleScreen() {
         selected={selectedRoleIds.has(item.role.roleId)}
         selectionMode={selectionMode}
         role={item.role}
-        onPress={() => handleOpenEdit(item.role)}
+        onPressRole={handleOpenEdit}
       />
     );
   }, [
@@ -585,10 +593,12 @@ export default function RoleScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <FlatList
+      <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
+        <FlashList
           contentContainerStyle={styles.content}
           data={roleListRows}
+          extraData={roleListExtraData}
+          getItemType={getRoleListRowType}
           keyboardShouldPersistTaps="handled"
           keyExtractor={item => item.key}
           ListHeaderComponent={renderListHeader}

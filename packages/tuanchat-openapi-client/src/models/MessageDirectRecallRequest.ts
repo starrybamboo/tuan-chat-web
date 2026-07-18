@@ -11,4 +11,3 @@ export type MessageDirectRecallRequest = {
      */
     messageId: number;
 };
-
