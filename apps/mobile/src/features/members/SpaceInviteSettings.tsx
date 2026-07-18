@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Check, Copy, Info, LinkSimple, UserPlus, Users } from "phosphor-react-native";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from "react-native";
 
@@ -97,7 +98,7 @@ const styles = StyleSheet.create({
 });
 
 type InviteModeCardProps = {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   mode: SpaceInviteMode;
   onSelect: (mode: SpaceInviteMode) => void;
