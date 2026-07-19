@@ -655,7 +655,7 @@ function ChatMessageListInner({
             roomRolesById={roomRolesById}
           />
           {jumpTargetMessageId === item.message.messageId
-            ? <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFillObject, styles.jumpHighlightOverlay, { borderColor: theme.warning }, jumpHighlightAnimatedStyle]} />
+            ? <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.jumpHighlightOverlay, { borderColor: theme.warning }, jumpHighlightAnimatedStyle]} />
             : null}
           {isDropTarget && dropTarget.placement === "after" ? <View style={[styles.dropMarker, { backgroundColor: theme.accent }]} /> : null}
         </Animated.View>

@@ -289,7 +289,7 @@ export function AppToastCard({
                       key={action.label}
                       type="button"
                       className={`
-                        rounded-md border border-current/30 px-2 py-1 text-xs font-medium text-current transition-colors
+                        min-h-8 rounded-md border border-current/30 px-2 py-1 text-xs font-medium text-current transition-colors
                         hover:border-current/50 hover:bg-current/10
                         focus:outline-none focus:ring-2 focus:ring-info/20
                       `}
@@ -383,6 +383,11 @@ function getPlainOptions(
     iconTheme: {
       ...TONE_CLASS[tone].plainIconTheme,
       ...options?.iconTheme,
+    },
+    ariaProps: {
+      role: toneClass.ariaRole,
+      "aria-live": toneClass.ariaLive,
+      ...options?.ariaProps,
     },
   };
 }

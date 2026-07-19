@@ -1,3 +1,4 @@
+import { useGetMyUserInfoQuery, useUpdateUserInfoMutation } from "api/hooks/UserHooks";
 import { useEffect, useMemo, useState } from "react";
 
 import type { SecurityTab } from "@/components/profile/profileTab/components/AccountSecurityModal";
@@ -24,7 +25,6 @@ import {
   writeFeedbackInAppEnabledToLocalStorage,
   writeGroupMessagePopupEnabledToLocalStorage,
 } from "@/components/settings/notificationPreferences";
-import { useGetMyUserInfoQuery, useUpdateUserInfoMutation } from "api/hooks/UserHooks";
 
 import type { ChatStatusType } from "../../../api/wsModels";
 
@@ -87,12 +87,16 @@ export default function SettingsPage() {
     writeFeedbackDesktopEnabledToLocalStorage(nextSettings.feedbackDesktopEnabled);
 
     if (!isLoggedIn) {
-      appToast.info("设置已保存在当前设备");
       return;
     }
 
     const userInfo = userInfoQuery.data?.data;
     if (!userInfo) {
+      appToast.warning({
+        title: "通知设置暂未同步",
+        description: "账号信息还在加载，当前选择只保存在这台设备。",
+        details: "账号信息加载完成后，再切换一次该选项即可同步。",
+      });
       return;
     }
 
@@ -101,10 +105,13 @@ export default function SettingsPage() {
         userId: userInfo.userId,
         extra: buildUserExtraWithNotificationSettings(userInfo.extra, nextSettings),
       });
-      appToast.success("通知设置已保存");
     }
     catch {
-      appToast.error("通知设置保存失败，已保留本地设置");
+      appToast.error({
+        title: "通知设置未同步",
+        description: "当前选择已保存在这台设备，但没有同步到账号。",
+        details: "请检查网络连接后，再切换一次该选项。",
+      });
     }
   };
 

@@ -7,7 +7,7 @@ import type { ComponentType } from "react";
 import { FlashList } from "@shopify/flash-list";
 import { CaretDown, ImageSquare, PaperPlaneTilt, PencilSimple, Smiley, X, XCircle } from "phosphor-react-native";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import * as DropdownMenu from "zeego/dropdown-menu";
 
 import type { MobilePokeComposerTarget } from "@/features/chat/mobilePokeTemplateStorage";
@@ -478,11 +478,7 @@ function ChatComposerInner({
   }, [onChangeChatStatus]);
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "position"}
-      enabled
-      style={[styles.composerWrapper, { backgroundColor: theme.background }]}
-    >
+    <View style={[styles.composerWrapper, { backgroundColor: theme.background }]}>
       {showMentionList && filteredMentionRoles.length > 0
         ? (
             <FlashList
@@ -805,7 +801,7 @@ function ChatComposerInner({
             )
           : null}
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

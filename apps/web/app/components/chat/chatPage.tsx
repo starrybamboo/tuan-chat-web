@@ -574,6 +574,15 @@ export default function ChatPage() {
     spaceMembers,
   });
 
+  const handleToggleSubWindow = useCallback(() => {
+    if (isSubWindowOpen) {
+      setIsSubWindowOpen(false);
+      return;
+    }
+    setSubWindowTab("empty");
+    setIsSubWindowOpen(true);
+  }, [isSubWindowOpen, setIsSubWindowOpen, setSubWindowTab]);
+
   const layoutContextValue = useMemo(() => {
     return {
       isPrivateChatMode,
@@ -582,6 +591,10 @@ export default function ChatPage() {
       activeDocId,
       isRoomSelectionPending,
       targetMessageId,
+      isSubWindowOpen,
+      onToggleSubWindow: screenSize !== "sm" && activeSpaceId != null
+        ? handleToggleSubWindow
+        : null,
       setIsOpenLeftDrawer,
       setActiveRoomId,
       handleOpenPrivate,
@@ -605,12 +618,15 @@ export default function ChatPage() {
     closeSpaceDetailPanel,
     handleDocTcHeaderChange,
     handleOpenPrivate,
+    handleToggleSubWindow,
     isKPInSpace,
     isPrivateChatMode,
     isRoomSelectionPending,
+    isSubWindowOpen,
     isSpaceDetailRoute,
     privateChatTab,
     roomSettingState,
+    screenSize,
     setActiveRoomId,
     setIsOpenLeftDrawer,
     spaceDetailTab,

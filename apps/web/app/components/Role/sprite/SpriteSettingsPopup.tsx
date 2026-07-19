@@ -14,11 +14,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useApplyCropAvatarMutation,
   useApplyCropMutation,
-  useClearDeletedRoleAvatarsMutation,
   useCreateRoleAvatarVariantMutation,
   useDeleteRoleAvatarVariantMutation,
-  useGetDeletedRoleAvatarsQuery,
-  useRestoreRoleAvatarMutation,
   useDeleteRoleAvatarMutation,
   useRoleAvatarVariantsQuery,
   useReserveRoleAvatarMutation,
@@ -36,7 +33,7 @@ import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { surfaceClassName, textClassName } from "@/components/common/DesignLanguage";
 import { IconButton } from "@/components/common/IconButton";
 import { MediaImage } from "@/components/common/mediaImage";
-import { CountBadge, InlineAlert } from "@/components/common/StatusPrimitives";
+import { InlineAlert } from "@/components/common/StatusPrimitives";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ensureRoleAvatarDefaultMedia } from "@/components/Role/RoleCreation/hooks/createRoleDefaultAvatar";
 import { isMobileScreen } from "@/utils/getScreenSize";
@@ -85,7 +82,7 @@ import {
 import { buildVariantAssignmentFailureToast } from "./variantAssignmentFailure";
 import { getVariantFolderClickAction } from "./variantFolderInteraction";
 
-export type SettingsTab = "cropper" | "avatarCropper" | "setting" | "trash";
+export type SettingsTab = "cropper" | "avatarCropper" | "setting";
 
 const UNGROUPED_VARIANT_KEY = "__ungrouped__";
 const DEFAULT_VARIANT = "未分组";
@@ -431,6 +428,7 @@ export function SpriteSettingsPopup({
     }
     return {
       ...avatar,
+      localAvatarUrl: override.localSpriteUrl,
       localSpriteUrl: override.localSpriteUrl,
       ...(override.spriteCropContext ? { spriteCropContext: override.spriteCropContext } : {}),
       ...(override.spriteTransform ? { spriteTransform: override.spriteTransform } : {}),
@@ -997,11 +995,31 @@ export function SpriteSettingsPopup({
 
   const registerPendingSpriteCropSubmissions = useCallback((
     submissions: PendingSpriteCropSubmission[],
+    toastId?: string,
   ) => {
+    let completedCount = 0;
+    let failedCount = 0;
+    let failureMessage: string | undefined;
+    const completeToast = () => {
+      completedCount += 1;
+      if (!toastId || completedCount < submissions.length) {
+        return;
+      }
+      if (failedCount > 0) {
+        appToast.error(failureMessage ?? `立绘保存失败：${failedCount}/${submissions.length}`, { id: toastId });
+      }
+      else {
+        appToast.success("立绘已保存", { id: toastId });
+      }
+    };
+
     submissions.forEach((pendingSubmission) => {
       const taskKey = getCropSubmitTaskKey(pendingSubmission.avatar);
       if (!taskKey) {
         URL.revokeObjectURL(pendingSubmission.localSpriteUrl);
+        failedCount += 1;
+        failureMessage = "无法识别立绘保存任务，请重新应用裁剪";
+        completeToast();
         return;
       }
 
@@ -1029,11 +1047,12 @@ export function SpriteSettingsPopup({
           });
         }
       }).catch((error) => {
+        failedCount += 1;
+        failureMessage = error instanceof Error ? error.message : "后台保存立绘失败，请重新应用裁剪";
         if (spriteCropSubmissionCoordinatorRef.current.isCurrent(pendingSubmission.avatar, submission)) {
           console.error("后台保存立绘失败:", error);
-          appToast.error(error instanceof Error ? error.message : "后台保存立绘失败，请重新应用裁剪");
         }
-      });
+      }).finally(completeToast);
     });
   }, [patchOptimisticUploadAvatars, upsertLocalSpriteCropOverride]);
 
@@ -1448,76 +1467,12 @@ export function SpriteSettingsPopup({
 
   const queryClient = useQueryClient();
   const repairedDefaultAvatarIdsRef = useRef<Set<number>>(new Set());
-  const trashQuery = useGetDeletedRoleAvatarsQuery(role?.id ?? 0, { enabled: Boolean(role?.id) });
-  const trashItems = useMemo(
-    () => trashQuery.data?.data ?? [],
-    [trashQuery.data],
-  );
-
-  const handleAvatarDeleted = useCallback((_avatar: RoleAvatar) => {
-    if (role?.id) {
-      queryClient.invalidateQueries({ queryKey: ["getDeletedRoleAvatars", role.id] });
-    }
-  }, [queryClient, role?.id]);
-
-  const handleBatchDeleted = useCallback((_avatars: RoleAvatar[]) => {
-    if (role?.id) {
-      queryClient.invalidateQueries({ queryKey: ["getDeletedRoleAvatars", role.id] });
-    }
-  }, [queryClient, role?.id]);
-
-  const { mutateAsync: restoreAvatar } = useRestoreRoleAvatarMutation(role?.id);
-  const { mutateAsync: clearDeletedAvatars, isPending: isClearingTrash } = useClearDeletedRoleAvatarsMutation(role?.id);
-  const [restoringId, setRestoringId] = useState<number | null>(null);
-
-  const handleRestoreFromTrash = useCallback(async (avatar: RoleAvatar) => {
-    if (restoringId) {
-      return;
-    }
-    if (!avatar.avatarId) {
-      appToast.error("头像ID无效，无法恢复");
-      return;
-    }
-    setRestoringId(avatar.avatarId);
-    try {
-      await restoreAvatar(avatar.avatarId);
-      appToast.success("头像已恢复");
-    }
-    catch (error) {
-      console.error("恢复头像失败:", error);
-      appToast.error("恢复失败，请稍后重试");
-    }
-    finally {
-      setRestoringId(null);
-    }
-  }, [restoringId, restoreAvatar]);
-
-  const handleClearTrash = useCallback(async () => {
-    if (!role?.id) {
-      appToast.error("角色信息缺失，无法清空回收站");
-      return;
-    }
-    if (trashItems.length === 0 || isClearingTrash) {
-      return;
-    }
-    try {
-      await clearDeletedAvatars(role.id);
-      appToast.success("回收站已清空");
-    }
-    catch (error) {
-      console.error("清空回收站失败:", error);
-      appToast.error("清空失败，请稍后重试");
-    }
-  }, [role?.id, trashItems.length, isClearingTrash, clearDeletedAvatars]);
-
   const deletionHook = useAvatarDeletion({
     role,
     avatars: spritesAvatars,
     selectedAvatarId: currentAvatar?.avatarId ?? 0,
     onAvatarChange: handleAvatarChange,
     onAvatarSelect: handleAvatarSelectById,
-    onDeleteSuccess: handleAvatarDeleted,
-    onBatchDeleteSuccess: handleBatchDeleted,
   });
 
   useEffect(() => {
@@ -1655,9 +1610,7 @@ export function SpriteSettingsPopup({
       return "立绘校正";
     if (activeTab === "avatarCropper")
       return "头像校正";
-    if (activeTab === "setting")
-      return "头像设置";
-    return "回收站";
+    return "头像设置";
   }, [activeTab]);
 
   const roleDisplayName = characterName.trim() || "角色";
@@ -1949,7 +1902,9 @@ export function SpriteSettingsPopup({
     }
     const pendingSpriteSubmissions = result.pendingSpriteSubmissions ?? [];
     if (pendingSpriteSubmissions.length > 0) {
-      registerPendingSpriteCropSubmissions(pendingSpriteSubmissions);
+      const toastId = `sprite-crop-save-${Date.now()}`;
+      appToast.loading("正在保存立绘…", { id: toastId });
+      registerPendingSpriteCropSubmissions(pendingSpriteSubmissions, toastId);
     }
     else {
       patchOptimisticUploadAvatars(result.avatars, { clearSpriteUrl: true });
@@ -2938,7 +2893,6 @@ export function SpriteSettingsPopup({
           role={role}
           onAvatarChange={handleAvatarChange}
           onAvatarSelect={handleAvatarSelectById}
-          onAvatarDeleted={handleAvatarDeleted}
           defaultAvatarId={role?.avatarId}
           onSetDefaultAvatar={handleSetDefaultAvatar}
           isSettingDefaultAvatar={setDefaultAvatarMutation.isPending}
@@ -3005,37 +2959,6 @@ export function SpriteSettingsPopup({
           <span>头像设置</span>
         </button>
 
-        {/* 回收站 Tab */}
-        <button
-          type="button"
-          onClick={() => handleTabChange("trash")}
-          className={`
-            flex items-center gap-1.5
-            sm:gap-2
-            px-2.5 py-2
-            sm:px-3
-            rounded-lg text-xs
-            sm:text-sm
-            transition-colors whitespace-nowrap
-            ${
-            activeTab === "trash"
-              ? "bg-info text-info-content"
-              : "hover:bg-base-300"
-          }
-          `}
-        >
-          <TrashIcon className="
-            size-4
-            sm:size-5
-            shrink-0
-          " aria-hidden="true" />
-          <span>回收站</span>
-          {trashItems.length > 0 && (
-            <CountBadge tone="neutral">
-              {trashItems.length}
-            </CountBadge>
-          )}
-        </button>
       </nav>
     </div>
   );
@@ -3341,123 +3264,6 @@ export function SpriteSettingsPopup({
                   )
             )}
 
-            {/* 回收站内容 */}
-            {activeTab === "trash" && (
-              <div className="h-full flex flex-col">
-                <div className="
-                  flex justify-between items-center mb-2 shrink-0 min-h-8
-                ">
-                  <h3 className="text-lg font-semibold">回收站</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClearTrash}
-                    disabled={trashItems.length === 0 || isClearingTrash}
-                    loading={isClearingTrash}
-                  >
-                    清空回收站
-                  </Button>
-                </div>
-
-                <div className="
-                  flex-1 min-h-0 relative bg-base-200 rounded-lg overflow-hidden
-                ">
-                  <div className="absolute inset-0 overflow-auto p-4">
-                    {trashQuery.isLoading
-                      ? (
-                          <div className="
-                            flex flex-col items-center justify-center h-full
-                            text-base-content/60 text-sm
-                          ">
-                            加载中...
-                          </div>
-                        )
-                      : trashItems.length === 0
-                        ? (
-                            <div className="
-                              flex flex-col items-center justify-center h-full
-                              text-base-content/60 text-sm
-                            ">
-                              回收站为空
-                            </div>
-                          )
-                        : (
-                            <div className="
-                              grid grid-cols-1
-                              sm:grid-cols-2
-                              lg:grid-cols-3
-                              gap-3
-                            ">
-                              {trashItems.map((avatar, index) => {
-                                const displayUrl = getEffectiveAvatarUrl(avatar);
-                                const title = typeof avatar.avatarTitle === "string"
-                                  ? avatar.avatarTitle
-                                  : avatar.avatarTitle?.label;
-                                const name = title && title.trim().length ? title : "未命名头像";
-                                const isRestoring = restoringId === avatar.avatarId;
-                                const isBusy = Boolean(restoringId) || isClearingTrash;
-                                const canRestore = Boolean(avatar.avatarId);
-                                return (
-                                  <div key={avatar.avatarId ?? `trash-${index}`} className="
-                                    rounded-lg border border-base-300
-                                    bg-base-100 p-3 flex flex-col gap-3
-                                  ">
-                                    <div className="flex gap-3 items-start">
-                                      <div className="
-                                        size-16 rounded-md overflow-hidden
-                                        bg-base-200 flex items-center
-                                        justify-center shrink-0
-                                      ">
-                                        {displayUrl
-                                          ? (
-                                              <MediaImage
-                                                src={displayUrl}
-                                                alt={name}
-                                                className="
-                                                  size-full object-cover
-                                                "
-                                                loading="lazy"
-                                                decoding="async"
-                                              />
-                                            )
-                                          : (
-                                              <span className="
-                                                text-xs text-base-content/50
-                                              ">无预览</span>
-                                            )}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="font-medium truncate">{name}</div>
-                                        {avatar.avatarId && (
-                                          <div className="
-                                            text-xs text-base-content/50 mt-1
-                                          ">
-                                            头像ID：
-                                            {avatar.avatarId}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="flex justify-end gap-2">
-                                      <Button
-                                        variant="primary"
-                                        size="sm"
-                                        onClick={() => handleRestoreFromTrash(avatar)}
-                                        disabled={!canRestore || isBusy}
-                                        loading={isRestoring}
-                                      >
-                                        恢复
-                                      </Button>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -3487,7 +3293,7 @@ export function SpriteSettingsPopup({
               <div className="flex items-center justify-between px-3 py-2">
                 <Drawer.Title className="text-base font-semibold">头像与工具</Drawer.Title>
                 <Drawer.Description className="sr-only">
-                  在移动端查看头像列表并切换头像设置或回收站。
+                  在移动端查看头像列表并切换头像设置。
                 </Drawer.Description>
                 <IconButton
                   size="sm"
@@ -3640,7 +3446,7 @@ export function SpriteSettingsPopup({
               {" "}
               <span className="font-bold text-error">{selectedIndices.size}</span>
               {" "}
-              个头像吗？删除后会进入回收站，可在回收站恢复。
+              个头像吗？删除后不可恢复。
             </p>
             {selectedIndices.size >= spritesAvatars.length && (
               <InlineAlert

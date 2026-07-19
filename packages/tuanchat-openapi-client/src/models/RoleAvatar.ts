@@ -19,6 +19,10 @@ export type RoleAvatar = {
      */
     avatarId: number;
     /**
+     * 角色头像集合变更同步 ID
+     */
+    syncId?: number;
+    /**
      * 头像的标题
      */
     avatarTitle?: Record<string, string>;
@@ -65,7 +69,7 @@ export type RoleAvatar = {
     createTime?: string;
     updateTime?: string;
     /**
-     * 0代表正常，1代表删除
+     * 头像状态,0正常,1回收站,2同步墓碑
      */
     state?: number;
     /**

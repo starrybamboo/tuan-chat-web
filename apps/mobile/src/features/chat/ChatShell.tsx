@@ -73,12 +73,12 @@ import {
   resolveDmEntryNavigationState,
 } from "@/features/friends/dmNavigationState";
 import { useDmInboxQuery } from "@/features/friends/useDmInboxQuery";
+import { MemberInviteSheet } from "@/features/members/MemberInviteSheet";
 import {
   findCurrentMember,
   hasHostMemberType,
   mergeRoomMembersWithSpaceMembers,
 } from "@/features/members/memberUtils";
-import { MemberInviteSheet } from "@/features/members/MemberInviteSheet";
 import { useRoomMembersQuery } from "@/features/members/useRoomMembersQuery";
 import { useSpaceMembersQuery } from "@/features/members/useSpaceMembersQuery";
 import { DEFAULT_MOBILE_CHAT_STATUS_LABELS, sendMobileChatStatus, useMobileChatStatus, useMobileChatStatusEntries } from "@/features/messages/mobileChatStatus";
@@ -122,6 +122,7 @@ import { mobileApiClient } from "@/lib/api";
 import * as Clipboard from "@/lib/clipboard";
 import { confirmAction } from "@/lib/confirm";
 import { DRAWER_EDGE_SWIPE_ZONE_WIDTH } from "@/lib/layout-constants";
+import { resolveMobileKeyboardAvoidance } from "@/lib/mobileKeyboardAvoidance";
 
 import type { StShowCardModel } from "../../components/common/dicer/cmdExe/stShowCard";
 import type { ChatComposerShortcutAction } from "./ChatComposer";
@@ -179,6 +180,8 @@ function parsePositiveIntegerSearchParam(value: string | string[] | undefined): 
   const parsed = Number.parseInt(rawValue, 10);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
+
+const SCREEN_KEYBOARD_AVOIDANCE = resolveMobileKeyboardAvoidance(Platform.OS, "screen");
 
 function readPositiveInteger(value: unknown): number | null {
   return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
@@ -255,7 +258,7 @@ const styles = StyleSheet.create({
   contentLayer: { flex: 1 },
   chatContent: { flex: 1 },
   dmOverlayLayer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 2,
   },
   hiddenDmOverlayLayer: {
@@ -599,15 +602,15 @@ export default function ChatShell() {
   const myRoles = useMemo(() => myRolesQuery.data ?? [], [myRolesQuery.data]);
   const addableRoomRoles = useMemo(() => {
     const existingRoleIds = new Set(roomRoles.map(role => role.roleId));
-    return myRoles.filter(role => role.state !== 1 && !existingRoleIds.has(role.roleId));
+    return myRoles.filter(role => (role.state == null || role.state === 0) && !existingRoleIds.has(role.roleId));
   }, [myRoles, roomRoles]);
   const roomRolesById = useMemo(() => buildRoomRolesById(roomRoles), [roomRoles]);
   const selectableRoomRoles = useMemo(() => {
     if (isSpectator)
       return [];
     if (isSpaceOwner)
-      return roomRoles.filter(role => role.state !== 1);
-    return roomRoles.filter(role => role.userId === currentUserId && role.state !== 1);
+      return roomRoles.filter(role => role.state == null || role.state === 0);
+    return roomRoles.filter(role => role.userId === currentUserId && (role.state == null || role.state === 0));
   }, [currentUserId, isSpaceOwner, isSpectator, roomRoles]);
   const fallbackSelectableRoleId = selectableRoomRoles[0]?.roleId;
   const currentRole = useMemo(() => {
@@ -784,7 +787,7 @@ export default function ChatShell() {
     if (!(targetRoleId && targetRoleId > 0) || !roomRolesQuery.isSuccess) {
       return;
     }
-    const targetIsAvailable = roomRoles.some(role => role.roleId === targetRoleId && role.state !== 1);
+    const targetIsAvailable = roomRoles.some(role => role.roleId === targetRoleId && (role.state == null || role.state === 0));
     if (!targetIsAvailable) {
       restoreNormalDraftAfterPoke();
     }
@@ -2119,8 +2122,8 @@ export default function ChatShell() {
                                 )
                               : null}
                             <KeyboardAvoidingView
-                              behavior={Platform.OS === "ios" ? "padding" : "height"}
-                              enabled
+                              behavior={SCREEN_KEYBOARD_AVOIDANCE.behavior}
+                              enabled={SCREEN_KEYBOARD_AVOIDANCE.enabled}
                               style={styles.chatContent}
                             >
                               {searchPageVisible

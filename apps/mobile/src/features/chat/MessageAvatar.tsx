@@ -80,7 +80,7 @@ export const MessageAvatar = memo(({
         <CachedImage
           uri={resolvedAvatarUrl}
           contentFit="cover"
-          style={[StyleSheet.absoluteFillObject, { borderRadius }]}
+          style={[StyleSheet.absoluteFill, { borderRadius }]}
         />
       </View>
     );

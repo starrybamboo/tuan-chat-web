@@ -296,14 +296,14 @@ export default function RoleScreen() {
   const searchKeyword = searchText.trim().toLocaleLowerCase();
   const isSearching = searchKeyword.length > 0;
   const normalRoles = useMemo(
-    () => sortByTimeDesc(allRoles.filter(r => r.type === 0 && r.state !== 1 && matchesRoleSearch(r, searchKeyword))),
+    () => sortByTimeDesc(allRoles.filter(r => r.type === 0 && (r.state == null || r.state === 0) && matchesRoleSearch(r, searchKeyword))),
     [allRoles, searchKeyword],
   );
   const diceRoles = useMemo(
-    () => sortByTimeDesc(allRoles.filter(r => r.type === 1 && r.state !== 1 && matchesRoleSearch(r, searchKeyword))),
+    () => sortByTimeDesc(allRoles.filter(r => r.type === 1 && (r.state == null || r.state === 0) && matchesRoleSearch(r, searchKeyword))),
     [allRoles, searchKeyword],
   );
-  const hasDiceRoles = allRoles.some(r => r.type === 1 && r.state !== 1);
+  const hasDiceRoles = allRoles.some(r => r.type === 1 && (r.state == null || r.state === 0));
 
   const [rolesCollapsed, setRolesCollapsed] = useState(false);
   const [diceCollapsed, setDiceCollapsed] = useState(true);
@@ -314,10 +314,6 @@ export default function RoleScreen() {
 
   const handleOpenCreate = useCallback(() => {
     router.push("/role-edit");
-  }, []);
-
-  const handleOpenTrash = useCallback(() => {
-    router.push("/role-trash");
   }, []);
 
   const toggleRoleSelection = useCallback((roleId: number) => {
@@ -355,7 +351,7 @@ export default function RoleScreen() {
     const confirmed = await confirmAction({
       confirmText: "删除",
       destructive: true,
-      message: `确定要删除选中的 ${roleIds.length} 个角色吗？删除后会进入回收站。`,
+      message: `确定要删除选中的 ${roleIds.length} 个角色吗？删除后不可恢复。`,
       title: "删除角色",
     });
     if (!confirmed) {
@@ -483,14 +479,6 @@ export default function RoleScreen() {
           : (
               <View style={styles.toolbarActions}>
                 <Pressable
-                  accessibilityLabel="打开角色回收站"
-                  accessibilityRole="button"
-                  onPress={handleOpenTrash}
-                  style={[styles.toolbarActionButton, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
-                >
-                  <Trash color={theme.textSecondary} size={20} weight="bold" />
-                </Pressable>
-                <Pressable
                   accessibilityLabel="进入选择模式"
                   accessibilityRole="button"
                   onPress={enterSelectionMode}
@@ -508,7 +496,6 @@ export default function RoleScreen() {
     exitSelectionMode,
     handleBatchDelete,
     handleOpenCreate,
-    handleOpenTrash,
     searchText,
     selectedRoleCount,
     selectionMode,

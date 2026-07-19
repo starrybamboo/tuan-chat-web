@@ -158,7 +158,7 @@ function CombatPanelContent({
 
   const rolesWithCombatState = useMemo(() => {
     return roomRoles
-      .filter(role => role.state !== 1)
+      .filter(role => role.state == null || role.state === 0)
       .map((role) => {
         const baseValues = runtime.baseDisplayValues.rolesByRoleId[role.roleId] ?? {};
         const displayValues = runtime.derivedDisplayValues.rolesByRoleId[role.roleId] ?? {};

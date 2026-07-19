@@ -293,8 +293,8 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
   }, [ability, rule]);
   const carouselSidePeek = Spacing.xl;
   const pageWidth = Math.max(240, windowWidth - Spacing.xxl * 2 - carouselSidePeek * 2);
-  const trackTranslateX = useSharedValue(carouselSidePeek);
-  const activeSectionIndexShared = useSharedValue(0);
+  const trackTranslateX = useSharedValue<number>(carouselSidePeek);
+  const activeSectionIndexShared = useSharedValue<number>(0);
   const pageCount = sections.length;
   const resolvedActiveSectionIndex = pageCount === 0 ? 0 : Math.min(activeSectionIndex, pageCount - 1);
   const displayIndex = pageCount === 0 ? 0 : resolvedActiveSectionIndex + 1;

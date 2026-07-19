@@ -11,6 +11,8 @@ export type ChatPageLayoutContextValue = {
   activeDocId: string | null;
   isRoomSelectionPending: boolean;
   targetMessageId: number | null;
+  isSubWindowOpen: boolean;
+  onToggleSubWindow: (() => void) | null;
   setIsOpenLeftDrawer: (isOpen: boolean) => void;
   setActiveRoomId: (roomId: number | null, options?: SelectRoomOptions) => void;
   handleOpenPrivate: () => void;

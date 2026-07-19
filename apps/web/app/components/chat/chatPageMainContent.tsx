@@ -79,6 +79,8 @@ function ChatPageChatContent() {
     activeSpaceId,
     isRoomSelectionPending,
     targetMessageId,
+    isSubWindowOpen,
+    onToggleSubWindow,
     privateChatTab,
   } = useChatPageLayoutContext();
   const location = useLocation();
@@ -144,6 +146,8 @@ function ChatPageChatContent() {
         spaceId={activeSpaceId ?? -1}
         targetMessageId={targetMessageId}
         viewMode={isPreviewMode}
+        isSubWindowOpen={isSubWindowOpen}
+        onToggleSubWindow={onToggleSubWindow ?? undefined}
       />
     </React.Suspense>
   );

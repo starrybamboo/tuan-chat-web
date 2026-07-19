@@ -40,6 +40,8 @@ import {
 } from "@tuanchat/query/optimistic-cache";
 import {
     fetchUserRoomsWithCache as fetchSharedUserRoomsWithCache,
+    fetchUserActiveSpacesWithCache as fetchSharedUserActiveSpacesWithCache,
+    fetchUserSpacesWithCache as fetchSharedUserSpacesWithCache,
     getMyArchivedSpacesQueryKey,
     getUserActiveSpacesQueryKey,
     getUserSpacesQueryKey,
@@ -161,17 +163,15 @@ export function fetchUserRoomsWithCache(queryClient: QueryClient, spaceId: numbe
 }
 
 export function fetchUserActiveSpacesWithCache(queryClient: QueryClient, options?: ResourceQueryOptions) {
-    return queryClient.fetchQuery({
-        queryKey: getUserActiveSpacesQueryKey(),
-        queryFn: () => tuanchat.spaceController.getUserActiveSpaces(),
+    return fetchSharedUserActiveSpacesWithCache(queryClient, tuanchat, {
+        ...options,
         staleTime: options?.staleTime ?? SPACE_INFO_STALE_TIME_MS,
     });
 }
 
 export function fetchUserSpacesWithCache(queryClient: QueryClient, options?: ResourceQueryOptions) {
-    return queryClient.fetchQuery({
-        queryKey: getUserSpacesQueryKey(),
-        queryFn: () => tuanchat.spaceController.getUserSpaces(),
+    return fetchSharedUserSpacesWithCache(queryClient, tuanchat, {
+        ...options,
         staleTime: options?.staleTime ?? SPACE_INFO_STALE_TIME_MS,
     });
 }

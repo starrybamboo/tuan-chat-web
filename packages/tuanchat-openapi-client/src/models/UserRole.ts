@@ -15,6 +15,10 @@ export type UserRole = {
      */
     roleId: number;
     /**
+     * 角色集合变更同步 ID
+     */
+    syncId?: number;
+    /**
      * 角色名字
      */
     roleName?: string;
@@ -39,7 +43,7 @@ export type UserRole = {
      */
     spaceId?: number;
     /**
-     * 角色状态,0正常,1删除
+     * 角色状态,0正常,1回收站,2同步墓碑
      */
     state?: number;
     /**

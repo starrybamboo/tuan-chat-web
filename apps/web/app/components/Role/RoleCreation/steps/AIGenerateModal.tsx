@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { appToast } from "@/components/common/appToast/appToast";
 import { Button } from "@/components/common/Button";
 import { DialogFrame } from "@/components/common/DialogFrame";
 import { Disclosure } from "@/components/common/Disclosure";
@@ -84,6 +85,13 @@ export default function AIGenerateModal({
     }
     catch (error) {
       console.error("AI生成失败:", error);
+      appToast.error({
+        title: "AI 生成失败",
+        description: error instanceof Error && error.message.trim()
+          ? error.message
+          : "服务未返回有效角色数据。",
+        details: "请调整提示词或检查网络后重试。",
+      }, { id: "role-ai-generation" });
     }
     finally {
       setIsGenerating(false);

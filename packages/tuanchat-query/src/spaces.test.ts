@@ -3,7 +3,13 @@ import type { ApiResultRoomListResponse } from "@tuanchat/openapi-client/models/
 
 import { describe, expect, it } from "vitest";
 
-import { patchExistingUserRoomData, upsertUserActiveSpacesData, upsertUserRoomData } from "./spaces";
+import {
+  mergeRoomCollectionSync,
+  mergeSpaceCollectionSync,
+  patchExistingUserRoomData,
+  upsertUserActiveSpacesData,
+  upsertUserRoomData,
+} from "./spaces";
 
 describe("space query cache helpers", () => {
   it("创建空间后追加到用户空间缓存，并保留已有字段", () => {
@@ -76,5 +82,34 @@ describe("space query cache helpers", () => {
     ]);
 
     expect(patchExistingUserRoomData(current, { roomId: 99, name: "未知房间" })).toBe(current);
+  });
+
+  it("空间增量会合并更新并按 DELETE 操作移除本地投影", () => {
+    expect(mergeSpaceCollectionSync(
+      [{ spaceId: 1, name: "旧空间" }, { spaceId: 2, name: "待移除" }],
+      {
+        baseline: false,
+        spaces: [
+          { spaceId: 1, name: "新空间", syncOperation: "UPSERT" },
+          { spaceId: 2, syncOperation: "DELETE" },
+          { spaceId: 3, name: "新增空间", syncOperation: "UPSERT" },
+        ],
+      },
+    )).toEqual([
+      { spaceId: 1, name: "新空间", syncOperation: "UPSERT" },
+      { spaceId: 3, name: "新增空间", syncOperation: "UPSERT" },
+    ]);
+  });
+
+  it("房间基线会替换旧列表，增量只修改涉及的房间", () => {
+    expect(mergeRoomCollectionSync(
+      [{ roomId: 1, name: "旧房间" }, { roomId: 2, name: "待移除" }],
+      { baseline: true, rooms: [{ roomId: 3, name: "基线房间", syncOperation: "UPSERT" }] },
+    )).toEqual([{ roomId: 3, name: "基线房间", syncOperation: "UPSERT" }]);
+
+    expect(mergeRoomCollectionSync(
+      [{ roomId: 1, name: "旧房间" }, { roomId: 2, name: "待移除" }],
+      { baseline: false, rooms: [{ roomId: 2, syncOperation: "DELETE" }] },
+    )).toEqual([{ roomId: 1, name: "旧房间" }]);
   });
 });

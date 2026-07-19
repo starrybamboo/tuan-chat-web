@@ -8,11 +8,11 @@
 @source "../api/**/*.ts";
 @source "../api/**/*.tsx";
 @import "./components/common/scrollbar.css";
-@plugin "../../node_modules/daisyui/index.js" {
+@plugin "daisyui" {
   themes: false;
   exclude: button, avatar, modal, checkbox, radio, toggle, range, fileinput, progress, join, menu;
 }
-@plugin "../../node_modules/daisyui/theme/index.js" {
+@plugin "daisyui/theme" {
   name: "light";
   default: true;
   prefersdark: false;
@@ -29,7 +29,7 @@
   --color-primary-content: var(--color-info-content);
 }
 
-@plugin "../../node_modules/daisyui/theme/index.js" {
+@plugin "daisyui/theme" {
   name: "dark";
   default: false;
   prefersdark: true;

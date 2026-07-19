@@ -1,6 +1,7 @@
+import type { ReactNode } from "react";
+
 import { useQuery } from "@tanstack/react-query";
 import { Check, Copy, Info, LinkSimple, UserPlus, Users } from "phosphor-react-native";
-import type { ReactNode } from "react";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from "react-native";
 
@@ -158,7 +159,11 @@ export function SpaceInviteSettings({
       if (!response.success) {
         throw new Error(response.errMsg || "生成邀请链接失败。");
       }
-      return response.data?.trim() ?? "";
+      const inviteCode = response.data?.trim();
+      if (!inviteCode) {
+        throw new Error("生成的邀请链接为空，请重试。");
+      }
+      return inviteCode;
     },
     queryKey: getSpaceInviteCodeQueryKey(spaceId, inviteCodeType, duration),
   });

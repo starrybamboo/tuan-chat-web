@@ -953,6 +953,7 @@ export function SpriteCropper({
           const localSpriteUrl = URL.createObjectURL(croppedBlob);
           const previewAvatar = {
             ...currentAvatar,
+            localAvatarUrl: localSpriteUrl,
             localSpriteUrl,
             spriteCropContext,
             spriteTransform,
@@ -973,6 +974,7 @@ export function SpriteCropper({
         }
         else {
           await submitSpriteCrop(true);
+          appToast.success("立绘已应用");
         }
       }
 

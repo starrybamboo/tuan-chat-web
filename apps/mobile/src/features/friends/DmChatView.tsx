@@ -39,6 +39,7 @@ import { mobileApiClient } from "@/lib/api";
 import * as Clipboard from "@/lib/clipboard";
 import { COMPOSER_MAX_HEIGHT, COMPOSER_MIN_HEIGHT } from "@/lib/layout-constants";
 import { avatarThumbUrl } from "@/lib/media-url";
+import { resolveMobileKeyboardAvoidance } from "@/lib/mobileKeyboardAvoidance";
 
 import { getErrorMessage } from "../chat/mobileChatUtils";
 import { getVisibleDirectMessageTimeline, selectDirectMessagePage } from "./dmChatViewModel";
@@ -52,6 +53,7 @@ import { useRecallDmMutation, useSendDmMutation, useUpdateDmReadPositionMutation
 const PAGE_SIZE = 30;
 const DM_KEYBOARD_LAYOUT_SETTLE_MS = 320;
 const DM_CHAT_VIEW_DEBUG_ENABLED = false;
+const SCREEN_KEYBOARD_AVOIDANCE = resolveMobileKeyboardAvoidance(Platform.OS, "screen");
 const DM_CHAT_VIEW_DEBUG_PREFIX = "[DmChatView]";
 const COMPOSER_INPUT_PADDING_TOP = 10;
 const COMPOSER_INPUT_PADDING_BOTTOM = Spacing.sm;
@@ -1102,8 +1104,8 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
                 : null}
 
               <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : "position"}
-                enabled
+                behavior={SCREEN_KEYBOARD_AVOIDANCE.behavior}
+                enabled={SCREEN_KEYBOARD_AVOIDANCE.enabled}
                 style={[
                   styles.composerContainer,
                   {

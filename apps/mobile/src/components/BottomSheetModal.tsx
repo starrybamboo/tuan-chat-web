@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
 
 import { Radius, Spacing } from "@/constants/theme";
+import { resolveMobileKeyboardAvoidance } from "@/lib/mobileKeyboardAvoidance";
 import { MOBILE_MODAL_ORIENTATIONS } from "@/lib/modal";
 
 const ENTER_BACKDROP_DURATION_MS = 250;
@@ -22,10 +23,11 @@ const SHEET_SPRING_CONFIG = {
   reduceMotion: ReduceMotion.System,
   stiffness: 200,
 } as const;
+const MODAL_KEYBOARD_AVOIDANCE = resolveMobileKeyboardAvoidance(Platform.OS, "modal");
 
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   container: {
@@ -173,8 +175,8 @@ export function BottomSheetModal({
     >
       <GestureHandlerRootView style={styles.container}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          enabled
+          behavior={MODAL_KEYBOARD_AVOIDANCE.behavior}
+          enabled={MODAL_KEYBOARD_AVOIDANCE.enabled}
           style={styles.container}
         >
           <Pressable

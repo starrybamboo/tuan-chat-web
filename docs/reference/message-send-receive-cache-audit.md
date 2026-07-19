@@ -8,13 +8,11 @@
 
 ## 归档位置
 
-这份审计里的长期缓存思想已经归档到项目级 OpenSpec 文档：
+这份审计里的长期缓存思想已经归档到项目级原则：
 
-- 通用缓存分层原则：`D:/A_collection/tuanchat-docs/openspec/principles/query-cache.md`
-- 通用可验收约束：`D:/A_collection/tuanchat-docs/openspec/specs/frontend-data-consistency/spec.md`
-- 消息收发链路规格：`D:/A_collection/tuanchat-docs/openspec/specs/chat-frontend-contract/spec.md`
+- 通用缓存分层原则：`D:/A_collection/tuanchat-docs/principles/data-architecture.md`
 
-后续讨论 React Query、持久化 read model、WebSocket 事件通道、pending 乐观态、OPFS SQLite 或完整历史消息缓存时，以这些 OpenSpec 文档为事实源。本文件只保留审计来源和跳转，不再维护第二份设计结论。
+后续讨论 React Query、持久化 read model、WebSocket 事件通道、pending 乐观态、OPFS SQLite 或完整历史消息缓存时，先读取该原则，再回到当前实现核对可验收行为。本文件只保留审计来源和跳转，不再维护第二份设计结论。
 
 ## 归档摘要
 

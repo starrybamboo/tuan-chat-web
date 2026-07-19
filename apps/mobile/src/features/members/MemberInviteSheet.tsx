@@ -4,7 +4,7 @@ import type { SpaceMember } from "@tuanchat/openapi-client/models/SpaceMember";
 
 import { FlashList } from "@shopify/flash-list";
 import { UserPlus } from "phosphor-react-native";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
@@ -16,10 +16,11 @@ import { useTheme } from "@/hooks/use-theme";
 import { avatarThumbUrl } from "@/lib/media-url";
 
 import type { MemberInviteCandidate } from "./memberInviteModel";
+import type { SpaceInviteMode } from "./spaceInviteLink";
 
 import { buildMemberInviteCandidates } from "./memberInviteModel";
-import { SpaceInviteSettings } from "./SpaceInviteSettings";
 import { getDefaultSpaceInviteMode } from "./spaceInviteLink";
+import { SpaceInviteSettings } from "./SpaceInviteSettings";
 import { useAddSpaceMemberMutation } from "./useAddSpaceMemberMutation";
 import { useAddRoomMemberMutation } from "./useRoomMemberMutations";
 
@@ -38,6 +39,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   listContent: { gap: Spacing.sm, paddingBottom: Spacing.xl },
+  spaceList: { flex: 1, minHeight: 0 },
   memberRow: {
     alignItems: "center",
     borderRadius: Radius.md,
@@ -149,8 +151,11 @@ export function MemberInviteSheet({
   const theme = useTheme();
   const { height: windowHeight } = useWindowDimensions();
   const friendsQuery = useFriendsQuery();
-  const [spaceInviteMode, setSpaceInviteMode] = useState(() => getDefaultSpaceInviteMode(canInvitePlayers));
-  const effectiveSpaceInviteMode = canInvitePlayers ? spaceInviteMode : "spectator";
+  const [spaceInviteMode, setSpaceInviteMode] = useState<SpaceInviteMode | null>(null);
+  const defaultSpaceInviteMode = getDefaultSpaceInviteMode(canInvitePlayers);
+  const effectiveSpaceInviteMode: SpaceInviteMode = canInvitePlayers
+    ? (spaceInviteMode ?? defaultSpaceInviteMode)
+    : defaultSpaceInviteMode;
   const addRoomMemberMutation = useAddRoomMemberMutation(roomId ?? 0, spaceId);
   const addSpaceMemberMutation = useAddSpaceMemberMutation(spaceId, effectiveSpaceInviteMode === "player");
   const addMemberMutation = targetType === "space" ? addSpaceMemberMutation : addRoomMemberMutation;
@@ -159,11 +164,10 @@ export function MemberInviteSheet({
   const [addingUserId, setAddingUserId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (visible && targetType === "space") {
-      setSpaceInviteMode(getDefaultSpaceInviteMode(canInvitePlayers));
-    }
-  }, [canInvitePlayers, targetType, visible]);
+  const handleClose = useCallback(() => {
+    setSpaceInviteMode(null);
+    onClose();
+  }, [onClose]);
 
   const roomMemberUserIds = useMemo(() => new Set(
     (targetType === "space" ? spaceMembers : roomMembers)
@@ -209,8 +213,9 @@ export function MemberInviteSheet({
     <BottomSheetModal
       backgroundColor={theme.surface}
       handleColor={theme.border}
-      maxHeight="85%"
-      onClose={onClose}
+      maxHeight={targetType === "space" ? "92%" : "85%"}
+      onClose={handleClose}
+      sheetStyle={targetType === "space" ? { height: Math.min(760, windowHeight * 0.9) } : undefined}
       visible={visible}
     >
       <View style={styles.header}>
@@ -251,7 +256,10 @@ export function MemberInviteSheet({
           </View>
         )}
         renderItem={renderCandidate}
-        style={{ maxHeight: Math.max(180, windowHeight * (targetType === "space" ? 0.32 : 0.58)) }}
+        style={[
+          targetType === "space" ? styles.spaceList : null,
+          { maxHeight: Math.max(180, windowHeight * (targetType === "space" ? 0.32 : 0.58)) },
+        ]}
       />
     </BottomSheetModal>
   );

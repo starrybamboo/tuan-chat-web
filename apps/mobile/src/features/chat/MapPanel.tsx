@@ -384,7 +384,7 @@ function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, 
 
   const unplacedRoles = useMemo(() => {
     const placedRoleIds = new Set(tokens.map(token => token.roleId));
-    return roomRoles.filter(role => role.state !== 1 && !placedRoleIds.has(role.roleId));
+    return roomRoles.filter(role => (role.state == null || role.state === 0) && !placedRoleIds.has(role.roleId));
   }, [roomRoles, tokens]);
 
   const handleContainerLayout = useCallback((event: LayoutChangeEvent) => {

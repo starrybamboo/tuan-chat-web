@@ -19,6 +19,7 @@ import {
 } from "@/components/chat/infra/audioMessage/audioMessageWaveSurferCache";
 import { mediaDebug } from "@/components/chat/infra/media/mediaDebug";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
+import { appToast } from "@/components/common/appToast/appToast";
 
 type AudioMessageProps = {
   url: string;
@@ -880,6 +881,11 @@ export default function AudioMessage({
         url,
         error: e instanceof Error ? e.message : String(e),
       });
+      appToast.error({
+        title: "语音播放失败",
+        description: "当前语音没有开始播放。",
+        details: "请检查网络连接和系统音频输出后重试。",
+      }, { id: `audio-playback-${cacheKey}` });
     }
   };
 

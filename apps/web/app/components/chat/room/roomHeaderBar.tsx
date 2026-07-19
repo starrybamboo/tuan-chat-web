@@ -16,6 +16,7 @@ import {
   ArticleIcon,
   BaselineArrowBackIosNew,
   Bubble2,
+  SidebarSimpleIcon,
   XMarkICon,
 } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
@@ -34,6 +35,8 @@ type RoomHeaderBarProps = {
   contentMode: RoomContentMode;
   onToggleContentMode: () => void;
   toggleLeftDrawer: () => void;
+  isSubWindowOpen?: boolean;
+  onToggleSubWindow?: () => void;
   onCloseSubWindow?: () => void;
   onClearAndReloadAllMessages?: () => void | Promise<void>;
   isReloadingAllMessages?: boolean;
@@ -47,6 +50,8 @@ function RoomHeaderBarImpl({
   contentMode,
   onToggleContentMode,
   toggleLeftDrawer,
+  isSubWindowOpen = false,
+  onToggleSubWindow,
   onCloseSubWindow,
   onClearAndReloadAllMessages,
   isReloadingAllMessages = false,
@@ -70,6 +75,7 @@ function RoomHeaderBarImpl({
   const hasRoomDescription = Boolean(room?.description?.trim());
   const chatBubbleStyleLabel = useChatBubbleStyle ? "当前：气泡样式" : "当前：传统样式";
   const chatBubbleStyleToggleLabel = useChatBubbleStyle ? "切换到传统样式" : "切换到气泡样式";
+  const subWindowToggleLabel = isSubWindowOpen ? "关闭副窗口" : "打开副窗口";
   const blurActiveElement = () => {
     if (typeof document === "undefined") {
       return;
@@ -315,6 +321,29 @@ function RoomHeaderBarImpl({
                   )
                 : (
                     <>
+                      {onToggleSubWindow && (
+                        <PortalTooltip label={subWindowToggleLabel} placement="bottom">
+                          <button
+                            type="button"
+                            className={[
+                              "relative z-50 inline-flex size-8 items-center justify-center rounded-md transition-colors duration-150",
+                              isSubWindowOpen
+                                ? "text-info hover:text-info"
+                                : "text-base-content/70 hover:bg-base-300/60 hover:text-info",
+                            ].join(" ")}
+                            aria-controls="chat-page-sub-window"
+                            aria-expanded={isSubWindowOpen}
+                            aria-label={subWindowToggleLabel}
+                            title={subWindowToggleLabel}
+                            onClick={onToggleSubWindow}
+                          >
+                            <SidebarSimpleIcon
+                              className="size-6 rotate-180"
+                              weight={isSubWindowOpen ? "fill" : "regular"}
+                            />
+                          </button>
+                        </PortalTooltip>
+                      )}
                       <PortalTooltip label={contentMode === "doc" ? "返回房间视图" : "进入文档视图"} placement="bottom">
                         <button
                           type="button"

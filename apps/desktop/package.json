@@ -11,7 +11,7 @@
     "check:webgal": "node ./scripts/check-webgal-terre-runtime.mjs",
     "sync:web-build": "node ./scripts/sync-web-build.mjs",
     "compile": "electron-vite build",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsgo -p tsconfig.json --noEmit",
     "build:app": "pnpm -s prepare:webgal && pnpm -s check:webgal && pnpm --filter @tuanchat/web run build && pnpm -s sync:web-build && pnpm -s compile",
     "build": "pnpm -s build:app && pnpm --workspace-root exec electron-builder build --config apps/desktop/electron-builder.config.cjs",
     "build:win:zip": "pnpm -s build:app && pnpm --workspace-root exec electron-builder build --config apps/desktop/electron-builder.config.cjs --win zip",
@@ -22,15 +22,17 @@
   },
   "dependencies": {
     "@tuanchat/electron-ipc": "workspace:*",
-    "electron-updater": "^6.7.3",
-    "fflate": "0.8.2"
+    "electron-updater": "^6.8.9",
+    "fflate": "0.8.3"
   },
   "devDependencies": {
     "@tuanchat/typescript-config": "workspace:*",
+    "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "detect-port": "^2.1.0",
-    "electron": "35.7.5",
-    "electron-builder": "^26.0.12",
+    "electron": "43.1.1",
+    "electron-builder": "^26.15.7",
     "electron-reload": "2.0.0-alpha.1",
-    "electron-vite": "6.0.0-beta.1"
+    "electron-vite": "6.0.0-beta.1",
+    "typescript": "6.0.3"
   }
 }

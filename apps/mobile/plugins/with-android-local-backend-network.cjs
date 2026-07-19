@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const { withDangerousMod } = require("@expo/config-plugins");
+const { withDangerousMod } = require("expo/config-plugins");
 
 const NETWORK_CONFIG_RESOURCE = "@xml/tuanchat_local_backend_network_security_config";
 const NETWORK_CONFIG_XML = `<?xml version="1.0" encoding="utf-8"?>

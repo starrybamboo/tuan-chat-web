@@ -12,7 +12,7 @@ import { IconButton } from "@/components/common/IconButton";
 import PortalTooltip from "@/components/common/portalTooltip";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { StateView } from "@/components/common/StateView";
-import { BaselineArrowBackIosNew, XMarkICon } from "@/icons";
+import { XMarkICon } from "@/icons";
 
 const LazyRoomWindow = React.lazy(() => import("@/components/chat/room/roomWindow"));
 
@@ -176,7 +176,6 @@ export default function ChatPageSubWindow({
   setDocId,
 }: ChatPageSubWindowProps) {
   const isDesktop = screenSize !== "sm";
-  const [isRightEdgeActive, setIsRightEdgeActive] = useState(false);
   const availableRoomId = useMemo(() => rooms[0]?.roomId ?? null, [rooms]);
   const availableDocId = useMemo(() => docMetas[0]?.id ?? null, [docMetas]);
   const resolvedRoomId = roomId ?? availableRoomId;
@@ -231,13 +230,8 @@ export default function ChatPageSubWindow({
     tab,
   ]);
 
-  const dragStartXRef = useRef(0);
-  const draggedRef = useRef(false);
   const lastDropTargetRef = useRef<DroppedTarget>(null);
   const [isDropReplaceOverlayVisible, setIsDropReplaceOverlayVisible] = useState(false);
-  const resetToEmpty = useCallback(() => {
-    setTab("empty");
-  }, [setTab]);
 
   const applyDroppedTarget = useCallback((target: DroppedTarget) => {
     if (!target) {
@@ -321,112 +315,12 @@ export default function ChatPageSubWindow({
     };
   }, []);
 
-  const handleOpenEdgePointerDown = useCallback((e: React.PointerEvent<HTMLElement>) => {
-    if (!activeSpaceId || !isDesktop) {
-      return;
-    }
-    dragStartXRef.current = e.clientX;
-    draggedRef.current = false;
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-
-    const onPointerMove = (ev: PointerEvent) => {
-      const delta = dragStartXRef.current - ev.clientX;
-      if (delta <= 0) {
-        return;
-      }
-      draggedRef.current = true;
-      if (!isOpen) {
-        resetToEmpty();
-        setIsOpen(true);
-      }
-      setWidth(clampWidth(delta));
-    };
-
-    const onPointerUp = () => {
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-      document.removeEventListener("pointermove", onPointerMove);
-      document.removeEventListener("pointerup", onPointerUp);
-      if (!draggedRef.current && !isOpen) {
-        resetToEmpty();
-        setIsOpen(true);
-      }
-    };
-
-    document.addEventListener("pointermove", onPointerMove);
-    document.addEventListener("pointerup", onPointerUp);
-  }, [activeSpaceId, isDesktop, isOpen, resetToEmpty, setIsOpen, setWidth]);
-
-  useEffect(() => {
-    if (!isDesktop || !activeSpaceId || isOpen) {
-      queueMicrotask(() => setIsRightEdgeActive(false));
-      return;
-    }
-    if (typeof window === "undefined") {
-      return;
-    }
-    const EDGE_THRESHOLD_PX = 56;
-    const handleMouseMove = (event: MouseEvent) => {
-      const nearRightEdge = event.clientX >= (window.innerWidth - EDGE_THRESHOLD_PX);
-      setIsRightEdgeActive(prev => (prev === nearRightEdge ? prev : nearRightEdge));
-    };
-    const handleMouseOut = () => {
-      setIsRightEdgeActive(false);
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseout", handleMouseOut);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseout", handleMouseOut);
-    };
-  }, [activeSpaceId, isDesktop, isOpen]);
-
   if (!isDesktop || !activeSpaceId) {
     return null;
   }
 
   if (!isOpen) {
-    return (
-      <div
-        className={`
-          absolute right-0 top-1/2 -translate-y-1/2 z-30 pointer-events-none
-          transition-[transform,opacity] duration-200 motion-reduce:transition-none
-          ${isRightEdgeActive ? `translate-x-0 opacity-100` : `
-            translate-x-full opacity-0
-          `}
-        `}
-      >
-        <PortalTooltip label="向左拖拽打开副窗口" placement="left">
-          <button
-            type="button"
-            className={`
-              h-24 w-6 rounded-l-xl border-y border-l border-base-300/50
-              bg-base-100/90 backdrop-blur-sm text-base-content/50
-              shadow-sm
-              hover:text-base-content/70 hover:bg-base-100
-              transition-colors duration-150 cursor-col-resize flex items-center
-              justify-center
-              motion-reduce:transition-none
-              ${isRightEdgeActive ? `pointer-events-auto` : `
-                pointer-events-none
-              `}
-            `}
-            data-sub-window-drop-zone
-            onPointerDown={handleOpenEdgePointerDown}
-            onDragOverCapture={handleDragOver}
-            onDropCapture={handleDrop}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-            style={{ touchAction: "none" }}
-            aria-label="向左拖拽打开副窗口"
-            title="向左拖拽打开副窗口"
-          >
-            <BaselineArrowBackIosNew className="size-4 opacity-70" />
-          </button>
-        </PortalTooltip>
-      </div>
-    );
+    return <div id="chat-page-sub-window" hidden />;
   }
 
   return (
@@ -442,50 +336,56 @@ export default function ChatPageSubWindow({
       handlePosition="left"
     >
       <div
-        className="
-          h-full flex flex-col min-h-0 bg-base-200 border-l border-base-300
-          relative
-        "
-        data-sub-window-drop-zone
-        onDragOverCapture={handleDragOver}
-        onDropCapture={handleDrop}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
+        id="chat-page-sub-window"
+        role="region"
+        aria-label="副窗口"
+        className="size-full"
       >
-        {isDropReplaceOverlayVisible && (
-          <div
-            className="
-              absolute inset-0 z-40 flex items-center justify-center
-              bg-base-200/18 backdrop-blur-[1px]
-            "
-            data-sub-window-drop-zone
-            onDragOverCapture={handleDragOver}
-            onDropCapture={handleDrop}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          >
-            <div className="
-              rounded-xl border border-info/30 bg-base-100/92 px-4 py-2
-              text-sm font-semibold text-base-content shadow
-            ">
-              松开以替换副窗口内容
+        <div
+          className="
+            h-full flex flex-col min-h-0 bg-base-200 border-l border-base-300
+            relative
+          "
+          data-sub-window-drop-zone
+          onDragOverCapture={handleDragOver}
+          onDropCapture={handleDrop}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
+          {isDropReplaceOverlayVisible && (
+            <div
+              className="
+                absolute inset-0 z-40 flex items-center justify-center
+                bg-base-200/18 backdrop-blur-[1px]
+              "
+              data-sub-window-drop-zone
+              onDragOverCapture={handleDragOver}
+              onDropCapture={handleDrop}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+            >
+              <div className="
+                rounded-xl border border-info/30 bg-base-100/92 px-4 py-2
+                text-sm font-semibold text-base-content shadow
+              ">
+                松开以替换副窗口内容
+              </div>
             </div>
-          </div>
-        )}
-        {(tab === "doc" || tab === "empty" || tab === "material") && (
-          <PortalTooltip label="关闭副窗口" placement="right" anchorClassName="absolute left-2 top-2 z-30">
-            <IconButton
-              size="xs"
-              shape="square"
-              className="min-h-0 size-7 bg-base-200/70 backdrop-blur-sm"
-              onClick={() => setIsOpen(false)}
-              label="关闭副窗口"
-              title="关闭副窗口"
-              icon={<XMarkICon className="size-4" />}
-            />
-          </PortalTooltip>
-        )}
-        <div className="flex-1 min-h-0 overflow-hidden">
+          )}
+          {(tab === "doc" || tab === "empty" || tab === "material") && (
+            <PortalTooltip label="关闭副窗口" placement="right" anchorClassName="absolute left-2 top-2 z-30">
+              <IconButton
+                size="xs"
+                shape="square"
+                className="min-h-0 size-7 bg-base-200/70 backdrop-blur-sm"
+                onClick={() => setIsOpen(false)}
+                label="关闭副窗口"
+                title="关闭副窗口"
+                icon={<XMarkICon className="size-4" />}
+              />
+            </PortalTooltip>
+          )}
+          <div className="flex-1 min-h-0 overflow-hidden">
           {tab === "empty" && (
             <div className="
               size-full flex items-center justify-center text-base-content/70
@@ -576,6 +476,7 @@ export default function ChatPageSubWindow({
               />
             </div>
           )}
+          </div>
         </div>
       </div>
     </OpenAbleDrawer>

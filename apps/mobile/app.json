@@ -54,7 +54,13 @@
           "resizeMode": "contain"
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      "expo-asset",
+      "expo-audio",
+      "expo-image",
+      "expo-secure-store",
+      "expo-sqlite",
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,

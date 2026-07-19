@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const { withDangerousMod } = require("@expo/config-plugins");
+const { withDangerousMod } = require("expo/config-plugins");
 
 const OKHTTP_DEPENDENCY = '    implementation("com.squareup.okhttp3:okhttp:4.12.0")';
 const OKHTTP_PROVIDER_IMPORT = "import com.facebook.react.modules.network.OkHttpClientProvider";

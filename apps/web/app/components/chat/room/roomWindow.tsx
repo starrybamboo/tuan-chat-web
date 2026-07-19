@@ -136,6 +136,8 @@ function RoomWindow({
   targetMessageId,
   viewMode = false,
   hideSecondaryPanels = false,
+  isSubWindowOpen = false,
+  onToggleSubWindow,
   onCloseSubWindow,
 }: {
   roomId: number;
@@ -143,6 +145,8 @@ function RoomWindow({
   targetMessageId?: number | null;
   viewMode?: boolean;
   hideSecondaryPanels?: boolean;
+  isSubWindowOpen?: boolean;
+  onToggleSubWindow?: () => void;
   onCloseSubWindow?: () => void;
 }) {
   const spaceContext = use(SpaceContext);
@@ -1246,6 +1250,8 @@ function RoomWindow({
               onRequestDocImportTextPaste={handleRequestDocImportTextPaste}
               onRemoteDocMessagesSaved={handleRemoteDocMessagesSaved}
               toggleLeftDrawer={spaceContext.toggleLeftDrawer}
+              isSubWindowOpen={isSubWindowOpen}
+              onToggleSubWindow={onToggleSubWindow}
               onCloseSubWindow={onCloseSubWindow}
               backgroundUrl={backgroundUrl}
               combatVisualActive={combatVisualActive}

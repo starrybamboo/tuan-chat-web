@@ -43,7 +43,9 @@
         "perfectionist/sort-imports": [
           "warn",
           {
-            "tsconfigRootDir": "."
+            "tsconfig": {
+              "rootDir": "."
+            }
           }
         ],
         // 仓库同时存在框架约定文件、React 组件和普通模块，因此接受三种既有命名形式。

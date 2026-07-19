@@ -45,6 +45,10 @@ describe("appToast", () => {
         primary: "var(--color-error)",
         secondary: "var(--color-base-100)",
       },
+      ariaProps: {
+        role: "alert",
+        "aria-live": "assertive",
+      },
       style: expect.objectContaining({
         background: "color-mix(in oklab, var(--color-error) 28%, var(--color-base-100))",
         border: "1px solid color-mix(in oklab, var(--color-error) 56%, var(--color-base-100))",
@@ -192,6 +196,20 @@ describe("appToast", () => {
     }));
 
     expect(markup).not.toContain("查看问题帮助");
+  });
+
+  it("结构化 Toast 操作使用紧凑触控热区", () => {
+    const markup = renderToStaticMarkup(createElement(AppToastCard, {
+      toastId: "retry-save",
+      tone: "error",
+      content: {
+        title: "保存失败",
+        actions: [{ label: "重试", onClick: vi.fn() }],
+      },
+    }));
+
+    expect(markup).toContain("min-h-8");
+    expect(markup).toContain("重试");
   });
 
   it("保留 custom toast 的高级入口", async () => {

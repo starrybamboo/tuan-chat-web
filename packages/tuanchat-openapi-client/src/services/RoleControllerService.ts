@@ -5,6 +5,7 @@
 import type { ApiResultListUserRole } from '../models/ApiResultListUserRole';
 import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultPageBaseRespUserRole } from '../models/ApiResultPageBaseRespUserRole';
+import type { ApiResultRoleCollectionSyncResponse } from '../models/ApiResultRoleCollectionSyncResponse';
 import type { ApiResultUserRole } from '../models/ApiResultUserRole';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { RoleCopyRequest } from '../models/RoleCopyRequest';
@@ -167,6 +168,26 @@ export class RoleControllerService {
             url: '/role/user',
             query: {
                 'userId': userId,
+            },
+        });
+    }
+    /**
+     * 按同步 ID 获取用户角色基线或增量
+     * @param userId
+     * @param afterSyncId
+     * @returns ApiResultRoleCollectionSyncResponse OK
+     * @throws ApiError
+     */
+    public syncUserRoles(
+        userId: number,
+        afterSyncId?: number,
+    ): CancelablePromise<ApiResultRoleCollectionSyncResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/role/user/sync',
+            query: {
+                'userId': userId,
+                'afterSyncId': afterSyncId,
             },
         });
     }

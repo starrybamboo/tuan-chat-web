@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   image: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
 });
 

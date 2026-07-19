@@ -3,7 +3,13 @@ import type { UserUpdateInfoRequest } from "@tuanchat/openapi-client/models/User
 
 import { useState } from "react";
 
+import { appToast } from "@/components/common/appToast/appToast";
+
 import { useUpdateUserInfoMutation } from "../../../../../api/hooks/UserHooks";
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message.trim() ? error.message.trim() : fallback;
+}
 
 export function useProfileEditing(user: UserProfileInfoResponse | undefined) {
   // 内联编辑状态
@@ -37,6 +43,11 @@ export function useProfileEditing(user: UserProfileInfoResponse | undefined) {
       }
       catch (error) {
         console.error("保存个人资料失败:", error);
+        appToast.error({
+          title: "个人资料保存失败",
+          description: getErrorMessage(error, "服务器没有接受这次修改。"),
+          details: "当前编辑内容仍然保留，请检查网络后重试。",
+        }, { id: "profile-save-error" });
       }
     }
   };
@@ -56,7 +67,16 @@ export function useProfileEditing(user: UserProfileInfoResponse | undefined) {
       userId: user.userId,
       avatarFileId: avatarPayload.avatarFileId,
     };
-    updateUserInfoMutation.mutate(request);
+    updateUserInfoMutation.mutate(request, {
+      onError: (error) => {
+        console.error("保存个人头像失败:", error);
+        appToast.error({
+          title: "头像保存失败",
+          description: getErrorMessage(error, "个人资料没有更新为新头像。"),
+          details: "请检查网络后重新选择头像。",
+        }, { id: "profile-avatar-save-error" });
+      },
+    });
   };
 
   return {

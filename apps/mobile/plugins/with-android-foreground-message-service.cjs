@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const { withDangerousMod } = require("@expo/config-plugins");
+const { withDangerousMod } = require("expo/config-plugins");
 
 const TEMPLATE_DIR = "android-foreground-message-service";
 const OKHTTP_DEPENDENCY = '    implementation("com.squareup.okhttp3:okhttp:4.12.0")';

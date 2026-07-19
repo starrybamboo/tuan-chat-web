@@ -1,7 +1,8 @@
-import type { ApiResultPageBaseRespUserRole } from "@tuanchat/openapi-client/models/ApiResultPageBaseRespUserRole";
 import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
+import type { RoleAvatarCollectionSyncResponse } from "@tuanchat/openapi-client/models/RoleAvatarCollectionSyncResponse";
+import type { RoleAvatarCreateRequest } from "@tuanchat/openapi-client/models/RoleAvatarCreateRequest";
+import type { RoleCollectionSyncResponse } from "@tuanchat/openapi-client/models/RoleCollectionSyncResponse";
 import type { RoleCreateRequest } from "@tuanchat/openapi-client/models/RoleCreateRequest";
-import type { RolePageQueryRequest } from "@tuanchat/openapi-client/models/RolePageQueryRequest";
 import type { RoleUpdateRequest } from "@tuanchat/openapi-client/models/RoleUpdateRequest";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
@@ -17,6 +18,9 @@ import {
 
 type RoleClient = Pick<TuanChat, "avatarController" | "roleController">;
 
+export type RoleCollectionSync = RoleCollectionSyncResponse;
+export type RoleAvatarCollectionSync = RoleAvatarCollectionSyncResponse;
+
 export function getMyRolesQueryKey() {
   return ["myRoles"] as const;
 }
@@ -25,14 +29,66 @@ export function getRoleAvatarListQueryKey(roleId: number | null | undefined) {
   return ["roleAvatars", roleId ?? null] as const;
 }
 
-export function getDeletedUserRolesPageQueryKey(params: RolePageQueryRequest) {
-  return [
-    "getDeletedUserRolesPage",
-    params.userId,
-    params.pageNo ?? 1,
-    params.pageSize ?? 20,
-    params.roleName ?? "",
-  ] as const;
+export async function fetchRoleCollectionSync(
+  client: RoleClient,
+  userId: number,
+  afterSyncId?: number,
+): Promise<RoleCollectionSync> {
+  const response = await client.roleController.syncUserRoles(userId, afterSyncId);
+  if (!response.success) {
+    throw new Error(response.errMsg || "获取角色增量失败");
+  }
+  return response.data ?? { baseline: afterSyncId == null || afterSyncId <= 0, latestSyncId: 0, roles: [] };
+}
+
+export async function fetchRoleAvatarCollectionSync(
+  client: RoleClient,
+  roleId: number,
+  afterSyncId?: number,
+): Promise<RoleAvatarCollectionSync> {
+  const response = await client.avatarController.syncRoleAvatars(roleId, afterSyncId);
+  if (!response.success) {
+    throw new Error(response.errMsg || "获取头像增量失败");
+  }
+  return response.data ?? { baseline: afterSyncId == null || afterSyncId <= 0, latestSyncId: 0, avatars: [] };
+}
+
+export function mergeRoleCollectionSync(
+  current: UserRole[],
+  response: RoleCollectionSync,
+): UserRole[] {
+  const next = new Map<number, UserRole>();
+  if (!response.baseline) {
+    current.forEach(role => next.set(role.roleId, role));
+  }
+  for (const role of response.roles ?? []) {
+    if (role.state != null && role.state !== 0) {
+      next.delete(role.roleId);
+    }
+    else {
+      next.set(role.roleId, role);
+    }
+  }
+  return [...next.values()];
+}
+
+export function mergeRoleAvatarCollectionSync(
+  current: RoleAvatar[],
+  response: RoleAvatarCollectionSync,
+): RoleAvatar[] {
+  const next = new Map<number, RoleAvatar>();
+  if (!response.baseline) {
+    current.forEach(avatar => next.set(avatar.avatarId, avatar));
+  }
+  for (const avatar of response.avatars ?? []) {
+    if (avatar.state != null && avatar.state !== 0) {
+      next.delete(avatar.avatarId);
+    }
+    else {
+      next.set(avatar.avatarId, avatar);
+    }
+  }
+  return [...next.values()];
 }
 
 function invalidateRoleListQueries(queryClient: ReturnType<typeof useQueryClient>) {
@@ -41,11 +97,6 @@ function invalidateRoleListQueries(queryClient: ReturnType<typeof useQueryClient
   queryClient.invalidateQueries({ queryKey: ["getUserRoles"] });
   queryClient.invalidateQueries({ queryKey: ["getUserRolesByType"] });
   queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
-}
-
-function invalidateRoleTrashQueries(queryClient: ReturnType<typeof useQueryClient>) {
-  queryClient.invalidateQueries({ queryKey: ["getDeletedUserRolesPage"] });
-  queryClient.invalidateQueries({ queryKey: ["getDeletedSpaceNpcRolesPage"] });
 }
 
 function invalidateRoomRoleQueries(queryClient: ReturnType<typeof useQueryClient>) {
@@ -122,75 +173,6 @@ export function patchRoleCacheValue(current: unknown, roleId: number, update: Ro
   return next;
 }
 
-function findRoleInCache(current: unknown, roleId: number): UserRole | undefined {
-  if (Array.isArray(current)) {
-    for (const item of current) {
-      const found = findRoleInCache(item, roleId);
-      if (found) {
-        return found;
-      }
-    }
-    return undefined;
-  }
-  if (!isRecord(current)) {
-    return undefined;
-  }
-  if (current.roleId === roleId) {
-    return current as UserRole;
-  }
-  for (const key of ["data", "list", "allRoles", "baseRoles", "npcRoles", "roles"] as const) {
-    const found = findRoleInCache(current[key], roleId);
-    if (found) {
-      return found;
-    }
-  }
-  return undefined;
-}
-
-function findRoleAcrossCaches(queryClient: ReturnType<typeof useQueryClient>, roleId: number) {
-  const queryPrefixes: readonly (readonly unknown[])[] = [
-    ["getRole", roleId],
-    ...ACTIVE_ROLE_QUERY_PREFIXES,
-  ];
-  for (const queryKey of queryPrefixes) {
-    for (const [, value] of queryClient.getQueriesData({ queryKey })) {
-      const role = findRoleInCache(value, roleId);
-      if (role) {
-        return role;
-      }
-    }
-  }
-  return undefined;
-}
-
-function addRoleToTrashPage(current: unknown, role: UserRole | undefined, queryKey: readonly unknown[]) {
-  if (!role || !isRecord(current) || !isRecord(current.data) || !Array.isArray(current.data.list)) {
-    return current;
-  }
-  const roleNameFilter = String(queryKey[4] ?? "").trim().toLowerCase();
-  if (roleNameFilter && !String(role.roleName ?? "").toLowerCase().includes(roleNameFilter)) {
-    return current;
-  }
-  if (current.data.list.some((item: UserRole) => item.roleId === role.roleId)) {
-    return current;
-  }
-  return {
-    ...current,
-    data: {
-      ...current.data,
-      list: [{ ...role, state: 1 }, ...current.data.list],
-      totalRecords: Number(current.data.totalRecords ?? current.data.list.length) + 1,
-    },
-  };
-}
-
-function clearRoleTrashPage(current: unknown) {
-  if (!isRecord(current) || !isRecord(current.data) || !Array.isArray(current.data.list)) {
-    return current;
-  }
-  return { ...current, data: { ...current.data, list: [], totalRecords: 0 } };
-}
-
 const ACTIVE_ROLE_QUERY_PREFIXES = [
   ["myRoles"],
   ["getUserRoles"],
@@ -230,57 +212,10 @@ export function beginRoleDeleteOptimisticMutation(
   queryClient: ReturnType<typeof useQueryClient>,
   roleIds: number[],
 ) {
-  const roles = new Map(roleIds.map(roleId => [roleId, findRoleAcrossCaches(queryClient, roleId)]));
-  return beginOptimisticQueryTransaction(queryClient, [
-    ...roleIds.flatMap(roleId => roleCachePatches(roleId, () => null)),
-    optimisticQueryPatch<unknown>({
-      queryKey: ["getDeletedUserRolesPage"],
-      exact: false,
-      update: (current, queryKey) => roleIds.reduce(
-        (next, roleId) => addRoleToTrashPage(next, roles.get(roleId), queryKey),
-        current,
-      ),
-    }),
-  ]);
-}
-
-export function beginHardDeleteRolesOptimisticMutation(
-  queryClient: ReturnType<typeof useQueryClient>,
-  roleIds: number[],
-) {
-  return beginOptimisticQueryTransaction(queryClient, [
-    optimisticQueryPatch<unknown>({
-      queryKey: ["getDeletedUserRolesPage"],
-      exact: false,
-      update: current => roleIds.reduce(
-        (next, roleId) => patchRoleCacheValue(next, roleId, () => null),
-        current,
-      ),
-    }),
-    optimisticQueryPatch<unknown>({
-      queryKey: ["getDeletedSpaceNpcRolesPage"],
-      exact: false,
-      update: current => roleIds.reduce(
-        (next, roleId) => patchRoleCacheValue(next, roleId, () => null),
-        current,
-      ),
-    }),
-  ]);
-}
-
-export function beginClearRoleTrashOptimisticMutation(queryClient: ReturnType<typeof useQueryClient>) {
-  return beginOptimisticQueryTransaction(queryClient, [
-    optimisticQueryPatch<unknown>({
-      queryKey: ["getDeletedUserRolesPage"],
-      exact: false,
-      update: clearRoleTrashPage,
-    }),
-    optimisticQueryPatch<unknown>({
-      queryKey: ["getDeletedSpaceNpcRolesPage"],
-      exact: false,
-      update: clearRoleTrashPage,
-    }),
-  ]);
+  return beginOptimisticQueryTransaction(
+    queryClient,
+    roleIds.flatMap(roleId => roleCachePatches(roleId, () => null)),
+  );
 }
 
 function patchAvatarRecord(current: unknown, avatarId: number, update: AvatarCacheUpdater) {
@@ -434,21 +369,6 @@ export function useDeleteRoleMutation(client: RoleClient) {
     mutationKey: ["deleteRole"],
     onMutate: roleIds => beginRoleDeleteOptimisticMutation(queryClient, roleIds),
     onError: (_error, _roleIds, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
-    onSettled: () => {
-      invalidateRoleListQueries(queryClient);
-      invalidateRoleTrashQueries(queryClient);
-      invalidateRoomRoleQueries(queryClient);
-    },
-  });
-}
-
-export function useHardDeleteRolesMutation(client: RoleClient) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (roleIds: number[]) => client.roleController.hardDeleteRole(roleIds),
-    mutationKey: ["hardDeleteRoles"],
-    onMutate: roleIds => beginHardDeleteRolesOptimisticMutation(queryClient, roleIds),
-    onError: (_error, _roleIds, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
     onSuccess: (_result, roleIds) => {
       roleIds.forEach((roleId) => {
         queryClient.removeQueries({ queryKey: ["getRole", roleId] });
@@ -457,44 +377,8 @@ export function useHardDeleteRolesMutation(client: RoleClient) {
     },
     onSettled: () => {
       invalidateRoleListQueries(queryClient);
-      invalidateRoleTrashQueries(queryClient);
       invalidateRoomRoleQueries(queryClient);
     },
-  });
-}
-
-export function useClearRoleTrashMutation(client: RoleClient) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: () => client.roleController.clearRoleTrash(),
-    mutationKey: ["clearRoleTrash"],
-    onMutate: () => beginClearRoleTrashOptimisticMutation(queryClient),
-    onError: (_error, _variables, transaction) => rollbackOptimisticQueryTransaction(queryClient, transaction),
-    onSettled: () => {
-      invalidateRoleListQueries(queryClient);
-      invalidateRoleTrashQueries(queryClient);
-      invalidateRoomRoleQueries(queryClient);
-    },
-  });
-}
-
-export function useDeletedUserRolesPageQuery(
-  client: RoleClient,
-  params: RolePageQueryRequest,
-  options: { enabled?: boolean; staleTime?: number } = {},
-) {
-  const userId = params.userId;
-  return useQuery<ApiResultPageBaseRespUserRole>({
-    enabled: (options.enabled ?? true) && typeof userId === "number" && Number.isFinite(userId) && userId > 0,
-    queryFn: async () => {
-      const res = await client.roleController.getDeletedRolesByPage(params);
-      if (!res.success) {
-        throw new Error(res.errMsg || "获取角色回收站失败");
-      }
-      return res;
-    },
-    queryKey: getDeletedUserRolesPageQueryKey(params),
-    staleTime: options.staleTime ?? 600_000,
   });
 }
 
@@ -517,7 +401,7 @@ export function useRoleAvatarsQuery(
 export function useCreateAvatarMutation(client: RoleClient) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (request: RoleAvatar) => client.avatarController.setRoleAvatar(request as any),
+    mutationFn: (request: RoleAvatarCreateRequest) => client.avatarController.setRoleAvatar(request),
     mutationKey: ["createAvatar"],
     onSuccess: (_result, request) => {
       invalidateRoleMetadataBatchQueries(queryClient);

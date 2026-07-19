@@ -6,6 +6,7 @@ import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useCallback, useRef, useState } from "react";
 
+import { appToast } from "@/components/common/appToast/appToast";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { FileInput } from "@/components/common/FormField";
@@ -223,6 +224,13 @@ export function SpriteListGrid({
     }
     catch (error) {
       console.error("保存头像名称失败:", error);
+      appToast.error({
+        title: "头像名称保存失败",
+        description: error instanceof Error && error.message.trim()
+          ? error.message
+          : "服务器没有接受新的头像名称。",
+        details: "名称已恢复，请检查网络后重新修改。",
+      }, { id: `avatar-name-save-${avatar.avatarId ?? "unknown"}` });
     }
   }, [role?.id, updateNameMutation]);
 
@@ -950,7 +958,7 @@ export function SpriteListGrid({
         }}
         onConfirm={handleConfirmDelete}
         title="确认删除头像"
-        description="删除后会进入回收站，可在回收站恢复。"
+        description="删除后不可恢复。"
         confirmLabel="删除"
         cancelLabel="取消"
         icon={<BaselineDeleteOutline className="size-6" />}

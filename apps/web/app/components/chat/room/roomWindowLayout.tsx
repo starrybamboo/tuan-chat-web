@@ -67,6 +67,8 @@ type RoomWindowLayoutProps = {
   onRemoteDocMessagesSaved?: (messages: Message[]) => void | Promise<void>;
   chatHistory?: UseChatHistoryReturn;
   toggleLeftDrawer: () => void;
+  isSubWindowOpen?: boolean;
+  onToggleSubWindow?: () => void;
   onCloseSubWindow?: () => void;
   backgroundUrl: string | null;
   combatVisualActive: boolean;
@@ -93,6 +95,8 @@ export default function RoomWindowLayout({
   onRemoteDocMessagesSaved,
   chatHistory,
   toggleLeftDrawer,
+  isSubWindowOpen = false,
+  onToggleSubWindow,
   onCloseSubWindow,
   backgroundUrl,
   combatVisualActive,
@@ -169,6 +173,8 @@ export default function RoomWindowLayout({
             contentMode={contentMode}
             onToggleContentMode={onToggleContentMode}
             toggleLeftDrawer={toggleLeftDrawer}
+            isSubWindowOpen={isSubWindowOpen}
+            onToggleSubWindow={onToggleSubWindow}
             onCloseSubWindow={onCloseSubWindow}
             onClearAndReloadAllMessages={onClearAndReloadAllMessages}
             isReloadingAllMessages={isReloadingAllMessages}

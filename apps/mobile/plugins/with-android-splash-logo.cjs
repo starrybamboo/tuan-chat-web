@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const { withDangerousMod } = require("@expo/config-plugins");
+const { withDangerousMod } = require("expo/config-plugins");
 const sharp = require("sharp");
 
 const SPLASH_SOURCE_SIZE = 1024;

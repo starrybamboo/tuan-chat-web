@@ -78,4 +78,5 @@ describe("room role query helpers", () => {
     expect(getUserRoles).toHaveBeenCalledOnce();
     expect(getUserRoles).toHaveBeenCalledWith(7);
   });
+
 });

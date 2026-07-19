@@ -353,7 +353,7 @@ export default function RoleEditScreen() {
   const handleDelete = useCallback(async () => {
     if (roleId === null)
       return;
-    Alert.alert("确认删除", "删除后会进入回收站，确定要删除吗？", [
+    Alert.alert("确认删除", "删除后不可恢复，确定要删除吗？", [
       { text: "取消", style: "cancel" },
       {
         text: "删除",

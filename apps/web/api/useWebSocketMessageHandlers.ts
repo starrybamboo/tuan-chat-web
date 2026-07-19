@@ -364,6 +364,7 @@ export function useWebSocketMessageHandlers({
         if (event.data.changeType === 1 || event.data.changeType === 2) {
           setTimeout(() => {
             queryClient.invalidateQueries({ queryKey: ["getUserSpaces"] });
+            queryClient.invalidateQueries({ queryKey: ["getUserActiveSpaces"] });
             queryClient.invalidateQueries({ queryKey: ["getUserRooms"] });
           }, 500);
         }
@@ -376,6 +377,7 @@ export function useWebSocketMessageHandlers({
         const event = message as RoomDismissPush;
         cleanupRoomDescriptionDocOnDissolve(event.data.roomId);
         queryClient.invalidateQueries({ queryKey: ["getUserSpaces"] });
+        queryClient.invalidateQueries({ queryKey: ["getUserActiveSpaces"] });
         queryClient.invalidateQueries({ queryKey: ["getUserRooms"] });
       },
       15: () => {

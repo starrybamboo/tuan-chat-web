@@ -29,7 +29,7 @@
     "./users": "./src/users.ts"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.69.0",
+    "@tanstack/react-query": "^5.101.2",
     "@tuanchat/domain": "workspace:*",
     "@tuanchat/openapi-client": "workspace:*"
   },

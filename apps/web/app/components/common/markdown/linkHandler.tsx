@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
 
+import { appToast } from "@/components/common/appToast/appToast";
+
 function getCurrentOrigin(): string | null {
   if (typeof window === "undefined" || !window.location?.origin) {
     return null;
@@ -113,6 +115,11 @@ export default function LinkComponent({ href, children, navigate, ...props }: an
               }
               else {
                 console.warn(`无法找到锚点元素: ${href}`);
+                appToast.warning({
+                  title: "未找到跳转位置",
+                  description: "当前内容里没有对应的标题或锚点。",
+                  details: "请手动滚动查找目标内容。",
+                }, { id: `markdown-anchor-${targetId}` });
               }
             }, 100);
           }

@@ -1,5 +1,4 @@
 import type { QueryClient } from "@tanstack/react-query";
-import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 import type { RoleAvatarVariantUpdateRequest } from "@tuanchat/openapi-client/models/RoleAvatarVariantUpdateRequest";
 
 import {
@@ -23,40 +22,6 @@ function patchApiResultList(current: unknown, update: (list: any[]) => any[]) {
   }
   const next = update(list);
   return next === list ? current : { ...(current as Record<string, unknown>), data: next };
-}
-
-export function beginRestoreRoleAvatarOptimisticMutation(
-  queryClient: QueryClient,
-  roleId: number,
-  avatarId: number,
-) {
-  const deletedKey = ["getDeletedRoleAvatars", roleId] as const;
-  const activeKey = ["getRoleAvatars", roleId] as const;
-  const deleted = getApiResultList(queryClient.getQueryData(deletedKey));
-  const avatar = deleted?.find(item => isRecord(item) && item.avatarId === avatarId) as RoleAvatar | undefined;
-  return beginOptimisticQueryTransaction(queryClient, [
-    optimisticQueryPatch<unknown>({
-      queryKey: deletedKey,
-      update: current => patchApiResultList(current, list => list.filter(item => !isRecord(item) || item.avatarId !== avatarId)),
-    }),
-    optimisticQueryPatch<unknown>({
-      queryKey: activeKey,
-      update: current => avatar
-        ? patchApiResultList(current, list => list.some(item => isRecord(item) && item.avatarId === avatarId)
-          ? list
-          : [...list, { ...avatar, state: 0 }])
-        : current,
-    }),
-  ]);
-}
-
-export function beginClearDeletedRoleAvatarsOptimisticMutation(queryClient: QueryClient, roleId: number) {
-  return beginOptimisticQueryTransaction(queryClient, [
-    optimisticQueryPatch<unknown>({
-      queryKey: ["getDeletedRoleAvatars", roleId],
-      update: current => patchApiResultList(current, () => []),
-    }),
-  ]);
 }
 
 function patchRoleAvatarVariantList(
@@ -103,23 +68,6 @@ export function beginDeleteRoleAvatarVariantOptimisticMutation(
     optimisticQueryPatch<unknown>({
       queryKey: ["roleAvatarVariants", roleId],
       update: current => patchRoleAvatarVariantList(current, variantId, () => null),
-    }),
-  ]);
-}
-
-function clearRoleTrashPage(current: unknown) {
-  if (!isRecord(current) || !isRecord(current.data) || !Array.isArray(current.data.list)) {
-    return current;
-  }
-  return { ...current, data: { ...current.data, list: [], totalRecords: 0 } };
-}
-
-export function beginClearSpaceNpcRoleTrashOptimisticMutation(queryClient: QueryClient, spaceId: number) {
-  return beginOptimisticQueryTransaction(queryClient, [
-    optimisticQueryPatch<unknown>({
-      queryKey: ["getDeletedSpaceNpcRolesPage", spaceId],
-      exact: false,
-      update: clearRoleTrashPage,
     }),
   ]);
 }

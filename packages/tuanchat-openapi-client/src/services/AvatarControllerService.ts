@@ -7,6 +7,7 @@ import type { ApiResultListRoleAvatarVariant } from '../models/ApiResultListRole
 import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultMapStringListRoleAvatar } from '../models/ApiResultMapStringListRoleAvatar';
 import type { ApiResultRoleAvatar } from '../models/ApiResultRoleAvatar';
+import type { ApiResultRoleAvatarCollectionSyncResponse } from '../models/ApiResultRoleAvatarCollectionSyncResponse';
 import type { ApiResultRoleAvatarVariant } from '../models/ApiResultRoleAvatarVariant';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { RoleAvatarCreateRequest } from '../models/RoleAvatarCreateRequest';
@@ -223,6 +224,26 @@ export class AvatarControllerService {
             query: {
                 'roleId': roleId,
                 'commitId': commitId,
+            },
+        });
+    }
+    /**
+     * 按同步 ID 获取角色头像基线或增量
+     * @param roleId
+     * @param afterSyncId
+     * @returns ApiResultRoleAvatarCollectionSyncResponse OK
+     * @throws ApiError
+     */
+    public syncRoleAvatars(
+        roleId: number,
+        afterSyncId?: number,
+    ): CancelablePromise<ApiResultRoleAvatarCollectionSyncResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/avatar/list/sync',
+            query: {
+                'roleId': roleId,
+                'afterSyncId': afterSyncId,
             },
         });
     }

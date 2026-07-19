@@ -259,7 +259,7 @@ export function RoleSwitchSheet({
   }, [windowWidth]);
   const avatarGridImageSize = Math.max(0, avatarGridItemSize - 6);
 
-  const myRoles = useMemo(() => roles.filter(r => r.state !== 1), [roles]);
+  const myRoles = useMemo(() => roles.filter(r => r.state == null || r.state === 0), [roles]);
   const isNarrator = isRoleSwitchNarratorSelected(currentRoleId);
 
   const activeExpandedRoleId = expandedRoleId ?? (currentRoleId && currentRoleId > 0 ? currentRoleId : null);

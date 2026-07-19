@@ -13,12 +13,20 @@ allowBuilds:
   sharp: true
 
 overrides:
+  "@babel/core": "7.29.0"
   "@electron/node-gyp": "10.2.0-electron.1"
   "framer-motion": "12.42.2"
   "minimatch@<3.1.4": "3.1.5"
   "rollup": "^4.59.0"
   "shell-quote": "^1.8.4"
+  "use-sync-external-store@1.2.0": "1.6.0"
 
 peerDependencyRules:
   allowedVersions:
     "@react-native-menu/menu": "2.0.0"
+
+minimumReleaseAgeExclude:
+  - app-builder-lib@26.15.7
+  - dmg-builder@26.15.7
+  - electron-builder-squirrel-windows@26.15.7
+  - electron-builder@26.15.7

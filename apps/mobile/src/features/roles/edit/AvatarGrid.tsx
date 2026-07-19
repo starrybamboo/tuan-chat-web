@@ -1,5 +1,3 @@
-import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
-
 import { FlashList } from "@shopify/flash-list";
 import { Check, X } from "phosphor-react-native";
 import { useCallback, useMemo, useState } from "react";
@@ -229,7 +227,7 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
         throw new Error("头像媒体上传失败：未返回完整 fileId。");
       }
 
-      const createResult = await createAvatar({ roleId } satisfies RoleAvatar);
+      const createResult = await createAvatar({ roleId });
       const newAvatarId = getCreatedAvatarId(createResult);
       createdAvatarId = newAvatarId;
       const updateResult = await updateAvatar({
