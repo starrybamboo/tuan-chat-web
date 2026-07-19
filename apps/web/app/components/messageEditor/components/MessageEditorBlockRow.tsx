@@ -15,6 +15,7 @@ type MessageEditorBlockRowProps = {
   blockId: string;
   commandMenus: ReactNode;
   driverKind: MessageEditorBlockDriverKind;
+  localFile?: File;
   message: MessageEditorMessage;
   onAtomicMouseDown: (blockId: string, event: MouseEvent<HTMLDivElement>) => void;
   onDeleteAtomicBlock: (blockId: string) => void;
@@ -28,6 +29,8 @@ type MessageEditorBlockRowProps = {
   onTextPasteFiles: (blockId: string, files: File[]) => void;
   onTextPasteText: (blockId: string, text: string, insertPlainText: () => void) => boolean | void;
   onUploadAtomicBlock: (blockId: string, file: File) => Promise<void>;
+  uploadError?: string;
+  uploading?: boolean;
   placeholder: string;
   readOnly: boolean;
   registerBlockRef: (blockId: string, node: HTMLDivElement | null) => void;
@@ -57,6 +60,7 @@ export const MessageEditorBlockRow = memo(function MessageEditorBlockRow({
   blockId,
   commandMenus,
   driverKind,
+  localFile,
   message,
   onAtomicMouseDown,
   onDeleteAtomicBlock,
@@ -70,6 +74,8 @@ export const MessageEditorBlockRow = memo(function MessageEditorBlockRow({
   onTextPasteFiles,
   onTextPasteText,
   onUploadAtomicBlock,
+  uploadError,
+  uploading,
   placeholder,
   readOnly,
   registerBlockRef,
@@ -134,12 +140,15 @@ export const MessageEditorBlockRow = memo(function MessageEditorBlockRow({
           <MessageEditorAtomicBlock
             active={active}
             blockId={blockId}
+            localFile={localFile}
             message={message}
             readOnly={readOnly}
             onFocus={onFocusAtomicBlock}
             onDelete={onDeleteAtomicBlock}
             onUpload={onUploadAtomicBlock}
             onResize={onResizeAtomicBlock}
+            uploadError={uploadError}
+            uploading={uploading}
           />
         </div>
       </div>

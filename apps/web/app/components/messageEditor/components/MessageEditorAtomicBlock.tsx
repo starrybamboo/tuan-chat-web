@@ -16,11 +16,14 @@ import { isMessageEditorFileDrag, isMessageEditorUploadableMediaMessage } from "
 type MessageEditorAtomicBlockProps = {
   active?: boolean;
   blockId: string;
+  localFile?: File;
   message: MessageEditorMessage;
   onDelete?: (blockId: string) => void;
   onFocus: (blockId: string) => void;
   onResize?: (blockId: string, size: { height: number; width: number }) => void;
   onUpload: (blockId: string, file: File) => Promise<void>;
+  uploadError?: string;
+  uploading?: boolean;
   readOnly?: boolean;
 }
 
@@ -204,16 +207,64 @@ function formatAudioProgressLabel(second: unknown) {
   return `0:00 / ${minutes}:${seconds}`;
 }
 
+function useLocalPreviewUrl(file: File | undefined) {
+  const objectUrl = useMemo(() => {
+    if (!file || typeof URL === "undefined" || typeof URL.createObjectURL !== "function") {
+      return "";
+    }
+    return URL.createObjectURL(file);
+  }, [file]);
+
+  useEffect(() => {
+    if (!objectUrl || typeof URL === "undefined" || typeof URL.revokeObjectURL !== "function") {
+      return;
+    }
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [objectUrl]);
+
+  return objectUrl;
+}
+
+function withLocalFile(message: MessageEditorMessage, localFile: File | undefined): MessageEditorMessage {
+  if (!localFile) {
+    return message;
+  }
+
+  const payloadKey = message.messageType === MESSAGE_TYPE.IMG
+    ? "imageMessage"
+    : message.messageType === MESSAGE_TYPE.SOUND
+      ? "soundMessage"
+      : message.messageType === MESSAGE_TYPE.FILE
+        ? "fileMessage"
+        : "videoMessage";
+  const payload = message.extra?.[payloadKey] ?? {};
+  return {
+    ...message,
+    extra: {
+      ...message.extra,
+      [payloadKey]: {
+        ...payload,
+        fileName: localFile.name,
+        localFile,
+        size: localFile.size,
+      },
+    },
+  };
+}
+
 /**
  * 原子块编辑壳，负责上传、删除与媒体缩放交互。
  */
 export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
   blockId,
+  localFile,
   message,
   onDelete,
   onFocus,
   onResize,
   onUpload,
+  uploadError = "",
+  uploading = false,
   readOnly = false,
 }: MessageEditorAtomicBlockProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -224,8 +275,6 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
     startWidth: number;
     startX: number;
   } | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState("");
   const [fileDropActive, setFileDropActive] = useState(false);
   const uploadMeta = resolveUploadMeta(message);
   const uploadable = uploadMeta.accept.length > 0;
@@ -257,6 +306,9 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
     : isVideoBlock
       ? resolveUploadedVideoUrl(message)
       : "";
+  const localPreviewUrl = useLocalPreviewUrl(isResizableMediaBlock ? localFile : undefined);
+  const mediaPreviewUrl = localPreviewUrl || uploadedMediaUrl;
+  const previewMessage = withLocalFile(message, localFile);
   const audioProgressLabel = message.messageType === MESSAGE_TYPE.SOUND
     ? formatAudioProgressLabel(message.extra?.soundMessage?.second)
     : "";
@@ -278,15 +330,7 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
   }, [mediaIdentity]);
 
   const startUpload = useCallback((file: File) => {
-    setUploadError("");
-    setUploading(true);
-    void onUpload(blockId, file)
-      .catch((error) => {
-        setUploadError(error instanceof Error ? error.message : String(error));
-      })
-      .finally(() => {
-        setUploading(false);
-      });
+    void onUpload(blockId, file);
   }, [blockId, onUpload]);
 
   const handleFileInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -422,8 +466,14 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
 
   const uploadButtonLabel = uploading
     ? "上传中..."
-    : (uploaded ? uploadMeta.replaceLabel : uploadMeta.emptyLabel);
-  const placeholderButtonLabel = uploading ? "上传中..." : `点击${uploadMeta.emptyLabel}`;
+    : uploadError
+      ? "重新上传"
+      : (uploaded ? uploadMeta.replaceLabel : uploadMeta.emptyLabel);
+  const placeholderButtonLabel = uploading
+    ? "上传中..."
+    : uploadError
+      ? "重新上传"
+      : `点击${uploadMeta.emptyLabel}`;
 
   const renderInlineDeleteAction = (label: string) => {
     if (readOnly) {
@@ -448,6 +498,27 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
         title={label}
       >
         <TrashIcon className="size-4" />
+      </button>
+    );
+  };
+
+  const renderInlineUploadAction = () => {
+    if (readOnly || !uploadable || (uploaded && !localFile && !uploadError)) {
+      return null;
+    }
+
+    return (
+      <button
+        type="button"
+        className="
+          rounded-md border border-base-300/70 bg-base-100/92 px-2 py-1
+          text-xs text-base-content/70 shadow-sm transition
+          hover:border-info/40 hover:text-base-content
+        "
+        onMouseDown={event => event.preventDefault()}
+        onClick={openFilePicker}
+      >
+        {uploadButtonLabel}
       </button>
     );
   };
@@ -539,7 +610,7 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
 
     return (
       <div className="group/media flex flex-col gap-3">
-        {uploaded && uploadedMediaUrl
+        {mediaPreviewUrl
           ? (
               <div
                 ref={mediaFrameRef}
@@ -550,7 +621,7 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
               >
                 {renderFloatingUploadActions()}
 
-                {!readOnly && (
+                {!readOnly && uploaded && uploadedMediaUrl && (
                   <button
                     type="button"
                     className="
@@ -579,7 +650,7 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
                 {isImageBlock
                   ? (
                       <MediaImage
-                        src={uploadedMediaUrl}
+                        src={mediaPreviewUrl}
                         alt={message.content?.trim() || uploadMeta.title}
                         loading="lazy"
                         decoding="async"
@@ -593,7 +664,7 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
                   : (
                       <CachedVideoMessage
                         cacheKey={`${blockId}:video`}
-                        url={uploadedMediaUrl}
+                        url={mediaPreviewUrl}
                         className="
                           block h-auto w-full max-w-full bg-transparent object-contain
                         "
@@ -643,7 +714,7 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
         ? renderResizableMediaBlock()
         : (
             <>
-              {!uploaded && uploadable
+              {!uploaded && !localFile && uploadable
                 ? renderEmptyUploadBlock()
                 : (
                     <>
@@ -698,11 +769,13 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
                               : ""}
                       >
                         {isCenteredUploadBlock && message.messageType !== MESSAGE_TYPE.SOUND && renderFloatingUploadActions()}
+                        {(message.messageType === MESSAGE_TYPE.SOUND || message.messageType === MESSAGE_TYPE.FILE)
+                          && renderInlineUploadAction()}
                         <MessageContentRenderer
                           message={{
-                            ...message,
-                            content: message.content ?? "",
-                            messageType: message.messageType ?? 0,
+                            ...previewMessage,
+                            content: previewMessage.content ?? "",
+                            messageType: previewMessage.messageType ?? 0,
                           }}
                         />
                         {audioProgressLabel && <span className="sr-only">{audioProgressLabel}</span>}
@@ -713,6 +786,12 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
                   )}
             </>
           )}
+
+      {uploading && (
+        <div className="text-xs text-base-content/55" role="status">
+          正在上传 {localFile?.name || "媒体文件"}...
+        </div>
+      )}
 
       {uploadError && (
         <div className="

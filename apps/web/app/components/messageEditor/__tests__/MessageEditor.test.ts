@@ -8,14 +8,17 @@ import {
   getMessageEditorPatchMutationMeta,
   isMessageEditorImportablePasteText,
   mergeChangedRoomMessagesIntoEditorMessages,
+  resolveMessageEditorFileDropPoint,
   resolveMessageEditorPointerAutoScrollDelta,
   shouldKeepMessageEditorFocusRestore,
   shouldIgnoreDocumentSelectionEventTarget,
   shouldStartMessageEditorAtomicBlockSelection,
 } from "../MessageEditor";
 import {
+  createMessageEditorBlockDraft,
   createMessageEditorTextDraft,
   getMessageEditorBlockId,
+  materializeMessageEditorRoomWorkingMessages,
 } from "../model/messageEditorTransforms";
 
 type MockElement = {
@@ -155,6 +158,23 @@ function withRuntimeMessage(
 }
 
 describe("messageEditor room message patch", () => {
+  it("keeps an editor working draft renderable in chatHistory while saving it as an insert", () => {
+    const draft = createMessageEditorTextDraft({ content: "shared working draft" });
+    const [workingDraft] = materializeMessageEditorRoomWorkingMessages([draft], 10);
+
+    expect(workingDraft).toMatchObject({
+      content: "shared working draft",
+      roomId: 10,
+      tcLocalSyncState: "optimistic",
+      tcMessageEditorDraft: true,
+    });
+    expect(workingDraft.messageId).toBeLessThan(0);
+    expect(buildRoomMessagePatchOperations([], [workingDraft])).toMatchObject([{
+      op: "insert",
+      message: { content: "shared working draft" },
+    }]);
+  });
+
   it("inserts editor-created blocks without runtime message ids", () => {
     const message = createMessageEditorTextDraft({ content: "new block" });
 
@@ -288,6 +308,36 @@ describe("messageEditor room message patch", () => {
     expect((merged[0] as MessageEditorMessage & { position?: number }).position).toBe(9);
     expect((merged[0] as MessageEditorMessage & { syncId?: number }).syncId).toBe(103);
     expect((moved as MessageEditorMessage & { position?: number }).position).toBe(2);
+  });
+});
+
+describe("messageEditor external file drop", () => {
+  it("resolves block-edge indicators to insertion points for text and atomic blocks", () => {
+    const text = createMessageEditorTextDraft({ content: "正文" });
+    const image = createMessageEditorBlockDraft("image");
+    const messages = [text, image];
+
+    expect(resolveMessageEditorFileDropPoint({
+      position: "after",
+      targetBlockId: getMessageEditorBlockId(text),
+    }, messages)).toEqual({
+      blockId: getMessageEditorBlockId(text),
+      offset: 2,
+    });
+    expect(resolveMessageEditorFileDropPoint({
+      position: "before",
+      targetBlockId: getMessageEditorBlockId(image),
+    }, messages)).toEqual({
+      blockId: getMessageEditorBlockId(image),
+      offset: 0,
+    });
+    expect(resolveMessageEditorFileDropPoint({
+      position: "after",
+      targetBlockId: getMessageEditorBlockId(image),
+    }, messages)).toEqual({
+      blockId: getMessageEditorBlockId(image),
+      offset: 1,
+    });
   });
 });
 

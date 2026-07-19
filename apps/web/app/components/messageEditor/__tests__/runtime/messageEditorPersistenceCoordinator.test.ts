@@ -172,6 +172,20 @@ describe("MessageEditorPersistenceCoordinator", () => {
     expect(startResult.transaction.submittedMessages[0].content).toBe("changed");
   });
 
+  it("exposes only locally dirty message ids for chatHistory conflict protection", () => {
+    const first = Object.assign(createMessageEditorTextDraft({ content: "first" }), { messageId: 11 });
+    const second = Object.assign(createMessageEditorTextDraft({ content: "second" }), { messageId: 12 });
+    const changedFirst = updateMessageEditorTextContent(first, "changed first");
+    const coordinator = new MessageEditorPersistenceCoordinator([first, second]);
+
+    coordinator.markDocumentChanged([changedFirst, second], true, {
+      changedBlockIds: [getMessageEditorBlockId(first)],
+      structureChanged: false,
+    });
+
+    expect(coordinator.getDirtyMessageIds()).toEqual(new Set([11]));
+  });
+
   it("clears a cheap dirty mark when the deferred snapshot equals the baseline", () => {
     const baseline = [createMessageEditorTextDraft({ content: "baseline" })];
     const coordinator = new MessageEditorPersistenceCoordinator(baseline);

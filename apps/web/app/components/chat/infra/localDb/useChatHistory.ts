@@ -5,7 +5,6 @@ import {
   collectPersistedOptimisticDuplicateIds,
   commitOptimisticRoomMessageInList,
   isLocalRoomMessage,
-  isOptimisticRoomMessage,
   markOptimisticRoomMessage,
   mergeRoomMessagesForLocalState,
   rollbackOptimisticRoomMessagesInList,
@@ -102,6 +101,60 @@ export function mergeLoadedRoomHistory(
   return mergeRoomMessagesForLocalState(localHistory, currentRoomMessages);
 }
 
+/** 合并远端增量，同时保护编辑器仍标记为 dirty 的同 ID 消息。 */
+export function mergeIncomingRoomMessagesWithEditorWorkingState(
+  currentMessages: ChatMessageResponse[],
+  incomingMessages: ChatMessageResponse[],
+  dirtyMessageIds: ReadonlySet<number>,
+) {
+  const mergeableMessages = incomingMessages.filter((item) => {
+    const messageId = item.message?.messageId;
+    return typeof messageId !== "number" || !dirtyMessageIds.has(messageId);
+  });
+  return mergeRoomMessagesForLocalState(currentMessages, mergeableMessages);
+}
+
+/** 使用编辑器工作副本替换当前房间，其他房间的热态保持不变。 */
+export function replaceRoomMessagesWithEditorWorkingState(
+  currentMessages: ChatMessageResponse[],
+  workingMessages: ChatMessageResponse[],
+  roomId: number,
+) {
+  const retainedMessages = currentMessages.filter(item => item.message.roomId !== roomId);
+  return mergeRoomMessagesForLocalState(retainedMessages, workingMessages);
+}
+
+/** 服务端确认新增后，按稳定内容特征移除对应的编辑器负 ID 草稿。 */
+export function removeCommittedEditorDrafts(
+  currentMessages: ChatMessageResponse[],
+  committedMessages: ChatMessageResponse[],
+) {
+  const unmatchedCommitted = [...committedMessages];
+  let removedDraft = false;
+  const nextMessages = currentMessages.filter((item) => {
+    const message = item.message as ChatMessageResponse["message"] & { tcMessageEditorDraft?: boolean };
+    if (message.tcMessageEditorDraft !== true) {
+      return true;
+    }
+    const matchedIndex = unmatchedCommitted.findIndex((committed) => {
+      const next = committed.message;
+      return next.messageId > 0
+        && next.roomId === message.roomId
+        && next.position === message.position
+        && next.messageType === message.messageType
+        && next.roleId === message.roleId
+        && next.content === message.content;
+    });
+    if (matchedIndex < 0) {
+      return true;
+    }
+    unmatchedCommitted.splice(matchedIndex, 1);
+    removedDraft = true;
+    return false;
+  });
+  return removedDraft ? nextMessages : currentMessages;
+}
+
 export type UseChatHistoryReturn = {
   messages: ChatMessageResponse[];
   latestSyncId: number;
@@ -109,6 +162,11 @@ export type UseChatHistoryReturn = {
   error: Error | null;
   addOrUpdateMessage: (message: ChatMessageResponse) => Promise<void>;
   addOrUpdateMessages: (messages: ChatMessageResponse[]) => Promise<void>;
+  commitEditorMessages: (messages: ChatMessageResponse[]) => Promise<void>;
+  replaceMessagesFromEditor: (
+    messages: ChatMessageResponse[],
+    dirtyMessageIds: ReadonlySet<number>,
+  ) => void;
   applyOptimisticMessages: (messages: ChatMessageResponse[]) => ChatMessageResponse[];
   rollbackOptimisticMessages: (
     optimisticMessages: ChatMessageResponse[],
@@ -139,6 +197,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
   const messageIdAliasRef = useRef<Map<number, { toMessageId: number; updatedAt: number }>>(new Map());
+  const editorDirtyMessageIdsRef = useRef<Set<number>>(new Set());
 
   // 使用 ref 保存最新的 roomId，避免依赖变化导致回调重新创建
   const roomIdRef = useRef<number | null>(roomId);
@@ -224,7 +283,11 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       const roomScopedMessages = newMessages.filter(msg => msg.message.roomId === currentRoomId);
       if (roomScopedMessages.length > 0 && roomScopedMessages[0].message.roomId === currentRoomId) {
         setMessages((prevMessages) => {
-          const nextMessages = mergeRoomMessagesForLocalState(prevMessages, roomScopedMessages);
+          const nextMessages = mergeIncomingRoomMessagesWithEditorWorkingState(
+            prevMessages,
+            roomScopedMessages,
+            editorDirtyMessageIdsRef.current,
+          );
           if (prevMessages === nextMessages) {
             return prevMessages;
           }
@@ -263,6 +326,31 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     },
     [], // ← 移除依赖，使用 ref 代替
   );
+
+  const commitEditorMessages = useCallback(async (newMessages: ChatMessageResponse[]) => {
+    for (const item of newMessages) {
+      editorDirtyMessageIdsRef.current.delete(item.message.messageId);
+    }
+    setMessages(currentMessages => removeCommittedEditorDrafts(currentMessages, newMessages));
+    await addOrUpdateMessages(newMessages);
+  }, [addOrUpdateMessages]);
+
+  const replaceMessagesFromEditor = useCallback((
+    newMessages: ChatMessageResponse[],
+    dirtyMessageIds: ReadonlySet<number>,
+  ) => {
+    const currentRoomId = roomIdRef.current;
+    if (currentRoomId === null) {
+      return;
+    }
+    editorDirtyMessageIdsRef.current = new Set(dirtyMessageIds);
+    const roomScopedMessages = newMessages.filter(item => item.message.roomId === currentRoomId);
+    setMessages(currentMessages => replaceRoomMessagesWithEditorWorkingState(
+      currentMessages,
+      roomScopedMessages,
+      currentRoomId,
+    ));
+  }, []);
 
   const applyOptimisticMessages = useCallback((newMessages: ChatMessageResponse[]) => {
     const currentRoomId = roomIdRef.current;
@@ -502,12 +590,14 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
    */
   useEffect(() => {
     if (roomId === null) {
+      editorDirtyMessageIdsRef.current.clear();
       setMessages([]);
       setLoading(false);
       return;
     }
 
     setLoading(true);
+    editorDirtyMessageIdsRef.current.clear();
     setMessages([]);
     let isCancelled = false; // Flag to prevent state updates from stale effects
 
@@ -608,6 +698,8 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     error,
     addOrUpdateMessage, // 用于单条消息
     addOrUpdateMessages, // 用于批量消息
+    commitEditorMessages,
+    replaceMessagesFromEditor,
     applyOptimisticMessages,
     rollbackOptimisticMessages,
     removeMessageById,

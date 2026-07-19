@@ -150,6 +150,22 @@ export class MessageEditorPersistenceCoordinator {
     return this.dirtySinceLoad;
   }
 
+  /** 返回需要在共享 chatHistory 中保持本地优先的消息 ID。 */
+  getDirtyMessageIds() {
+    const dirtyMessageIds = new Set<number>();
+    const dirtyBlockIds = this.fullDiffRevision > 0
+      ? new Set([...this.baselineByBlockId.keys(), ...this.currentByBlockId.keys()])
+      : new Set(this.dirtyRevisionByBlockId.keys());
+    for (const blockId of dirtyBlockIds) {
+      const message = this.currentByBlockId.get(blockId) ?? this.baselineByBlockId.get(blockId);
+      const messageId = message?.messageId;
+      if (typeof messageId === "number" && Number.isFinite(messageId)) {
+        dirtyMessageIds.add(messageId);
+      }
+    }
+    return dirtyMessageIds;
+  }
+
   isSaveActive() {
     return this.activeGeneration !== null;
   }

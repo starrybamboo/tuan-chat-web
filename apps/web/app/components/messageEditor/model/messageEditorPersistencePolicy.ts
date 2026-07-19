@@ -290,6 +290,9 @@ export function reconcileMessageEditorRuntimeBlockIds(params: {
 }
 
 function isRuntimeOptimisticMessage(message: MessageEditorMessage): boolean {
+  if (message.tcMessageEditorDraft === true) {
+    return false;
+  }
   const value = (message as RuntimeMessageLike).tcLocalSyncState;
   if (value === "optimistic") {
     return true;
@@ -299,6 +302,9 @@ function isRuntimeOptimisticMessage(message: MessageEditorMessage): boolean {
 }
 
 function getRuntimeMessageIdState(message: MessageEditorMessage): RuntimeMessageIdState {
+  if (message.tcMessageEditorDraft === true) {
+    return "new";
+  }
   if (isRuntimeOptimisticMessage(message)) {
     return "optimistic";
   }
@@ -312,6 +318,57 @@ function getRuntimeMessageIdState(message: MessageEditorMessage): RuntimeMessage
 function getRuntimeMessageId(message: MessageEditorMessage): number | undefined {
   const value = (message as RuntimeMessageLike).messageId;
   return getRuntimeMessageIdState(message) === "persisted" ? value : undefined;
+}
+
+function isFiniteMediaNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+/** 未上传完成的新媒体块只存在于编辑器本地，不能进入远端消息校验。 */
+function isPendingMessageEditorMediaInsert(message: MessageEditorMessage) {
+  if (getRuntimeMessageId(message) !== undefined) {
+    return false;
+  }
+
+  if (message.messageType === MESSAGE_TYPE.IMG) {
+    const image = message.extra?.imageMessage;
+    return !image?.source
+      || !isFiniteMediaNumber(image.width)
+      || !isFiniteMediaNumber(image.height);
+  }
+  if (message.messageType === MESSAGE_TYPE.FILE) {
+    const file = message.extra?.fileMessage;
+    return !isFiniteMediaNumber(file?.fileId)
+      || !isFiniteMediaNumber(file?.size)
+      || typeof file?.fileName !== "string"
+      || typeof file?.mediaType !== "string";
+  }
+  if (message.messageType === MESSAGE_TYPE.SOUND) {
+    const sound = message.extra?.soundMessage;
+    return !sound?.source || !isFiniteMediaNumber(sound.second);
+  }
+  if (message.messageType === MESSAGE_TYPE.VIDEO) {
+    return !message.extra?.videoMessage?.source;
+  }
+  return false;
+}
+
+function buildRemotePatchMessage(message: MessageEditorMessage, position: number) {
+  if (message.messageType !== MESSAGE_TYPE.IMG || !message.extra?.imageMessage) {
+    return { ...message, position };
+  }
+
+  return {
+    ...message,
+    extra: {
+      ...message.extra,
+      imageMessage: {
+        ...message.extra.imageMessage,
+        background: message.extra.imageMessage.background ?? false,
+      },
+    },
+    position,
+  };
 }
 
 function getRuntimePosition(message: MessageEditorMessage, fallback: number): number {
@@ -355,10 +412,13 @@ function serializeMessageEditorPatchContent(message: MessageEditorMessage): stri
 /** 转换成房间消息流乐观更新所需的输入结构。 */
 export function toPatchOptimisticMessageInput(message: MessageEditorMessage): Partial<Message> & { clientId: string } {
   const runtime = message as RuntimeMessageLike;
+  const persistedMessageId = getRuntimeMessageId(message);
   return {
     clientId: getMessageEditorBlockId(message),
-    ...(typeof runtime.messageId === "number" && Number.isFinite(runtime.messageId) ? { messageId: runtime.messageId } : {}),
-    ...(typeof runtime.syncId === "number" && Number.isFinite(runtime.syncId) ? { syncId: runtime.syncId } : {}),
+    ...(persistedMessageId !== undefined ? { messageId: persistedMessageId } : {}),
+    ...(persistedMessageId !== undefined && typeof runtime.syncId === "number" && Number.isFinite(runtime.syncId)
+      ? { syncId: runtime.syncId }
+      : {}),
     ...(typeof runtime.roomId === "number" && Number.isFinite(runtime.roomId) ? { roomId: runtime.roomId } : {}),
     ...(typeof runtime.userId === "number" && Number.isFinite(runtime.userId) ? { userId: runtime.userId } : {}),
     ...(typeof message.roleId === "number" ? { roleId: message.roleId } : {}),
@@ -400,16 +460,16 @@ export function buildIncrementalRoomMessagePatchOperations(
     if (messageIdState === "optimistic") {
       continue;
     }
+    if (isPendingMessageEditorMediaInsert(message)) {
+      continue;
+    }
     const messageId = getRuntimeMessageId(message);
     const index = changeSet.currentIndexByBlockId.get(blockId) ?? 0;
     const position = getRuntimePosition(message, index + 1);
     if (!baseline || messageIdState === "new" || messageId === undefined) {
       operations.push({
         clientId: blockId,
-        message: {
-          ...message,
-          position,
-        },
+        message: buildRemotePatchMessage(message, position),
         op: "insert",
         position,
       });
@@ -418,10 +478,7 @@ export function buildIncrementalRoomMessagePatchOperations(
 
     if (serializeMessageEditorPatchContent(baseline) !== serializeMessageEditorPatchContent(message)) {
       operations.push({
-        message: {
-          ...message,
-          position,
-        },
+        message: buildRemotePatchMessage(message, position),
         messageId,
         op: "update",
         position,
@@ -454,14 +511,14 @@ export function buildRoomMessagePatchOperations(
       // 本地乐观消息还没真正进云端，文档 patch 只处理已确认的消息。
       return;
     }
+    if (isPendingMessageEditorMediaInsert(message)) {
+      return;
+    }
     if (messageIdState === "new") {
       operations.push({
         op: "insert",
         clientId: getMessageEditorBlockId(message),
-        message: {
-          ...message,
-          position,
-        },
+        message: buildRemotePatchMessage(message, position),
         position,
       });
       return;
@@ -476,10 +533,7 @@ export function buildRoomMessagePatchOperations(
       operations.push({
         op: "insert",
         clientId: getMessageEditorBlockId(message),
-        message: {
-          ...message,
-          position,
-        },
+        message: buildRemotePatchMessage(message, position),
         position,
       });
       return;
@@ -491,10 +545,7 @@ export function buildRoomMessagePatchOperations(
       operations.push({
         op: "update",
         messageId,
-        message: {
-          ...message,
-          position,
-        },
+        message: buildRemotePatchMessage(message, position),
         position,
       });
       return;

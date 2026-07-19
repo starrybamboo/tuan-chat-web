@@ -32,12 +32,19 @@ type MessageEditorMessageMutationsParams = {
   historyManager: MessageEditorHistoryManager;
   initialMessages: MessageEditorMessage[];
   isRoomDocument: boolean;
+  onWorkingMessagesChange?: (messages: MessageEditorMessage[], dirtyMessageIds: ReadonlySet<number>) => void;
   onRemoteMessagesSaved?: (messages: Message[]) => void | Promise<void>;
+  prepareWorkingMessages?: (
+    messages: MessageEditorMessage[],
+    options: { structureChanged?: boolean },
+  ) => MessageEditorMessage[];
+  publishOptimisticRoomMessages: boolean;
   readOnly: boolean;
   ready: boolean;
   remotePatchSourceSurface: MessageEditorRemotePatchSourceSurface;
   roomId?: number;
   shouldUseLocalSnapshot: boolean;
+  workingMessages?: MessageEditorMessage[];
 };
 
 type CommitDocumentSnapshotOptions = {
@@ -79,18 +86,26 @@ export default function useMessageEditorMessageMutations({
   historyManager,
   initialMessages,
   isRoomDocument,
+  onWorkingMessagesChange,
   onRemoteMessagesSaved,
+  prepareWorkingMessages,
+  publishOptimisticRoomMessages,
   readOnly,
   ready,
   remotePatchSourceSurface,
   roomId,
   shouldUseLocalSnapshot,
+  workingMessages,
 }: MessageEditorMessageMutationsParams): MessageEditorMessageMutationsResult {
   const initialMessagesRef = useRef<MessageEditorMessage[] | null>(null);
   if (!initialMessagesRef.current) {
-    initialMessagesRef.current = ensureMessageEditorMessages(initialMessages);
+    initialMessagesRef.current = ensureMessageEditorMessages(workingMessages ?? initialMessages);
   }
-  const [messages, setMessages] = useState<MessageEditorMessage[]>(() => initialMessagesRef.current!);
+  const isControlled = workingMessages !== undefined;
+  const [localMessages, setLocalMessages] = useState<MessageEditorMessage[]>(
+    () => isControlled ? [] : initialMessagesRef.current!,
+  );
+  const messages = workingMessages ?? localMessages;
   const [saveRequestRevision, requestDeferredSave] = useState(0);
   const [saveState, setSaveState] = useState<MessageEditorSaveState>("idle");
   const activeSavePromiseRef = useRef<Promise<void> | null>(null);
@@ -120,10 +135,15 @@ export default function useMessageEditorMessageMutations({
   ) => {
     messagesRef.current = nextMessages;
     if (options.updateState !== false) {
-      setMessages(nextMessages);
+      if (isControlled && onWorkingMessagesChange) {
+        onWorkingMessagesChange(nextMessages, coordinator.getDirtyMessageIds());
+      }
+      else {
+        setLocalMessages(nextMessages);
+      }
     }
     return nextMessages;
-  }, []);
+  }, [coordinator, isControlled, onWorkingMessagesChange]);
 
   const acceptPersistedSnapshot = useCallback((
     nextMessages: MessageEditorMessage[],
@@ -144,7 +164,9 @@ export default function useMessageEditorMessageMutations({
   }, [commitCanonicalDocumentSnapshot, coordinator]);
 
   const restoreSnapshot = useCallback((nextMessages: MessageEditorMessage[]) => {
-    const normalizedMessages = ensureMessageEditorMessages(nextMessages);
+    const normalizedMessages = prepareWorkingMessages
+      ? prepareWorkingMessages(nextMessages, { structureChanged: true })
+      : ensureMessageEditorMessages(nextMessages);
     const restoredMessages = commitCanonicalDocumentSnapshot(coordinator.markDocumentChanged(
       normalizedMessages,
       ready,
@@ -152,7 +174,7 @@ export default function useMessageEditorMessageMutations({
     ));
     setSaveState(coordinator.hasDirtyChanges() ? "dirty" : "idle");
     return restoredMessages;
-  }, [commitCanonicalDocumentSnapshot, coordinator, ready]);
+  }, [commitCanonicalDocumentSnapshot, coordinator, prepareWorkingMessages, ready]);
 
   const commitTransaction = useCallback(<T,>(transaction: MessageEditorEditTransaction<T>) => {
     if (transaction.changed) {
@@ -162,8 +184,11 @@ export default function useMessageEditorMessageMutations({
         transaction.historyKind,
         transaction.historyGroupKey,
       );
+      const nextMessages = prepareWorkingMessages
+        ? prepareWorkingMessages(transaction.messages, { structureChanged: transaction.structureChanged })
+        : transaction.messages;
       commitCanonicalDocumentSnapshot(coordinator.markDocumentChanged(
-        transaction.messages,
+        nextMessages,
         ready,
         {
           changedBlockIds: transaction.changedBlockIds,
@@ -173,7 +198,7 @@ export default function useMessageEditorMessageMutations({
       setSaveState("dirty");
     }
     return transaction.result;
-  }, [commitCanonicalDocumentSnapshot, coordinator, createHistoryEntry, historyManager, ready]);
+  }, [commitCanonicalDocumentSnapshot, coordinator, createHistoryEntry, historyManager, prepareWorkingMessages, ready]);
 
   const getCurrentMessages = useCallback(() => messagesRef.current, []);
   const hasDirtyChanges = useCallback(() => coordinator.hasDirtyChanges(), [coordinator]);
@@ -196,6 +221,7 @@ export default function useMessageEditorMessageMutations({
     try {
       const result = await executeMessageEditorPersistenceStrategy(transaction, {
         onRemoteMessagesSaved,
+        publishOptimisticRoomMessages,
         remotePatchSourceSurface,
       });
       const completedState = coordinator.completeSave(transaction, result, messagesRef.current);
@@ -229,7 +255,7 @@ export default function useMessageEditorMessageMutations({
         requestDeferredSave(previous => previous + 1);
       }
     }
-  }, [commitCanonicalDocumentSnapshot, coordinator, onRemoteMessagesSaved, remotePatchSourceSurface]);
+  }, [commitCanonicalDocumentSnapshot, coordinator, onRemoteMessagesSaved, publishOptimisticRoomMessages, remotePatchSourceSurface]);
 
   const trackSaveTransaction = useCallback((
     transaction: MessageEditorSaveTransaction,
@@ -248,15 +274,17 @@ export default function useMessageEditorMessageMutations({
   const unloadOptionsRef = useRef({
     context: persistenceContext,
     onRemoteMessagesSaved,
+    publishOptimisticRoomMessages,
     remotePatchSourceSurface,
   });
   useEffect(() => {
     unloadOptionsRef.current = {
       context: persistenceContext,
       onRemoteMessagesSaved,
+      publishOptimisticRoomMessages,
       remotePatchSourceSurface,
     };
-  }, [onRemoteMessagesSaved, persistenceContext, remotePatchSourceSurface]);
+  }, [onRemoteMessagesSaved, persistenceContext, publishOptimisticRoomMessages, remotePatchSourceSurface]);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -314,7 +342,12 @@ export default function useMessageEditorMessageMutations({
           return;
         }
 
-        const { context, onRemoteMessagesSaved: publish, remotePatchSourceSurface: sourceSurface } = flushOptions;
+        const {
+          context,
+          onRemoteMessagesSaved: publish,
+          publishOptimisticRoomMessages: publishOptimistic,
+          remotePatchSourceSurface: sourceSurface,
+        } = flushOptions;
         coordinator.markDocumentChanged(flushMessages, true, { compareImmediately: true });
         const startResult = coordinator.beginSave(flushMessages, {
           ...context,
@@ -331,6 +364,7 @@ export default function useMessageEditorMessageMutations({
         try {
           const result = await executeMessageEditorPersistenceStrategy(startResult.transaction, {
             onRemoteMessagesSaved: publish,
+            publishOptimisticRoomMessages: publishOptimistic,
             remotePatchSourceSurface: sourceSurface,
           });
           coordinator.completeSave(startResult.transaction, result, messagesRef.current);

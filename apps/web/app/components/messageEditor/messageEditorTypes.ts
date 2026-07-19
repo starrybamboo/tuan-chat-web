@@ -20,5 +20,7 @@ export type MessageEditorMessage = Omit<Partial<Message>, "extra"> & {
   customRoleName?: string;
   extra?: Record<string, Record<string, any>>;
   roleId?: number;
+  tcLocalRenderKey?: string;
   tcLocalSyncState?: MessageEditorLocalSyncState;
+  tcMessageEditorDraft?: boolean;
 };
