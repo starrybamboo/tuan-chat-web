@@ -43,7 +43,7 @@ export type UserRole = {
      */
     spaceId?: number;
     /**
-     * 角色状态,0正常,1回收站,2同步墓碑
+     * 角色状态,0正常,2删除墓碑
      */
     state?: number;
     /**

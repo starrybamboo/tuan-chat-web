@@ -19,6 +19,14 @@ export type SpaceMember = {
      */
     memberType?: number;
     /**
+     * 成员关系状态：0正常 2删除墓碑
+     */
+    state?: number;
+    /**
+     * 成员关系增量同步 ID
+     */
+    syncId?: number;
+    /**
      * 用户名
      */
     username?: string;
@@ -32,6 +40,7 @@ export type SpaceMember = {
     avatarMediaType?: string;
     createTime?: string;
     updateTime?: string;
-    leader?: boolean;
+    active?: boolean;
     observer?: boolean;
+    leader?: boolean;
 };

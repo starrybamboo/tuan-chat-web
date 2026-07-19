@@ -38,6 +38,14 @@ export type Space = {
      * 状态：0正常 1删除 2归档
      */
     status?: number;
+    /**
+     * 空间集合增量同步 ID
+     */
+    syncId?: number;
+    /**
+     * 增量操作：UPSERT 或 DELETE
+     */
+    syncOperation?: string;
     repositoryId?: number;
     /**
      * 克隆来源的base commitId（用于fork追踪）
@@ -62,6 +70,7 @@ export type Space = {
      * 当前返回实际命中的 commitId；在线视图为空
      */
     effectiveCommitId?: number;
-    archived?: boolean;
     active?: boolean;
+    deleted?: boolean;
+    archived?: boolean;
 };

@@ -86,43 +86,6 @@ export class RoleControllerService {
         });
     }
     /**
-     * 分页获取个人角色回收站,支持姓名模糊查询
-     * @param requestBody
-     * @returns ApiResultPageBaseRespUserRole OK
-     * @throws ApiError
-     */
-    public getDeletedRolesByPage(
-        requestBody: RolePageQueryRequest,
-    ): CancelablePromise<ApiResultPageBaseRespUserRole> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/role/trash/page',
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
-    /**
-     * 分页获取空间 NPC 回收站,支持姓名模糊查询
-     * @param spaceId
-     * @param requestBody
-     * @returns ApiResultPageBaseRespUserRole OK
-     * @throws ApiError
-     */
-    public getDeletedNpcRolesByPage(
-        spaceId: number,
-        requestBody: RolePageQueryRequest,
-    ): CancelablePromise<ApiResultPageBaseRespUserRole> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/role/trash/npc/page',
-            query: {
-                'spaceId': spaceId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
-    /**
      * 分页获取角色,支持姓名模糊查询
      * @param requestBody
      * @returns ApiResultPageBaseRespUserRole OK
@@ -172,26 +135,6 @@ export class RoleControllerService {
         });
     }
     /**
-     * 按同步 ID 获取用户角色基线或增量
-     * @param userId
-     * @param afterSyncId
-     * @returns ApiResultRoleCollectionSyncResponse OK
-     * @throws ApiError
-     */
-    public syncUserRoles(
-        userId: number,
-        afterSyncId?: number,
-    ): CancelablePromise<ApiResultRoleCollectionSyncResponse> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/role/user/sync',
-            query: {
-                'userId': userId,
-                'afterSyncId': afterSyncId,
-            },
-        });
-    }
-    /**
      * 按类型获取用户角色
      * @param userId
      * @param type
@@ -212,47 +155,22 @@ export class RoleControllerService {
         });
     }
     /**
-     * 清空空间 NPC 回收站
-     * @param spaceId
-     * @returns ApiResultVoid OK
+     * 按同步 ID 获取用户角色基线或增量
+     * @param userId
+     * @param afterSyncId
+     * @returns ApiResultRoleCollectionSyncResponse OK
      * @throws ApiError
      */
-    public clearNpcRoleTrash(
-        spaceId: number,
-    ): CancelablePromise<ApiResultVoid> {
+    public syncUserRoles(
+        userId: number,
+        afterSyncId?: number,
+    ): CancelablePromise<ApiResultRoleCollectionSyncResponse> {
         return this.httpRequest.request({
-            method: 'DELETE',
-            url: '/role/trash/npc/clear',
+            method: 'GET',
+            url: '/role/user/sync',
             query: {
-                'spaceId': spaceId,
-            },
-        });
-    }
-    /**
-     * 清空角色回收站
-     * @returns ApiResultVoid OK
-     * @throws ApiError
-     */
-    public clearRoleTrash(): CancelablePromise<ApiResultVoid> {
-        return this.httpRequest.request({
-            method: 'DELETE',
-            url: '/role/trash/clear',
-        });
-    }
-    /**
-     * 根据id批量硬删除角色
-     * @param roleId
-     * @returns ApiResultVoid OK
-     * @throws ApiError
-     */
-    public hardDeleteRole(
-        roleId: Array<number>,
-    ): CancelablePromise<ApiResultVoid> {
-        return this.httpRequest.request({
-            method: 'DELETE',
-            url: '/role/hard',
-            query: {
-                'roleId': roleId,
+                'userId': userId,
+                'afterSyncId': afterSyncId,
             },
         });
     }

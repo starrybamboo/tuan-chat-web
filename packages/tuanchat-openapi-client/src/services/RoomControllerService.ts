@@ -5,6 +5,7 @@
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
 import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultRoom } from '../models/ApiResultRoom';
+import type { ApiResultRoomCollectionSyncResponse } from '../models/ApiResultRoomCollectionSyncResponse';
 import type { ApiResultRoomListResponse } from '../models/ApiResultRoomListResponse';
 import type { ApiResultString } from '../models/ApiResultString';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
@@ -190,6 +191,26 @@ export class RoomControllerService {
             query: {
                 'spaceId': spaceId,
                 'commitId': commitId,
+            },
+        });
+    }
+    /**
+     * 增量获取空间下当前用户可见的房间
+     * @param spaceId
+     * @param afterSyncId
+     * @returns ApiResultRoomCollectionSyncResponse OK
+     * @throws ApiError
+     */
+    public syncUserRooms(
+        spaceId: number,
+        afterSyncId?: number,
+    ): CancelablePromise<ApiResultRoomCollectionSyncResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/room/list/sync',
+            query: {
+                'spaceId': spaceId,
+                'afterSyncId': afterSyncId,
             },
         });
     }

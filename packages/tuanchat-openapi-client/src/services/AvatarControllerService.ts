@@ -138,23 +138,6 @@ export class AvatarControllerService {
         });
     }
     /**
-     * 恢复头像
-     * @param avatarId
-     * @returns ApiResultVoid OK
-     * @throws ApiError
-     */
-    public restoreRoleAvatar(
-        avatarId: number,
-    ): CancelablePromise<ApiResultVoid> {
-        return this.httpRequest.request({
-            method: 'PUT',
-            url: '/avatar/trash/restore',
-            query: {
-                'avatarId': avatarId,
-            },
-        });
-    }
-    /**
      * 批量获取多个角色的头像列表
      * @param requestBody
      * @returns ApiResultMapStringListRoleAvatar OK
@@ -184,26 +167,6 @@ export class AvatarControllerService {
             url: '/avatar/variant/list',
             query: {
                 'roleId': roleId,
-            },
-        });
-    }
-    /**
-     * 获取角色回收站的头像
-     * @param roleId
-     * @param commitId
-     * @returns ApiResultListRoleAvatar OK
-     * @throws ApiError
-     */
-    public getDeletedRoleAvatars(
-        roleId: number,
-        commitId?: number,
-    ): CancelablePromise<ApiResultListRoleAvatar> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/avatar/trash/list',
-            query: {
-                'roleId': roleId,
-                'commitId': commitId,
             },
         });
     }
@@ -244,23 +207,6 @@ export class AvatarControllerService {
             query: {
                 'roleId': roleId,
                 'afterSyncId': afterSyncId,
-            },
-        });
-    }
-    /**
-     * 清空角色头像回收站（物理删除）
-     * @param roleId
-     * @returns ApiResultVoid OK
-     * @throws ApiError
-     */
-    public clearDeletedRoleAvatars(
-        roleId: number,
-    ): CancelablePromise<ApiResultVoid> {
-        return this.httpRequest.request({
-            method: 'DELETE',
-            url: '/avatar/trash/clear',
-            query: {
-                'roleId': roleId,
             },
         });
     }

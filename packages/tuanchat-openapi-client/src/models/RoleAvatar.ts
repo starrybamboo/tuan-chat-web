@@ -69,7 +69,7 @@ export type RoleAvatar = {
     createTime?: string;
     updateTime?: string;
     /**
-     * 头像状态,0正常,1回收站,2同步墓碑
+     * 头像状态,0正常,2删除墓碑
      */
     state?: number;
     /**

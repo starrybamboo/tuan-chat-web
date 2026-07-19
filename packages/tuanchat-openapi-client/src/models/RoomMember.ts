@@ -15,6 +15,14 @@ export type RoomMember = {
      */
     userId?: number;
     /**
+     * 成员关系状态：0正常 2删除墓碑
+     */
+    state?: number;
+    /**
+     * 成员关系增量同步 ID
+     */
+    syncId?: number;
+    /**
      * 用户名
      */
     username?: string;
@@ -28,4 +36,5 @@ export type RoomMember = {
     avatarMediaType?: string;
     createTime?: string;
     updateTime?: string;
+    active?: boolean;
 };

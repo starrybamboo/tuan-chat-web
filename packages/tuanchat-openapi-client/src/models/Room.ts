@@ -44,6 +44,14 @@ export type Room = {
      */
     status?: number;
     /**
+     * 房间集合增量同步 ID
+     */
+    syncId?: number;
+    /**
+     * 增量操作：UPSERT 或 DELETE
+     */
+    syncOperation?: string;
+    /**
      * 禁言状态 0未禁言 1全员禁言(裁判除外)
      */
     muteStatus?: number;
@@ -65,8 +73,9 @@ export type Room = {
      * 当前返回实际命中的 commitId；在线视图为空
      */
     effectiveCommitId?: number;
-    archived?: boolean;
-    docRoom?: boolean;
     active?: boolean;
+    deleted?: boolean;
+    archived?: boolean;
     archiving?: boolean;
+    docRoom?: boolean;
 };

@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { RoleAvatarCollectionSyncResponse } from './RoleAvatarCollectionSyncResponse';
+import type { RoomCollectionSyncResponse } from './RoomCollectionSyncResponse';
 /**
  * 基础返回体
  */
-export type ApiResultRoleAvatarCollectionSyncResponse = {
+export type ApiResultRoomCollectionSyncResponse = {
     /**
      * 成功标识true or false
      */
@@ -22,5 +22,5 @@ export type ApiResultRoleAvatarCollectionSyncResponse = {
     /**
      * 返回对象
      */
-    data?: RoleAvatarCollectionSyncResponse;
+    data?: RoomCollectionSyncResponse;
 };

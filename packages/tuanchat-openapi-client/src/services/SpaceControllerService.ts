@@ -7,6 +7,7 @@ import type { ApiResultListSpace } from '../models/ApiResultListSpace';
 import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultRoom } from '../models/ApiResultRoom';
 import type { ApiResultSpace } from '../models/ApiResultSpace';
+import type { ApiResultSpaceCollectionSyncResponse } from '../models/ApiResultSpaceCollectionSyncResponse';
 import type { ApiResultString } from '../models/ApiResultString';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { RoomAddRequest } from '../models/RoomAddRequest';
@@ -267,6 +268,23 @@ export class SpaceControllerService {
         return this.httpRequest.request({
             method: 'GET',
             url: '/space/list',
+        });
+    }
+    /**
+     * 增量获取当前用户加入的空间
+     * @param afterSyncId
+     * @returns ApiResultSpaceCollectionSyncResponse OK
+     * @throws ApiError
+     */
+    public syncUserSpaces(
+        afterSyncId?: number,
+    ): CancelablePromise<ApiResultSpaceCollectionSyncResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/space/list/sync',
+            query: {
+                'afterSyncId': afterSyncId,
+            },
         });
     }
     /**
