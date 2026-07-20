@@ -225,7 +225,10 @@ function restoreEditableSelection(editor: HTMLElement, snapshot: EditableSelecti
   selection.addRange(range);
 }
 
-const TEXT_SELECTION_CLASS_NAME = "rounded-sm bg-info/10 px-0.5 text-inherit ring-1 ring-inset ring-info/35 box-decoration-clone";
+const TEXT_SELECTION_CLASS_NAME = [
+  "rounded-sm bg-info/10 px-0.5 py-[5px] text-inherit",
+  "ring-1 ring-inset ring-info/35 box-decoration-clone",
+].join(" ");
 const TEXT_SELECTION_EMPTY_CLASS_NAME = "block min-h-7 w-full rounded-md bg-info/10 ring-1 ring-inset ring-info/40";
 
 // 跨块选区表现层：把外部计算出的文本偏移量渲染为块内高亮片段。
