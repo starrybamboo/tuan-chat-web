@@ -56,8 +56,8 @@ import {
 import useMessageEditorMessageMutations from "./hooks/useMessageEditorMessageMutations";
 import {
   MESSAGE_EDITOR_BLOCK_GUTTER_CLASS,
+  MESSAGE_EDITOR_BLOCK_WIDTH_CLASS,
   MESSAGE_EDITOR_COMMAND_MENU_LAYER_CLASS,
-  MESSAGE_EDITOR_CONTENT_WIDTH_CLASS,
   MESSAGE_EDITOR_DEFAULT_FRAME_CLASS,
   MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS,
   MESSAGE_EDITOR_SPEAKER_HANDLE_CLASS,
@@ -286,7 +286,7 @@ export function getMessageEditorTextBlockShellClassName(options: {
   isDragging: boolean;
 }) {
   return [
-    `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} transition`,
+    `group relative ${MESSAGE_EDITOR_BLOCK_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} transition`,
     options.hasFollowingTextBlock ? MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS : "",
     options.isDragging ? "bg-base-100/80 ring-1 ring-base-300/80" : "",
   ].join(" ");
@@ -299,7 +299,7 @@ function getMessageEditorAtomicBlockShellClassName(options: {
   readOnly: boolean;
 }) {
   return [
-    `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} py-1 transition`,
+    `group relative ${MESSAGE_EDITOR_BLOCK_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} py-1 transition`,
     options.isDragging ? "bg-base-100/80 ring-1 ring-base-300/80" : "",
     options.isSelected
       ? "bg-info/10 ring-1 ring-info/80"
