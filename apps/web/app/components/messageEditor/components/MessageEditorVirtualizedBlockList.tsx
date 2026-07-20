@@ -116,10 +116,8 @@ function didMessageEditorVirtualBlockOrderChange(
   previousBlockIds: readonly string[],
   nextBlockIds: readonly string[],
 ) {
-  if (previousBlockIds.length !== nextBlockIds.length) {
-    return true;
-  }
-  return previousBlockIds.some((blockId, index) => blockId !== nextBlockIds[index]);
+  const sharedLength = Math.min(previousBlockIds.length, nextBlockIds.length);
+  return previousBlockIds.slice(0, sharedLength).some((blockId, index) => blockId !== nextBlockIds[index]);
 }
 
 /**

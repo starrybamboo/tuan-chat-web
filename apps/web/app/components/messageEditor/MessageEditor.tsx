@@ -969,8 +969,15 @@ export default function MessageEditor({
     const focusEditableInsideBlock = (block: HTMLElement | null) => {
       const target = block?.matches("[contenteditable='true']")
         ? block
-        : block?.querySelector<HTMLElement>("[contenteditable='true']");
+        : block?.matches("[data-me-atomic-focus]")
+          ? block
+          : block?.querySelector<HTMLElement>("[contenteditable='true'],[data-me-atomic-focus]");
       target?.focus?.({ preventScroll: true });
+    };
+
+    const isAtomicFocusTarget = (blockId: string) => {
+      const message = selectionDocument.messageByBlockId.get(blockId);
+      return Boolean(message && !registry.isTextBlock(message));
     };
 
     if (pending.selection) {
@@ -996,6 +1003,12 @@ export default function MessageEditor({
         return;
       }
 
+      if (isAtomicFocusTarget(pending.selection.focus.blockId)) {
+        focusEditableInsideBlock(focusBlock);
+        stageFocusRestore(null);
+        return;
+      }
+
       focusEditableInsideBlock(focusBlock);
       restoreMessageEditorSelection(root, pending.selection);
       stageFocusRestore(null);
@@ -1012,6 +1025,11 @@ export default function MessageEditor({
         if (requested === false) {
           stageFocusRestore(null);
         }
+        return;
+      }
+      if (isAtomicFocusTarget(pending.blockId)) {
+        focusEditableInsideBlock(focusBlock);
+        stageFocusRestore(null);
         return;
       }
       focusEditableInsideBlock(focusBlock);
@@ -1754,10 +1772,10 @@ export default function MessageEditor({
     }
 
     startTextPointerSelection(anchor, event, () => {
-      activateBlock(blockId);
+      activateTextPoint(anchor);
     });
   }, [
-    activateBlock,
+    activateTextPoint,
     readOnly,
     resolveTextSelectionPointFromClientPosition,
     startTextPointerSelection,
@@ -2201,12 +2219,12 @@ export default function MessageEditor({
       const shouldMove = !contentIsMultiline || isSelectionAtStart(range, blockElement);
       if (shouldMove) {
         event.preventDefault();
-        const adjacentPoint = getAdjacentMessageEditorTextBlockPoint(
+        const adjacentPoint = getAdjacentMessageEditorDocumentBlockPoint(
           messagesRef.current,
           registry,
           editorSelection.focus,
           -1,
-          editorSelection.focus.offset,
+          Number.MAX_SAFE_INTEGER,
         );
         if (adjacentPoint) {
           activateTextPoint(adjacentPoint);
@@ -2219,12 +2237,12 @@ export default function MessageEditor({
       const shouldMove = !contentIsMultiline || isSelectionAtEnd(range, blockElement);
       if (shouldMove) {
         event.preventDefault();
-        const adjacentPoint = getAdjacentMessageEditorTextBlockPoint(
+        const adjacentPoint = getAdjacentMessageEditorDocumentBlockPoint(
           messagesRef.current,
           registry,
           editorSelection.focus,
           1,
-          editorSelection.focus.offset,
+          0,
         );
         if (adjacentPoint) {
           activateTextPoint(adjacentPoint);
@@ -2273,6 +2291,36 @@ export default function MessageEditor({
     speakerAvatarMenuState,
     speakerMenuState,
   ]);
+
+  const handleAtomicBlockKeyDown = useCallback((blockId: string, event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (readOnly || event.metaKey || event.ctrlKey || event.altKey) {
+      return;
+    }
+
+    if (event.key === "Backspace" || event.key === "Delete") {
+      event.preventDefault();
+      executeFocusAction(actions => actions.deleteBlock(blockId), {
+        clearWhenMissing: true,
+        hideToolbar: true,
+      });
+      return;
+    }
+
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") {
+      return;
+    }
+
+    event.preventDefault();
+    const direction = event.key === "ArrowUp" ? -1 : 1;
+    const adjacentPoint = getAdjacentMessageEditorDocumentBlockPoint(
+      messagesRef.current,
+      registry,
+      { blockId, offset: direction < 0 ? 0 : 1 },
+      direction,
+      direction < 0 ? Number.MAX_SAFE_INTEGER : 0,
+    );
+    activateTextPoint(adjacentPoint);
+  }, [activateTextPoint, executeFocusAction, messagesRef, readOnly, registry]);
 
   useEffect(() => {
     if (readOnly) {
@@ -2777,6 +2825,7 @@ export default function MessageEditor({
 
   // ==== Render 派生状态 ====
   const onAtomicBlockMouseDown = useMessageEditorEventCallback(handleAtomicBlockMouseDown);
+  const onAtomicBlockKeyDown = useMessageEditorEventCallback(handleAtomicBlockKeyDown);
   const onDeleteAtomicBlock = useMessageEditorEventCallback(handleDeleteAtomicBlock);
   const onResizeAtomicBlock = useMessageEditorEventCallback(handleResizeAtomicBlock);
   const onTextBlur = useMessageEditorEventCallback(handleTextBlur);
@@ -2926,6 +2975,7 @@ export default function MessageEditor({
         localFile={pendingMediaUpload?.file}
         message={message}
         onAtomicMouseDown={onAtomicBlockMouseDown}
+        onAtomicKeyDown={onAtomicBlockKeyDown}
         onDeleteAtomicBlock={onDeleteAtomicBlock}
         onFocusAtomicBlock={onFocusAtomicBlock}
         onFocusTextBlock={onFocusTextBlock}

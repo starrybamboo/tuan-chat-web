@@ -269,7 +269,9 @@ class MessageEditorDocumentTransactionPlanner implements MessageEditorTransactio
 
     const remainingMessages = currentMessages.filter(message => getMessageEditorBlockId(message) !== blockId);
     const nextMessages = remainingMessages.length > 0 ? remainingMessages : [createMessageEditorTextDraft()];
-    const focusCandidate = nextMessages[index] ?? nextMessages[index - 1] ?? nextMessages[0];
+    const focusCandidate = nextMessages.slice(index).find(message => this.params.registry.isTextBlock(message))
+      ?? nextMessages.slice(0, index).findLast(message => this.params.registry.isTextBlock(message))
+      ?? nextMessages[0];
     if (!focusCandidate || !this.params.registry.isTextBlock(focusCandidate)) {
       return this.createPlan("remove-block", nextMessages, null, {
         changedBlockIds: [blockId],

@@ -570,8 +570,15 @@ export function mergeMessageEditorMessageBackward(
 
   const previous = normalizedMessages[index - 1];
   const current = normalizedMessages[index];
-  if (!isMessageEditorTextMessage(previous) || !isMessageEditorTextMessage(current)) {
+  if (!isMessageEditorTextMessage(current)) {
     return null;
+  }
+
+  if (!isMessageEditorTextMessage(previous)) {
+    if (normalizeMessageEditorContent(current.content).length > 0) {
+      return null;
+    }
+    return removeMessageEditorMessageAt(normalizedMessages, index - 1, current, 0);
   }
 
   if (normalizeMessageEditorContent(previous.content).length === 0) {

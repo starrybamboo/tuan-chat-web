@@ -19,6 +19,7 @@ type MessageEditorBlockRowProps = {
   localFile?: File;
   message: MessageEditorMessage;
   onAtomicMouseDown: (blockId: string, event: MouseEvent<HTMLDivElement>) => void;
+  onAtomicKeyDown?: (blockId: string, event: KeyboardEvent<HTMLDivElement>) => void;
   onDeleteAtomicBlock: (blockId: string) => void;
   onFocusAtomicBlock: (blockId: string) => void;
   onFocusTextBlock: (blockId: string) => void;
@@ -65,6 +66,7 @@ export const MessageEditorBlockRow = memo(function MessageEditorBlockRow({
   localFile,
   message,
   onAtomicMouseDown,
+  onAtomicKeyDown,
   onDeleteAtomicBlock,
   onFocusAtomicBlock,
   onFocusTextBlock,
@@ -131,6 +133,8 @@ export const MessageEditorBlockRow = memo(function MessageEditorBlockRow({
         {renderSpeakerHandle(blockId, message, "top-1")}
         <div
           data-me-block-id={blockId}
+          data-me-atomic-focus="true"
+          tabIndex={readOnly ? -1 : 0}
           className="
             select-none
             [&_[contenteditable='true']]:select-text
@@ -139,6 +143,7 @@ export const MessageEditorBlockRow = memo(function MessageEditorBlockRow({
             [&_textarea]:select-text
           "
           onMouseDown={handleAtomicMouseDown}
+          onKeyDown={event => onAtomicKeyDown?.(blockId, event)}
         >
           <MessageEditorAtomicBlock
             active={active}
