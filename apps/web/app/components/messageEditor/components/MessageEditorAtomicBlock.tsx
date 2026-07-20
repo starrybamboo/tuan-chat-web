@@ -282,6 +282,7 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
   const [fileDropActive, setFileDropActive] = useState(false);
   const uploadMeta = resolveUploadMeta(message);
   const uploadable = uploadMeta.accept.length > 0;
+  const isGenericAtomicBlock = uploadMeta.title === "其他消息";
   const uploaded = hasUploadedMedia(message);
   const isImageBlock = message.messageType === MESSAGE_TYPE.IMG;
   const isVideoBlock = message.messageType === MESSAGE_TYPE.VIDEO;
@@ -694,6 +695,7 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
     <div
       className={[
         "flex flex-col gap-3 transition-colors",
+        isGenericAtomicBlock ? "rounded-md border border-base-300/70 bg-base-100/20 px-4 py-3" : "",
         fileDropActive ? "rounded-sm bg-base-200/30 ring-1 ring-info/30" : "",
       ].join(" ")}
       onMouseDownCapture={() => {
