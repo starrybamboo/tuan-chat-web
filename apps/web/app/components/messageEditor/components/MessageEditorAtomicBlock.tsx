@@ -1,5 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { CircleNotchIcon } from "@phosphor-icons/react";
+
 import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
@@ -611,6 +613,20 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
     </div>
   );
 
+  const renderUploadingMediaBlock = () => (
+    <div
+      className="
+        flex min-h-24 items-center justify-center gap-2 rounded-md border
+        border-dashed border-info/35 bg-info/5 px-4 py-4 text-sm text-base-content/60
+      "
+      role="status"
+      aria-live="polite"
+    >
+      <CircleNotchIcon className="size-5 animate-spin text-info" aria-hidden="true" />
+      <span>正在上传 {localFile?.name || "媒体文件"}...</span>
+    </div>
+  );
+
   const renderResizableMediaBlock = () => {
     const mediaLabel = isImageBlock ? "图片" : "视频";
     const resizeLabel = `拖拽缩放${mediaLabel}`;
@@ -720,8 +736,10 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
         />
       )}
 
-      {isResizableMediaBlock
-        ? renderResizableMediaBlock()
+      {uploading
+        ? renderUploadingMediaBlock()
+        : isResizableMediaBlock
+          ? renderResizableMediaBlock()
         : (
             <>
               {!uploaded && !localFile && uploadable
@@ -796,12 +814,6 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
                   )}
             </>
           )}
-
-      {uploading && (
-        <div className="text-xs text-base-content/55" role="status">
-          正在上传 {localFile?.name || "媒体文件"}...
-        </div>
-      )}
 
       {uploadError && (
         <div className="
