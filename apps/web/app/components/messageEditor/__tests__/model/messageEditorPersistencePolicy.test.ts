@@ -27,6 +27,7 @@ import {
   createMessageEditorBlockDraft,
   createMessageEditorTextDraft,
   getMessageEditorBlockId,
+  setMessageEditorUploadedMedia,
   updateMessageEditorTextContent,
 } from "../../model/messageEditorTransforms";
 
@@ -220,6 +221,67 @@ describe("messageEditorPersistencePolicy", () => {
     });
 
     expect(incremental).toEqual(full);
+  });
+
+  it("keeps pending media local until all required upload fields are available", () => {
+    for (const kind of ["image", "file", "audio", "video"] as const) {
+      const pendingMedia = createMessageEditorBlockDraft(kind);
+      expect(resolveMessageEditorPersistenceCommitPlan({
+        baselineMessages: [],
+        docId: "7",
+        isRoomDocument: true,
+        messages: [pendingMedia],
+        roomId: 7,
+        shouldUseLocalSnapshot: false,
+      })).toEqual({
+        kind: "remote",
+        operations: [],
+        roomId: 7,
+      });
+    }
+
+    const pending = createMessageEditorBlockDraft("image");
+    const blockId = getMessageEditorBlockId(pending);
+    const uploaded = setMessageEditorUploadedMedia(pending, {
+      fileId: 45,
+      fileName: "cover.png",
+      height: 720,
+      mediaType: "image/png",
+      size: 1024,
+      width: 1280,
+    });
+    const uploadedPlan = resolveMessageEditorPersistenceCommitPlan({
+      baselineMessages: [pending],
+      changeSet: {
+        baselineByBlockId: new Map([[blockId, pending]]),
+        currentByBlockId: new Map([[blockId, uploaded]]),
+        currentIndexByBlockId: new Map([[blockId, 0]]),
+        dirtyBlockIds: new Set([blockId]),
+        structureChanged: false,
+      },
+      docId: "7",
+      isRoomDocument: true,
+      messages: [uploaded],
+      roomId: 7,
+      shouldUseLocalSnapshot: false,
+    });
+
+    expect(uploadedPlan).toMatchObject({
+      kind: "remote",
+      operations: [{
+        message: {
+          extra: {
+            imageMessage: {
+              background: false,
+              height: 720,
+              source: { fileId: 45, kind: "internal" },
+              width: 1280,
+            },
+          },
+        },
+        op: "insert",
+      }],
+    });
   });
 
   it("resolves save delays for local snapshots and remote room sync", () => {

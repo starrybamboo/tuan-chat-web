@@ -200,6 +200,33 @@ describe("messageEditorPersistenceStrategies", () => {
     });
   });
 
+  it("skips the duplicate optimistic publish when chatHistory already contains editor working state", async () => {
+    const baseline = createPersistedMessage("before");
+    const submitted = { ...baseline, content: "after" };
+    const committed = { ...submitted, updateTime: "2026-07-14 12:01:00" };
+    const publish = vi.fn<(messages: Message[]) => Promise<void>>(async () => undefined);
+    strategyMocks.patchRemoteRoomMessageStream.mockResolvedValue([committed]);
+
+    await executeMessageEditorPersistenceStrategy({
+      baselineMessages: [baseline],
+      generation: 1,
+      plan: {
+        kind: "remote",
+        operations: [{ message: submitted, messageId: 101, op: "update", position: 1 }],
+        roomId: 7,
+      },
+      submittedRevision: 1,
+      submittedMessages: [submitted],
+    }, {
+      onRemoteMessagesSaved: publish,
+      publishOptimisticRoomMessages: false,
+      remotePatchSourceSurface: "doc_view",
+    });
+
+    expect(publish).toHaveBeenCalledTimes(1);
+    expect(publish.mock.calls[0][0]).toEqual([committed]);
+  });
+
   it("publishes one optimistic batch and compensates it when the remote patch fails", async () => {
     const baseline = createPersistedMessage("before");
     const submitted = {

@@ -7,6 +7,7 @@ import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea"
 import type { MessageEditorMessage } from "../messageEditorTypes";
 import type { MessageEditorBlockDriverKind } from "../runtime/messageEditorRegistry";
 
+import { MESSAGE_EDITOR_BLOCK_GAP_CLASS } from "../messageEditorLayout";
 import { MessageEditorAtomicBlock } from "./MessageEditorAtomicBlock";
 import { MessageEditorTextBlock } from "./MessageEditorTextBlock";
 
@@ -15,6 +16,7 @@ type MessageEditorBlockRowProps = {
   blockId: string;
   commandMenus: ReactNode;
   driverKind: MessageEditorBlockDriverKind;
+  localFile?: File;
   message: MessageEditorMessage;
   onAtomicMouseDown: (blockId: string, event: MouseEvent<HTMLDivElement>) => void;
   onDeleteAtomicBlock: (blockId: string) => void;
@@ -28,12 +30,15 @@ type MessageEditorBlockRowProps = {
   onTextPasteFiles: (blockId: string, files: File[]) => void;
   onTextPasteText: (blockId: string, text: string, insertPlainText: () => void) => boolean | void;
   onUploadAtomicBlock: (blockId: string, file: File) => Promise<void>;
+  uploadError?: string;
+  uploading?: boolean;
   placeholder: string;
   readOnly: boolean;
   registerBlockRef: (blockId: string, node: HTMLDivElement | null) => void;
   registerBlockShellRef: (blockId: string, node: HTMLDivElement | null) => void;
   renderSpeakerHandle: (blockId: string, message: MessageEditorMessage, topClassName: string) => ReactNode;
   selectionSegment: { end: number; showLineBreakAfter?: boolean; start: number } | null;
+  selected?: boolean;
   shellClassName: string;
   showDropAfter: boolean;
   showDropBefore: boolean;
@@ -57,6 +62,7 @@ export const MessageEditorBlockRow = memo(function MessageEditorBlockRow({
   blockId,
   commandMenus,
   driverKind,
+  localFile,
   message,
   onAtomicMouseDown,
   onDeleteAtomicBlock,
@@ -70,12 +76,15 @@ export const MessageEditorBlockRow = memo(function MessageEditorBlockRow({
   onTextPasteFiles,
   onTextPasteText,
   onUploadAtomicBlock,
+  uploadError,
+  uploading,
   placeholder,
   readOnly,
   registerBlockRef,
   registerBlockShellRef,
   renderSpeakerHandle,
   selectionSegment,
+  selected = false,
   shellClassName,
   showDropAfter,
   showDropBefore,
@@ -134,12 +143,16 @@ export const MessageEditorBlockRow = memo(function MessageEditorBlockRow({
           <MessageEditorAtomicBlock
             active={active}
             blockId={blockId}
+            localFile={localFile}
             message={message}
             readOnly={readOnly}
+            selected={selected}
             onFocus={onFocusAtomicBlock}
             onDelete={onDeleteAtomicBlock}
             onUpload={onUploadAtomicBlock}
             onResize={onResizeAtomicBlock}
+            uploadError={uploadError}
+            uploading={uploading}
           />
         </div>
       </div>
@@ -149,7 +162,7 @@ export const MessageEditorBlockRow = memo(function MessageEditorBlockRow({
     <div
       data-me-block-row="true"
       data-me-block-hit={blockId}
-      className="w-full"
+      className={`w-full ${MESSAGE_EDITOR_BLOCK_GAP_CLASS}`}
     >
       {blockContent}
     </div>

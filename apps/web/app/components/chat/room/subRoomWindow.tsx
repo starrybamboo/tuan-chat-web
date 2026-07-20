@@ -369,8 +369,8 @@ function SubRoomWindowImpl() {
                     duration-150 focus:outline-none
                     focus-visible:ring-2 focus-visible:ring-info/40
                     ${isDraggingWebgalRunSplit ? `
-                      bg-base-300/80
-                    ` : `hover:bg-base-300/55`}
+                      bg-info/20
+                    ` : `bg-info/8 hover:bg-info/15`}
                   `}
                   style={{ height: WEBGAL_RUN_SPLIT_HANDLE_HEIGHT }}
                   aria-label="调整 WebGAL 与跑团面板高度"
@@ -381,10 +381,7 @@ function SubRoomWindowImpl() {
                 >
                   <div className={`
                     h-px w-full transition-colors
-                    ${isDraggingWebgalRunSplit ? `bg-info/45` : `
-                      bg-base-300/80
-                      group-hover:bg-base-content/28
-                    `}
+                    ${isDraggingWebgalRunSplit ? `bg-info` : `bg-info/80 group-hover:bg-info`}
                   `}></div>
                 </button>
 

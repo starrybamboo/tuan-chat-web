@@ -3,7 +3,13 @@ import { describe, expect, it } from "vitest";
 
 import type { ChatMessageResponse } from "../../../../../api";
 
-import { getRoomHistoryFetchStartSyncId, mergeLoadedRoomHistory } from "./useChatHistory";
+import {
+  getRoomHistoryFetchStartSyncId,
+  mergeIncomingRoomMessagesWithEditorWorkingState,
+  mergeLoadedRoomHistory,
+  removeCommittedEditorDrafts,
+  replaceRoomMessagesWithEditorWorkingState,
+} from "./useChatHistory";
 
 function createMessageResponse(overrides: Partial<ChatMessageResponse["message"]>): ChatMessageResponse {
   return {
@@ -25,6 +31,53 @@ function createMessageResponse(overrides: Partial<ChatMessageResponse["message"]
 }
 
 describe("useChatHistory 乐观消息渲染 key", () => {
+  it("本地编辑写入 chatHistory 后聊天视图可立即读取工作内容", () => {
+    const persisted = createMessageResponse({ content: "保存前", messageId: 1 });
+    const working = createMessageResponse({ content: "本地编辑", messageId: 1 });
+
+    const result = replaceRoomMessagesWithEditorWorkingState([persisted], [working], 10);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].message.content).toBe("本地编辑");
+    expect(result[0].message).toBe(working.message);
+  });
+
+  it("远端不同消息正常合入，同一 dirty 消息保留本地内容", () => {
+    const localDirty = createMessageResponse({ content: "本地内容", messageId: 1, position: 1 });
+    const remoteConflict = createMessageResponse({ content: "远端冲突", messageId: 1, position: 1 });
+    const remoteOther = createMessageResponse({ content: "远端新增", messageId: 2, position: 2, syncId: 2 });
+
+    const result = mergeIncomingRoomMessagesWithEditorWorkingState(
+      [localDirty],
+      [remoteConflict, remoteOther],
+      new Set([1]),
+    );
+
+    expect(result.map(item => item.message.content)).toEqual(["本地内容", "远端新增"]);
+  });
+
+  it("服务端确认新增时模糊移除对应的编辑器负 ID 草稿", () => {
+    const draft = createMessageResponse({
+      content: "新增段落",
+      messageId: -100,
+      position: 2,
+      roleId: 30,
+      syncId: -100,
+      tcMessageEditorDraft: true,
+      userId: 0,
+    } as Partial<ChatMessageResponse["message"]>);
+    const committed = createMessageResponse({
+      content: "新增段落",
+      messageId: 101,
+      position: 2,
+      roleId: 30,
+      syncId: 101,
+      userId: 99,
+    });
+
+    expect(removeCommittedEditorDrafts([draft], [committed])).toEqual([]);
+  });
+
   it("webSocket 真消息替换乐观消息时继承本地渲染 key", () => {
     const optimistic = createMessageResponse({
       messageId: -1,

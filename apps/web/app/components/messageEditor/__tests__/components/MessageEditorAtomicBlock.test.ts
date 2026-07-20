@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { vi } from "vitest";
+import { afterEach, vi } from "vitest";
 
 import { MessageEditorAtomicBlock } from "../../components/MessageEditorAtomicBlock";
 import { createMessageEditorBlockDraft, setMessageEditorUploadedMedia, updateMessageEditorMediaSize } from "../../model/messageEditorTransforms";
@@ -33,10 +33,14 @@ vi.mock("@/components/common/mediaImage", () => ({
 }));
 
 describe("messageEditorAtomicBlock", () => {
-  function renderBlock(message = createMessageEditorBlockDraft("image")) {
+  function renderBlock(
+    message = createMessageEditorBlockDraft("image"),
+    options: { localFile?: File; uploadError?: string; uploading?: boolean } = {},
+  ) {
     return renderToStaticMarkup(createElement(MessageEditorAtomicBlock, {
       active: false,
       blockId: "block-1",
+      ...options,
       message,
       onDelete: () => {},
       onFocus: () => {},
@@ -45,12 +49,44 @@ describe("messageEditorAtomicBlock", () => {
     }));
   }
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("renders an upload placeholder when the image block has no media yet", () => {
     const html = renderBlock();
 
     expect(html).toContain("点击上传图片");
     expect(html).toContain("删除");
     expect(html).not.toContain("<img");
+  });
+
+  it("renders a local image preview while the upload is in progress", () => {
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:pending-image");
+    const file = new File(["image"], "preview.png", { type: "image/png" });
+
+    const html = renderBlock(createMessageEditorBlockDraft("image"), {
+      localFile: file,
+      uploading: true,
+    });
+
+    expect(html).toContain('src="blob:pending-image"');
+    expect(html).toContain("正在上传 preview.png...");
+    expect(html).not.toContain("点击上传图片");
+  });
+
+  it("keeps a local file card and retry state after upload failure", () => {
+    const file = new File(["document"], "notes.pdf", { type: "application/pdf" });
+
+    const html = renderBlock(createMessageEditorBlockDraft("file"), {
+      localFile: file,
+      uploadError: "上传失败，请重试",
+    });
+
+    expect(html).toContain("notes.pdf");
+    expect(html).toContain("重新上传");
+    expect(html).toContain("上传失败，请重试");
+    expect(html).not.toContain("点击上传文件");
   });
 
   it("uses the same centered upload placeholder for empty audio and video blocks", () => {

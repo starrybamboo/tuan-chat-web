@@ -4,7 +4,7 @@ import type { MessageEditorSaveState, MessageEditorTcHeader } from "../messageEd
 
 import {
   MESSAGE_EDITOR_CONTENT_WIDTH_CLASS,
-  MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS,
+  MESSAGE_EDITOR_HEADER_CONTENT_WIDTH_CLASS,
 } from "../messageEditorLayout";
 
 /** message editor 文档头部输入，由组件内部解析成展示状态。 */
@@ -99,10 +99,9 @@ export function MessageEditorHeader(props: MessageEditorHeaderProps) {
           )
         : null}
 
-      <div className="border-b border-base-300 py-4">
+      <div className="border-b border-base-300 pb-4 pt-6">
         <div className={`
-          ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS}
-          ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS}
+          ${MESSAGE_EDITOR_HEADER_CONTENT_WIDTH_CLASS}
           flex items-center justify-between gap-4
         `}>
           <div className="min-w-0">

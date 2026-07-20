@@ -57,6 +57,7 @@ type MessageEditorMediaRecord = {
 };
 
 const runtimeBlockIds = new WeakMap<object, string>();
+let roomWorkingMessageIdSeed = -Math.max(1, Date.now() * 1000);
 
 function createMessageEditorEntityId(prefix = "block"): string {
   const randomPart = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
@@ -314,6 +315,12 @@ export function getMessageEditorBlockId(message: MessageEditorMessage): string {
   return nextId;
 }
 
+function nextMessageEditorRoomWorkingId() {
+  const nextId = roomWorkingMessageIdSeed;
+  roomWorkingMessageIdSeed -= 1;
+  return nextId;
+}
+
 /**
  * 将任意输入归一化为 message editor 可处理的单条消息草稿。
  */
@@ -357,9 +364,60 @@ export function normalizeMessageEditorDraft(rawMessage: unknown): MessageEditorM
   if (typeof rawMessage.updateTime === "string") {
     runtimeFields.updateTime = rawMessage.updateTime;
   }
+  if (typeof rawMessage.tcLocalRenderKey === "string" && rawMessage.tcLocalRenderKey.trim()) {
+    runtimeFields.tcLocalRenderKey = rawMessage.tcLocalRenderKey;
+  }
+  if (rawMessage.tcMessageEditorDraft === true) {
+    runtimeFields.tcMessageEditorDraft = true;
+  }
   Object.assign(nextMessage, runtimeFields);
 
   return inheritRuntimeBlockId(rawMessage, nextMessage);
+}
+
+/**
+ * 将房间编辑器的新块补成 chatHistory 可直接渲染的内存消息。
+ * 负 ID 仅用于本地工作视图，持久化策略仍会把 tcMessageEditorDraft 作为 insert。
+ */
+export function materializeMessageEditorRoomWorkingMessages(
+  messages: MessageEditorMessage[],
+  roomId: number,
+  options: { structureChanged?: boolean } = {},
+) {
+  const now = new Date().toISOString();
+  const fallbackUserId = messages.find(message => typeof message.userId === "number")?.userId ?? 0;
+
+  return ensureMessageEditorMessages(messages).map((message, index) => {
+    const currentMessageId = typeof message.messageId === "number" && Number.isFinite(message.messageId)
+      ? message.messageId
+      : undefined;
+    const isEditorDraft = message.tcMessageEditorDraft === true || currentMessageId === undefined || currentMessageId === 0;
+    const messageId = isEditorDraft
+      ? currentMessageId && currentMessageId < 0 ? currentMessageId : nextMessageEditorRoomWorkingId()
+      : currentMessageId!;
+    const position = options.structureChanged || typeof message.position !== "number"
+      ? index + 1
+      : message.position;
+    const nextMessage: MessageEditorMessage = {
+      ...message,
+      messageId,
+      syncId: typeof message.syncId === "number" && Number.isFinite(message.syncId) ? message.syncId : messageId,
+      roomId,
+      userId: typeof message.userId === "number" ? message.userId : fallbackUserId,
+      status: typeof message.status === "number" ? message.status : 0,
+      position,
+      ...(isEditorDraft
+        ? {
+            tcLocalRenderKey: message.tcLocalRenderKey ?? `message-editor:${getMessageEditorBlockId(message)}`,
+            tcLocalSyncState: "optimistic" as const,
+            tcMessageEditorDraft: true,
+            createTime: message.createTime ?? now,
+            updateTime: now,
+          }
+        : {}),
+    };
+    return inheritMessageEditorRuntimeBlockId(message, nextMessage);
+  });
 }
 
 /**

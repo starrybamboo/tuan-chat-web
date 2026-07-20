@@ -24,6 +24,7 @@ import { ensureMessageEditorMessages } from "../model/messageEditorTransforms";
 
 type MessageEditorPersistenceStrategyDependencies = {
   onRemoteMessagesSaved?: (messages: Message[]) => void | Promise<void>;
+  publishOptimisticRoomMessages?: boolean;
   remotePatchSourceSurface: MessageEditorRemotePatchSourceSurface;
 };
 
@@ -114,11 +115,13 @@ async function executeRoomMessagePersistenceStrategy(
     operations,
     roomId: transaction.plan.roomId,
   });
-  await publishRemoteMessages(
-    dependencies.onRemoteMessagesSaved,
-    optimisticMessages,
-    "[MessageEditor] optimistic room message stream merge failed",
-  );
+  if (dependencies.publishOptimisticRoomMessages !== false) {
+    await publishRemoteMessages(
+      dependencies.onRemoteMessagesSaved,
+      optimisticMessages,
+      "[MessageEditor] optimistic room message stream merge failed",
+    );
+  }
 
   let changedMessages: Message[];
   let savedMessages: MessageEditorMessage[];
@@ -141,11 +144,13 @@ async function executeRoomMessagePersistenceStrategy(
       operations,
       roomId: transaction.plan.roomId,
     });
-    await publishRemoteMessages(
-      dependencies.onRemoteMessagesSaved,
-      rollbackMessages,
-      "[MessageEditor] rollback optimistic room message stream failed",
-    );
+    if (dependencies.publishOptimisticRoomMessages !== false) {
+      await publishRemoteMessages(
+        dependencies.onRemoteMessagesSaved,
+        rollbackMessages,
+        "[MessageEditor] rollback optimistic room message stream merge failed",
+      );
+    }
     throw error;
   }
 

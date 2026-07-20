@@ -163,7 +163,7 @@ function AiImagePage() {
                   >
                     <span className="
                       mx-auto my-3 block h-[calc(100%-1.5rem)] w-0.5
-                      rounded-full bg-base-300 transition-colors
+                      rounded-full bg-info transition-colors
                       group-hover:bg-info/45 group-active:bg-info/70
                     " />
                   </button>

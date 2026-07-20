@@ -20,13 +20,15 @@ vi.mock("../../../../../api/hooks/RoleAndAvatarHooks", () => ({
 vi.mock("@/components/common/Avatar", () => ({
   AVATAR_HOVER_IMAGE_CLASS: "avatar-image",
   AVATAR_HOVER_SHELL_CLASS: "avatar-shell",
-  Avatar: ({ alt, imageDecoding, imageLoading, src }: {
+  Avatar: ({ alt, imageDecoding, imageLoading, size, src }: {
     alt?: string;
     imageDecoding?: "async" | "auto" | "sync";
     imageLoading?: "eager" | "lazy";
+    size?: number | string;
     src?: string;
   }) => createElement("img", {
     alt,
+    "data-size": size,
     decoding: imageDecoding,
     loading: imageLoading,
     src,
@@ -69,6 +71,9 @@ describe("MessageEditorSpeakerHeader", () => {
     expect(queryMocks.getRoleAvatars).not.toHaveBeenCalled();
     expect(html).toContain('loading="lazy"');
     expect(html).toContain('decoding="async"');
+    expect(html).toContain('data-size="8"');
+    expect(html).toContain("size-8");
+    expect(html).toContain("items-start");
     expect(html).toContain("/media/v1/files/123/123/image/low.webp");
   });
 

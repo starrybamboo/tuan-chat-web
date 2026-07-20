@@ -3,6 +3,7 @@ import { useLocation } from "@tanstack/react-router";
 import React from "react";
 
 import type { UseChatHistoryReturn } from "@/components/chat/infra/localDb/useChatHistory";
+import type { MessageEditorMessage } from "@/components/messageEditor/messageEditorTypes";
 
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
 import useChatFrameMessages from "@/components/chat/hooks/useChatFrameMessages";
@@ -238,6 +239,8 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
   const useProvidedRoomHistory = Boolean(isRoomDocument && props.chatHistory);
   const localRoomHistory = useChatHistory(useProvidedRoomHistory ? null : resolvedDocRoomId);
   const roomHistory = useProvidedRoomHistory ? props.chatHistory : localRoomHistory;
+  const commitEditorMessages = roomHistory?.commitEditorMessages;
+  const replaceMessagesFromEditor = roomHistory?.replaceMessagesFromEditor;
   const roomDocMessages = React.useMemo(() => {
     if (!isRoomDocument) {
       return initialMessages;
@@ -247,24 +250,39 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
       .map(item => item.message)
       .filter((item): item is Message => Boolean(item));
 
-    return cachedMessages.length > 0 ? cachedMessages : initialMessages;
-  }, [initialMessages, isRoomDocument, roomHistory?.messages]);
+    return cachedMessages.length > 0 || roomHistory?.loading === false ? cachedMessages : initialMessages;
+  }, [initialMessages, isRoomDocument, roomHistory?.loading, roomHistory?.messages]);
   useChatFrameMessages({
     chatHistory: roomHistory ?? undefined,
     currentUserId: null,
   });
 
   const handleRemoteMessagesSaved = React.useCallback(async (messages: Message[]) => {
-    if (!onRemoteMessagesSaved && isRoomDocument && resolvedDocRoomId && roomHistory) {
+    if (isRoomDocument && resolvedDocRoomId && commitEditorMessages) {
       const roomMessages = messages
         .filter(message => message.roomId === resolvedDocRoomId)
         .map(message => ({ message }) as ChatMessageResponse);
       if (roomMessages.length > 0) {
-        await roomHistory.addOrUpdateMessages(roomMessages);
+        await commitEditorMessages(roomMessages);
       }
     }
     await onRemoteMessagesSaved?.(messages);
-  }, [isRoomDocument, onRemoteMessagesSaved, resolvedDocRoomId, roomHistory]);
+  }, [commitEditorMessages, isRoomDocument, onRemoteMessagesSaved, resolvedDocRoomId]);
+
+  const handleWorkingMessagesChange = React.useCallback((
+    messages: MessageEditorMessage[],
+    dirtyMessageIds: ReadonlySet<number>,
+  ) => {
+    if (!isRoomDocument || !resolvedDocRoomId || !replaceMessagesFromEditor) {
+      return;
+    }
+    replaceMessagesFromEditor(
+      messages
+        .filter(message => message.roomId === resolvedDocRoomId)
+        .map(message => ({ message: message as Message })),
+      dirtyMessageIds,
+    );
+  }, [isRoomDocument, replaceMessagesFromEditor, resolvedDocRoomId]);
 
   if (!resolvedSpaceId || !resolvedDocId) {
     return (
@@ -291,6 +309,7 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
                     className="h-full min-h-0 rounded-none border-t-0!"
                     docId={resolvedDocId}
                     initialMessages={roomDocMessages}
+                    onWorkingMessagesChange={handleWorkingMessagesChange}
                     onRequestImportTextPaste={props.onRequestImportTextPaste}
                     onRemoteMessagesSaved={handleRemoteMessagesSaved}
                     readOnly={props.readOnly}
@@ -305,6 +324,7 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
                       fallbackImageMediaType: props.tcHeaderImageMediaType,
                     }}
                     workspaceId={`space:${resolvedSpaceId ?? -1}`}
+                    workingMessages={isRoomDocument && roomHistory ? roomDocMessages : undefined}
                   />
                 </div>
               </div>

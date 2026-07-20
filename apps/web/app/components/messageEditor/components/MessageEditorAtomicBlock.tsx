@@ -1,5 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { CircleNotchIcon } from "@phosphor-icons/react";
+
 import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
@@ -11,17 +13,25 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { MessageEditorMessage } from "../messageEditorTypes";
 
+import {
+  getMessageEditorMediaFrameClassName,
+  MESSAGE_EDITOR_DEFAULT_IMAGE_WIDTH_CLASS,
+} from "../messageEditorLayout";
 import { isMessageEditorFileDrag, isMessageEditorUploadableMediaMessage } from "../runtime/messageEditorFileDrop";
 
 type MessageEditorAtomicBlockProps = {
   active?: boolean;
   blockId: string;
+  localFile?: File;
   message: MessageEditorMessage;
   onDelete?: (blockId: string) => void;
   onFocus: (blockId: string) => void;
   onResize?: (blockId: string, size: { height: number; width: number }) => void;
   onUpload: (blockId: string, file: File) => Promise<void>;
+  uploadError?: string;
+  uploading?: boolean;
   readOnly?: boolean;
+  selected?: boolean;
 }
 
 function resolveUploadMeta(message: MessageEditorMessage) {
@@ -204,17 +214,66 @@ function formatAudioProgressLabel(second: unknown) {
   return `0:00 / ${minutes}:${seconds}`;
 }
 
+function useLocalPreviewUrl(file: File | undefined) {
+  const objectUrl = useMemo(() => {
+    if (!file || typeof URL === "undefined" || typeof URL.createObjectURL !== "function") {
+      return "";
+    }
+    return URL.createObjectURL(file);
+  }, [file]);
+
+  useEffect(() => {
+    if (!objectUrl || typeof URL === "undefined" || typeof URL.revokeObjectURL !== "function") {
+      return;
+    }
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [objectUrl]);
+
+  return objectUrl;
+}
+
+function withLocalFile(message: MessageEditorMessage, localFile: File | undefined): MessageEditorMessage {
+  if (!localFile) {
+    return message;
+  }
+
+  const payloadKey = message.messageType === MESSAGE_TYPE.IMG
+    ? "imageMessage"
+    : message.messageType === MESSAGE_TYPE.SOUND
+      ? "soundMessage"
+      : message.messageType === MESSAGE_TYPE.FILE
+        ? "fileMessage"
+        : "videoMessage";
+  const payload = message.extra?.[payloadKey] ?? {};
+  return {
+    ...message,
+    extra: {
+      ...message.extra,
+      [payloadKey]: {
+        ...payload,
+        fileName: localFile.name,
+        localFile,
+        size: localFile.size,
+      },
+    },
+  };
+}
+
 /**
  * 原子块编辑壳，负责上传、删除与媒体缩放交互。
  */
 export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
   blockId,
+  localFile,
   message,
   onDelete,
   onFocus,
   onResize,
   onUpload,
+  uploadError = "",
+  uploading = false,
   readOnly = false,
+  selected = false,
 }: MessageEditorAtomicBlockProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const mediaFrameRef = useRef<HTMLDivElement | null>(null);
@@ -224,11 +283,10 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
     startWidth: number;
     startX: number;
   } | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState("");
   const [fileDropActive, setFileDropActive] = useState(false);
   const uploadMeta = resolveUploadMeta(message);
   const uploadable = uploadMeta.accept.length > 0;
+  const isGenericAtomicBlock = uploadMeta.title === "其他消息";
   const uploaded = hasUploadedMedia(message);
   const isImageBlock = message.messageType === MESSAGE_TYPE.IMG;
   const isVideoBlock = message.messageType === MESSAGE_TYPE.VIDEO;
@@ -257,6 +315,9 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
     : isVideoBlock
       ? resolveUploadedVideoUrl(message)
       : "";
+  const localPreviewUrl = useLocalPreviewUrl(isResizableMediaBlock ? localFile : undefined);
+  const mediaPreviewUrl = localPreviewUrl || uploadedMediaUrl;
+  const previewMessage = withLocalFile(message, localFile);
   const audioProgressLabel = message.messageType === MESSAGE_TYPE.SOUND
     ? formatAudioProgressLabel(message.extra?.soundMessage?.second)
     : "";
@@ -278,15 +339,7 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
   }, [mediaIdentity]);
 
   const startUpload = useCallback((file: File) => {
-    setUploadError("");
-    setUploading(true);
-    void onUpload(blockId, file)
-      .catch((error) => {
-        setUploadError(error instanceof Error ? error.message : String(error));
-      })
-      .finally(() => {
-        setUploading(false);
-      });
+    void onUpload(blockId, file);
   }, [blockId, onUpload]);
 
   const handleFileInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -422,8 +475,14 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
 
   const uploadButtonLabel = uploading
     ? "上传中..."
-    : (uploaded ? uploadMeta.replaceLabel : uploadMeta.emptyLabel);
-  const placeholderButtonLabel = uploading ? "上传中..." : `点击${uploadMeta.emptyLabel}`;
+    : uploadError
+      ? "重新上传"
+      : (uploaded ? uploadMeta.replaceLabel : uploadMeta.emptyLabel);
+  const placeholderButtonLabel = uploading
+    ? "上传中..."
+    : uploadError
+      ? "重新上传"
+      : `点击${uploadMeta.emptyLabel}`;
 
   const renderInlineDeleteAction = (label: string) => {
     if (readOnly) {
@@ -448,6 +507,27 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
         title={label}
       >
         <TrashIcon className="size-4" />
+      </button>
+    );
+  };
+
+  const renderInlineUploadAction = () => {
+    if (readOnly || !uploadable || (uploaded && !localFile && !uploadError)) {
+      return null;
+    }
+
+    return (
+      <button
+        type="button"
+        className="
+          rounded-md border border-base-300/70 bg-base-100/92 px-2 py-1
+          text-xs text-base-content/70 shadow-sm transition
+          hover:border-info/40 hover:text-base-content
+        "
+        onMouseDown={event => event.preventDefault()}
+        onClick={openFilePicker}
+      >
+        {uploadButtonLabel}
       </button>
     );
   };
@@ -497,7 +577,7 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
   };
 
   const renderEmptyUploadBlock = () => (
-    <>
+    <div className={isImageBlock ? MESSAGE_EDITOR_DEFAULT_IMAGE_WIDTH_CLASS : ""}>
       <div className="mb-1 flex items-center justify-between gap-2">
         <div className="text-xs font-medium text-base-content/55">{uploadMeta.title}</div>
         {!readOnly && (
@@ -530,7 +610,21 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
       >
         {placeholderButtonLabel}
       </button>
-    </>
+    </div>
+  );
+
+  const renderUploadingMediaBlock = () => (
+    <div
+      className="
+        flex min-h-24 items-center justify-center gap-2 rounded-md border
+        border-dashed border-info/35 bg-info/5 px-4 py-4 text-sm text-base-content/60
+      "
+      role="status"
+      aria-live="polite"
+    >
+      <CircleNotchIcon className="size-5 animate-spin text-info" aria-hidden="true" />
+      <span>正在上传 {localFile?.name || "媒体文件"}...</span>
+    </div>
   );
 
   const renderResizableMediaBlock = () => {
@@ -539,27 +633,28 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
 
     return (
       <div className="group/media flex flex-col gap-3">
-        {uploaded && uploadedMediaUrl
+        {mediaPreviewUrl
           ? (
               <div
                 ref={mediaFrameRef}
-                className="
-                  group/media relative overflow-hidden rounded-xl bg-base-100
-                "
+                className={getMessageEditorMediaFrameClassName({
+                  hasCustomWidth: displayWidth !== null,
+                  isImage: isImageBlock,
+                })}
                 style={displayWidth !== null ? { maxWidth: "100%", width: `${displayWidth}px` } : undefined}
               >
                 {renderFloatingUploadActions()}
 
-                {!readOnly && (
+                {!readOnly && uploaded && uploadedMediaUrl && (
                   <button
                     type="button"
                     className="
                       pointer-events-none absolute right-0 top-1/2 z-10 flex
                       h-20 w-3 translate-x-1/2 -translate-y-1/2 cursor-ew-resize
                       items-center justify-center rounded-full border
-                      border-base-300/70 bg-base-100/92 opacity-0 shadow-sm
+                      border-info bg-info opacity-100 shadow-sm
                       transition duration-150
-                      hover:border-info/40 hover:bg-info/10
+                      hover:bg-info/85
                       group-hover/media:pointer-events-auto
                       group-hover/media:opacity-100
                       group-focus-within/media:pointer-events-auto
@@ -572,14 +667,14 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
                     aria-label={resizeLabel}
                     title={resizeLabel}
                   >
-                    <span className="h-8 w-0.5 rounded-full bg-base-content/25" />
+                    <span className="h-8 w-0.5 rounded-full bg-info-content/80" />
                   </button>
                 )}
 
                 {isImageBlock
                   ? (
                       <MediaImage
-                        src={uploadedMediaUrl}
+                        src={mediaPreviewUrl}
                         alt={message.content?.trim() || uploadMeta.title}
                         loading="lazy"
                         decoding="async"
@@ -593,7 +688,7 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
                   : (
                       <CachedVideoMessage
                         cacheKey={`${blockId}:video`}
-                        url={uploadedMediaUrl}
+                        url={mediaPreviewUrl}
                         className="
                           block h-auto w-full max-w-full bg-transparent object-contain
                         "
@@ -618,6 +713,8 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
     <div
       className={[
         "flex flex-col gap-3 transition-colors",
+        isGenericAtomicBlock ? "rounded-md border border-base-300/70 bg-base-100/20 px-4 py-3" : "",
+        selected ? "rounded-md bg-info/10 ring-1 ring-info/80" : "",
         fileDropActive ? "rounded-sm bg-base-200/30 ring-1 ring-info/30" : "",
       ].join(" ")}
       onMouseDownCapture={() => {
@@ -639,11 +736,13 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
         />
       )}
 
-      {isResizableMediaBlock
-        ? renderResizableMediaBlock()
+      {uploading
+        ? renderUploadingMediaBlock()
+        : isResizableMediaBlock
+          ? renderResizableMediaBlock()
         : (
             <>
-              {!uploaded && uploadable
+              {!uploaded && !localFile && uploadable
                 ? renderEmptyUploadBlock()
                 : (
                     <>
@@ -698,11 +797,13 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
                               : ""}
                       >
                         {isCenteredUploadBlock && message.messageType !== MESSAGE_TYPE.SOUND && renderFloatingUploadActions()}
+                        {(message.messageType === MESSAGE_TYPE.SOUND || message.messageType === MESSAGE_TYPE.FILE)
+                          && renderInlineUploadAction()}
                         <MessageContentRenderer
                           message={{
-                            ...message,
-                            content: message.content ?? "",
-                            messageType: message.messageType ?? 0,
+                            ...previewMessage,
+                            content: previewMessage.content ?? "",
+                            messageType: previewMessage.messageType ?? 0,
                           }}
                         />
                         {audioProgressLabel && <span className="sr-only">{audioProgressLabel}</span>}

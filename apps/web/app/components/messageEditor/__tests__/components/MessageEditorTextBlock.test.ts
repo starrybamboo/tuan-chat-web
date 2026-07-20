@@ -1,6 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it, vi } from "vitest";
 
-import { resolveMessageEditorTextBlockViewState } from "../../components/MessageEditorTextBlock";
+import {
+  MessageEditorTextBlock,
+  resolveMessageEditorTextBlockViewState,
+} from "../../components/MessageEditorTextBlock";
+
+vi.mock("@/components/chat/message/editableMessageContent", () => ({
+  default: () => createElement("div"),
+}));
 
 describe("MessageEditorTextBlock", () => {
   it("非激活且没有选区时使用预览态", () => {
@@ -38,5 +47,21 @@ describe("MessageEditorTextBlock", () => {
       readOnly: true,
       selectionSegment: null,
     })).toEqual({ kind: "readonly-source" });
+  });
+
+  it("文字选区按当前行高补齐垂直绘制高度", () => {
+    const html = renderToStaticMarkup(createElement(MessageEditorTextBlock, {
+      active: false,
+      blockId: "block-1",
+      message: { content: "selected text" },
+      onFocus: () => {},
+      onInput: () => {},
+      onKeyDown: () => {},
+      registerBlockRef: vi.fn(),
+      selectionSegment: { end: 8, start: 0 },
+    }));
+
+    expect(html).toContain("py-[5px]");
+    expect(html).toContain(">selected<");
   });
 });

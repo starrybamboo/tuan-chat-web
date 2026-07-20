@@ -188,7 +188,7 @@ export function VaulSideDrawer({
                 {...resizeHandleA11yProps}
               >
                 <div className={`
-                  absolute top-0 h-full w-px bg-base-300 transition-colors
+                  absolute top-0 h-full w-px bg-info transition-colors
                   group-hover/vaul-resize-handle:bg-info/70
                   group-active/vaul-resize-handle:bg-info
                   group-focus-visible/vaul-resize-handle:bg-info
@@ -245,7 +245,7 @@ export function VaulSideDrawer({
             {...resizeHandleA11yProps}
           >
             <div className={`
-              absolute top-0 h-full w-px bg-base-300 transition-colors
+              absolute top-0 h-full w-px bg-info transition-colors
               group-hover/vaul-resize-handle:bg-info/70
               group-active/vaul-resize-handle:bg-info
               group-focus-visible/vaul-resize-handle:bg-info

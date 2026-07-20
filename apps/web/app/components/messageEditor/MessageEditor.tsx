@@ -56,12 +56,12 @@ import {
 import useMessageEditorMessageMutations from "./hooks/useMessageEditorMessageMutations";
 import {
   MESSAGE_EDITOR_BLOCK_GUTTER_CLASS,
+  MESSAGE_EDITOR_BLOCK_DRAG_SURFACE_CLASS,
+  MESSAGE_EDITOR_BLOCK_WIDTH_CLASS,
   MESSAGE_EDITOR_COMMAND_MENU_LAYER_CLASS,
-  MESSAGE_EDITOR_CONTENT_WIDTH_CLASS,
   MESSAGE_EDITOR_DEFAULT_FRAME_CLASS,
   MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS,
   MESSAGE_EDITOR_SPEAKER_HANDLE_CLASS,
-  MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS,
   MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS,
 } from "./messageEditorLayout";
 import {
@@ -86,6 +86,8 @@ import {
 import {
   ensureMessageEditorMessages,
   getMessageEditorBlockId,
+  isMessageEditorTextMessage,
+  materializeMessageEditorRoomWorkingMessages,
   mergeMessageEditorMediaLayouts,
   normalizeMessageEditorContent,
 } from "./model/messageEditorTransforms";
@@ -137,6 +139,7 @@ type MessageEditorProps = {
   excerpt?: string;
   initialMessages?: Message[];
   intentPrewarm?: boolean;
+  onWorkingMessagesChange?: (messages: MessageEditorMessage[], dirtyMessageIds: ReadonlySet<number>) => void;
   onRequestImportTextPaste?: (text: string, insertAsPlainText: () => void) => void;
   onRemoteMessagesSaved?: (messages: Message[]) => void | Promise<void>;
   readOnly?: boolean;
@@ -145,6 +148,7 @@ type MessageEditorProps = {
   tcHeader?: MessageEditorTcHeader;
   title?: string;
   workspaceId?: string;
+  workingMessages?: Message[];
 }
 
 const ROOM_DOC_REMOTE_CHANGE_TOAST_ID = "room-doc-remote-change";
@@ -158,6 +162,35 @@ type MessageEditorDragState = {
 type MessageEditorResolvedDragTarget = {
   position: "before" | "after";
   targetBlockId: string;
+}
+
+type PendingMessageEditorMediaUpload = {
+  error?: string;
+  file: File;
+  requestId: number;
+}
+
+export function resolveMessageEditorFileDropPoint(
+  target: MessageEditorResolvedDragTarget | null,
+  messages: MessageEditorMessage[],
+): MessageEditorSelectionPoint | null {
+  if (!target) {
+    return null;
+  }
+
+  const message = messages.find(item => getMessageEditorBlockId(item) === target.targetBlockId);
+  if (!message) {
+    return null;
+  }
+
+  return {
+    blockId: target.targetBlockId,
+    offset: target.position === "before"
+      ? 0
+      : isMessageEditorTextMessage(message)
+        ? normalizeMessageEditorContent(message.content).length
+        : 1,
+  };
 }
 
 type MessageEditorSpeakerMenuState = {
@@ -190,6 +223,18 @@ export function shouldKeepMessageEditorFocusRestore(
 ) {
   const restoreBlockId = restore?.selection?.focus.blockId ?? restore?.blockId ?? null;
   return restoreBlockId === focusedBlockId;
+}
+
+/**
+ * 空文本块没有可供浏览器建立原生选区的内容；必须在 pointer down 时切入
+ * contenteditable，避免输入法首个 composition 落在尚未聚焦的预览节点上。
+ */
+export function shouldFocusEmptyTextBlockOnPointerDown(options: {
+  content: string;
+  mouseButton: number;
+  readOnly: boolean;
+}) {
+  return !options.readOnly && options.mouseButton === 0 && normalizeMessageEditorContent(options.content).length === 0;
 }
 
 // ==== 公共 helper 与远端持久化桥接 ====
@@ -246,16 +291,13 @@ export function getMessageEditorSlashMenuLayerClassName() {
 
 /**
  * 解析文字块外壳类名。
- * 连续文字块之间的间距放在被测量 item 内，避免 Virtuoso 忽略外边距。
  */
 export function getMessageEditorTextBlockShellClassName(options: {
-  hasFollowingTextBlock: boolean;
   isDragging: boolean;
 }) {
   return [
-    `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} transition`,
-    options.hasFollowingTextBlock ? MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS : "",
-    options.isDragging ? "bg-base-100/80 ring-1 ring-base-300/80" : "",
+    `group relative isolate ${MESSAGE_EDITOR_BLOCK_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} transition`,
+    options.isDragging ? MESSAGE_EDITOR_BLOCK_DRAG_SURFACE_CLASS : "",
   ].join(" ");
 }
 
@@ -266,10 +308,9 @@ function getMessageEditorAtomicBlockShellClassName(options: {
   readOnly: boolean;
 }) {
   return [
-    `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} py-1 transition`,
-    options.isDragging ? "bg-base-100/80 ring-1 ring-base-300/80" : "",
-    options.isSelected
-      ? "bg-info/10 ring-1 ring-info/80"
+    `group relative isolate ${MESSAGE_EDITOR_BLOCK_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} py-1 transition`,
+    options.isDragging
+      ? MESSAGE_EDITOR_BLOCK_DRAG_SURFACE_CLASS
       : options.isActive && !options.readOnly ? "bg-base-200/20" : "",
   ].join(" ");
 }
@@ -404,6 +445,7 @@ export default function MessageEditor({
   docId,
   excerpt: _excerpt,
   initialMessages,
+  onWorkingMessagesChange,
   onRequestImportTextPaste,
   onRemoteMessagesSaved,
   readOnly = false,
@@ -412,6 +454,7 @@ export default function MessageEditor({
   tcHeader,
   title,
   workspaceId,
+  workingMessages,
 }: MessageEditorProps) {
   const roomContext = use(RoomContext);
 
@@ -434,15 +477,21 @@ export default function MessageEditor({
     () => ensureMessageEditorMessages(initialMessages ?? []),
     [initialMessages],
   );
+  const normalizedWorkingMessages = useMemo(
+    () => workingMessages === undefined ? undefined : ensureMessageEditorMessages(workingMessages),
+    [workingMessages],
+  );
+  const usesSharedWorkingMessages = normalizedWorkingMessages !== undefined;
   const isRoomDocument = Boolean(
     resolvedDocRoomId
     && resolvedSpaceId
     && (!resolvedWorkspaceId || resolvedWorkspaceId.startsWith("space:")),
   );
   const shouldUseLocalSnapshot = Boolean(resolvedDocId && !isRoomDocument);
+  const roomSourceMessages = normalizedWorkingMessages ?? normalizedInitialMessages;
   const initialEditorMessages = useMemo(
-    () => isRoomDocument ? normalizedInitialMessages : ensureMessageEditorMessages([]),
-    [isRoomDocument, normalizedInitialMessages],
+    () => isRoomDocument ? roomSourceMessages : ensureMessageEditorMessages([]),
+    [isRoomDocument, roomSourceMessages],
   );
   // ==== Runtime refs 与 DOM registry ====
   const editorRootRef = useRef<HTMLDivElement | null>(null);
@@ -466,6 +515,7 @@ export default function MessageEditor({
   } | null>(null);
   const [crossBlockSelectionPreview, setCrossBlockSelectionPreview] = useState<MessageEditorSelection | null>(null);
   const [dragState, setDragState] = useState<MessageEditorDragState | null>(null);
+  const [fileDropTarget, setFileDropTarget] = useState<MessageEditorResolvedDragTarget | null>(null);
   const [isPointerSelecting, setIsPointerSelecting] = useState(false);
   const [slashSelectionIndex, setSlashSelectionIndex] = useState(0);
   const [dismissedSlashKey, setDismissedSlashKey] = useState<string | null>(null);
@@ -477,10 +527,13 @@ export default function MessageEditor({
   const [editorScrollRoot, setEditorScrollRoot] = useState<HTMLDivElement | null>(null);
   const [showFloatingHeader, setShowFloatingHeader] = useState(false);
   const [composingBlockId, setComposingBlockId] = useState<string | null>(null);
+  const [pendingMediaUploads, setPendingMediaUploads] = useState<Map<string, PendingMessageEditorMediaUpload>>(new Map());
+  const pendingMediaUploadsRef = useRef(new Map<string, PendingMessageEditorMediaUpload>());
+  const pendingMediaUploadRequestIdRef = useRef(0);
   const [ready, setReady] = useState(!resolvedDocId || isRoomDocument);
   // ==== Runtime 单例与加载镜像 ====
   const registry = useMemo(() => createMessageEditorRegistry(), []);
-  const initialMessagesSeedRef = useRef(normalizedInitialMessages);
+  const initialMessagesSeedRef = useRef(isRoomDocument ? roomSourceMessages : normalizedInitialMessages);
   const incomingRoomMessagesFingerprintRef = useRef(getMessageEditorSnapshotFingerprint(initialEditorMessages));
   const loadSeedKeyRef = useRef<string | null>(null);
 
@@ -489,9 +542,9 @@ export default function MessageEditor({
     const loadSeedKey = `${resolvedDocId ?? ""}|${isRoomDocument ? "room" : "local"}`;
     if (loadSeedKeyRef.current !== loadSeedKey) {
       loadSeedKeyRef.current = loadSeedKey;
-      initialMessagesSeedRef.current = normalizedInitialMessages;
+      initialMessagesSeedRef.current = isRoomDocument ? roomSourceMessages : normalizedInitialMessages;
     }
-  }, [isRoomDocument, normalizedInitialMessages, resolvedDocId]);
+  }, [isRoomDocument, normalizedInitialMessages, resolvedDocId, roomSourceMessages]);
 
   useEffect(() => {
     const root = editorScrollRoot;
@@ -707,6 +760,15 @@ export default function MessageEditor({
     };
   }, [resolveHistoryFocus]);
 
+  const prepareWorkingMessages = useCallback((
+    nextMessages: MessageEditorMessage[],
+    options: { structureChanged?: boolean },
+  ) => {
+    return resolvedDocRoomId && usesSharedWorkingMessages
+      ? materializeMessageEditorRoomWorkingMessages(nextMessages, resolvedDocRoomId, options)
+      : nextMessages;
+  }, [resolvedDocRoomId, usesSharedWorkingMessages]);
+
   const {
     acceptPersistedSnapshot: commitPersistedDocumentSnapshot,
     commitTransaction: commitEditorTransaction,
@@ -725,15 +787,33 @@ export default function MessageEditor({
     historyManager: historyManagerRef.current,
     initialMessages: initialEditorMessages,
     isRoomDocument,
+    onWorkingMessagesChange,
     onRemoteMessagesSaved,
+    prepareWorkingMessages,
+    publishOptimisticRoomMessages: !usesSharedWorkingMessages,
     readOnly,
     ready,
     remotePatchSourceSurface,
     roomId: resolvedDocRoomId,
     shouldUseLocalSnapshot,
+    workingMessages: isRoomDocument ? normalizedWorkingMessages : undefined,
   });
   const selectionDocument = useMemo(() => createMessageEditorSelectionDocument(messages), [messages]);
   const messageByBlockId = selectionDocument.messageByBlockId;
+
+  useEffect(() => {
+    const blockIds = new Set(messages.map(getMessageEditorBlockId));
+    const hasRemovedUpload = [...pendingMediaUploadsRef.current.keys()].some(blockId => !blockIds.has(blockId));
+    if (!hasRemovedUpload) {
+      return;
+    }
+
+    const nextPendingUploads = new Map(
+      [...pendingMediaUploadsRef.current].filter(([blockId]) => blockIds.has(blockId)),
+    );
+    pendingMediaUploadsRef.current = nextPendingUploads;
+    setPendingMediaUploads(nextPendingUploads);
+  }, [messages]);
 
   useEffect(() => {
     if (!ready || !resolvedDocId || !isRoomDocument) {
@@ -741,7 +821,7 @@ export default function MessageEditor({
     }
 
     const nextMessages = mergeMessageEditorMediaLayouts(
-      ensureMessageEditorMessages(normalizedInitialMessages),
+      ensureMessageEditorMessages(roomSourceMessages),
       messagesRef.current,
     );
     const nextFingerprint = getMessageEditorSnapshotFingerprint(nextMessages);
@@ -749,6 +829,11 @@ export default function MessageEditor({
       return;
     }
     incomingRoomMessagesFingerprintRef.current = nextFingerprint;
+
+    const currentFingerprint = getMessageEditorSnapshotFingerprint(messagesRef.current);
+    if (currentFingerprint === nextFingerprint) {
+      return;
+    }
 
     if (hasDirtyChanges()) {
       // 文档自动保存会回写房间消息流；这类自发回流不应提示为外部变更。
@@ -761,11 +846,6 @@ export default function MessageEditor({
       return;
     }
 
-    const currentFingerprint = getMessageEditorSnapshotFingerprint(messagesRef.current);
-    if (currentFingerprint === nextFingerprint) {
-      return;
-    }
-
     // 未编辑时可以直接接受房间消息的 WebSocket 增量；正在编辑时只提醒，不自动合并。
     commitPersistedDocumentSnapshot(nextMessages, { preserveRuntimeBlockIds: true });
   }, [
@@ -774,9 +854,9 @@ export default function MessageEditor({
     isRemoteSaveActive,
     isRoomDocument,
     messagesRef,
-    normalizedInitialMessages,
     ready,
     resolvedDocId,
+    roomSourceMessages,
   ]);
 
   const resetHistory = useCallback(() => {
@@ -1653,7 +1733,15 @@ export default function MessageEditor({
     startTextPointerSelection(anchor, event, () => {
       activateTextPoint(anchor);
     });
-  }, [activateTextPoint, resolveTextSelectionPointFromClientPosition, startTextPointerSelection]);
+    const message = messageByBlockId.get(blockId);
+    if (shouldFocusEmptyTextBlockOnPointerDown({
+      content: message?.content ?? "",
+      mouseButton: event.button,
+      readOnly,
+    })) {
+      activateTextPoint(anchor);
+    }
+  }, [activateTextPoint, messageByBlockId, readOnly, resolveTextSelectionPointFromClientPosition, startTextPointerSelection]);
 
   const handleAtomicBlockMouseDown = useCallback((blockId: string, event: React.MouseEvent<HTMLDivElement>) => {
     if (readOnly || event.button !== 0 || !shouldStartMessageEditorAtomicBlockSelection(event.target)) {
@@ -2409,7 +2497,55 @@ export default function MessageEditor({
     throw new Error("不支持该媒体类型");
   }, [uploadUtils]);
 
+  const uploadMediaForBlock = useCallback(async (
+    blockId: string,
+    kind: MessageEditorInsertableBlockKind,
+    file: File,
+  ) => {
+    const requestId = ++pendingMediaUploadRequestIdRef.current;
+    const pendingUpload = { file, requestId } satisfies PendingMessageEditorMediaUpload;
+    pendingMediaUploadsRef.current.set(blockId, pendingUpload);
+    setPendingMediaUploads(current => new Map(current).set(blockId, pendingUpload));
+
+    try {
+      const payload = await uploadMediaFileForKind(kind, file);
+      if (pendingMediaUploadsRef.current.get(blockId)?.requestId !== requestId) {
+        return;
+      }
+
+      executeMutationAction(actions => actions.replaceMedia(blockId, payload));
+      pendingMediaUploadsRef.current.delete(blockId);
+      setPendingMediaUploads(current => {
+        if (!current.has(blockId)) {
+          return current;
+        }
+        const next = new Map(current);
+        next.delete(blockId);
+        return next;
+      });
+    } catch (error) {
+      if (pendingMediaUploadsRef.current.get(blockId)?.requestId !== requestId) {
+        return;
+      }
+
+      const errorMessage = (error instanceof Error ? error.message : String(error)) || "媒体上传失败";
+      const failedUpload = { ...pendingUpload, error: errorMessage } satisfies PendingMessageEditorMediaUpload;
+      pendingMediaUploadsRef.current.set(blockId, failedUpload);
+      setPendingMediaUploads(current => new Map(current).set(blockId, failedUpload));
+      appToast.error(errorMessage);
+    }
+  }, [executeMutationAction, uploadMediaFileForKind]);
+
   const handleDeleteAtomicBlock = useCallback((blockId: string) => {
+    pendingMediaUploadsRef.current.delete(blockId);
+    setPendingMediaUploads(current => {
+      if (!current.has(blockId)) {
+        return current;
+      }
+      const next = new Map(current);
+      next.delete(blockId);
+      return next;
+    });
     executeFocusAction(actions => actions.deleteBlock(blockId), {
       clearWhenMissing: true,
       hideToolbar: true,
@@ -2423,9 +2559,8 @@ export default function MessageEditor({
       return;
     }
 
-    const payload = await uploadMediaFileForKind(kind, file);
-    executeMutationAction(actions => actions.replaceMedia(blockId, payload));
-  }, [executeMutationAction, uploadMediaFileForKind]);
+    await uploadMediaForBlock(blockId, kind, file);
+  }, [messagesRef, uploadMediaForBlock]);
 
   const handleResizeAtomicBlock = useCallback((blockId: string, size: { height: number; width: number }) => {
     executeMutationAction(actions => actions.resizeMedia(blockId, size));
@@ -2438,14 +2573,8 @@ export default function MessageEditor({
       return;
     }
 
-    void uploadMediaFileForKind(kind, file)
-      .then((payload) => {
-        executeMutationAction(actions => actions.replaceMedia(result.insertedBlockId, payload));
-      })
-      .catch((error) => {
-        appToast.error(error instanceof Error ? error.message : "媒体上传失败");
-      });
-  }, [executeInsertBlockAction, executeMutationAction, uploadMediaFileForKind]);
+    void uploadMediaForBlock(result.insertedBlockId, kind, file);
+  }, [executeInsertBlockAction, uploadMediaForBlock]);
 
   const insertMediaFileAtPoint = useCallback((file: File, point: MessageEditorSelectionPoint) => {
     const selection = createMessageEditorSelectionFromDocument(selectionDocument, registry, point, point);
@@ -2505,10 +2634,21 @@ export default function MessageEditor({
   const handleBlockDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     if (isMessageEditorFileDrag(event.dataTransfer)) {
       event.preventDefault();
-      event.dataTransfer.dropEffect = "copy";
+      event.dataTransfer.dropEffect = readOnly ? "none" : "copy";
+      if (readOnly) {
+        setFileDropTarget(null);
+        return;
+      }
+      const nextTarget = resolveDragTarget(event.clientY, event.target);
+      setFileDropTarget((previous) => {
+        return previous?.targetBlockId === nextTarget?.targetBlockId && previous?.position === nextTarget?.position
+          ? previous
+          : nextTarget;
+      });
       return;
     }
 
+    setFileDropTarget(null);
     if (!dragState) {
       return;
     }
@@ -2518,29 +2658,35 @@ export default function MessageEditor({
     updateBlockDragAutoScroll(event.clientX, event.clientY);
     const nextTarget = resolveDragTarget(event.clientY, event.target);
     commitResolvedDragTarget(nextTarget);
-  }, [commitResolvedDragTarget, dragState, resolveDragTarget, updateBlockDragAutoScroll]);
+  }, [commitResolvedDragTarget, dragState, readOnly, resolveDragTarget, updateBlockDragAutoScroll]);
+
+  const handleEditorFileDragLeave = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    if (!fileDropTarget) {
+      return;
+    }
+
+    const relatedTarget = event.relatedTarget;
+    if (relatedTarget instanceof Node && event.currentTarget.contains(relatedTarget)) {
+      return;
+    }
+    setFileDropTarget(null);
+  }, [fileDropTarget]);
 
   const handleBlockDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     disposeBlockDragSession();
     if (isMessageEditorFileDrag(event.dataTransfer)) {
       event.preventDefault();
+      setFileDropTarget(null);
+      if (readOnly) {
+        return;
+      }
       const file = event.dataTransfer.files?.[0];
-      const root = editorRootRef.current;
-      if (!file || !root) {
+      if (!file) {
         return;
       }
 
-      const point = resolveMessageEditorTextPointFromClientPosition({
-        blockRefs: blockRefsRef.current,
-        blockShellRefs: blockShellRefsRef.current,
-        blockSlotRefs: blockSlotRefsRef.current,
-        clientX: event.clientX,
-        clientY: event.clientY,
-        messageByBlockId,
-        messages: messagesRef.current,
-        registry,
-        root,
-      });
+      const resolvedTarget = resolveDragTarget(event.clientY, event.target) ?? fileDropTarget;
+      const point = resolveMessageEditorFileDropPoint(resolvedTarget, messagesRef.current);
       if (point) {
         insertMediaFileAtPoint(file, point);
       }
@@ -2554,7 +2700,7 @@ export default function MessageEditor({
     event.preventDefault();
     commitBlockReorder(dragState);
     setDragState(null);
-  }, [commitBlockReorder, disposeBlockDragSession, dragState, insertMediaFileAtPoint, messageByBlockId, registry]);
+  }, [commitBlockReorder, disposeBlockDragSession, dragState, fileDropTarget, insertMediaFileAtPoint, readOnly, resolveDragTarget]);
 
   const resolveFilePasteTargetBlockId = useCallback(() => {
     const currentMessages = messagesRef.current;
@@ -2744,23 +2890,23 @@ export default function MessageEditor({
 
   const renderMessageEditorBlock = (
     { blockId, message, driver }: (typeof atomicMessages)[number],
-    index: number,
+    _index: number,
   ) => {
-    const nextDriver = atomicMessages[index + 1]?.driver;
     const selectedSegment = selectionRenderLookup.get(blockId) ?? null;
     const atomicSelected = driver.kind !== "text" && Boolean(selectedSegment && selectedSegment.end > selectedSegment.start);
-    const showDropBefore = Boolean(dragState
-      && dragState.draggedBlockId !== blockId
-      && dragState.targetBlockId === blockId
-      && dragState.position === "before");
-    const showDropAfter = Boolean(dragState
-      && dragState.draggedBlockId !== blockId
-      && dragState.targetBlockId === blockId
-      && dragState.position === "after");
+    const activeDropTarget = dragState ?? fileDropTarget;
+    const canShowDropTarget = !dragState || dragState.draggedBlockId !== blockId;
+    const showDropBefore = Boolean(activeDropTarget
+      && canShowDropTarget
+      && activeDropTarget.targetBlockId === blockId
+      && activeDropTarget.position === "before");
+    const showDropAfter = Boolean(activeDropTarget
+      && canShowDropTarget
+      && activeDropTarget.targetBlockId === blockId
+      && activeDropTarget.position === "after");
     const isDragging = dragState?.draggedBlockId === blockId;
     const shellClassName = driver.kind === "text"
       ? getMessageEditorTextBlockShellClassName({
-          hasFollowingTextBlock: nextDriver?.kind === "text",
           isDragging,
         })
       : getMessageEditorAtomicBlockShellClassName({
@@ -2769,6 +2915,7 @@ export default function MessageEditor({
           isSelected: atomicSelected,
           readOnly,
         });
+    const pendingMediaUpload = pendingMediaUploads.get(blockId);
 
     return (
       <MessageEditorBlockRow
@@ -2776,6 +2923,7 @@ export default function MessageEditor({
         blockId={blockId}
         commandMenus={driver.kind === "text" ? renderTextBlockCommandMenus(blockId) : null}
         driverKind={driver.kind}
+        localFile={pendingMediaUpload?.file}
         message={message}
         onAtomicMouseDown={onAtomicBlockMouseDown}
         onDeleteAtomicBlock={onDeleteAtomicBlock}
@@ -2789,6 +2937,8 @@ export default function MessageEditor({
         onTextPasteFiles={onTextPasteFiles}
         onTextPasteText={onTextPasteText}
         onUploadAtomicBlock={onUploadAtomicBlock}
+        uploadError={pendingMediaUpload?.error}
+        uploading={Boolean(pendingMediaUpload && !pendingMediaUpload.error)}
         placeholder={driver.kind === "text" && atomicMessages.length === 1
           && normalizeMessageEditorContent(message.content).length === 0
           ? "输入内容"
@@ -2798,6 +2948,7 @@ export default function MessageEditor({
         registerBlockShellRef={registerBlockShellRef}
         renderSpeakerHandle={renderSpeakerHandle}
         selectionSegment={driver.kind === "text" ? selectedSegment : null}
+        selected={atomicSelected}
         shellClassName={shellClassName}
         showDropAfter={showDropAfter}
         showDropBefore={showDropBefore}
@@ -2811,7 +2962,7 @@ export default function MessageEditor({
     <div className={`
       ${frameClassName}
       relative overflow-hidden border border-base-300 bg-base-100
-    `}>
+    `} onDragLeave={handleEditorFileDragLeave}>
       <div className="flex h-full min-h-0 flex-col">
         <MessageEditorVirtualizedBlockList
           ref={virtualizedBlockListRef}
@@ -2847,7 +2998,7 @@ export default function MessageEditor({
                 title={title}
               />
               <div ref={headerVisibilityMarkerRef} aria-hidden="true" className="h-px" />
-              <div aria-hidden="true" className="h-2" />
+              <div aria-hidden="true" className="h-5" />
             </>
           )}
           onDragOver={handleBlockDragOver}
