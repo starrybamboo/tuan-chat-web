@@ -1,7 +1,7 @@
 /** message editor 头部、正文和浮层共享的布局类名。 */
 export const MESSAGE_EDITOR_CONTENT_WIDTH_CLASS = "mx-auto w-full max-w-4xl";
-// 64px 角色头部向块左侧伸出 40px，窄容器需显式为它保留外侧空间。
-export const MESSAGE_EDITOR_BLOCK_WIDTH_CLASS = "mx-auto w-[calc(100%_-_5rem)] max-w-4xl";
+// 角色头部向 shell 左侧伸出 40px；shell 右移伸出量的一半，使整个可见组合居中。
+export const MESSAGE_EDITOR_BLOCK_WIDTH_CLASS = "left-5 mx-auto w-[calc(100%_-_7.5rem)] max-w-4xl";
 export const MESSAGE_EDITOR_BLOCK_GUTTER_CLASS = "pl-6";
 export const MESSAGE_EDITOR_SPEAKER_HANDLE_CLASS = [
   "absolute z-30 inline-flex cursor-grab transition-opacity duration-150 active:cursor-grabbing",
