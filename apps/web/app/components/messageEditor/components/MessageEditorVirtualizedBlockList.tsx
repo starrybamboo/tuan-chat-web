@@ -319,11 +319,14 @@ function MessageEditorVirtualizedBlockListComponent<TBlock extends MessageEditor
       blockId: anchorBlockId,
       topOffset: capturedAnchor.topOffset,
     };
-    virtuosoRef.current?.scrollToIndex({
-      align: "start",
-      behavior: "auto",
-      index: anchorIndex,
-    });
+    // 已挂载的锚点可直接按偏移补偿。先跳到块顶再恢复会在保存回写时造成可见闪烁。
+    if (!blockSlotNodesRef.current.has(anchorBlockId)) {
+      virtuosoRef.current?.scrollToIndex({
+        align: "start",
+        behavior: "auto",
+        index: anchorIndex,
+      });
+    }
     scheduleAnchorRestore();
   }, [blockIndexById, blocks, scheduleAnchorRestore]);
 
