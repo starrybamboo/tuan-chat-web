@@ -633,9 +633,9 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
                       pointer-events-none absolute right-0 top-1/2 z-10 flex
                       h-20 w-3 translate-x-1/2 -translate-y-1/2 cursor-ew-resize
                       items-center justify-center rounded-full border
-                      border-base-300/70 bg-base-100/92 opacity-0 shadow-sm
+                      border-info bg-info opacity-100 shadow-sm
                       transition duration-150
-                      hover:border-info/40 hover:bg-info/10
+                      hover:bg-info/85
                       group-hover/media:pointer-events-auto
                       group-hover/media:opacity-100
                       group-focus-within/media:pointer-events-auto
@@ -648,7 +648,7 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
                     aria-label={resizeLabel}
                     title={resizeLabel}
                   >
-                    <span className="h-8 w-0.5 rounded-full bg-base-content/25" />
+                    <span className="h-8 w-0.5 rounded-full bg-info-content/80" />
                   </button>
                 )}
 
