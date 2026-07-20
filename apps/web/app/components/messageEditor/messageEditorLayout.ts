@@ -12,5 +12,18 @@ export const MESSAGE_EDITOR_DEFAULT_FRAME_CLASS = "h-[80vh] min-h-0 rounded-md";
 export const MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS = "relative min-h-0 flex-1 overflow-auto";
 export const MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS = "pb-2";
 export const MESSAGE_EDITOR_COMMAND_MENU_LAYER_CLASS = "absolute left-3 right-0 top-full z-50 mt-2";
+export const MESSAGE_EDITOR_DEFAULT_IMAGE_WIDTH_CLASS = "w-1/2 max-w-full";
+
+export function getMessageEditorMediaFrameClassName(options: {
+  hasCustomWidth: boolean;
+  isImage: boolean;
+}) {
+  return [
+    "group/media relative max-w-full overflow-hidden rounded-xl bg-base-100",
+    options.isImage ? "border border-base-300/60" : "",
+    options.isImage && !options.hasCustomWidth ? MESSAGE_EDITOR_DEFAULT_IMAGE_WIDTH_CLASS : "",
+  ].join(" ");
+}
+
 export const MESSAGE_EDITOR_POINTER_SCROLL_EDGE_PX = 72;
 export const MESSAGE_EDITOR_POINTER_SCROLL_MAX_DELTA_PX = 28;

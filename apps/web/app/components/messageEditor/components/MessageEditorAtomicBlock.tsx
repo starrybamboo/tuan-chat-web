@@ -11,6 +11,10 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { MessageEditorMessage } from "../messageEditorTypes";
 
+import {
+  getMessageEditorMediaFrameClassName,
+  MESSAGE_EDITOR_DEFAULT_IMAGE_WIDTH_CLASS,
+} from "../messageEditorLayout";
 import { isMessageEditorFileDrag, isMessageEditorUploadableMediaMessage } from "../runtime/messageEditorFileDrop";
 
 type MessageEditorAtomicBlockProps = {
@@ -568,7 +572,7 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
   };
 
   const renderEmptyUploadBlock = () => (
-    <>
+    <div className={isImageBlock ? MESSAGE_EDITOR_DEFAULT_IMAGE_WIDTH_CLASS : ""}>
       <div className="mb-1 flex items-center justify-between gap-2">
         <div className="text-xs font-medium text-base-content/55">{uploadMeta.title}</div>
         {!readOnly && (
@@ -601,7 +605,7 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
       >
         {placeholderButtonLabel}
       </button>
-    </>
+    </div>
   );
 
   const renderResizableMediaBlock = () => {
@@ -614,9 +618,10 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
           ? (
               <div
                 ref={mediaFrameRef}
-                className="
-                  group/media relative overflow-hidden rounded-xl bg-base-100
-                "
+                className={getMessageEditorMediaFrameClassName({
+                  hasCustomWidth: displayWidth !== null,
+                  isImage: isImageBlock,
+                })}
                 style={displayWidth !== null ? { maxWidth: "100%", width: `${displayWidth}px` } : undefined}
               >
                 {renderFloatingUploadActions()}
