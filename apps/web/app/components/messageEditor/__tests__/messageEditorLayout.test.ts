@@ -4,12 +4,19 @@ import {
   getMessageEditorMediaFrameClassName,
   MESSAGE_EDITOR_BLOCK_WIDTH_CLASS,
   MESSAGE_EDITOR_DEFAULT_IMAGE_WIDTH_CLASS,
+  MESSAGE_EDITOR_HEADER_CONTENT_WIDTH_CLASS,
 } from "../messageEditorLayout";
 
 describe("messageEditorLayout", () => {
   it("reserves the speaker handle gutter when the editor container narrows", () => {
     expect(MESSAGE_EDITOR_BLOCK_WIDTH_CLASS).toContain("w-[calc(100%_-_8rem)]");
     expect(MESSAGE_EDITOR_BLOCK_WIDTH_CLASS).toContain("left-6");
+  });
+
+  it("aligns the main title with the visible speaker edge", () => {
+    expect(MESSAGE_EDITOR_HEADER_CONTENT_WIDTH_CLASS).toBe(
+      "mx-auto w-[calc(100%_-_5rem)] max-w-[59rem]",
+    );
   });
 
   it("uses half width and a quiet border for images without a saved width", () => {

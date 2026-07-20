@@ -2977,7 +2977,7 @@ export default function MessageEditor({
                 title={title}
               />
               <div ref={headerVisibilityMarkerRef} aria-hidden="true" className="h-px" />
-              <div aria-hidden="true" className="h-2" />
+              <div aria-hidden="true" className="h-5" />
             </>
           )}
           onDragOver={handleBlockDragOver}

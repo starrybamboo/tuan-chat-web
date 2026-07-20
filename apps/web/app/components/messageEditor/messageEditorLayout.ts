@@ -2,6 +2,8 @@
 export const MESSAGE_EDITOR_CONTENT_WIDTH_CLASS = "mx-auto w-full max-w-4xl";
 // 角色头部向 shell 左侧伸出 48px；shell 右移伸出量的一半，使整个可见组合居中。
 export const MESSAGE_EDITOR_BLOCK_WIDTH_CLASS = "left-6 mx-auto w-[calc(100%_-_8rem)] max-w-4xl";
+// 主标题对齐角色头部的可见左边缘，宽屏时包含头部伸出的 48px。
+export const MESSAGE_EDITOR_HEADER_CONTENT_WIDTH_CLASS = "mx-auto w-[calc(100%_-_5rem)] max-w-[59rem]";
 export const MESSAGE_EDITOR_BLOCK_GUTTER_CLASS = "pl-6";
 export const MESSAGE_EDITOR_BLOCK_GAP_CLASS = "pb-3";
 export const MESSAGE_EDITOR_SPEAKER_HANDLE_CLASS = [
