@@ -10,6 +10,7 @@ import {
   mergeChangedRoomMessagesIntoEditorMessages,
   resolveMessageEditorFileDropPoint,
   resolveMessageEditorPointerAutoScrollDelta,
+  shouldFocusEmptyTextBlockOnPointerDown,
   shouldKeepMessageEditorFocusRestore,
   shouldIgnoreDocumentSelectionEventTarget,
   shouldStartMessageEditorAtomicBlockSelection,
@@ -47,6 +48,29 @@ function createMockElement(options: {
 }
 
 describe("messageEditor document click guard", () => {
+  it("在空文本块的左键按下阶段建立输入焦点", () => {
+    expect(shouldFocusEmptyTextBlockOnPointerDown({
+      content: "",
+      mouseButton: 0,
+      readOnly: false,
+    })).toBe(true);
+    expect(shouldFocusEmptyTextBlockOnPointerDown({
+      content: "已有内容",
+      mouseButton: 0,
+      readOnly: false,
+    })).toBe(false);
+    expect(shouldFocusEmptyTextBlockOnPointerDown({
+      content: "",
+      mouseButton: 2,
+      readOnly: false,
+    })).toBe(false);
+    expect(shouldFocusEmptyTextBlockOnPointerDown({
+      content: "",
+      mouseButton: 0,
+      readOnly: true,
+    })).toBe(false);
+  });
+
   it("keeps a pending caret when the editable block focuses itself", () => {
     expect(shouldKeepMessageEditorFocusRestore({
       blockId: "target",

@@ -224,6 +224,18 @@ export function shouldKeepMessageEditorFocusRestore(
   return restoreBlockId === focusedBlockId;
 }
 
+/**
+ * 空文本块没有可供浏览器建立原生选区的内容；必须在 pointer down 时切入
+ * contenteditable，避免输入法首个 composition 落在尚未聚焦的预览节点上。
+ */
+export function shouldFocusEmptyTextBlockOnPointerDown(options: {
+  content: string;
+  mouseButton: number;
+  readOnly: boolean;
+}) {
+  return !options.readOnly && options.mouseButton === 0 && normalizeMessageEditorContent(options.content).length === 0;
+}
+
 // ==== 公共 helper 与远端持久化桥接 ====
 
 export function isMessageEditorImportablePasteText(text: string): boolean {
@@ -1721,7 +1733,15 @@ export default function MessageEditor({
     startTextPointerSelection(anchor, event, () => {
       activateTextPoint(anchor);
     });
-  }, [activateTextPoint, resolveTextSelectionPointFromClientPosition, startTextPointerSelection]);
+    const message = messageByBlockId.get(blockId);
+    if (shouldFocusEmptyTextBlockOnPointerDown({
+      content: message?.content ?? "",
+      mouseButton: event.button,
+      readOnly,
+    })) {
+      activateTextPoint(anchor);
+    }
+  }, [activateTextPoint, messageByBlockId, readOnly, resolveTextSelectionPointFromClientPosition, startTextPointerSelection]);
 
   const handleAtomicBlockMouseDown = useCallback((blockId: string, event: React.MouseEvent<HTMLDivElement>) => {
     if (readOnly || event.button !== 0 || !shouldStartMessageEditorAtomicBlockSelection(event.target)) {
