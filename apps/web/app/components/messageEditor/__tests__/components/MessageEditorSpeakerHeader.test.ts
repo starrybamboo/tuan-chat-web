@@ -73,6 +73,7 @@ describe("MessageEditorSpeakerHeader", () => {
     expect(html).toContain('decoding="async"');
     expect(html).toContain('data-size="8"');
     expect(html).toContain("size-8");
+    expect(html).toContain("items-start");
     expect(html).toContain("/media/v1/files/123/123/image/low.webp");
   });
 

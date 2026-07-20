@@ -49,7 +49,7 @@ const narratorAvatarIconClassName = [
 ].join(" ");
 
 const speakerHeaderClassName = [
-  "inline-flex h-9 w-18 min-w-18 items-center justify-start gap-1 rounded-full p-0.5",
+  "inline-flex h-9 w-18 min-w-18 items-start justify-start gap-1 rounded-full p-0.5",
   "text-sm text-base-content/70 transition-colors hover:bg-base-100/35 hover:text-base-content/90",
   "motion-reduce:transition-none",
 ].join(" ");
