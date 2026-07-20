@@ -38,6 +38,7 @@ type MessageEditorBlockRowProps = {
   registerBlockShellRef: (blockId: string, node: HTMLDivElement | null) => void;
   renderSpeakerHandle: (blockId: string, message: MessageEditorMessage, topClassName: string) => ReactNode;
   selectionSegment: { end: number; showLineBreakAfter?: boolean; start: number } | null;
+  selected?: boolean;
   shellClassName: string;
   showDropAfter: boolean;
   showDropBefore: boolean;
@@ -83,6 +84,7 @@ export const MessageEditorBlockRow = memo(function MessageEditorBlockRow({
   registerBlockShellRef,
   renderSpeakerHandle,
   selectionSegment,
+  selected = false,
   shellClassName,
   showDropAfter,
   showDropBefore,
@@ -144,6 +146,7 @@ export const MessageEditorBlockRow = memo(function MessageEditorBlockRow({
             localFile={localFile}
             message={message}
             readOnly={readOnly}
+            selected={selected}
             onFocus={onFocusAtomicBlock}
             onDelete={onDeleteAtomicBlock}
             onUpload={onUploadAtomicBlock}

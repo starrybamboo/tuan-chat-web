@@ -29,6 +29,7 @@ type MessageEditorAtomicBlockProps = {
   uploadError?: string;
   uploading?: boolean;
   readOnly?: boolean;
+  selected?: boolean;
 }
 
 function resolveUploadMeta(message: MessageEditorMessage) {
@@ -270,6 +271,7 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
   uploadError = "",
   uploading = false,
   readOnly = false,
+  selected = false,
 }: MessageEditorAtomicBlockProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const mediaFrameRef = useRef<HTMLDivElement | null>(null);
@@ -696,6 +698,7 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
       className={[
         "flex flex-col gap-3 transition-colors",
         isGenericAtomicBlock ? "rounded-md border border-base-300/70 bg-base-100/20 px-4 py-3" : "",
+        selected ? "rounded-md bg-info/10 ring-1 ring-info/80" : "",
         fileDropActive ? "rounded-sm bg-base-200/30 ring-1 ring-info/30" : "",
       ].join(" ")}
       onMouseDownCapture={() => {

@@ -311,8 +311,6 @@ function getMessageEditorAtomicBlockShellClassName(options: {
     `group relative isolate ${MESSAGE_EDITOR_BLOCK_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} py-1 transition`,
     options.isDragging
       ? MESSAGE_EDITOR_BLOCK_DRAG_SURFACE_CLASS
-      : options.isSelected
-      ? "bg-info/10 ring-1 ring-info/80"
       : options.isActive && !options.readOnly ? "bg-base-200/20" : "",
   ].join(" ");
 }
@@ -2950,6 +2948,7 @@ export default function MessageEditor({
         registerBlockShellRef={registerBlockShellRef}
         renderSpeakerHandle={renderSpeakerHandle}
         selectionSegment={driver.kind === "text" ? selectedSegment : null}
+        selected={atomicSelected}
         shellClassName={shellClassName}
         showDropAfter={showDropAfter}
         showDropBefore={showDropBefore}
