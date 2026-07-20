@@ -5,6 +5,11 @@ export const MESSAGE_EDITOR_BLOCK_WIDTH_CLASS = "left-6 mx-auto w-[calc(100%_-_8
 // 主标题对齐角色头部的可见左边缘，宽屏时包含头部伸出的 48px。
 export const MESSAGE_EDITOR_HEADER_CONTENT_WIDTH_CLASS = "mx-auto w-[calc(100%_-_5rem)] max-w-[59rem]";
 export const MESSAGE_EDITOR_BLOCK_GUTTER_CLASS = "pl-6";
+// 拖拽框从角色手柄预留槽之后开始，只标识可移动的消息区域。
+export const MESSAGE_EDITOR_BLOCK_DRAG_SURFACE_CLASS = [
+  "before:pointer-events-none before:absolute before:inset-y-0 before:left-6 before:right-0 before:-z-10",
+  "before:rounded-md before:bg-base-100/80 before:ring-1 before:ring-base-300/80",
+].join(" ");
 export const MESSAGE_EDITOR_BLOCK_GAP_CLASS = "pb-3";
 export const MESSAGE_EDITOR_SPEAKER_HANDLE_CLASS = [
   "absolute z-30 inline-flex cursor-grab transition-opacity duration-150 active:cursor-grabbing",

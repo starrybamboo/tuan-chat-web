@@ -56,6 +56,7 @@ import {
 import useMessageEditorMessageMutations from "./hooks/useMessageEditorMessageMutations";
 import {
   MESSAGE_EDITOR_BLOCK_GUTTER_CLASS,
+  MESSAGE_EDITOR_BLOCK_DRAG_SURFACE_CLASS,
   MESSAGE_EDITOR_BLOCK_WIDTH_CLASS,
   MESSAGE_EDITOR_COMMAND_MENU_LAYER_CLASS,
   MESSAGE_EDITOR_DEFAULT_FRAME_CLASS,
@@ -295,8 +296,8 @@ export function getMessageEditorTextBlockShellClassName(options: {
   isDragging: boolean;
 }) {
   return [
-    `group relative ${MESSAGE_EDITOR_BLOCK_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} transition`,
-    options.isDragging ? "bg-base-100/80 ring-1 ring-base-300/80" : "",
+    `group relative isolate ${MESSAGE_EDITOR_BLOCK_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} transition`,
+    options.isDragging ? MESSAGE_EDITOR_BLOCK_DRAG_SURFACE_CLASS : "",
   ].join(" ");
 }
 
@@ -307,9 +308,10 @@ function getMessageEditorAtomicBlockShellClassName(options: {
   readOnly: boolean;
 }) {
   return [
-    `group relative ${MESSAGE_EDITOR_BLOCK_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} py-1 transition`,
-    options.isDragging ? "bg-base-100/80 ring-1 ring-base-300/80" : "",
-    options.isSelected
+    `group relative isolate ${MESSAGE_EDITOR_BLOCK_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} py-1 transition`,
+    options.isDragging
+      ? MESSAGE_EDITOR_BLOCK_DRAG_SURFACE_CLASS
+      : options.isSelected
       ? "bg-info/10 ring-1 ring-info/80"
       : options.isActive && !options.readOnly ? "bg-base-200/20" : "",
   ].join(" ");
