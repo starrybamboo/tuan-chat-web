@@ -8,8 +8,8 @@ import {
 
 describe("messageEditorLayout", () => {
   it("reserves the speaker handle gutter when the editor container narrows", () => {
-    expect(MESSAGE_EDITOR_BLOCK_WIDTH_CLASS).toContain("w-[calc(100%_-_7.5rem)]");
-    expect(MESSAGE_EDITOR_BLOCK_WIDTH_CLASS).toContain("left-5");
+    expect(MESSAGE_EDITOR_BLOCK_WIDTH_CLASS).toContain("w-[calc(100%_-_8rem)]");
+    expect(MESSAGE_EDITOR_BLOCK_WIDTH_CLASS).toContain("left-6");
   });
 
   it("uses half width and a quiet border for images without a saved width", () => {

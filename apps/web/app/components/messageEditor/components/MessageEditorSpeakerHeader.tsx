@@ -38,23 +38,23 @@ function createTwoCharacterAvatarLabel(value: unknown): string {
 }
 
 const narratorAvatarFrameClassName = [
-  "group/narrator inline-flex size-7 items-center justify-center rounded-full",
+  "group/narrator inline-flex size-8 items-center justify-center rounded-full",
   "bg-base-200/65 text-base-content/70 transition-colors duration-150 ease-out",
   "motion-reduce:transition-none hover:bg-base-300/70 hover:text-base-content/85",
 ].join(" ");
 
 const narratorAvatarIconClassName = [
-  "size-3.5 transition-transform duration-150 ease-out motion-reduce:transition-none",
+  "size-4 transition-transform duration-150 ease-out motion-reduce:transition-none",
   "group-hover/narrator:scale-105",
 ].join(" ");
 
 const speakerHeaderClassName = [
-  "inline-flex h-8 w-16 min-w-[4rem] items-center justify-start gap-1 rounded-full p-0.5",
+  "inline-flex h-9 w-18 min-w-18 items-center justify-start gap-1 rounded-full p-0.5",
   "text-sm text-base-content/70 transition-colors hover:bg-base-100/35 hover:text-base-content/90",
   "motion-reduce:transition-none",
 ].join(" ");
 
-const speakerAvatarSlotClassName = "inline-flex size-7 shrink-0 items-center justify-center";
+const speakerAvatarSlotClassName = "inline-flex size-8 shrink-0 items-center justify-center";
 
 const speakerAvatarBadgeClassName = [
   "pointer-events-none inline-flex h-5 w-7 shrink-0 items-center justify-center overflow-hidden rounded-sm",
@@ -112,7 +112,7 @@ function MessageEditorSpeakerHeaderView({
               <Avatar
                 src={avatarUrl}
                 alt="avatar"
-                size={6}
+                size={8}
                 rounded={true}
                 fallbackSrc={ROLE_DEFAULT_AVATAR_URL}
                 shellClassName={AVATAR_HOVER_SHELL_CLASS}

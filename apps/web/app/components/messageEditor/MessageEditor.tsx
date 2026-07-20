@@ -61,7 +61,6 @@ import {
   MESSAGE_EDITOR_DEFAULT_FRAME_CLASS,
   MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS,
   MESSAGE_EDITOR_SPEAKER_HANDLE_CLASS,
-  MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS,
   MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS,
 } from "./messageEditorLayout";
 import {
@@ -279,15 +278,12 @@ export function getMessageEditorSlashMenuLayerClassName() {
 
 /**
  * 解析文字块外壳类名。
- * 连续文字块之间的间距放在被测量 item 内，避免 Virtuoso 忽略外边距。
  */
 export function getMessageEditorTextBlockShellClassName(options: {
-  hasFollowingTextBlock: boolean;
   isDragging: boolean;
 }) {
   return [
     `group relative ${MESSAGE_EDITOR_BLOCK_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} transition`,
-    options.hasFollowingTextBlock ? MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS : "",
     options.isDragging ? "bg-base-100/80 ring-1 ring-base-300/80" : "",
   ].join(" ");
 }
@@ -2874,9 +2870,8 @@ export default function MessageEditor({
 
   const renderMessageEditorBlock = (
     { blockId, message, driver }: (typeof atomicMessages)[number],
-    index: number,
+    _index: number,
   ) => {
-    const nextDriver = atomicMessages[index + 1]?.driver;
     const selectedSegment = selectionRenderLookup.get(blockId) ?? null;
     const atomicSelected = driver.kind !== "text" && Boolean(selectedSegment && selectedSegment.end > selectedSegment.start);
     const activeDropTarget = dragState ?? fileDropTarget;
@@ -2892,7 +2887,6 @@ export default function MessageEditor({
     const isDragging = dragState?.draggedBlockId === blockId;
     const shellClassName = driver.kind === "text"
       ? getMessageEditorTextBlockShellClassName({
-          hasFollowingTextBlock: nextDriver?.kind === "text",
           isDragging,
         })
       : getMessageEditorAtomicBlockShellClassName({

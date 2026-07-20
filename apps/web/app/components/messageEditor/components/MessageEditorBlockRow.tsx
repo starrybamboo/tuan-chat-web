@@ -7,6 +7,7 @@ import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea"
 import type { MessageEditorMessage } from "../messageEditorTypes";
 import type { MessageEditorBlockDriverKind } from "../runtime/messageEditorRegistry";
 
+import { MESSAGE_EDITOR_BLOCK_GAP_CLASS } from "../messageEditorLayout";
 import { MessageEditorAtomicBlock } from "./MessageEditorAtomicBlock";
 import { MessageEditorTextBlock } from "./MessageEditorTextBlock";
 
@@ -158,7 +159,7 @@ export const MessageEditorBlockRow = memo(function MessageEditorBlockRow({
     <div
       data-me-block-row="true"
       data-me-block-hit={blockId}
-      className="w-full"
+      className={`w-full ${MESSAGE_EDITOR_BLOCK_GAP_CLASS}`}
     >
       {blockContent}
     </div>

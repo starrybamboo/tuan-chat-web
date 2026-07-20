@@ -50,5 +50,6 @@ describe("MessageEditorBlockRow", () => {
     expect(html).not.toContain("contain-intrinsic-size");
     expect(html).not.toContain("overflow-clip-margin");
     expect(html).toContain('class="block-shell"');
+    expect(html).toContain("pb-3");
   });
 });
