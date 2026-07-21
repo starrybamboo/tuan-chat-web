@@ -27,6 +27,7 @@ import {
   createMessageEditorTextDraft,
   getMessageEditorBlockId,
   setMessageEditorUploadedMedia,
+  updateMessageEditorMediaSize,
   updateMessageEditorTextContent,
 } from "../../model/messageEditorTransforms";
 
@@ -47,6 +48,55 @@ function withRuntimeMessage(
 }
 
 describe("messageEditorPersistencePolicy", () => {
+  it("retains resized media layout when the confirmed response omits editor-only dimensions", () => {
+    const resizedVideo = withRuntimeMessage(updateMessageEditorMediaSize(setMessageEditorUploadedMedia(
+      createMessageEditorBlockDraft("video"),
+      {
+        fileId: 77,
+        fileName: "clip.webm",
+        height: 1080,
+        mediaType: "video",
+        size: 4096,
+        width: 1920,
+      },
+    ), {
+      height: 405,
+      width: 720,
+    }), {
+      messageId: 17,
+      position: 1,
+      roomId: 7,
+      status: 0,
+      syncId: 23,
+      userId: 1,
+    });
+    const confirmed = {
+      ...resizedVideo,
+      extra: {
+        videoMessage: {
+          fileId: 77,
+          fileName: "clip.webm",
+          height: 1080,
+          mediaType: "video",
+          size: 4096,
+          source: resizedVideo.extra?.videoMessage?.source,
+          width: 1920,
+        },
+      },
+      syncId: 24,
+    } as Message;
+
+    const [merged] = mergeChangedRoomMessagesIntoEditorMessages({
+      changedMessages: [confirmed],
+      currentMessages: [resizedVideo],
+      operations: [{ message: resizedVideo, messageId: 17, op: "update", position: 1 }],
+    });
+
+    expect(merged.syncId).toBe(24);
+    expect((merged.extra?.videoMessage as { editorHeight?: number } | undefined)?.editorHeight).toBe(405);
+    expect((merged.extra?.videoMessage as { editorWidth?: number } | undefined)?.editorWidth).toBe(720);
+  });
+
   it("matches reversed batch insert responses by content and position instead of array index", () => {
     const first = createMessageEditorTextDraft({ content: "first" });
     const second = createMessageEditorTextDraft({ content: "second" });
