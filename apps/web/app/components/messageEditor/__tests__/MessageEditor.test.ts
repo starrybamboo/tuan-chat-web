@@ -5,9 +5,11 @@ import type { MessageEditorSelection } from "../runtime/messageEditorSelection";
 
 import {
   buildRoomMessagePatchOperations,
+  getMessageEditorAtomicBlockShellClassName,
   getMessageEditorPatchMutationMeta,
   isMessageEditorImportablePasteText,
   mergeChangedRoomMessagesIntoEditorMessages,
+  reconcileMessageEditorWorkingSourceMessages,
   resolveMessageEditorFileDropPoint,
   resolveMessageEditorPointerAutoScrollDelta,
   shouldFocusEmptyTextBlockOnPointerDown,
@@ -69,6 +71,50 @@ describe("messageEditor document click guard", () => {
       mouseButton: 0,
       readOnly: true,
     })).toBe(false);
+  });
+
+  it("keeps persisted block identity stable when the Query projection returns cloned messages", () => {
+    const current = Object.assign(createMessageEditorTextDraft({ content: "local" }), {
+      messageId: 101,
+      roomId: 7,
+    });
+    const incoming = {
+      ...current,
+      content: "local",
+    };
+
+    const reconciled = reconcileMessageEditorWorkingSourceMessages([current], [incoming]);
+
+    expect(getMessageEditorBlockId(incoming)).not.toBe(getMessageEditorBlockId(current));
+    expect(getMessageEditorBlockId(reconciled[0])).toBe(getMessageEditorBlockId(current));
+  });
+
+  it("restores a new paragraph block identity from its Query working projection render key", () => {
+    const current = materializeMessageEditorRoomWorkingMessages([
+      createMessageEditorTextDraft({ content: "" }),
+    ], 7)[0];
+    const incoming = structuredClone(current);
+
+    expect(getMessageEditorBlockId(incoming)).not.toBe(getMessageEditorBlockId(current));
+
+    const reconciled = reconcileMessageEditorWorkingSourceMessages([], [incoming]);
+
+    expect(getMessageEditorBlockId(reconciled[0])).toBe(getMessageEditorBlockId(current));
+  });
+
+  it("exposes edit and click cursors on interactive block shells", () => {
+    expect(getMessageEditorAtomicBlockShellClassName({
+      isActive: false,
+      isDragging: false,
+      isSelected: false,
+      readOnly: false,
+    })).toContain("cursor-pointer");
+    expect(getMessageEditorAtomicBlockShellClassName({
+      isActive: false,
+      isDragging: false,
+      isSelected: false,
+      readOnly: true,
+    })).toContain("cursor-default");
   });
 
   it("keeps a pending caret when the editable block focuses itself", () => {

@@ -13,6 +13,11 @@ export type RoomMessagesQueryData
     | RoomMessagesSyncResult
     | undefined;
 
+/** 当前房间消息热态/渲染投影 key；完整历史仍由各端本地消息库承载。 */
+export function getRoomMessagesQueryKey(roomId: number): readonly ["getHistoryMessages", number, 0] {
+  return ["getHistoryMessages", roomId, 0] as const;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === "object" && !Array.isArray(value);
 }

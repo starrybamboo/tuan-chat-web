@@ -66,22 +66,6 @@ export function getMessageEditorPatchMutationMeta(sourceSurface: MessageEditorRe
   };
 }
 
-/** 判断当前编辑器快照是否应该进入持久化流程。 */
-export function shouldPersistMessageEditorSnapshot(params: {
-  dirtySinceLoad: boolean;
-  docId?: string;
-  lastSavedFingerprint: string;
-  readOnly: boolean;
-  ready: boolean;
-  snapshotFingerprint: string;
-}) {
-  return params.ready
-    && !params.readOnly
-    && Boolean(params.docId)
-    && params.dirtySinceLoad
-    && params.snapshotFingerprint !== params.lastSavedFingerprint;
-}
-
 /** 解析本地快照读写使用的文档 ID，房间文档不会写入本地快照。 */
 export function resolveMessageEditorLocalSnapshotDocId(params: {
   docId?: string;

@@ -5,6 +5,7 @@ import type { ChatMessageResponse } from "../../../../../api";
 
 import {
   getRoomHistoryFetchStartSyncId,
+  mergeCommittedEditorMessagesWithWorkingState,
   mergeIncomingRoomMessagesWithEditorWorkingState,
   mergeLoadedRoomHistory,
   removeCommittedEditorDrafts,
@@ -54,6 +55,21 @@ describe("useChatHistory 乐观消息渲染 key", () => {
     );
 
     expect(result.map(item => item.message.content)).toEqual(["本地内容", "远端新增"]);
+  });
+
+  it("保存确认到达 completeSave 前不会用旧值或 tombstone 覆盖 dirty 工作消息", () => {
+    const localDirty = createMessageResponse({ content: "继续编辑后的内容", messageId: 1 });
+    const staleCommit = createMessageResponse({ content: "保存请求中的旧内容", messageId: 1, status: 1 });
+    const dirtyMessageIds = new Set([1]);
+
+    const result = mergeCommittedEditorMessagesWithWorkingState(
+      [localDirty],
+      [staleCommit],
+      dirtyMessageIds,
+    );
+
+    expect(result).toEqual([localDirty]);
+    expect(dirtyMessageIds).toEqual(new Set([1]));
   });
 
   it("服务端确认新增时模糊移除对应的编辑器负 ID 草稿", () => {

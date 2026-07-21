@@ -364,14 +364,23 @@ export function normalizeMessageEditorDraft(rawMessage: unknown): MessageEditorM
   if (typeof rawMessage.updateTime === "string") {
     runtimeFields.updateTime = rawMessage.updateTime;
   }
-  if (typeof rawMessage.tcLocalRenderKey === "string" && rawMessage.tcLocalRenderKey.trim()) {
-    runtimeFields.tcLocalRenderKey = rawMessage.tcLocalRenderKey;
+  const localRenderKey = typeof rawMessage.tcLocalRenderKey === "string"
+    ? rawMessage.tcLocalRenderKey.trim()
+    : "";
+  if (localRenderKey) {
+    runtimeFields.tcLocalRenderKey = localRenderKey;
   }
   if (rawMessage.tcMessageEditorDraft === true) {
     runtimeFields.tcMessageEditorDraft = true;
   }
   Object.assign(nextMessage, runtimeFields);
 
+  const editorBlockId = localRenderKey.startsWith("message-editor:")
+    ? localRenderKey.slice("message-editor:".length)
+    : "";
+  if (editorBlockId) {
+    return assignRuntimeBlockId(nextMessage, editorBlockId);
+  }
   return inheritRuntimeBlockId(rawMessage, nextMessage);
 }
 

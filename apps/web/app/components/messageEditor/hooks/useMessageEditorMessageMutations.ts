@@ -30,11 +30,9 @@ type MessageEditorMessageMutationsParams = {
   createHistoryEntry: (messages: MessageEditorMessage[]) => MessageEditorHistoryEntry;
   docId?: string;
   historyManager: MessageEditorHistoryManager;
-  initialMessages: MessageEditorMessage[];
   isRoomDocument: boolean;
-  onWorkingMessagesChange?: (messages: MessageEditorMessage[], dirtyMessageIds: ReadonlySet<number>) => void;
   onRemoteMessagesSaved?: (messages: Message[]) => void | Promise<void>;
-  prepareWorkingMessages?: (
+  prepareWorkingMessages: (
     messages: MessageEditorMessage[],
     options: { structureChanged?: boolean },
   ) => MessageEditorMessage[];
@@ -43,8 +41,12 @@ type MessageEditorMessageMutationsParams = {
   ready: boolean;
   remotePatchSourceSurface: MessageEditorRemotePatchSourceSurface;
   roomId?: number;
+  seedMessages: MessageEditorMessage[];
   shouldUseLocalSnapshot: boolean;
-  workingMessages?: MessageEditorMessage[];
+  workingSource?: {
+    messages: MessageEditorMessage[];
+    onChange: (messages: MessageEditorMessage[], dirtyMessageIds: ReadonlySet<number>) => void;
+  };
 };
 
 type CommitDocumentSnapshotOptions = {
@@ -64,11 +66,10 @@ type MessageEditorMessageMutationsResult = {
   ) => MessageEditorMessage[];
   commitTransaction: <T>(transaction: MessageEditorEditTransaction<T>) => T;
   getCurrentMessages: () => MessageEditorMessage[];
-  hasDirtyChanges: () => boolean;
-  isRemoteSaveActive: () => boolean;
-  loadPersistedSnapshot: (seededInitialMessages: MessageEditorMessage[]) => Promise<MessageEditorMessage[]>;
+  loadPersistedSnapshot: (seedMessages: MessageEditorMessage[]) => Promise<MessageEditorMessage[]>;
   messages: MessageEditorMessage[];
   messagesRef: MutableRefObject<MessageEditorMessage[]>;
+  rebasePersistedSnapshot: (messages: MessageEditorMessage[]) => boolean;
   resetSaveState: () => void;
   restoreSnapshot: (messages: MessageEditorMessage[]) => MessageEditorMessage[];
   saveState: MessageEditorSaveState;
@@ -84,9 +85,7 @@ export default function useMessageEditorMessageMutations({
   createHistoryEntry,
   docId,
   historyManager,
-  initialMessages,
   isRoomDocument,
-  onWorkingMessagesChange,
   onRemoteMessagesSaved,
   prepareWorkingMessages,
   publishOptimisticRoomMessages,
@@ -94,28 +93,29 @@ export default function useMessageEditorMessageMutations({
   ready,
   remotePatchSourceSurface,
   roomId,
+  seedMessages,
   shouldUseLocalSnapshot,
-  workingMessages,
+  workingSource,
 }: MessageEditorMessageMutationsParams): MessageEditorMessageMutationsResult {
-  const initialMessagesRef = useRef<MessageEditorMessage[] | null>(null);
-  if (!initialMessagesRef.current) {
-    initialMessagesRef.current = ensureMessageEditorMessages(workingMessages ?? initialMessages);
+  const updateWorkingMessages = workingSource?.onChange;
+  const seedMessagesRef = useRef<MessageEditorMessage[] | null>(null);
+  if (!seedMessagesRef.current) {
+    seedMessagesRef.current = ensureMessageEditorMessages(workingSource?.messages ?? seedMessages);
   }
-  const isControlled = workingMessages !== undefined;
   const [localMessages, setLocalMessages] = useState<MessageEditorMessage[]>(
-    () => isControlled ? [] : initialMessagesRef.current!,
+    () => updateWorkingMessages ? [] : seedMessagesRef.current!,
   );
-  const messages = workingMessages ?? localMessages;
+  const messages = workingSource?.messages ?? localMessages;
   const [saveRequestRevision, requestDeferredSave] = useState(0);
   const [saveState, setSaveState] = useState<MessageEditorSaveState>("idle");
   const activeSavePromiseRef = useRef<Promise<void> | null>(null);
   const persistenceIdentityRef = useRef<string | null>(null);
   const persistenceIdentityRevisionRef = useRef(0);
   const mountedRef = useRef(false);
-  const messagesRef = useRef<MessageEditorMessage[]>(initialMessagesRef.current);
+  const messagesRef = useRef<MessageEditorMessage[]>(seedMessagesRef.current);
   const coordinatorRef = useRef<MessageEditorPersistenceCoordinator | null>(null);
   if (!coordinatorRef.current) {
-    coordinatorRef.current = new MessageEditorPersistenceCoordinator(initialMessagesRef.current);
+    coordinatorRef.current = new MessageEditorPersistenceCoordinator(seedMessagesRef.current);
   }
   const coordinator = coordinatorRef.current;
 
@@ -135,15 +135,15 @@ export default function useMessageEditorMessageMutations({
   ) => {
     messagesRef.current = nextMessages;
     if (options.updateState !== false) {
-      if (isControlled && onWorkingMessagesChange) {
-        onWorkingMessagesChange(nextMessages, coordinator.getDirtyMessageIds());
+      if (updateWorkingMessages) {
+        updateWorkingMessages(nextMessages, coordinator.getDirtyMessageIds(nextMessages));
       }
       else {
         setLocalMessages(nextMessages);
       }
     }
     return nextMessages;
-  }, [coordinator, isControlled, onWorkingMessagesChange]);
+  }, [coordinator, updateWorkingMessages]);
 
   const acceptPersistedSnapshot = useCallback((
     nextMessages: MessageEditorMessage[],
@@ -164,9 +164,7 @@ export default function useMessageEditorMessageMutations({
   }, [commitCanonicalDocumentSnapshot, coordinator]);
 
   const restoreSnapshot = useCallback((nextMessages: MessageEditorMessage[]) => {
-    const normalizedMessages = prepareWorkingMessages
-      ? prepareWorkingMessages(nextMessages, { structureChanged: true })
-      : ensureMessageEditorMessages(nextMessages);
+    const normalizedMessages = prepareWorkingMessages(nextMessages, { structureChanged: true });
     const restoredMessages = commitCanonicalDocumentSnapshot(coordinator.markDocumentChanged(
       normalizedMessages,
       ready,
@@ -184,9 +182,10 @@ export default function useMessageEditorMessageMutations({
         transaction.historyKind,
         transaction.historyGroupKey,
       );
-      const nextMessages = prepareWorkingMessages
-        ? prepareWorkingMessages(transaction.messages, { structureChanged: transaction.structureChanged })
-        : transaction.messages;
+      const nextMessages = prepareWorkingMessages(
+        transaction.messages,
+        { structureChanged: transaction.structureChanged },
+      );
       commitCanonicalDocumentSnapshot(coordinator.markDocumentChanged(
         nextMessages,
         ready,
@@ -201,15 +200,16 @@ export default function useMessageEditorMessageMutations({
   }, [commitCanonicalDocumentSnapshot, coordinator, createHistoryEntry, historyManager, prepareWorkingMessages, ready]);
 
   const getCurrentMessages = useCallback(() => messagesRef.current, []);
-  const hasDirtyChanges = useCallback(() => coordinator.hasDirtyChanges(), [coordinator]);
-  const isRemoteSaveActive = useCallback(() => coordinator.isSaveActive(), [coordinator]);
+  const rebasePersistedSnapshot = useCallback((nextMessages: MessageEditorMessage[]) => {
+    return coordinator.rebasePersistedSnapshot(nextMessages);
+  }, [coordinator]);
   const resetSaveState = useCallback(() => setSaveState("idle"), []);
-  const loadPersistedSnapshot = useCallback((seededInitialMessages: MessageEditorMessage[]) => {
+  const loadPersistedSnapshot = useCallback((nextSeedMessages: MessageEditorMessage[]) => {
     return loadMessageEditorPersistedSnapshot({
       currentMessages: messagesRef.current,
       docId,
       isRoomDocument,
-      seededInitialMessages,
+      seededInitialMessages: nextSeedMessages,
       shouldUseLocalSnapshot,
     });
   }, [docId, isRoomDocument, shouldUseLocalSnapshot]);
@@ -383,11 +383,10 @@ export default function useMessageEditorMessageMutations({
     acceptPersistedSnapshot,
     commitTransaction,
     getCurrentMessages,
-    hasDirtyChanges,
-    isRemoteSaveActive,
     loadPersistedSnapshot,
     messages,
     messagesRef,
+    rebasePersistedSnapshot,
     resetSaveState,
     restoreSnapshot,
     saveState,

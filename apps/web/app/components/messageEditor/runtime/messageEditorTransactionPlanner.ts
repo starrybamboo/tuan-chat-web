@@ -74,10 +74,12 @@ export type MessageEditorTransactionPlanner = {
   insertBlockAtPoint: (
     point: { blockId: string; offset: number },
     kind: Parameters<typeof createMessageEditorBlockDraft>[0],
+    options?: { createTrailingTextBlock?: boolean },
   ) => MessageEditorMutationPlan<MessageEditorInsertBlockResult> | null;
   insertBlockAtSelection: (
     selection: MessageEditorSelection,
     kind: Parameters<typeof createMessageEditorBlockDraft>[0],
+    options?: { createTrailingTextBlock?: boolean },
   ) => MessageEditorMutationPlan<MessageEditorInsertBlockResult> | null;
   mergeBackward: (blockId: string) => MessageEditorMutationPlan<{ blockId: string; caret: number } | null> | null;
   mergeForward: (blockId: string) => MessageEditorMutationPlan<{ blockId: string; caret: number } | null> | null;
@@ -158,9 +160,14 @@ class MessageEditorDocumentTransactionPlanner implements MessageEditorTransactio
     );
   }
 
-  insertBlockAtPoint(point: { blockId: string; offset: number }, kind: Parameters<typeof createMessageEditorBlockDraft>[0]) {
+  insertBlockAtPoint(
+    point: { blockId: string; offset: number },
+    kind: Parameters<typeof createMessageEditorBlockDraft>[0],
+    options: { createTrailingTextBlock?: boolean } = {},
+  ) {
     const result = insertMessageEditorBlockAtPoint(this.params.getMessages(), {
       blockId: point.blockId,
+      createTrailingTextBlock: options.createTrailingTextBlock,
       kind,
       offset: point.offset,
     });
@@ -168,18 +175,30 @@ class MessageEditorDocumentTransactionPlanner implements MessageEditorTransactio
       return null;
     }
     return this.createPlan("insert-block-at-point", result.messages, result, {
-      changedBlockIds: [point.blockId, result.insertedBlockId, result.focus.blockId],
+      changedBlockIds: [
+        point.blockId,
+        result.insertedBlockId,
+        ...(result.focus ? [result.focus.blockId] : []),
+      ],
       structureChanged: true,
     });
   }
 
-  insertBlockAtSelection(selection: MessageEditorSelection, kind: Parameters<typeof createMessageEditorBlockDraft>[0]) {
-    const result = insertMessageEditorBlockAtSelection(this.params.getMessages(), selection, kind);
+  insertBlockAtSelection(
+    selection: MessageEditorSelection,
+    kind: Parameters<typeof createMessageEditorBlockDraft>[0],
+    options: { createTrailingTextBlock?: boolean } = {},
+  ) {
+    const result = insertMessageEditorBlockAtSelection(this.params.getMessages(), selection, kind, options);
     if (!result) {
       return null;
     }
     return this.createPlan("insert-block-at-selection", result.messages, result, {
-      changedBlockIds: [...selection.blockIds, result.insertedBlockId, result.focus.blockId],
+      changedBlockIds: [
+        ...selection.blockIds,
+        result.insertedBlockId,
+        ...(result.focus ? [result.focus.blockId] : []),
+      ],
       structureChanged: true,
     });
   }

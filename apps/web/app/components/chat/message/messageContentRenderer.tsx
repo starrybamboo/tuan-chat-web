@@ -3,7 +3,7 @@ import { useEffect, useMemo } from "react";
 
 import { resolveRenderedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
 import AudioMessage from "@/components/chat/message/media/AudioMessage";
-import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
+import CachedVideoMessage, { DEFAULT_CACHED_VIDEO_ASPECT_RATIO } from "@/components/chat/message/media/CachedVideoMessage";
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import WebgalChooseMessage from "@/components/chat/message/webgalChooseMessage";
 import StateMessageCard from "@/components/chat/state/stateMessageCard";
@@ -45,6 +45,7 @@ type MessageContentRendererProps = {
   message: ReadonlyRenderableMessage;
   annotations?: string[];
   cacheKeyBase?: string;
+  onMediaError?: () => void;
 }
 
 type LocalImageMessagePayload = NonNullable<ReturnType<typeof getImageMessageExtra>> & {
@@ -107,6 +108,7 @@ export default function MessageContentRenderer({
   message,
   annotations: providedAnnotations,
   cacheKeyBase,
+  onMediaError,
 }: MessageContentRendererProps) {
   const effectiveAnnotationsBase = normalizeAnnotations(providedAnnotations ?? message.annotations);
   const imagePayload = getImageMessageExtra(message.extra);
@@ -222,10 +224,11 @@ export default function MessageContentRenderer({
                   bg-base-200/40 shadow-sm
                 ">
                   <CachedVideoMessage
+                    aspectRatio={DEFAULT_CACHED_VIDEO_ASPECT_RATIO}
                     cacheKey={`${resolvedCacheKeyBase}:video`}
                     url={videoUrl}
                     className="
-                      block max-h-[360px] w-full bg-transparent object-contain
+                      block size-full bg-transparent object-contain
                     "
                   />
                   <div className="
@@ -284,6 +287,7 @@ export default function MessageContentRenderer({
                   url={audioUrl}
                   duration={typeof duration === "number" ? duration : undefined}
                   title={soundPayload?.fileName}
+                  onError={onMediaError}
                 />
               )
             : (

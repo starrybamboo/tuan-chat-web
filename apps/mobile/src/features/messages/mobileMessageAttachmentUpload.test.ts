@@ -112,13 +112,15 @@ function createWebpResult(uri: string, size: number, fileName = "image.webp") {
   };
 }
 
-function createFetchUploadMock(resolver: (url: string) => { ok: boolean; status: number } = () => ({ ok: true, status: 200 })) {
+function createFetchUploadMock(
+  resolver: (url: string, init?: RequestInit) => { ok: boolean; status: number } = () => ({ ok: true, status: 200 }),
+) {
   const uploadedBodies = new Map<string, BodyInit | null | undefined>();
   const fetchMock = vi.fn(async (input: any, init?: any) => {
     const url = String(input);
     if (init?.method === "PUT") {
       uploadedBodies.set(url, init.body);
-      return resolver(url);
+      return resolver(url, init);
     }
     return {
       ok: true,
@@ -509,12 +511,11 @@ describe("uploadMobileMessageAttachments", () => {
         },
       },
     });
-    let uploadAttempt = 0;
-    createFetchUploadMock(() => {
-      uploadAttempt += 1;
-      return uploadAttempt === 1
-        ? { ok: true, status: 200 }
-        : { ok: false, status: 500 };
+    createFetchUploadMock((_url, init) => {
+      const body = init?.body as { uri?: string } | undefined;
+      return body?.uri?.includes("failed.png")
+        ? { ok: false, status: 500 }
+        : { ok: true, status: 200 };
     });
 
     const okAttachment = {

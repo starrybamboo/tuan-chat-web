@@ -62,7 +62,7 @@ export type MessageEditorSelectionTextResult = {
 };
 
 export type MessageEditorInsertBlockResult = {
-  focus: MessageEditorFocusTarget;
+  focus: MessageEditorFocusTarget | null;
   insertedBlockId: string;
   messages: MessageEditorMessage[];
 };
@@ -151,12 +151,13 @@ function createTextTailAfterInsertedBlock(source: MessageEditorMessage, content 
 }
 
 /**
- * 在文本光标或原子块边界插入一个块，并创建后续空文本块以便继续输入。
+ * 在文本光标或原子块边界插入一个块。
  */
 export function insertMessageEditorBlockAtPoint(
   messages: MessageEditorMessage[],
   params: {
     blockId: string;
+    createTrailingTextBlock?: boolean;
     kind: MessageEditorInsertableBlockKind;
     offset: number;
   },
@@ -170,17 +171,22 @@ export function insertMessageEditorBlockAtPoint(
   const current = normalizedMessages[index];
   const insertedBlock = createMessageEditorBlockDraft(params.kind, current);
   const insertedBlockId = getMessageEditorBlockId(insertedBlock);
-  const nextTextBlock = createTextTailAfterInsertedBlock(current);
+  const shouldCreateTrailingTextBlock = params.createTrailingTextBlock ?? true;
+  const nextTextBlock = shouldCreateTrailingTextBlock
+    ? createTextTailAfterInsertedBlock(current)
+    : null;
   const nextMessages = [...normalizedMessages];
 
   if (!isMessageEditorTextMessage(current)) {
     const insertionIndex = params.offset <= 0 ? index : index + 1;
-    nextMessages.splice(insertionIndex, 0, insertedBlock, nextTextBlock);
+    nextMessages.splice(insertionIndex, 0, insertedBlock, ...(nextTextBlock ? [nextTextBlock] : []));
     return {
-      focus: {
-        blockId: getMessageEditorBlockId(nextTextBlock),
-        caret: 0,
-      },
+      focus: nextTextBlock
+        ? {
+            blockId: getMessageEditorBlockId(nextTextBlock),
+            caret: 0,
+          }
+        : null,
       insertedBlockId,
       messages: nextMessages,
     };
@@ -203,17 +209,19 @@ export function insertMessageEditorBlockAtPoint(
       ? createTextTailAfterInsertedBlock(current, after)
       : updateMessageEditorTextContent(current, after));
   }
-  else {
+  else if (nextTextBlock) {
     replacement.push(nextTextBlock);
   }
 
   nextMessages.splice(index, 1, ...replacement);
-  const focusBlock = replacement.at(-1)!;
+  const focusBlock = after.length > 0 ? replacement.at(-1)! : nextTextBlock;
   return {
-    focus: {
-      blockId: getMessageEditorBlockId(focusBlock),
-      caret: 0,
-    },
+    focus: focusBlock
+      ? {
+          blockId: getMessageEditorBlockId(focusBlock),
+          caret: 0,
+        }
+      : null,
     insertedBlockId,
     messages: nextMessages,
   };
@@ -226,10 +234,12 @@ export function insertMessageEditorBlockAtSelection(
   messages: MessageEditorMessage[],
   selection: MessageEditorTextSelection,
   kind: MessageEditorInsertableBlockKind,
+  options: { createTrailingTextBlock?: boolean } = {},
 ): MessageEditorInsertBlockResult | null {
   if (selection.start.blockId === selection.end.blockId && selection.start.offset === selection.end.offset) {
     return insertMessageEditorBlockAtPoint(messages, {
       blockId: selection.start.blockId,
+      createTrailingTextBlock: options.createTrailingTextBlock,
       kind,
       offset: selection.start.offset,
     });
@@ -242,6 +252,7 @@ export function insertMessageEditorBlockAtSelection(
 
   return insertMessageEditorBlockAtPoint(collapsed.messages, {
     blockId: collapsed.focus.blockId,
+    createTrailingTextBlock: options.createTrailingTextBlock,
     kind,
     offset: collapsed.focus.caret,
   });

@@ -18,7 +18,6 @@ import {
   resolveMessageEditorLocalSnapshotDocId,
   resolveMessageEditorPersistenceDelayMs,
   resolveMessageEditorPersistenceTarget,
-  shouldPersistMessageEditorSnapshot,
   shouldSkipEmptyRoomMessageStreamSync,
   shouldSkipMessageEditorRoomStreamPersistence,
   toPatchOptimisticMessageInput,
@@ -48,24 +47,6 @@ function withRuntimeMessage(
 }
 
 describe("messageEditorPersistencePolicy", () => {
-  it("persists only ready writable dirty snapshots with changed fingerprints", () => {
-    const base = {
-      dirtySinceLoad: true,
-      docId: "doc-1",
-      lastSavedFingerprint: "old",
-      readOnly: false,
-      ready: true,
-      snapshotFingerprint: "new",
-    };
-
-    expect(shouldPersistMessageEditorSnapshot(base)).toBe(true);
-    expect(shouldPersistMessageEditorSnapshot({ ...base, ready: false })).toBe(false);
-    expect(shouldPersistMessageEditorSnapshot({ ...base, readOnly: true })).toBe(false);
-    expect(shouldPersistMessageEditorSnapshot({ ...base, docId: undefined })).toBe(false);
-    expect(shouldPersistMessageEditorSnapshot({ ...base, dirtySinceLoad: false })).toBe(false);
-    expect(shouldPersistMessageEditorSnapshot({ ...base, lastSavedFingerprint: "new" })).toBe(false);
-  });
-
   it("uses local snapshots only when the document type allows them", () => {
     expect(resolveMessageEditorLocalSnapshotDocId({
       docId: "doc-1",

@@ -183,7 +183,112 @@ describe("MessageEditorPersistenceCoordinator", () => {
       structureChanged: false,
     });
 
-    expect(coordinator.getDirtyMessageIds()).toEqual(new Set([11]));
+    expect(coordinator.getDirtyMessageIds([changedFirst, second])).toEqual(new Set([11]));
+  });
+
+  it("rebases a remote change to another message while preserving the local dirty patch", () => {
+    const first = Object.assign(createMessageEditorTextDraft({ content: "first" }), {
+      messageId: 11,
+      position: 1,
+      roomId: 7,
+    });
+    const second = Object.assign(createMessageEditorTextDraft({ content: "second" }), {
+      messageId: 12,
+      position: 2,
+      roomId: 7,
+    });
+    const changedFirst = updateMessageEditorTextContent(first, "local first");
+    const remoteSecond = updateMessageEditorTextContent(second, "remote second");
+    const coordinator = new MessageEditorPersistenceCoordinator([first, second]);
+
+    coordinator.markDocumentChanged([changedFirst, second], true, {
+      changedBlockIds: [getMessageEditorBlockId(first)],
+      structureChanged: false,
+    });
+    expect(coordinator.rebasePersistedSnapshot([changedFirst, remoteSecond])).toBe(true);
+
+    const startResult = coordinator.beginSave([changedFirst, remoteSecond], REMOTE_CONTEXT);
+    expect(startResult.kind).toBe("started");
+    if (startResult.kind !== "started") {
+      return;
+    }
+    expect(startResult.transaction.baselineMessages).toEqual([first, remoteSecond]);
+    expect(startResult.transaction.plan).toMatchObject({
+      kind: "remote",
+      operations: [{ messageId: 11, op: "update" }],
+    });
+  });
+
+  it("absorbs a remote insert during a local structure change without inserting it again", () => {
+    const first = Object.assign(createMessageEditorTextDraft({ content: "first" }), {
+      messageId: 11,
+      position: 1,
+      roomId: 7,
+    });
+    const second = Object.assign(createMessageEditorTextDraft({ content: "second" }), {
+      messageId: 12,
+      position: 2,
+      roomId: 7,
+    });
+    const coordinator = new MessageEditorPersistenceCoordinator([first, second]);
+    const movedSecond = Object.assign(updateMessageEditorTextContent(second, "second"), { position: 1 });
+    const movedFirst = Object.assign(updateMessageEditorTextContent(first, "first"), { position: 2 });
+    const remoteThird = Object.assign(createMessageEditorTextDraft({ content: "remote third" }), {
+      messageId: 13,
+      position: 3,
+      roomId: 7,
+    });
+
+    coordinator.markDocumentChanged([movedSecond, movedFirst], true, {
+      changedBlockIds: [getMessageEditorBlockId(second)],
+      structureChanged: true,
+    });
+    coordinator.rebasePersistedSnapshot([movedSecond, movedFirst, remoteThird]);
+
+    const startResult = coordinator.beginSave([movedSecond, movedFirst, remoteThird], REMOTE_CONTEXT);
+    expect(startResult.kind).toBe("started");
+    if (startResult.kind !== "started" || startResult.transaction.plan.kind !== "remote") {
+      return;
+    }
+    expect(startResult.transaction.plan.operations).toEqual(expect.arrayContaining([
+      { messageId: 12, op: "move", position: 1 },
+      { messageId: 11, op: "move", position: 2 },
+    ]));
+    expect(startResult.transaction.plan.operations).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ messageId: 13, op: "insert" }),
+    ]));
+  });
+
+  it("keeps the persisted baseline when a dirty block is replaced by a local draft", () => {
+    const persisted = Object.assign(createMessageEditorTextDraft({ content: "persisted" }), {
+      messageId: 11,
+      position: 1,
+      roomId: 7,
+    });
+    const replacement = Object.assign(updateMessageEditorTextContent(persisted, "replacement"), {
+      messageId: -1,
+      position: 1,
+      roomId: 7,
+      tcLocalSyncState: "optimistic" as const,
+      tcMessageEditorDraft: true,
+    });
+    const coordinator = new MessageEditorPersistenceCoordinator([persisted]);
+
+    coordinator.markDocumentChanged([replacement], true, {
+      changedBlockIds: [getMessageEditorBlockId(persisted)],
+      structureChanged: true,
+    });
+    coordinator.rebasePersistedSnapshot([replacement]);
+
+    const startResult = coordinator.beginSave([replacement], REMOTE_CONTEXT);
+    expect(startResult.kind).toBe("started");
+    if (startResult.kind !== "started" || startResult.transaction.plan.kind !== "remote") {
+      return;
+    }
+    expect(startResult.transaction.plan.operations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ op: "insert" }),
+      { messageId: 11, op: "delete" },
+    ]));
   });
 
   it("clears a cheap dirty mark when the deferred snapshot equals the baseline", () => {

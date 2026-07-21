@@ -37,6 +37,7 @@ type AudioMessageProps = {
   layout?: "default" | "document";
   onDelete?: () => void;
   deleteLabel?: string;
+  onError?: (error: unknown) => void;
 }
 
 const VISUAL_PLAYBACK_START_WAIT_MS = 2500;
@@ -152,6 +153,7 @@ export default function AudioMessage({
   layout = "default",
   onDelete,
   deleteLabel = "删除音频",
+  onError,
 }: AudioMessageProps) {
   const hasUrl = Boolean(url);
   const cacheKey = typeof cacheKeyProp === "string" && cacheKeyProp ? cacheKeyProp : url;
@@ -428,11 +430,12 @@ export default function AudioMessage({
 
     unsubs.push(ws.on?.("error", (e: any) => {
       console.error("[tc-audio-message] wavesurfer error", e);
+      onError?.(e);
     }));
 
     unsubsRef.current = unsubs.filter(Boolean) as Array<() => void>;
     boundWaveSurferRef.current = ws;
-  }, [cacheKey, clearWaveSurferBindings, instanceId, notifyBgmStopped, requestWavePlayback, url]);
+  }, [cacheKey, clearWaveSurferBindings, instanceId, notifyBgmStopped, onError, requestWavePlayback, url]);
 
   const ensureWaveSurfer = useCallback(async () => {
     if (waveSurferRef.current) {
@@ -876,6 +879,7 @@ export default function AudioMessage({
     }
     catch (e) {
       console.error("[tc-audio-message] toggle play failed", e);
+      onError?.(e);
       mediaDebug("audio-message", "toggle-play-error", {
         cacheKey,
         url,

@@ -14,6 +14,7 @@ import {
 import {
   ensureMessageEditorMessages,
   getMessageEditorBlockId,
+  inheritMessageEditorRuntimeBlockId,
 } from "../model/messageEditorTransforms";
 
 export type MessageEditorPersistenceContext = {
@@ -70,37 +71,95 @@ export class MessageEditorPersistenceCoordinator {
   private activeGeneration: number | null = null;
   private baselineByBlockId: Map<string, MessageEditorMessage>;
   private baselineMessages: MessageEditorMessage[];
-  private currentByBlockId: Map<string, MessageEditorMessage>;
-  private currentIndexByBlockId: Map<string, number>;
-  private dirtySinceLoad = false;
   private dirtyRevisionByBlockId = new Map<string, number>();
   private documentRevision = 0;
   private fullDiffRevision = 0;
   private generation = 0;
-  private lastSavedFingerprint: string;
   private pendingSaveAfterActive = false;
   private structureRevision = 0;
 
   constructor(initialMessages: MessageEditorMessage[]) {
     this.baselineMessages = ensureMessageEditorMessages(initialMessages);
-    const initialIndex = createMessageEditorDocumentIndex(this.baselineMessages);
-    this.baselineByBlockId = initialIndex.byBlockId;
-    this.currentByBlockId = new Map(initialIndex.byBlockId);
-    this.currentIndexByBlockId = new Map(initialIndex.indexByBlockId);
-    this.lastSavedFingerprint = getMessageEditorSnapshotFingerprint(this.baselineMessages);
+    this.baselineByBlockId = createMessageEditorDocumentIndex(this.baselineMessages).byBlockId;
   }
 
   acceptPersistedSnapshot(messages: MessageEditorMessage[]) {
     const normalizedMessages = ensureMessageEditorMessages(messages);
     this.baselineMessages = normalizedMessages;
-    const nextIndex = createMessageEditorDocumentIndex(normalizedMessages);
-    this.baselineByBlockId = nextIndex.byBlockId;
-    this.currentByBlockId = new Map(nextIndex.byBlockId);
-    this.currentIndexByBlockId = new Map(nextIndex.indexByBlockId);
-    this.lastSavedFingerprint = getMessageEditorSnapshotFingerprint(normalizedMessages);
+    this.baselineByBlockId = createMessageEditorDocumentIndex(normalizedMessages).byBlockId;
     this.clearChangeJournal();
-    this.dirtySinceLoad = false;
     return normalizedMessages;
+  }
+
+  /**
+   * 将共享 chatHistory 中已确认的非 dirty 消息推进到 baseline。
+   *
+   * dirty 块仍保留保存前快照；结构修改期间也保留既有 position，避免本地移动
+   * 被提前吸收到 baseline。保存进行中由完成事务统一对账，不在这里改写基线。
+   */
+  rebasePersistedSnapshot(messages: MessageEditorMessage[]) {
+    if (this.activeGeneration !== null) {
+      return false;
+    }
+
+    const normalizedMessages = ensureMessageEditorMessages(messages);
+    if (!this.hasJournalChanges()) {
+      this.baselineMessages = normalizedMessages;
+      this.baselineByBlockId = createMessageEditorDocumentIndex(normalizedMessages).byBlockId;
+      return true;
+    }
+
+    const currentIndex = createMessageEditorDocumentIndex(normalizedMessages);
+    const dirtyBlockIds = this.getDirtyBlockIds(currentIndex.byBlockId);
+    const dirtyMessageIds = this.getDirtyMessageIdsFromIndexes(dirtyBlockIds, currentIndex.byBlockId);
+    const baselineByMessageId = new Map<number, MessageEditorMessage>();
+    this.baselineMessages.forEach((message) => {
+      const messageId = getRuntimeMessageId(message);
+      if (messageId !== undefined) {
+        baselineByMessageId.set(messageId, message);
+      }
+    });
+
+    const retainedDirtyBaselineBlocks = new Set<string>();
+    const rebasedMessages: MessageEditorMessage[] = [];
+    normalizedMessages.forEach((message) => {
+      const blockId = getMessageEditorBlockId(message);
+      const messageId = getRuntimeMessageId(message);
+      const baseline = this.baselineByBlockId.get(blockId)
+        ?? (messageId !== undefined ? baselineByMessageId.get(messageId) : undefined);
+      const isDirty = dirtyBlockIds.has(blockId)
+        || (messageId !== undefined && dirtyMessageIds.has(messageId));
+      if (isDirty) {
+        if (baseline) {
+          retainedDirtyBaselineBlocks.add(getMessageEditorBlockId(baseline));
+          rebasedMessages.push(baseline);
+        }
+        return;
+      }
+
+      if (this.structureRevision > 0 && baseline && typeof baseline.position === "number") {
+        rebasedMessages.push(inheritMessageEditorRuntimeBlockId(message, {
+          ...message,
+          position: baseline.position,
+        }));
+        return;
+      }
+      rebasedMessages.push(message);
+    });
+
+    this.baselineMessages.forEach((message) => {
+      const blockId = getMessageEditorBlockId(message);
+      const messageId = getRuntimeMessageId(message);
+      const isDirty = dirtyBlockIds.has(blockId)
+        || (messageId !== undefined && dirtyMessageIds.has(messageId));
+      if (isDirty && !retainedDirtyBaselineBlocks.has(blockId)) {
+        rebasedMessages.push(message);
+      }
+    });
+
+    this.baselineMessages = rebasedMessages;
+    this.baselineByBlockId = createMessageEditorDocumentIndex(rebasedMessages).byBlockId;
+    return true;
   }
 
   markDocumentChanged(
@@ -121,9 +180,8 @@ export class MessageEditorPersistenceCoordinator {
       && options.structureChanged !== undefined
       && (options.structureChanged || options.changedBlockIds.length > 0);
     if (!hasChangeMetadata) {
-      this.replaceCurrentIndex(messages);
       const changed = options.compareImmediately
-        ? getMessageEditorSnapshotFingerprint(messages) !== this.lastSavedFingerprint
+        ? getMessageEditorSnapshotFingerprint(messages) !== this.getBaselineFingerprint()
         : true;
       if (!changed) {
         this.clearChangeJournal();
@@ -131,43 +189,26 @@ export class MessageEditorPersistenceCoordinator {
       else {
         this.fullDiffRevision = this.documentRevision;
       }
-      this.dirtySinceLoad = changed;
       return messages;
     }
 
-    this.updateCurrentIndex(messages, options.changedBlockIds!, options.structureChanged!);
     for (const blockId of options.changedBlockIds!) {
       this.dirtyRevisionByBlockId.set(blockId, this.documentRevision);
     }
     if (options.structureChanged) {
       this.structureRevision = this.documentRevision;
     }
-    this.dirtySinceLoad = this.hasJournalChanges();
     return messages;
   }
 
   hasDirtyChanges() {
-    return this.dirtySinceLoad;
+    return this.hasJournalChanges();
   }
 
   /** 返回需要在共享 chatHistory 中保持本地优先的消息 ID。 */
-  getDirtyMessageIds() {
-    const dirtyMessageIds = new Set<number>();
-    const dirtyBlockIds = this.fullDiffRevision > 0
-      ? new Set([...this.baselineByBlockId.keys(), ...this.currentByBlockId.keys()])
-      : new Set(this.dirtyRevisionByBlockId.keys());
-    for (const blockId of dirtyBlockIds) {
-      const message = this.currentByBlockId.get(blockId) ?? this.baselineByBlockId.get(blockId);
-      const messageId = message?.messageId;
-      if (typeof messageId === "number" && Number.isFinite(messageId)) {
-        dirtyMessageIds.add(messageId);
-      }
-    }
-    return dirtyMessageIds;
-  }
-
-  isSaveActive() {
-    return this.activeGeneration !== null;
+  getDirtyMessageIds(currentMessages: MessageEditorMessage[]) {
+    const currentByBlockId = createMessageEditorDocumentIndex(currentMessages).byBlockId;
+    return this.getDirtyMessageIdsFromIndexes(this.getDirtyBlockIds(currentByBlockId), currentByBlockId);
   }
 
   isGenerationActive(generation: number) {
@@ -178,7 +219,7 @@ export class MessageEditorPersistenceCoordinator {
     return context.ready
       && !context.readOnly
       && Boolean(context.docId)
-      && this.dirtySinceLoad;
+      && this.hasJournalChanges();
   }
 
   beginSave(currentMessages: MessageEditorMessage[], context: MessageEditorPersistenceContext): MessageEditorSaveStartResult {
@@ -193,9 +234,8 @@ export class MessageEditorPersistenceCoordinator {
     const submittedMessages = currentMessages;
     if (this.fullDiffRevision > 0) {
       const submittedFingerprint = getMessageEditorSnapshotFingerprint(submittedMessages);
-      if (submittedFingerprint === this.lastSavedFingerprint) {
+      if (submittedFingerprint === this.getBaselineFingerprint()) {
         this.clearChangeJournal();
-        this.dirtySinceLoad = false;
         return { kind: "skipped", reason: "unchanged" };
       }
     }
@@ -207,7 +247,7 @@ export class MessageEditorPersistenceCoordinator {
       return { kind: "skipped", reason: "empty-room" };
     }
 
-    const changeSet = this.createChangeSet();
+    const changeSet = this.createChangeSet(submittedMessages);
     const plan = resolveMessageEditorPersistenceCommitPlan({
       baselineMessages: this.baselineMessages,
       changeSet,
@@ -219,9 +259,8 @@ export class MessageEditorPersistenceCoordinator {
     });
     if (plan.kind === "remote" && plan.operations.length === 0) {
       const submittedFingerprint = getMessageEditorSnapshotFingerprint(submittedMessages);
-      if (submittedFingerprint === this.lastSavedFingerprint) {
+      if (submittedFingerprint === this.getBaselineFingerprint()) {
         this.clearChangeJournal();
-        this.dirtySinceLoad = false;
         return { kind: "skipped", reason: "unchanged" };
       }
     }
@@ -266,13 +305,10 @@ export class MessageEditorPersistenceCoordinator {
 
     this.baselineMessages = savedMessages;
     this.baselineByBlockId = createMessageEditorDocumentIndex(savedMessages).byBlockId;
-    this.lastSavedFingerprint = savedFingerprint;
     this.pruneSubmittedChanges(transaction.submittedRevision);
-    this.replaceCurrentIndex(nextMessages);
-    this.dirtySinceLoad = this.hasJournalChanges();
     return {
       currentChangedAfterSubmit,
-      dirtySinceSave: this.dirtySinceLoad,
+      dirtySinceSave: this.hasJournalChanges(),
       nextMessages,
       savedFingerprint,
       savedMessages,
@@ -284,7 +320,7 @@ export class MessageEditorPersistenceCoordinator {
       return false;
     }
     this.activeGeneration = null;
-    const shouldRequestDeferredSave = this.pendingSaveAfterActive && this.dirtySinceLoad;
+    const shouldRequestDeferredSave = this.pendingSaveAfterActive && this.hasJournalChanges();
     this.pendingSaveAfterActive = false;
     return shouldRequestDeferredSave;
   }
@@ -295,14 +331,15 @@ export class MessageEditorPersistenceCoordinator {
     this.structureRevision = 0;
   }
 
-  private createChangeSet(): MessageEditorPersistenceChangeSet | undefined {
+  private createChangeSet(currentMessages: MessageEditorMessage[]): MessageEditorPersistenceChangeSet | undefined {
     if (this.fullDiffRevision > 0) {
       return undefined;
     }
+    const currentIndex = createMessageEditorDocumentIndex(currentMessages);
     return {
       baselineByBlockId: this.baselineByBlockId,
-      currentByBlockId: this.currentByBlockId,
-      currentIndexByBlockId: this.currentIndexByBlockId,
+      currentByBlockId: currentIndex.byBlockId,
+      currentIndexByBlockId: currentIndex.indexByBlockId,
       dirtyBlockIds: new Set(this.dirtyRevisionByBlockId.keys()),
       structureChanged: this.structureRevision > 0,
     };
@@ -328,30 +365,35 @@ export class MessageEditorPersistenceCoordinator {
     }
   }
 
-  private replaceCurrentIndex(messages: MessageEditorMessage[]) {
-    const nextIndex = createMessageEditorDocumentIndex(messages);
-    this.currentByBlockId = nextIndex.byBlockId;
-    this.currentIndexByBlockId = nextIndex.indexByBlockId;
+  private getBaselineFingerprint() {
+    return getMessageEditorSnapshotFingerprint(this.baselineMessages);
   }
 
-  private updateCurrentIndex(
-    messages: MessageEditorMessage[],
-    changedBlockIds: readonly string[],
-    structureChanged: boolean,
+  private getDirtyBlockIds(currentByBlockId: ReadonlyMap<string, MessageEditorMessage>) {
+    return this.fullDiffRevision > 0
+      ? new Set([...this.baselineByBlockId.keys(), ...currentByBlockId.keys()])
+      : new Set(this.dirtyRevisionByBlockId.keys());
+  }
+
+  private getDirtyMessageIdsFromIndexes(
+    dirtyBlockIds: ReadonlySet<string>,
+    currentByBlockId: ReadonlyMap<string, MessageEditorMessage>,
   ) {
-    if (structureChanged) {
-      this.replaceCurrentIndex(messages);
-      return;
-    }
-
-    for (const blockId of changedBlockIds) {
-      const index = this.currentIndexByBlockId.get(blockId);
-      const message = index === undefined ? undefined : messages[index];
-      if (!message || getMessageEditorBlockId(message) !== blockId) {
-        this.replaceCurrentIndex(messages);
-        return;
+    const dirtyMessageIds = new Set<number>();
+    for (const blockId of dirtyBlockIds) {
+      const message = currentByBlockId.get(blockId) ?? this.baselineByBlockId.get(blockId);
+      const messageId = message?.messageId;
+      if (typeof messageId === "number" && Number.isFinite(messageId)) {
+        dirtyMessageIds.add(messageId);
       }
-      this.currentByBlockId.set(blockId, message);
     }
+    return dirtyMessageIds;
   }
+}
+
+function getRuntimeMessageId(message: MessageEditorMessage) {
+  const messageId = message.messageId;
+  return typeof messageId === "number" && Number.isFinite(messageId)
+    ? messageId
+    : undefined;
 }

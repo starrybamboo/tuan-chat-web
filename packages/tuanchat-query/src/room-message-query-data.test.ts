@@ -2,7 +2,11 @@ import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMe
 
 import { describe, expect, it } from "vitest";
 
-import { extractRoomMessagesFromQueryData, updateRoomMessagesQueryData } from "./room-message-query-data";
+import {
+  extractRoomMessagesFromQueryData,
+  getRoomMessagesQueryKey,
+  updateRoomMessagesQueryData,
+} from "./room-message-query-data";
 
 function createMessage(messageId: number): ChatMessageResponse {
   return {
@@ -21,6 +25,10 @@ function createMessage(messageId: number): ChatMessageResponse {
 }
 
 describe("room-message-query-data", () => {
+  it("shares one stable query key shape across clients", () => {
+    expect(getRoomMessagesQueryKey(9)).toEqual(["getHistoryMessages", 9, 0]);
+  });
+
   it("can read messages from either a raw array or a sync result object", () => {
     const messages = [createMessage(1), createMessage(2)];
 

@@ -108,6 +108,7 @@ export type MessageEditorActions = {
   insertMedia: (
     selection: MessageEditorSelection,
     kind: MessageEditorInsertableBlockKind,
+    options?: { createTrailingTextBlock?: boolean },
   ) => MessageEditorEditTransaction<MessageEditorInsertBlockResult> | null;
   joinNextParagraph: (blockId: string) => MessageEditorEditTransaction<MessageEditorFocusResult> | null;
   joinPreviousParagraph: (blockId: string) => MessageEditorEditTransaction<MessageEditorFocusResult> | null;
@@ -243,8 +244,12 @@ class MessageEditorDocumentActions implements MessageEditorActions {
     return this.createOptionalTransaction("insert-block", this.planner.replaceBlockWithKind(blockId, kind));
   }
 
-  insertMedia(selection: MessageEditorSelection, kind: MessageEditorInsertableBlockKind) {
-    return this.createOptionalTransaction("insert-media", this.planner.insertBlockAtSelection(selection, kind));
+  insertMedia(
+    selection: MessageEditorSelection,
+    kind: MessageEditorInsertableBlockKind,
+    options: { createTrailingTextBlock?: boolean } = {},
+  ) {
+    return this.createOptionalTransaction("insert-media", this.planner.insertBlockAtSelection(selection, kind, options));
   }
 
   joinNextParagraph(blockId: string) {

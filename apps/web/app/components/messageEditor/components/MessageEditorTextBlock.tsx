@@ -293,9 +293,14 @@ function blockClassName(message: MessageEditorMessage, previewKind: ReturnType<t
   return base.join(" ");
 }
 
-function textContentClassName(message: MessageEditorMessage, previewKind: ReturnType<typeof parseMessageEditorMarkdownPreview>["kind"]) {
+function textContentClassName(
+  message: MessageEditorMessage,
+  previewKind: ReturnType<typeof parseMessageEditorMarkdownPreview>["kind"],
+  readOnly: boolean,
+) {
   return [
     "min-h-7 whitespace-pre-wrap break-words text-base leading-7 [word-break:normal] outline-none",
+    readOnly ? "cursor-default" : "cursor-text",
     message.messageType === MESSAGE_TYPE.INTRO_TEXT ? "text-white" : "",
     previewKind === "heading1" ? "text-3xl font-semibold leading-tight" : "",
     previewKind === "heading2" ? "text-2xl font-semibold leading-tight" : "",
@@ -410,7 +415,7 @@ export const MessageEditorTextBlock = memo(function MessageEditorTextBlock({
   }, [blockId, content, effectiveTextInputRef, registerBlockRef, viewMode]);
 
   // 预览模型：Markdown 标记只在 preview 状态消费，source 状态始终展示原始文本。
-  const contentClassName = textContentClassName(message, previewKind);
+  const contentClassName = textContentClassName(message, previewKind, readOnly);
   const previewContent = previewKind === "paragraph" ? content : preview.content;
   const previewNode = (
     <EditableMessageContent

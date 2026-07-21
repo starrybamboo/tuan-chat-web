@@ -9,6 +9,7 @@ import {
   createMessageEditorTextRunSelection,
   getAdjacentMessageEditorDocumentBlockPoint,
   getAdjacentMessageEditorTextBlockPoint,
+  getAdjacentMessageEditorVerticalTextBlockPoint,
   getMessageEditorSelectionText,
   moveMessageEditorDocumentPointByCharacter,
   moveMessageEditorTextPointByCharacter,
@@ -316,6 +317,28 @@ describe("messageEditorSelection", () => {
     }, -1)).toEqual({
       blockId: getMessageEditorBlockId(first),
       offset: 1,
+    });
+  });
+
+  it("moves vertically across paragraph boundaries by direction", () => {
+    const first = createMessageEditorTextDraft({ content: "previous" });
+    const empty = createMessageEditorTextDraft({ content: "" });
+    const messages = [first, empty];
+    const registry = createMessageEditorRegistry();
+
+    expect(getAdjacentMessageEditorVerticalTextBlockPoint(messages, registry, {
+      blockId: getMessageEditorBlockId(empty),
+      offset: 0,
+    }, -1)).toEqual({
+      blockId: getMessageEditorBlockId(first),
+      offset: "previous".length,
+    });
+    expect(getAdjacentMessageEditorVerticalTextBlockPoint(messages, registry, {
+      blockId: getMessageEditorBlockId(first),
+      offset: "previous".length,
+    }, 1)).toEqual({
+      blockId: getMessageEditorBlockId(empty),
+      offset: 0,
     });
   });
 });

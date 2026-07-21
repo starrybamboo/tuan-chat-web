@@ -325,6 +325,22 @@ export function getAdjacentMessageEditorTextBlockPoint(
   };
 }
 
+/** 跨文本块垂直移动光标：向上落到前一块末尾，向下落到后一块开头。 */
+export function getAdjacentMessageEditorVerticalTextBlockPoint(
+  messages: MessageEditorMessage[],
+  registry: MessageEditorRegistry,
+  point: MessageEditorSelectionPoint,
+  direction: -1 | 1,
+): MessageEditorSelectionPoint | null {
+  return getAdjacentMessageEditorTextBlockPoint(
+    messages,
+    registry,
+    point,
+    direction,
+    direction < 0 ? Number.MAX_SAFE_INTEGER : 0,
+  );
+}
+
 function findMessageIndex(
   messages: MessageEditorMessage[],
   blockId: string,
