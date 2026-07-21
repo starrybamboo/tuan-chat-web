@@ -1,6 +1,8 @@
 import { mergeRoomMessagesForLocalState } from "@tuanchat/query/room-message-lifecycle";
 import { describe, expect, it } from "vitest";
 
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
 import type { ChatMessageResponse } from "../../../../../api";
 
 import {
@@ -55,6 +57,26 @@ describe("useChatHistory 乐观消息渲染 key", () => {
     );
 
     expect(result.map(item => item.message.content)).toEqual(["本地内容", "远端新增"]);
+  });
+
+  it("远端增量缺少 editor 尺寸时保留当前媒体块的本地布局", () => {
+    const local = createMessageResponse({
+      extra: { videoMessage: { editorHeight: 405, editorWidth: 720, fileId: 7, height: 1080, width: 1920 } } as any,
+      messageId: 7,
+      messageType: MESSAGE_TYPE.VIDEO,
+    });
+    const remote = createMessageResponse({
+      extra: { videoMessage: { fileId: 7, height: 1080, width: 1920 } } as any,
+      messageId: 7,
+      messageType: MESSAGE_TYPE.VIDEO,
+      syncId: 8,
+    });
+
+    const [merged] = mergeIncomingRoomMessagesWithEditorWorkingState([local], [remote], new Set());
+
+    expect(merged.message.syncId).toBe(8);
+    expect((merged.message.extra?.videoMessage as { editorHeight?: number; editorWidth?: number } | undefined)?.editorHeight).toBe(405);
+    expect((merged.message.extra?.videoMessage as { editorHeight?: number; editorWidth?: number } | undefined)?.editorWidth).toBe(720);
   });
 
   it("保存确认到达 completeSave 前不会用旧值或 tombstone 覆盖 dirty 工作消息", () => {

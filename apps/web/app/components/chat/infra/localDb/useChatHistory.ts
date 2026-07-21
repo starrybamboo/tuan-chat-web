@@ -17,6 +17,8 @@ import {
 } from "@tuanchat/query/room-message-query-data";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { mergeMessageEditorMediaLayouts } from "@/components/messageEditor/model/messageEditorTransforms";
+
 import type { ChatMessageResponse } from "../../../../../api";
 
 import { tuanchat } from "../../../../../api/instance";
@@ -113,16 +115,35 @@ export function mergeLoadedRoomHistory(
   return mergeRoomMessagesForLocalState(localHistory, currentRoomMessages);
 }
 
+/** 远端投影缺少编辑器专用布局时，保留同一消息的本地媒体尺寸。 */
+function retainIncomingRoomMessageMediaLayouts(
+  currentMessages: ChatMessageResponse[],
+  incomingMessages: ChatMessageResponse[],
+) {
+  const currentMessagesById = new Map(currentMessages.map(item => [item.message.messageId, item.message]));
+  return incomingMessages.map((item) => {
+    const currentMessage = currentMessagesById.get(item.message.messageId);
+    if (!currentMessage) {
+      return item;
+    }
+    const [message] = mergeMessageEditorMediaLayouts([item.message], [currentMessage]);
+    return message === item.message ? item : { ...item, message: message as ChatMessageResponse["message"] };
+  });
+}
+
 /** 合并远端增量，同时保护编辑器仍标记为 dirty 的同 ID 消息。 */
 export function mergeIncomingRoomMessagesWithEditorWorkingState(
   currentMessages: ChatMessageResponse[],
   incomingMessages: ChatMessageResponse[],
   dirtyMessageIds: ReadonlySet<number>,
 ) {
-  const mergeableMessages = incomingMessages.filter((item) => {
-    const messageId = item.message?.messageId;
-    return typeof messageId !== "number" || !dirtyMessageIds.has(messageId);
-  });
+  const mergeableMessages = retainIncomingRoomMessageMediaLayouts(
+    currentMessages,
+    incomingMessages.filter((item) => {
+      const messageId = item.message?.messageId;
+      return typeof messageId !== "number" || !dirtyMessageIds.has(messageId);
+    }),
+  );
   return mergeRoomMessagesForLocalState(currentMessages, mergeableMessages);
 }
 
@@ -333,7 +354,11 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       // 先更新 Query 工作投影
       // 由于获取消息是异步的，这里的roomId可能是过时的，所以要检查一下。
       const currentRoomId = roomIdRef.current;
-      const roomScopedMessages = newMessages.filter(msg => msg.message.roomId === currentRoomId);
+      const currentRoomMessages = currentRoomId === null ? EMPTY_ROOM_MESSAGES : getCurrentRoomMessages(currentRoomId);
+      const messagesWithLocalLayouts = currentRoomId === null
+        ? newMessages
+        : retainIncomingRoomMessageMediaLayouts(currentRoomMessages, newMessages);
+      const roomScopedMessages = messagesWithLocalLayouts.filter(msg => msg.message.roomId === currentRoomId);
       if (currentRoomId !== null && roomScopedMessages.length > 0) {
         updateRoomMessages(currentRoomId, (prevMessages) => {
           const nextMessages = mergeIncomingRoomMessagesWithEditorWorkingState(
@@ -359,8 +384,8 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       // SQLite 只持久化服务端确认投影与负 ID 发送 pending；编辑、移动、删除的乐观态只留在内存。
       try {
         const db = await loadChatHistoryDb();
-        const pendingMessages = newMessages.filter(message => isLocalRoomMessage(message.message));
-        const confirmedMessages = newMessages.filter(message => !isLocalRoomMessage(message.message));
+        const pendingMessages = messagesWithLocalLayouts.filter(message => isLocalRoomMessage(message.message));
+        const confirmedMessages = messagesWithLocalLayouts.filter(message => !isLocalRoomMessage(message.message));
         await db.addPendingRoomMessages(pendingMessages);
         if (confirmedMessages.length > 0) {
           await db.addOrUpdateMessagesBatch(confirmedMessages);
@@ -368,7 +393,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         const duplicateIds = collectPersistedOptimisticDuplicateIds(
           mergeRoomMessagesForLocalState(
             currentRoomId === null ? EMPTY_ROOM_MESSAGES : getCurrentRoomMessages(currentRoomId),
-            newMessages,
+            messagesWithLocalLayouts,
           ),
         );
         if (duplicateIds.length > 0) {

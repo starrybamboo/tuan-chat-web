@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { MessageEditorMessage } from "../../messageEditorTypes";
 
+import { createMessageEditorBlockDraft, setMessageEditorUploadedMedia, updateMessageEditorMediaSize } from "../../model/messageEditorTransforms";
 import {
   RoomDocumentEditSession,
   RoomDocumentEditSessionRunner,
@@ -80,6 +81,30 @@ describe("RoomDocumentEditSession", () => {
     expect(session.acknowledge(1, [confirmed], 250)).toBe(false);
     expect(session.getSnapshot().messages[0]).toMatchObject({ content: "newer", messageId: 88, syncId: 99 });
     expect(session.getSnapshot().progress?.phase).toBe("editing");
+  });
+
+  it("retains resized media layout when a clean session accepts a remote refresh", () => {
+    const resized = Object.assign(updateMessageEditorMediaSize(setMessageEditorUploadedMedia(
+      createMessageEditorBlockDraft("video"),
+      { fileId: 47, fileName: "clip.webm", height: 1080, mediaType: "video", size: 4096, width: 1920 },
+    ), { height: 405, width: 720 }), {
+      messageId: 47,
+      position: 1,
+      roomId: 10,
+      syncId: 47,
+      userId: 1,
+    });
+    const session = new RoomDocumentEditSession({ identity: { roomId: 10, userId: 1 }, messages: [resized] });
+    const remote = {
+      ...resized,
+      extra: { videoMessage: { fileId: 47, fileName: "clip.webm", height: 1080, mediaType: "video", size: 4096, width: 1920 } },
+      syncId: 48,
+    };
+
+    session.acceptBase([remote]);
+
+    expect(session.getSnapshot().messages[0]?.syncId).toBe(48);
+    expect((session.getSnapshot().messages[0]?.extra?.videoMessage as { editorWidth?: number } | undefined)?.editorWidth).toBe(720);
   });
 
   it("continues cloud sync when the first SQLite write fails", async () => {

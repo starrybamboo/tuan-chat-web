@@ -1,6 +1,9 @@
 import type { MessageEditorMessage, MessageEditorRoomSyncProgress } from "../messageEditorTypes";
 
-import { getMessageEditorBlockId } from "../model/messageEditorTransforms";
+import {
+  getMessageEditorBlockId,
+  mergeMessageEditorMediaLayouts,
+} from "../model/messageEditorTransforms";
 
 export type RoomDocumentEditSessionIdentity = Readonly<{ roomId: number; userId: number }>;
 
@@ -135,8 +138,11 @@ export class RoomDocumentEditSession {
   }
 
   acceptBase(messages: MessageEditorMessage[]) {
-    this.baseMessages = messages;
-    if (!this.isDirty() && !this.localCachePending) this.workingMessages = messages;
+    // Remote message projections do not retain editor-only media dimensions. Keep the
+    // local layout when a clean document receives a WebSocket/Query refresh.
+    const nextBaseMessages = mergeMessageEditorMediaLayouts(messages, this.workingMessages);
+    this.baseMessages = nextBaseMessages;
+    if (!this.isDirty() && !this.localCachePending) this.workingMessages = nextBaseMessages;
   }
 
   restore(snapshot: RoomDocumentEditSessionSnapshot, now: number) {
