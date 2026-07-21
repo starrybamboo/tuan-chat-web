@@ -40,7 +40,7 @@ export type MessageEditorPersistenceChangeSet = {
 };
 
 const MESSAGE_EDITOR_LOCAL_SAVE_DELAY_MS = 500;
-const MESSAGE_EDITOR_REMOTE_SYNC_DELAY_MS = 10000;
+const MESSAGE_EDITOR_REMOTE_SYNC_DELAY_MS = 2000;
 
 type RuntimeMessageLike = MessageEditorMessage & Partial<Message>;
 
@@ -561,26 +561,13 @@ export function mergeChangedRoomMessagesIntoEditorMessages(params: {
   currentMessages: MessageEditorMessage[];
   operations: RoomMessageStreamPatchOperation[];
 }): MessageEditorMessage[] {
-  const insertedByClientId = new Map<string, Message>();
-  const changedByMessageId = new Map<number, Message>();
+  const { insertedByClientId, changedByMessageId } = matchRoomPatchResponseMessages(params);
   const deletedMessageIds = new Set<number>();
-  params.operations.forEach((operation, index) => {
-    const changedMessage = params.changedMessages[index];
-    if (!changedMessage) {
-      return;
-    }
-    if (operation.op === "insert" && operation.clientId) {
-      insertedByClientId.set(operation.clientId, changedMessage);
-      return;
-    }
-    if (typeof operation.messageId !== "number") {
-      return;
-    }
+  params.operations.forEach((operation) => {
+    if (typeof operation.messageId !== "number") return;
     if (operation.op === "delete") {
       deletedMessageIds.add(operation.messageId);
-      return;
     }
-    changedByMessageId.set(operation.messageId, changedMessage);
   });
 
   const merged = params.currentMessages
@@ -588,15 +575,21 @@ export function mergeChangedRoomMessagesIntoEditorMessages(params: {
     .map((message) => {
       const blockId = getMessageEditorBlockId(message);
       const runtimeMessageId = getRuntimeMessageId(message);
-      const changedMessage = insertedByClientId.get(blockId)
+      const insertedMessage = insertedByClientId.get(blockId);
+      const changedMessage = insertedMessage
         ?? (runtimeMessageId !== undefined ? changedByMessageId.get(runtimeMessageId) : undefined);
       if (!changedMessage) {
         return message;
       }
-      return inheritMessageEditorRuntimeBlockId(message, {
+      const nextMessage = inheritMessageEditorRuntimeBlockId(message, {
         ...message,
         ...changedMessage,
       });
+      if (insertedMessage) {
+        delete nextMessage.tcLocalSyncState;
+        delete nextMessage.tcMessageEditorDraft;
+      }
+      return nextMessage;
     });
 
   return merged;
@@ -611,24 +604,15 @@ export function mergeChangedRoomMessageRuntimeIntoEditorMessages(params: {
   currentMessages: MessageEditorMessage[];
   operations: RoomMessageStreamPatchOperation[];
 }): MessageEditorMessage[] {
-  const insertedByClientId = new Map<string, Message>();
-  const changedByMessageId = new Map<number, Message>();
+  const { insertedByClientId, changedByMessageId } = matchRoomPatchResponseMessages(params);
   const deletedMessageIds = new Set<number>();
-  params.operations.forEach((operation, index) => {
-    const changedMessage = params.changedMessages[index];
-    if (operation.op === "insert" && operation.clientId && changedMessage) {
-      insertedByClientId.set(operation.clientId, changedMessage);
-      return;
-    }
+  params.operations.forEach((operation) => {
     if (typeof operation.messageId !== "number") {
       return;
     }
     if (operation.op === "delete") {
       deletedMessageIds.add(operation.messageId);
       return;
-    }
-    if (changedMessage) {
-      changedByMessageId.set(operation.messageId, changedMessage);
     }
   });
 
@@ -642,7 +626,8 @@ export function mergeChangedRoomMessageRuntimeIntoEditorMessages(params: {
       return nextMessage;
     }
 
-    const changedMessage = insertedByClientId.get(getMessageEditorBlockId(message))
+    const insertedMessage = insertedByClientId.get(getMessageEditorBlockId(message));
+    const changedMessage = insertedMessage
       ?? (runtimeMessageId !== undefined ? changedByMessageId.get(runtimeMessageId) : undefined);
     if (!changedMessage) {
       return message;
@@ -654,6 +639,47 @@ export function mergeChangedRoomMessageRuntimeIntoEditorMessages(params: {
         Object.assign(nextMessage, { [key]: changedMessage[key] });
       }
     }
+    if (insertedMessage) {
+      delete nextMessage.tcLocalSyncState;
+      delete nextMessage.tcMessageEditorDraft;
+    }
     return nextMessage;
   });
+}
+
+/**
+ * 批量接口不承诺响应数组顺序。已有 messageId 的操作按 ID 对应；insert 仅接受
+ * 在响应中可由提交内容唯一识别的结果，避免按下标把 A 块的服务端身份交给 B 块。
+ */
+function matchRoomPatchResponseMessages(params: {
+  changedMessages: Message[];
+  operations: RoomMessageStreamPatchOperation[];
+}) {
+  const changedByMessageId = new Map<number, Message>();
+  const unmatched = new Set(params.changedMessages);
+  params.changedMessages.forEach((message) => {
+    if (typeof message.messageId === "number") changedByMessageId.set(message.messageId, message);
+  });
+  const insertedByClientId = new Map<string, Message>();
+  const insertCount = params.operations.filter(operation => operation.op === "insert" && operation.clientId && operation.message).length;
+  for (const operation of params.operations) {
+    if (operation.op !== "insert" || !operation.clientId || !operation.message) continue;
+    const candidates = [...unmatched].filter((message) => {
+      return message.messageType === operation.message?.messageType
+        && message.content === operation.message?.content
+        && message.position === operation.position;
+    });
+    const matched = candidates.length === 1
+      ? candidates[0]
+      // 单一 insert 的唯一未消费响应不存在串块风险；服务端可能规范化正文。
+      : insertCount === 1 && unmatched.size === 1
+        ? [...unmatched][0]
+        : undefined;
+    if (!matched) {
+      throw new Error("插入消息响应无法唯一确认");
+    }
+    insertedByClientId.set(operation.clientId, matched);
+    unmatched.delete(matched);
+  }
+  return { changedByMessageId, insertedByClientId };
 }

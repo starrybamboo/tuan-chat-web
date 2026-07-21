@@ -47,6 +47,24 @@ function withRuntimeMessage(
 }
 
 describe("messageEditorPersistencePolicy", () => {
+  it("matches reversed batch insert responses by content and position instead of array index", () => {
+    const first = createMessageEditorTextDraft({ content: "first" });
+    const second = createMessageEditorTextDraft({ content: "second" });
+    const merged = mergeChangedRoomMessagesIntoEditorMessages({
+      changedMessages: [
+        { content: "second", messageId: 202, messageType: MESSAGE_TYPE.TEXT, position: 2, roomId: 7, status: 0, syncId: 2, userId: 1 },
+        { content: "first", messageId: 201, messageType: MESSAGE_TYPE.TEXT, position: 1, roomId: 7, status: 0, syncId: 1, userId: 1 },
+      ],
+      currentMessages: [first, second],
+      operations: [
+        { clientId: getMessageEditorBlockId(first), message: first, op: "insert", position: 1 },
+        { clientId: getMessageEditorBlockId(second), message: second, op: "insert", position: 2 },
+      ],
+    });
+    expect((merged[0] as MessageEditorMessage & { messageId?: number }).messageId).toBe(201);
+    expect((merged[1] as MessageEditorMessage & { messageId?: number }).messageId).toBe(202);
+  });
+
   it("uses local snapshots only when the document type allows them", () => {
     expect(resolveMessageEditorLocalSnapshotDocId({
       docId: "doc-1",
@@ -267,7 +285,7 @@ describe("messageEditorPersistencePolicy", () => {
 
   it("resolves save delays for local snapshots and remote room sync", () => {
     expect(resolveMessageEditorPersistenceDelayMs({ isRoomDocument: false })).toBe(500);
-    expect(resolveMessageEditorPersistenceDelayMs({ isRoomDocument: true })).toBe(10000);
+    expect(resolveMessageEditorPersistenceDelayMs({ isRoomDocument: true })).toBe(2000);
   });
 
   it("resolves load fallback from seeded document messages or the current draft", () => {

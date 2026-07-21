@@ -116,6 +116,7 @@ describe("messageEditorAtomicBlock", () => {
     expect(audioHtml).toContain("删除");
     expect(videoHtml).toContain("点击上传视频");
     expect(videoHtml).toContain("删除");
+    expect(videoHtml).toContain("w-2/3");
   });
 
   it("renders an uploaded image with replace, delete, and resize actions", () => {
@@ -157,6 +158,7 @@ describe("messageEditorAtomicBlock", () => {
     expect(html).toContain("https://media.tuan.chat/media/v1/files/047/47/video/low.webm");
     expect(html).toContain('data-has-error-handler="true"');
     expect(html).toContain('data-video-aspect-ratio="1.7777777777777777"');
+    expect(html).toContain("w-2/3");
   });
 
   it("restores the persisted resized width for image and video blocks", () => {
@@ -188,6 +190,7 @@ describe("messageEditorAtomicBlock", () => {
 
     expect(imageHtml).toContain("width:640px");
     expect(videoHtml).toContain("width:720px");
+    expect(videoHtml).not.toContain("w-2/3");
     expect(videoHtml).toContain('data-video-aspect-ratio="1.7777777777777777"');
   });
 

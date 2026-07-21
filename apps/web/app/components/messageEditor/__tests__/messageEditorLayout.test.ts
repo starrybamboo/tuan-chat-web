@@ -5,6 +5,7 @@ import {
   getMessageEditorMediaFrameClassName,
   MESSAGE_EDITOR_BLOCK_WIDTH_CLASS,
   MESSAGE_EDITOR_DEFAULT_IMAGE_WIDTH_CLASS,
+  MESSAGE_EDITOR_DEFAULT_VIDEO_WIDTH_CLASS,
   MESSAGE_EDITOR_HEADER_CONTENT_WIDTH_CLASS,
 } from "../messageEditorLayout";
 
@@ -29,6 +30,7 @@ describe("messageEditorLayout", () => {
     const className = getMessageEditorMediaFrameClassName({
       hasCustomWidth: false,
       isImage: true,
+      isVideo: false,
     });
 
     expect(MESSAGE_EDITOR_DEFAULT_IMAGE_WIDTH_CLASS).toBe("w-1/2 max-w-full");
@@ -36,14 +38,22 @@ describe("messageEditorLayout", () => {
     expect(className).toContain("border-base-300/60");
   });
 
-  it("preserves custom image widths and the existing full-width video default", () => {
+  it("uses two-thirds width for videos while preserving persisted media widths", () => {
     expect(getMessageEditorMediaFrameClassName({
       hasCustomWidth: true,
       isImage: true,
+      isVideo: false,
     })).not.toContain("w-1/2");
+    expect(MESSAGE_EDITOR_DEFAULT_VIDEO_WIDTH_CLASS).toBe("w-2/3 max-w-full");
     expect(getMessageEditorMediaFrameClassName({
       hasCustomWidth: false,
       isImage: false,
-    })).not.toContain("w-1/2");
+      isVideo: true,
+    })).toContain(MESSAGE_EDITOR_DEFAULT_VIDEO_WIDTH_CLASS);
+    expect(getMessageEditorMediaFrameClassName({
+      hasCustomWidth: true,
+      isImage: false,
+      isVideo: true,
+    })).not.toContain("w-2/3");
   });
 });

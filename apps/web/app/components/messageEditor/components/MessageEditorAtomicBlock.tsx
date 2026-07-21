@@ -1,7 +1,11 @@
+import {
+  ArrowClockwiseIcon,
+  CircleNotchIcon,
+  FilmSlateIcon,
+  ImageBrokenIcon,
+  MusicNotesIcon,
+} from "@phosphor-icons/react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-import { ArrowClockwiseIcon } from "@phosphor-icons/react";
-import { CircleNotchIcon, FilmSlateIcon, ImageBrokenIcon, MusicNotesIcon } from "@phosphor-icons/react";
 
 import CachedVideoMessage, { DEFAULT_CACHED_VIDEO_ASPECT_RATIO } from "@/components/chat/message/media/CachedVideoMessage";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
@@ -17,6 +21,7 @@ import type { MessageEditorMessage } from "../messageEditorTypes";
 import {
   getMessageEditorMediaFrameClassName,
   MESSAGE_EDITOR_DEFAULT_IMAGE_WIDTH_CLASS,
+  MESSAGE_EDITOR_DEFAULT_VIDEO_WIDTH_CLASS,
 } from "../messageEditorLayout";
 import { isMessageEditorFileDrag, isMessageEditorUploadableMediaMessage } from "../runtime/messageEditorFileDrop";
 
@@ -601,7 +606,11 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
   };
 
   const renderEmptyUploadBlock = () => (
-    <div className={isImageBlock ? MESSAGE_EDITOR_DEFAULT_IMAGE_WIDTH_CLASS : ""}>
+    <div className={isImageBlock
+      ? MESSAGE_EDITOR_DEFAULT_IMAGE_WIDTH_CLASS
+      : isVideoBlock
+        ? MESSAGE_EDITOR_DEFAULT_VIDEO_WIDTH_CLASS
+        : ""}>
       <div className="mb-1 flex items-center justify-between gap-2">
         <div className="text-xs font-medium text-base-content/55">{uploadMeta.title}</div>
         {!readOnly && (
@@ -691,10 +700,11 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
 
   const renderUploadingMediaBlock = () => (
     <div
-      className="
+      className={`
         flex min-h-24 items-center justify-center gap-2 rounded-md border
         border-dashed border-info/35 bg-info/5 px-4 py-4 text-sm text-base-content/60
-      "
+        ${isVideoBlock ? MESSAGE_EDITOR_DEFAULT_VIDEO_WIDTH_CLASS : ""}
+      `}
       role="status"
       aria-live="polite"
     >
@@ -718,6 +728,7 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
                 className={getMessageEditorMediaFrameClassName({
                   hasCustomWidth: displayWidth !== null,
                   isImage: isImageBlock,
+                  isVideo: isVideoBlock,
                 })}
                 style={displayWidth !== null ? { maxWidth: "100%", width: `${displayWidth}px` } : undefined}
               >

@@ -1,5 +1,6 @@
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { useLocation } from "@tanstack/react-router";
+import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
 import React from "react";
 
 import type { UseChatHistoryReturn } from "@/components/chat/infra/localDb/useChatHistory";
@@ -7,11 +8,24 @@ import type { MessageEditorMessage } from "@/components/messageEditor/messageEdi
 
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
 import useChatFrameMessages from "@/components/chat/hooks/useChatFrameMessages";
+import {
+  loadRoomDocumentOverlay,
+  removeRoomDocumentOverlay,
+  saveRoomDocumentOverlay,
+} from "@/components/chat/infra/localDb/chatHistoryDb";
 import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
 import RoomWindowLoadingState from "@/components/chat/room/roomWindowLoadingState";
 import { IconButton } from "@/components/common/IconButton";
 import { StateView } from "@/components/common/StateView";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import MessageEditor from "@/components/messageEditor/MessageEditor";
+import {
+  type RoomDocumentCloudSave,
+  RoomDocumentEditSession,
+  RoomDocumentEditSessionRunner,
+  type RoomDocumentEditSessionSnapshot,
+} from "@/components/messageEditor/runtime/roomDocumentEditSession";
+import { createRoomDocumentPatchGateway } from "@/components/messageEditor/runtime/roomDocumentPatchGateway";
 import FriendsListPanel from "@/components/privateChat/components/FriendsListPanel";
 import NewFriendsPanel from "@/components/privateChat/components/NewFriendsPanel";
 import RightChatView from "@/components/privateChat/RightChatView";
@@ -208,15 +222,170 @@ type ChatPageDocContentProps = {
   onBack?: () => void;
   showToolbar?: boolean;
   readOnly?: boolean;
-  initialMessages?: Message[];
   onRequestImportTextPaste?: (text: string, insertAsPlainText: () => void) => void;
   onRemoteMessagesSaved?: (messages: Message[]) => void | Promise<void>;
-  chatHistory?: UseChatHistoryReturn | null;
+  chatHistory?: UseChatHistoryReturn;
   tcHeaderTitle?: string;
   tcHeaderImageUrl?: string;
   tcHeaderImageFileId?: number;
   tcHeaderOriginalImageFileId?: number;
   tcHeaderImageMediaType?: string;
+}
+
+function useRoomDocumentOverlay(params: {
+  baseMessages: MessageEditorMessage[];
+  commitConfirmedMessages: (messages: MessageEditorMessage[]) => Promise<void>;
+  reconcileAmbiguousInsert?: (save: RoomDocumentCloudSave) => Promise<MessageEditorMessage[] | null>;
+  roomId: number | null;
+  userId: number | null;
+}) {
+  const { baseMessages, commitConfirmedMessages, reconcileAmbiguousInsert, roomId, userId } = params;
+  const sessionRef = React.useRef<RoomDocumentEditSession | null>(null);
+  const runnerRef = React.useRef<RoomDocumentEditSessionRunner | null>(null);
+  const gatewayRef = React.useRef(createRoomDocumentPatchGateway());
+  const identityKey = roomId && userId ? `${userId}:${roomId}` : null;
+  const [messages, setMessages] = React.useState<MessageEditorMessage[]>(baseMessages);
+  const [deletedCount, setDeletedCount] = React.useState(0);
+  const [sessionSnapshot, setSessionSnapshot] = React.useState<RoomDocumentEditSessionSnapshot | null>(null);
+  const overlayRepository = React.useMemo(() => ({
+    async load(identity: { roomId: number; userId: number }) {
+      const entry = await loadRoomDocumentOverlay<RoomDocumentEditSessionSnapshot>(identity.userId, identity.roomId);
+      return entry ? { ...entry.payload, localCachePending: entry.localCachePending } : null;
+    },
+    remove(identity: { roomId: number; userId: number }) {
+      return removeRoomDocumentOverlay(identity.userId, identity.roomId);
+    },
+    save(snapshot: RoomDocumentEditSessionSnapshot) {
+      return saveRoomDocumentOverlay({
+        localCachePending: snapshot.localCachePending === true,
+        payload: snapshot,
+        revision: snapshot.revision,
+        roomId: snapshot.identity.roomId,
+        userId: snapshot.identity.userId,
+      });
+    },
+  }), []);
+
+  if (identityKey && (!sessionRef.current || `${sessionRef.current.identity.userId}:${sessionRef.current.identity.roomId}` !== identityKey)) {
+    sessionRef.current = new RoomDocumentEditSession({
+      identity: { roomId: roomId!, userId: userId! },
+      messages: baseMessages,
+    });
+  }
+
+  React.useEffect(() => {
+    const session = sessionRef.current;
+    if (!session || !identityKey) {
+      setMessages(baseMessages);
+      return;
+    }
+    session.acceptBase(baseMessages);
+    const snapshot = session.getSnapshot();
+    setMessages(snapshot.messages);
+    setSessionSnapshot(snapshot);
+  }, [baseMessages, identityKey]);
+
+  React.useEffect(() => {
+    const session = sessionRef.current;
+    if (!session || !identityKey) return;
+    let active = true;
+    void overlayRepository.load(session.identity)
+      .then((snapshot) => {
+        if (active && snapshot && session.restore(snapshot, Date.now())) {
+          const restoredSnapshot = session.getSnapshot();
+          setMessages(restoredSnapshot.messages);
+          setSessionSnapshot(restoredSnapshot);
+          runnerRef.current?.wake();
+        }
+      })
+      .catch(error => console.error("[room-document] SQLite overlay load failed", error));
+    return () => { active = false; };
+  }, [identityKey, overlayRepository]);
+
+  React.useEffect(() => {
+    const session = sessionRef.current;
+    if (!session || !identityKey) return;
+    const runner = new RoomDocumentEditSessionRunner({
+      clock: { now: () => Date.now() },
+      classifyFailure: (save, error) => {
+        if (error instanceof ApiError && error.status < 500) return "error";
+        return save.messages.some((message) => {
+          const messageId = (message as Partial<Message>).messageId;
+          return messageId == null || messageId <= 0;
+        }) ? "ambiguous" : "retry";
+      },
+      commitConfirmedMessages,
+      gateway: gatewayRef.current,
+      onSnapshot: (snapshot) => {
+        if (sessionRef.current !== session) return;
+        setMessages(snapshot.messages);
+        setSessionSnapshot(snapshot);
+        if (snapshot.state === "clean") setDeletedCount(0);
+      },
+      overlayRepository,
+      reconcileAmbiguousInsert,
+      scheduler: {
+        clear: timer => window.clearTimeout(timer as number),
+        schedule: (callback, delayMs) => window.setTimeout(callback, delayMs),
+      },
+      session,
+    });
+    runnerRef.current = runner;
+    runner.start();
+    const retryNow = () => {
+      session.retry(Date.now());
+      runner.wake();
+    };
+    window.addEventListener("online", retryNow);
+    const retryWhenVisible = () => {
+      if (document.visibilityState === "visible") retryNow();
+    };
+    document.addEventListener("visibilitychange", retryWhenVisible);
+    return () => {
+      runner.stop();
+      if (runnerRef.current === runner) runnerRef.current = null;
+      window.removeEventListener("online", retryNow);
+      document.removeEventListener("visibilitychange", retryWhenVisible);
+    };
+  }, [commitConfirmedMessages, identityKey, overlayRepository, reconcileAmbiguousInsert]);
+
+  const change = React.useCallback((nextMessages: MessageEditorMessage[]) => {
+    const session = sessionRef.current;
+    if (!session) {
+      setMessages(nextMessages);
+      return;
+    }
+    session.edit(nextMessages, Date.now());
+    const snapshot = session.getSnapshot();
+    setMessages(snapshot.messages);
+    setSessionSnapshot(snapshot);
+    runnerRef.current?.wake();
+  }, []);
+  const clear = React.useCallback(() => {
+    const session = sessionRef.current;
+    if (!session) return;
+    setDeletedCount(session.getSnapshot().messages.length);
+    session.clear([], Date.now());
+    const snapshot = session.getSnapshot();
+    setMessages(snapshot.messages);
+    setSessionSnapshot(snapshot);
+    runnerRef.current?.wake();
+  }, []);
+  const currentIdentity = sessionRef.current?.identity;
+  const snapshot = sessionSnapshot && currentIdentity
+    && sessionSnapshot.identity.roomId === currentIdentity.roomId
+    && sessionSnapshot.identity.userId === currentIdentity.userId
+    ? sessionSnapshot
+    : sessionRef.current?.getSnapshot();
+  return {
+    change,
+    clear,
+    deletedCount,
+    messages,
+    problemBlockIds: new Set(snapshot?.problemBlockIds),
+    progress: snapshot?.progress ?? { phase: "idle" as const },
+    state: snapshot?.state ?? "clean",
+  };
 }
 
 export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
@@ -233,32 +402,67 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
   const handleBack = props.onBack;
   const onRemoteMessagesSaved = props.onRemoteMessagesSaved;
   const showToolbar = props.showToolbar ?? true;
-  const initialMessages = props.initialMessages ?? EMPTY_DOC_MESSAGES;
   const resolvedDocRoomId = resolvedDocId && /^\d+$/.test(resolvedDocId) ? Number(resolvedDocId) : null;
+  const userId = useGlobalUserId();
   const isRoomDocument = Boolean(canViewDocs && resolvedDocRoomId);
-  const useProvidedRoomHistory = Boolean(isRoomDocument && props.chatHistory);
-  const localRoomHistory = useChatHistory(useProvidedRoomHistory ? null : resolvedDocRoomId);
-  const roomHistory = useProvidedRoomHistory ? props.chatHistory : localRoomHistory;
-  const commitEditorMessages = roomHistory?.commitEditorMessages;
-  const replaceMessagesFromEditor = roomHistory?.replaceMessagesFromEditor;
+  const providedRoomHistory = isRoomDocument ? props.chatHistory : undefined;
+  const localRoomHistory = useChatHistory(providedRoomHistory ? null : resolvedDocRoomId);
+  const roomHistory = providedRoomHistory ?? localRoomHistory;
+  const commitEditorMessages = roomHistory.commitEditorMessages;
+  const getRoomMessagesByRoomId = roomHistory.getMessagesByRoomId;
   const roomDocMessages = React.useMemo(() => {
     if (!isRoomDocument) {
-      return initialMessages;
+      return EMPTY_DOC_MESSAGES;
     }
 
-    const cachedMessages = (roomHistory?.messages ?? [])
+    const cachedMessages = roomHistory.messages
       .map(item => item.message)
       .filter((item): item is Message => Boolean(item));
 
-    return cachedMessages.length > 0 || roomHistory?.loading === false ? cachedMessages : initialMessages;
-  }, [initialMessages, isRoomDocument, roomHistory?.loading, roomHistory?.messages]);
+    return cachedMessages;
+  }, [isRoomDocument, roomHistory.messages]);
+  const reconcileAmbiguousInsert = React.useCallback(async (save: RoomDocumentCloudSave) => {
+    const pendingMessages = save.messages.filter((message) => {
+      const messageId = (message as Partial<Message>).messageId;
+      return messageId == null || messageId <= 0;
+    });
+    if (pendingMessages.length === 0) return null;
+    const fetched = await getRoomMessagesByRoomId(save.identity.roomId);
+    const remoteMessages = fetched.map(item => item.message);
+    const consumed = new Set<number>();
+    const allMatched = pendingMessages.every((pending) => {
+      const candidates = remoteMessages.filter((remote, index) => {
+        return !consumed.has(index)
+          && remote.messageType === pending.messageType
+          && remote.content === pending.content
+          && remote.position === (pending as Partial<Message>).position;
+      });
+      if (candidates.length !== 1) return false;
+      consumed.add(remoteMessages.indexOf(candidates[0]));
+      return true;
+    });
+    return allMatched ? remoteMessages : null;
+  }, [getRoomMessagesByRoomId]);
+  const commitConfirmedRoomDocumentMessages = React.useCallback(async (messages: MessageEditorMessage[]) => {
+    const roomMessages = messages
+      .filter(message => message.roomId === resolvedDocRoomId)
+      .map(message => ({ message: message as Message }) as ChatMessageResponse);
+    await commitEditorMessages(roomMessages);
+  }, [commitEditorMessages, resolvedDocRoomId]);
+  const roomDocumentOverlay = useRoomDocumentOverlay({
+    baseMessages: roomDocMessages,
+    commitConfirmedMessages: commitConfirmedRoomDocumentMessages,
+    reconcileAmbiguousInsert,
+    roomId: isRoomDocument ? resolvedDocRoomId : null,
+    userId,
+  });
   useChatFrameMessages({
-    chatHistory: roomHistory ?? undefined,
+    chatHistory: roomHistory,
     currentUserId: null,
   });
 
   const handleRemoteMessagesSaved = React.useCallback(async (messages: Message[]) => {
-    if (isRoomDocument && resolvedDocRoomId && commitEditorMessages) {
+    if (isRoomDocument && resolvedDocRoomId) {
       const roomMessages = messages
         .filter(message => message.roomId === resolvedDocRoomId)
         .map(message => ({ message }) as ChatMessageResponse);
@@ -269,20 +473,22 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
     await onRemoteMessagesSaved?.(messages);
   }, [commitEditorMessages, isRoomDocument, onRemoteMessagesSaved, resolvedDocRoomId]);
 
-  const handleWorkingMessagesChange = React.useCallback((
-    messages: MessageEditorMessage[],
-    dirtyMessageIds: ReadonlySet<number>,
-  ) => {
-    if (!isRoomDocument || !resolvedDocRoomId || !replaceMessagesFromEditor) {
+  const handleRoomDocumentEdit = React.useCallback((messages: MessageEditorMessage[]) => {
+    if (!isRoomDocument || !resolvedDocRoomId) {
       return;
     }
-    replaceMessagesFromEditor(
-      messages
-        .filter(message => message.roomId === resolvedDocRoomId)
-        .map(message => ({ message: message as Message })),
-      dirtyMessageIds,
-    );
-  }, [isRoomDocument, replaceMessagesFromEditor, resolvedDocRoomId]);
+    roomDocumentOverlay.change(messages);
+  }, [isRoomDocument, resolvedDocRoomId, roomDocumentOverlay]);
+  const roomDocument = React.useMemo(() => isRoomDocument
+    ? {
+        messages: roomDocumentOverlay.messages,
+        onEdit: handleRoomDocumentEdit,
+      }
+    : undefined, [handleRoomDocumentEdit, isRoomDocument, roomDocumentOverlay.messages]);
+  const requestClearRoomDocument = React.useCallback(() => {
+    if (!window.confirm("确定清空全文吗？未同步的本地修改会保留，直到服务器确认删除。")) return;
+    roomDocumentOverlay.clear();
+  }, [roomDocumentOverlay]);
 
   if (!resolvedSpaceId || !resolvedDocId) {
     return (
@@ -308,11 +514,14 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
                   <MessageEditor
                     className="h-full min-h-0 rounded-none border-t-0!"
                     docId={resolvedDocId}
-                    initialMessages={roomDocMessages}
-                    onWorkingMessagesChange={handleWorkingMessagesChange}
                     onRequestImportTextPaste={props.onRequestImportTextPaste}
                     onRemoteMessagesSaved={handleRemoteMessagesSaved}
                     readOnly={props.readOnly}
+                    roomDocumentSyncState={roomDocumentOverlay.state}
+                    roomDocumentSyncProgress={roomDocumentOverlay.progress}
+                    roomDocumentProblemBlockIds={roomDocumentOverlay.problemBlockIds}
+                    roomDocumentDeletedCount={roomDocumentOverlay.deletedCount}
+                    onRequestClearRoomDocument={isRoomDocument ? requestClearRoomDocument : undefined}
                     remotePatchSourceSurface="doc_view"
                     spaceId={resolvedSpaceId ?? -1}
                     tcHeader={{
@@ -324,7 +533,7 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
                       fallbackImageMediaType: props.tcHeaderImageMediaType,
                     }}
                     workspaceId={`space:${resolvedSpaceId ?? -1}`}
-                    workingMessages={isRoomDocument && roomHistory ? roomDocMessages : undefined}
+                    roomDocument={roomDocument}
                   />
                 </div>
               </div>

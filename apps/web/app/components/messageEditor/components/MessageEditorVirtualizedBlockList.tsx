@@ -81,6 +81,13 @@ const MESSAGE_EDITOR_VIRTUOSO_COMPONENTS = {
   },
 };
 
+export function getMessageEditorVirtualBlockKey(
+  index: number,
+  block: MessageEditorVirtualBlock | undefined,
+) {
+  return block?.blockId ?? `missing-block-${index}`;
+}
+
 const MessageEditorVirtualizedBlockSlot = memo(function MessageEditorVirtualizedBlockSlot({
   blockId,
   children,
@@ -356,17 +363,23 @@ function MessageEditorVirtualizedBlockListComponent<TBlock extends MessageEditor
       increaseViewportBy={MESSAGE_EDITOR_VIRTUALIZATION_VIEWPORT_INCREASE_PX}
       overscan={MESSAGE_EDITOR_VIRTUALIZATION_OVERSCAN_PX}
       components={MESSAGE_EDITOR_VIRTUOSO_COMPONENTS}
-      computeItemKey={(_index, block) => block.blockId}
+      computeItemKey={(index, block) => getMessageEditorVirtualBlockKey(index, block)}
       context={context}
-      itemContent={(index, block) => (
-        <MessageEditorVirtualizedBlockSlot
-          blockId={block.blockId}
-          onMouseDown={onSurfaceMouseDown}
-          registerBlockSlotRef={setBlockSlotRef}
-        >
-          {renderBlock(block, index)}
-        </MessageEditorVirtualizedBlockSlot>
-      )}
+      itemContent={(index, block) => {
+        // Virtuoso can briefly retain a stale index while its data window is resetting.
+        if (!block) {
+          return null;
+        }
+        return (
+          <MessageEditorVirtualizedBlockSlot
+            blockId={block.blockId}
+            onMouseDown={onSurfaceMouseDown}
+            registerBlockSlotRef={setBlockSlotRef}
+          >
+            {renderBlock(block, index)}
+          </MessageEditorVirtualizedBlockSlot>
+        );
+      }}
       rangeChanged={(range) => {
         visibleRangeRef.current = range;
         onVisibleRangeChange?.(range);

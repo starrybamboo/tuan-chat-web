@@ -18,7 +18,7 @@ import {
 import { UploadUtils } from "@/utils/media/UploadUtils";
 
 import type { Message } from "../../../api";
-import type { MessageEditorMessage, MessageEditorTcHeader } from "./messageEditorTypes";
+import type { MessageEditorMessage, MessageEditorRoomSyncProgress, MessageEditorTcHeader } from "./messageEditorTypes";
 import type { MessageEditorRemotePatchSourceSurface } from "./model/messageEditorPersistencePolicy";
 import type { MessageEditorSlashMenuState } from "./model/messageEditorSlash";
 import type { MessageEditorSpeakerMenuItem } from "./model/messageEditorSpeaker";
@@ -139,17 +139,25 @@ type MessageEditorProps = {
   excerpt?: string;
   intentPrewarm?: boolean;
   onRequestImportTextPaste?: (text: string, insertAsPlainText: () => void) => void;
+  onRequestClearRoomDocument?: () => void;
   onRemoteMessagesSaved?: (messages: Message[]) => void | Promise<void>;
+  onRoomSaveAcknowledged?: (revision: number, messages: Message[]) => void;
+  onRoomSaveFailed?: (revision: number, blockIds: readonly string[]) => void;
+  roomDocumentSyncState?: "clean" | "syncing" | "error" | "ambiguous";
+  roomDocumentSyncProgress?: MessageEditorRoomSyncProgress;
+  roomDocumentProblemBlockIds?: ReadonlySet<string>;
+  roomDocumentDeletedCount?: number;
   readOnly?: boolean;
   remotePatchSourceSurface?: MessageEditorRemotePatchSourceSurface;
+  /** 房间文档由 RoomDocumentEditSession 持有 working overlay；不进入旧 coordinator。 */
+  roomDocument?: {
+    messages: MessageEditorMessage[];
+    onEdit: (messages: MessageEditorMessage[]) => void;
+  };
   spaceId?: number;
   tcHeader?: MessageEditorTcHeader;
   title?: string;
   workspaceId?: string;
-  workingSource?: {
-    messages: Message[];
-    onChange: (messages: MessageEditorMessage[], dirtyMessageIds: ReadonlySet<number>) => void;
-  };
 }
 
 type MessageEditorDragState = {
@@ -325,8 +333,27 @@ export function getMessageEditorAtomicBlockShellClassName(options: {
     options.readOnly ? "cursor-default" : "cursor-pointer",
     options.isDragging
       ? MESSAGE_EDITOR_BLOCK_DRAG_SURFACE_CLASS
-      : options.isActive && !options.readOnly ? "bg-base-200/20" : "",
+      : "",
   ].join(" ");
+}
+
+export function resolveMessageEditorTextClickFocusPoint(
+  blockId: string,
+  hitPoint: MessageEditorSelectionPoint | null,
+): MessageEditorSelectionPoint {
+  return hitPoint ?? { blockId, offset: 0 };
+}
+
+export function shouldHandleMessageEditorAtomicBlockKeyDown(options: {
+  altKey: boolean;
+  ctrlKey: boolean;
+  defaultPrevented: boolean;
+  key: string;
+  metaKey: boolean;
+  readOnly: boolean;
+}) {
+  return !options.readOnly && !options.metaKey && !options.ctrlKey && !options.altKey
+    && (options.key === "Backspace" || options.key === "Delete" || options.key === "ArrowUp" || options.key === "ArrowDown");
 }
 
 export { resolveMessageEditorPointerAutoScrollDelta };
@@ -372,7 +399,6 @@ const ATOMIC_BLOCK_SELECTION_IGNORED_TAG_NAMES = new Set([
   "BUTTON",
   "CANVAS",
   "IFRAME",
-  "IMG",
   "INPUT",
   "OPTION",
   "SELECT",
@@ -459,14 +485,21 @@ export default function MessageEditor({
   docId,
   excerpt: _excerpt,
   onRequestImportTextPaste,
+  onRequestClearRoomDocument,
   onRemoteMessagesSaved,
+  onRoomSaveAcknowledged,
+  onRoomSaveFailed,
   readOnly = false,
   remotePatchSourceSurface = "message_editor",
   spaceId,
   tcHeader,
   title,
   workspaceId,
-  workingSource,
+  roomDocument,
+  roomDocumentSyncState,
+  roomDocumentSyncProgress,
+  roomDocumentProblemBlockIds,
+  roomDocumentDeletedCount,
 }: MessageEditorProps) {
   const roomContext = use(RoomContext);
 
@@ -486,14 +519,14 @@ export default function MessageEditor({
   const resolvedWorkspaceId = workspaceId?.trim() || undefined;
   const resolvedDocRoomId = resolvedDocId && /^\d+$/.test(resolvedDocId) ? Number(resolvedDocId) : undefined;
   const emptyEditorMessages = useMemo(() => ensureMessageEditorMessages([]), []);
-  const workingSourceMessages = workingSource?.messages;
+  const roomDocumentMessages = roomDocument?.messages;
   const workingMessagesSnapshotRef = useRef<{
     identity: string;
     messages: MessageEditorMessage[];
   }>({ identity: "", messages: [] });
   const normalizedWorkingMessages = useMemo(
     () => {
-      if (!workingSourceMessages) {
+      if (!roomDocumentMessages) {
         workingMessagesSnapshotRef.current = { identity: "", messages: [] };
         return undefined;
       }
@@ -504,12 +537,12 @@ export default function MessageEditor({
         : [];
       const nextMessages = reconcileMessageEditorWorkingSourceMessages(
         previousMessages,
-        workingSourceMessages,
+        roomDocumentMessages,
       );
       workingMessagesSnapshotRef.current = { identity, messages: nextMessages };
       return nextMessages;
     },
-    [resolvedDocId, workingSourceMessages],
+    [resolvedDocId, roomDocumentMessages],
   );
   const usesSharedWorkingMessages = normalizedWorkingMessages !== undefined;
   const isRoomDocument = Boolean(
@@ -812,19 +845,21 @@ export default function MessageEditor({
     seedMessages: sourceMessages,
     isRoomDocument,
     onRemoteMessagesSaved,
+    onRoomSaveAcknowledged,
+    onRoomSaveFailed,
     prepareWorkingMessages,
     publishOptimisticRoomMessages: !usesSharedWorkingMessages,
     readOnly,
     ready,
     remotePatchSourceSurface,
     roomId: resolvedDocRoomId,
-    shouldUseLocalSnapshot,
-    workingSource: normalizedWorkingMessages && workingSource
+    roomDocument: normalizedWorkingMessages && roomDocument
       ? {
           messages: normalizedWorkingMessages,
-          onChange: workingSource.onChange,
+          onEdit: roomDocument.onEdit,
         }
       : undefined,
+    shouldUseLocalSnapshot,
   });
   const selectionDocument = useMemo(() => createMessageEditorSelectionDocument(messages), [messages]);
   const messageByBlockId = selectionDocument.messageByBlockId;
@@ -963,9 +998,9 @@ export default function MessageEditor({
     }
   }, [clearCrossBlockSelection, clearSlashCommandDismissal, commitActiveBlock, stageFocusRestore]);
 
-  const restorePendingSelection = useCallback(() => {
+  const restorePendingSelection = useCallback((requestedRestore?: MessageEditorFocusRestore | null) => {
     const root = editorRootRef.current;
-    const pending = restoreSelectionRef.current;
+    const pending = requestedRestore === undefined ? restoreSelectionRef.current : requestedRestore;
     if (!root || !pending) {
       return;
     }
@@ -1139,12 +1174,13 @@ export default function MessageEditor({
     }
 
     clearSelectionInteractionState();
-    applyFocusTarget({
+    const focusTarget = {
       blockId: point.blockId,
       caret: point.offset,
-    });
+    };
+    applyFocusTarget(focusTarget);
     window.requestAnimationFrame(() => {
-      restorePendingSelection();
+      restorePendingSelection(focusTarget);
     });
   }, [applyFocusTarget, clearSelectionInteractionState, restorePendingSelection]);
 
@@ -1746,24 +1782,27 @@ export default function MessageEditor({
 
   const handleTextMouseDown = useCallback((blockId: string, event: React.MouseEvent<HTMLDivElement>) => {
     const anchor = resolveTextSelectionPointFromClientPosition(event.clientX, event.clientY, blockId);
+    const message = messageByBlockId.get(blockId);
+    const focusClickPoint = () => {
+      activateTextPoint(resolveMessageEditorTextClickFocusPoint(blockId, anchor));
+    };
     if (!anchor) {
       if (!readOnly && event.button === 0) {
         event.preventDefault();
-        activateTextPoint({ blockId, offset: 0 });
+        focusClickPoint();
       }
       return;
     }
 
     startTextPointerSelection(anchor, event, () => {
-      activateTextPoint(anchor);
+      focusClickPoint();
     });
-    const message = messageByBlockId.get(blockId);
     if (shouldFocusEmptyTextBlockOnPointerDown({
       content: message?.content ?? "",
       mouseButton: event.button,
       readOnly,
     })) {
-      activateTextPoint(anchor);
+      focusClickPoint();
     }
   }, [activateTextPoint, messageByBlockId, readOnly, resolveTextSelectionPointFromClientPosition, startTextPointerSelection]);
 
@@ -2248,7 +2287,7 @@ export default function MessageEditor({
           registry,
           editorSelection.focus,
           1,
-          0,
+          Number.MAX_SAFE_INTEGER,
         );
         if (adjacentPoint) {
           activateTextPoint(adjacentPoint);
@@ -2299,7 +2338,14 @@ export default function MessageEditor({
   ]);
 
   const handleAtomicBlockKeyDown = useCallback((blockId: string, event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (readOnly || event.metaKey || event.ctrlKey || event.altKey) {
+    if (!shouldHandleMessageEditorAtomicBlockKeyDown({
+      altKey: event.altKey,
+      ctrlKey: event.ctrlKey,
+      defaultPrevented: event.defaultPrevented,
+      key: event.key,
+      metaKey: event.metaKey,
+      readOnly,
+    })) {
       return;
     }
 
@@ -2312,10 +2358,6 @@ export default function MessageEditor({
       return;
     }
 
-    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") {
-      return;
-    }
-
     event.preventDefault();
     const direction = event.key === "ArrowUp" ? -1 : 1;
     const adjacentPoint = getAdjacentMessageEditorDocumentBlockPoint(
@@ -2323,7 +2365,7 @@ export default function MessageEditor({
       registry,
       { blockId, offset: direction < 0 ? 0 : 1 },
       direction,
-      direction < 0 ? Number.MAX_SAFE_INTEGER : 0,
+      Number.MAX_SAFE_INTEGER,
     );
     activateTextPoint(adjacentPoint);
   }, [activateTextPoint, executeFocusAction, messagesRef, readOnly, registry]);
@@ -2964,7 +3006,8 @@ export default function MessageEditor({
       && activeDropTarget.targetBlockId === blockId
       && activeDropTarget.position === "after");
     const isDragging = dragState?.draggedBlockId === blockId;
-    const shellClassName = driver.kind === "text"
+    const hasSyncProblem = roomDocumentProblemBlockIds?.has(blockId) ?? false;
+    const shellClassName = `${driver.kind === "text"
       ? getMessageEditorTextBlockShellClassName({
           isDragging,
         })
@@ -2973,7 +3016,7 @@ export default function MessageEditor({
           isDragging,
           isSelected: atomicSelected,
           readOnly,
-        });
+        })}${hasSyncProblem ? " bg-error/10 ring-1 ring-error/30" : ""}`;
     const pendingMediaUpload = pendingMediaUploads.get(blockId);
 
     return (
@@ -3008,8 +3051,9 @@ export default function MessageEditor({
         registerBlockShellRef={registerBlockShellRef}
         renderSpeakerHandle={renderSpeakerHandle}
         selectionSegment={driver.kind === "text" ? selectedSegment : null}
-        selected={atomicSelected}
+        selected={atomicSelected || activeBlockId === blockId}
         shellClassName={shellClassName}
+        syncProblem={hasSyncProblem}
         showDropAfter={showDropAfter}
         showDropBefore={showDropBefore}
         textInputRef={textStyleInputRef}
@@ -3025,6 +3069,7 @@ export default function MessageEditor({
     `} onDragLeave={handleEditorFileDragLeave}>
       <div className="flex h-full min-h-0 flex-col">
         <MessageEditorVirtualizedBlockList
+          key={resolvedDocId ?? "message-editor"}
           ref={virtualizedBlockListRef}
           blocks={ready ? atomicMessages : []}
           className={getMessageEditorScrollViewportClassName()}
@@ -3054,6 +3099,10 @@ export default function MessageEditor({
                 readOnly={readOnly}
                 ready={ready}
                 saveState={saveState}
+                roomDocumentSyncState={roomDocumentSyncState}
+                roomDocumentSyncProgress={roomDocumentSyncProgress}
+                onRequestClearDocument={onRequestClearRoomDocument}
+                roomDocumentDeletedCount={roomDocumentDeletedCount}
                 tcHeader={tcHeader}
                 title={title}
               />
@@ -3113,6 +3162,8 @@ export default function MessageEditor({
         readOnly={readOnly}
         ready={ready}
         saveState={saveState}
+        roomDocumentSyncState={roomDocumentSyncState}
+        roomDocumentSyncProgress={roomDocumentSyncProgress}
         tcHeader={tcHeader}
         title={title}
         visible={showFloatingHeader}

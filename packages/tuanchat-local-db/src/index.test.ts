@@ -16,6 +16,7 @@ import {
   MOBILE_QUERY_SNAPSHOT_SCHEMA_SQL,
   normalizeRoomMessagesForStorage,
   ROOM_MESSAGE_PENDING_TABLE_NAME,
+  ROOM_DOCUMENT_OVERLAY_TABLE_NAME,
   ROOM_MESSAGE_SCHEMA_SQL,
   toRoomMessageRecord,
 } from "./index";
@@ -217,6 +218,33 @@ describe("tuanchat local db room message helpers", () => {
       .toMatchObject({ tcLocalSyncState: "failed" });
     await repository.rollbackPendingMessages([-2]);
     expect((await repository.getMessagesByRoomId(9)).map(item => item.message.messageId)).toEqual([1, 2]);
+  });
+
+  it("按用户和房间持久化文档 overlay，旧 revision 不会覆盖新 revision", async () => {
+    const repository = await createMemoryRepository();
+    await repository.saveRoomDocumentOverlay({
+      localCachePending: false,
+      payload: { messages: [createMessage(1)] },
+      revision: 2,
+      roomId: 9,
+      userId: 7,
+    });
+    await repository.saveRoomDocumentOverlay({
+      localCachePending: true,
+      payload: { messages: [] },
+      revision: 1,
+      roomId: 9,
+      userId: 7,
+    });
+
+    expect(await repository.loadRoomDocumentOverlay(7, 9)).toMatchObject({
+      localCachePending: false,
+      payload: { messages: [createMessage(1)] },
+      revision: 2,
+    });
+    await repository.removeRoomDocumentOverlay(7, 9);
+    expect(await repository.loadRoomDocumentOverlay(7, 9)).toBeNull();
+    expect(ROOM_MESSAGE_SCHEMA_SQL.join("\n")).toContain(ROOM_DOCUMENT_OVERLAY_TABLE_NAME);
   });
 
   it("冷读时清理旧版正消息 ID pending overlay", async () => {

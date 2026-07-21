@@ -2,7 +2,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { vi } from "vitest";
 
-import { MessageEditorBlockRow } from "../../components/MessageEditorBlockRow";
+import {
+  MessageEditorBlockRow,
+  shouldCaptureMessageEditorAtomicMediaArrowKey,
+} from "../../components/MessageEditorBlockRow";
 import { createMessageEditorBlockDraft } from "../../model/messageEditorTransforms";
 
 vi.mock("../../components/MessageEditorAtomicBlock", () => ({
@@ -14,6 +17,13 @@ vi.mock("../../components/MessageEditorTextBlock", () => ({
 }));
 
 describe("MessageEditorBlockRow", () => {
+  it("captures vertical arrows from natively focused media", () => {
+    expect(shouldCaptureMessageEditorAtomicMediaArrowKey({ tagName: "VIDEO" } as unknown as EventTarget, "ArrowDown")).toBe(true);
+    expect(shouldCaptureMessageEditorAtomicMediaArrowKey({ tagName: "AUDIO" } as unknown as EventTarget, "ArrowUp")).toBe(true);
+    expect(shouldCaptureMessageEditorAtomicMediaArrowKey({ tagName: "VIDEO" } as unknown as EventTarget, "ArrowLeft")).toBe(false);
+    expect(shouldCaptureMessageEditorAtomicMediaArrowKey({ tagName: "BUTTON" } as unknown as EventTarget, "ArrowDown")).toBe(false);
+  });
+
   it("leaves virtualization layout ownership to the list adapter", () => {
     const html = renderToStaticMarkup(createElement(MessageEditorBlockRow, {
       active: false,

@@ -38,12 +38,4 @@ describe("roomHistoryQueryCache", () => {
     expect(getRoomMessagesFromQueryCache(queryClient, 20)).toEqual([secondRoomMessage]);
   });
 
-  it("共享 dirty 元数据会随 Query cache 重置而清除", () => {
-    const queryClient = new QueryClient();
-    getRoomHistoryRuntime(queryClient, 10).editorDirtyMessageIds.add(1);
-
-    resetRoomHistoryQueryRuntime(queryClient);
-
-    expect(getRoomHistoryRuntime(queryClient, 10).editorDirtyMessageIds).toEqual(new Set());
-  });
 });

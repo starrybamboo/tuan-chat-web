@@ -188,10 +188,6 @@ export type UseChatHistoryReturn = {
   addOrUpdateMessage: (message: ChatMessageResponse) => Promise<void>;
   addOrUpdateMessages: (messages: ChatMessageResponse[]) => Promise<void>;
   commitEditorMessages: (messages: ChatMessageResponse[]) => Promise<void>;
-  replaceMessagesFromEditor: (
-    messages: ChatMessageResponse[],
-    dirtyMessageIds: ReadonlySet<number>,
-  ) => void;
   applyOptimisticMessages: (messages: ChatMessageResponse[]) => ChatMessageResponse[];
   rollbackOptimisticMessages: (
     optimisticMessages: ChatMessageResponse[],
@@ -339,12 +335,11 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       const currentRoomId = roomIdRef.current;
       const roomScopedMessages = newMessages.filter(msg => msg.message.roomId === currentRoomId);
       if (currentRoomId !== null && roomScopedMessages.length > 0) {
-        const dirtyMessageIds = getRoomHistoryRuntime(queryClient, currentRoomId).editorDirtyMessageIds;
         updateRoomMessages(currentRoomId, (prevMessages) => {
           const nextMessages = mergeIncomingRoomMessagesWithEditorWorkingState(
             prevMessages,
             roomScopedMessages,
-            dirtyMessageIds,
+            new Set(),
           );
           if (prevMessages === nextMessages) {
             return prevMessages;
@@ -393,34 +388,17 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     if (currentRoomId === null) {
       return;
     }
-    const dirtyMessageIds = getRoomHistoryRuntime(queryClient, currentRoomId).editorDirtyMessageIds;
     updateRoomMessages(
       currentRoomId,
       currentMessages => mergeCommittedEditorMessagesWithWorkingState(
         currentMessages,
         newMessages,
-        dirtyMessageIds,
+        new Set(),
       ),
     );
     await addOrUpdateMessages(newMessages);
   }, [addOrUpdateMessages, queryClient, updateRoomMessages]);
 
-  const replaceMessagesFromEditor = useCallback((
-    newMessages: ChatMessageResponse[],
-    dirtyMessageIds: ReadonlySet<number>,
-  ) => {
-    const currentRoomId = roomIdRef.current;
-    if (currentRoomId === null) {
-      return;
-    }
-    getRoomHistoryRuntime(queryClient, currentRoomId).editorDirtyMessageIds = new Set(dirtyMessageIds);
-    const roomScopedMessages = newMessages.filter(item => item.message.roomId === currentRoomId);
-    updateRoomMessages(currentRoomId, currentMessages => replaceRoomMessagesWithEditorWorkingState(
-      currentMessages,
-      roomScopedMessages,
-      currentRoomId,
-    ));
-  }, [queryClient, updateRoomMessages]);
 
   const applyOptimisticMessages = useCallback((newMessages: ChatMessageResponse[]) => {
     const currentRoomId = roomIdRef.current;
@@ -664,7 +642,6 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       const db = await loadChatHistoryDb();
       await db.clearMessagesByRoomId(roomId);
       updateRoomMessages(roomId, () => []);
-      getRoomHistoryRuntime(queryClient, roomId).editorDirtyMessageIds.clear();
     }
     catch (err) {
       setError(err as Error);
@@ -786,7 +763,6 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     addOrUpdateMessage, // 用于单条消息
     addOrUpdateMessages, // 用于批量消息
     commitEditorMessages,
-    replaceMessagesFromEditor,
     applyOptimisticMessages,
     rollbackOptimisticMessages,
     removeMessageById,

@@ -22,7 +22,7 @@ export default function RoomSidebarItemMenuButton({
       type="button"
       className={`
         pointer-events-none hidden size-8 items-center justify-center rounded-md
-        border border-base-300/70 bg-base-100/92 text-base-content/55 opacity-0
+        border border-white/40 bg-base-100/92 text-base-content/55 opacity-0 dark:border-white/10
         shadow-sm transition duration-150 motion-reduce:transition-none
         hover:border-info/40 hover:text-base-content
         md:flex

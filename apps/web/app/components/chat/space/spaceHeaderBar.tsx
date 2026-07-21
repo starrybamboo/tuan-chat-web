@@ -294,8 +294,7 @@ export default function SpaceHeaderBar({
     <>
       <div className="
         flex items-center justify-between h-10 gap-2 min-w-0 border-b
-        border-base-300
-        dark:border-base-300
+        border-white/40 dark:border-white/10
         rounded-tl-xl px-2
       ">
         <DropdownMenu

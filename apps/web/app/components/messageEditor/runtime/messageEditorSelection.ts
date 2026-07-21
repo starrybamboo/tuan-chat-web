@@ -325,7 +325,7 @@ export function getAdjacentMessageEditorTextBlockPoint(
   };
 }
 
-/** 跨文本块垂直移动光标：向上落到前一块末尾，向下落到后一块开头。 */
+/** 跨文本块垂直移动光标时，落在目标文本块末尾。 */
 export function getAdjacentMessageEditorVerticalTextBlockPoint(
   messages: MessageEditorMessage[],
   registry: MessageEditorRegistry,
@@ -337,7 +337,7 @@ export function getAdjacentMessageEditorVerticalTextBlockPoint(
     registry,
     point,
     direction,
-    direction < 0 ? Number.MAX_SAFE_INTEGER : 0,
+    Number.MAX_SAFE_INTEGER,
   );
 }
 
