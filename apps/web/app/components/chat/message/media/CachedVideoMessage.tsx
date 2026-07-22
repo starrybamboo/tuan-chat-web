@@ -3,13 +3,23 @@ import { useEffect, useRef } from "react";
 import { mediaDebug } from "@/components/chat/infra/media/mediaDebug";
 import { acquireCachedVideoElement } from "@/components/chat/infra/videoMessage/videoElementCache";
 
+export const DEFAULT_CACHED_VIDEO_ASPECT_RATIO = 16 / 9;
+
 type CachedVideoMessageProps = {
+  aspectRatio?: number;
   cacheKey: string;
   url: string;
   className?: string;
+  onError?: () => void;
 }
 
-export default function CachedVideoMessage({ cacheKey, url, className }: CachedVideoMessageProps) {
+export default function CachedVideoMessage({
+  aspectRatio = DEFAULT_CACHED_VIDEO_ASPECT_RATIO,
+  cacheKey,
+  url,
+  className,
+  onError,
+}: CachedVideoMessageProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -31,9 +41,23 @@ export default function CachedVideoMessage({ cacheKey, url, className }: CachedV
         stopClickPropagation: true,
       });
       release = acquired.release;
+      const handleError = () => onError?.();
+      acquired.video.addEventListener("error", handleError);
+
+      return () => {
+        acquired.video.removeEventListener("error", handleError);
+        mediaDebug("cached-video", "unmount", { cacheKey, url });
+        try {
+          release?.();
+        }
+        catch {
+          // ignore
+        }
+      };
     }
     catch (e) {
       console.error("[tc-video-message] acquire cached video failed", e);
+      onError?.();
     }
 
     return () => {
@@ -45,7 +69,7 @@ export default function CachedVideoMessage({ cacheKey, url, className }: CachedV
         // ignore
       }
     };
-  }, [cacheKey, className, url]);
+  }, [cacheKey, className, onError, url]);
 
-  return <div ref={mountRef} />;
+  return <div ref={mountRef} className="w-full bg-base-200/40" style={{ aspectRatio }} />;
 }

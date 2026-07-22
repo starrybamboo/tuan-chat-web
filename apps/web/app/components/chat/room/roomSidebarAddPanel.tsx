@@ -34,7 +34,7 @@ export default function RoomSidebarAddPanel({
   setAddPanelCategoryId,
 }: RoomSidebarAddPanelProps) {
   return (
-    <div className="mt-1 p-2 border-t border-base-300">
+    <div className="mt-1 border-t border-white/40 p-2 dark:border-white/10">
       <div className="flex items-center gap-2">
         <SelectInput
           density="compact"

@@ -1,7 +1,10 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { MessageEditorVirtualizedBlockList } from "../../components/MessageEditorVirtualizedBlockList";
+import {
+  getMessageEditorVirtualBlockKey,
+  MessageEditorVirtualizedBlockList,
+} from "../../components/MessageEditorVirtualizedBlockList";
 import { MESSAGE_EDITOR_VIRTUALIZATION_INITIAL_BLOCK_COUNT } from "../../model/messageEditorVirtualizationPolicy";
 
 function createBlocks(count: number) {
@@ -16,6 +19,10 @@ function countMatches(value: string, pattern: RegExp) {
 }
 
 describe("MessageEditorVirtualizedBlockList", () => {
+  it("keeps a stale virtual index from crashing the render callbacks", () => {
+    expect(getMessageEditorVirtualBlockKey(12, undefined)).toBe("missing-block-12");
+  });
+
   it("server-renders only the bootstrap window for large documents", () => {
     const blockCount = 200;
     const html = renderToStaticMarkup(createElement(MessageEditorVirtualizedBlockList, {

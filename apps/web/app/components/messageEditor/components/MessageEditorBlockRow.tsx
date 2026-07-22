@@ -1,5 +1,6 @@
 import type { KeyboardEvent, MouseEvent, ReactNode, RefObject } from "react";
 
+import { WarningCircleIcon } from "@phosphor-icons/react";
 import { memo, useCallback } from "react";
 
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
@@ -19,6 +20,7 @@ type MessageEditorBlockRowProps = {
   localFile?: File;
   message: MessageEditorMessage;
   onAtomicMouseDown: (blockId: string, event: MouseEvent<HTMLDivElement>) => void;
+  onAtomicKeyDown?: (blockId: string, event: KeyboardEvent<HTMLDivElement>) => void;
   onDeleteAtomicBlock: (blockId: string) => void;
   onFocusAtomicBlock: (blockId: string) => void;
   onFocusTextBlock: (blockId: string) => void;
@@ -40,10 +42,20 @@ type MessageEditorBlockRowProps = {
   selectionSegment: { end: number; showLineBreakAfter?: boolean; start: number } | null;
   selected?: boolean;
   shellClassName: string;
+  syncProblem?: boolean;
   showDropAfter: boolean;
   showDropBefore: boolean;
   textInputRef: RefObject<ChatInputAreaHandle | null>;
 };
+
+/** 原生媒体聚焦时，方向键必须在捕获阶段转交编辑器。 */
+export function shouldCaptureMessageEditorAtomicMediaArrowKey(
+  target: EventTarget | null,
+  key: string,
+) {
+  const tagName = (target as { tagName?: string } | null)?.tagName?.toUpperCase();
+  return (key === "ArrowUp" || key === "ArrowDown") && (tagName === "VIDEO" || tagName === "AUDIO");
+}
 
 function MessageEditorDropIndicator({ position }: { position: "before" | "after" }) {
   const verticalPositionClass = position === "before" ? "top-0" : "bottom-0";
@@ -65,6 +77,7 @@ export const MessageEditorBlockRow = memo(function MessageEditorBlockRow({
   localFile,
   message,
   onAtomicMouseDown,
+  onAtomicKeyDown,
   onDeleteAtomicBlock,
   onFocusAtomicBlock,
   onFocusTextBlock,
@@ -86,6 +99,7 @@ export const MessageEditorBlockRow = memo(function MessageEditorBlockRow({
   selectionSegment,
   selected = false,
   shellClassName,
+  syncProblem = false,
   showDropAfter,
   showDropBefore,
   textInputRef,
@@ -100,7 +114,9 @@ export const MessageEditorBlockRow = memo(function MessageEditorBlockRow({
 
   const blockContent = driverKind === "text"
     ? (
-      <div ref={setShellRef} className={shellClassName}>
+      <div ref={setShellRef} className={shellClassName} aria-describedby={syncProblem ? `${blockId}-sync-problem` : undefined}>
+        {syncProblem ? <span id={`${blockId}-sync-problem`} className="sr-only">此消息块的本地修改尚未同步</span> : null}
+        {syncProblem ? <WarningCircleIcon aria-hidden="true" className="pointer-events-none absolute right-1 top-1 z-10 size-4 text-error" weight="fill" /> : null}
         {showDropBefore && <MessageEditorDropIndicator position="before" />}
         {showDropAfter && <MessageEditorDropIndicator position="after" />}
         {renderSpeakerHandle(blockId, message, "top-0")}
@@ -125,12 +141,16 @@ export const MessageEditorBlockRow = memo(function MessageEditorBlockRow({
       </div>
       )
     : (
-      <div ref={setShellRef} className={shellClassName}>
+      <div ref={setShellRef} className={shellClassName} aria-describedby={syncProblem ? `${blockId}-sync-problem` : undefined}>
+        {syncProblem ? <span id={`${blockId}-sync-problem`} className="sr-only">此消息块的本地修改尚未同步</span> : null}
+        {syncProblem ? <WarningCircleIcon aria-hidden="true" className="pointer-events-none absolute right-1 top-1 z-10 size-4 text-error" weight="fill" /> : null}
         {showDropBefore && <MessageEditorDropIndicator position="before" />}
         {showDropAfter && <MessageEditorDropIndicator position="after" />}
         {renderSpeakerHandle(blockId, message, "top-1")}
         <div
           data-me-block-id={blockId}
+          data-me-atomic-focus="true"
+          tabIndex={readOnly ? -1 : 0}
           className="
             select-none
             [&_[contenteditable='true']]:select-text
@@ -139,6 +159,13 @@ export const MessageEditorBlockRow = memo(function MessageEditorBlockRow({
             [&_textarea]:select-text
           "
           onMouseDown={handleAtomicMouseDown}
+          onKeyDownCapture={event => {
+            if (shouldCaptureMessageEditorAtomicMediaArrowKey(event.target, event.key)) {
+              onAtomicKeyDown?.(blockId, event);
+              event.stopPropagation();
+            }
+          }}
+          onKeyDown={event => onAtomicKeyDown?.(blockId, event)}
         >
           <MessageEditorAtomicBlock
             active={active}

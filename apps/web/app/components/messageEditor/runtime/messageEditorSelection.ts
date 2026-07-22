@@ -325,6 +325,22 @@ export function getAdjacentMessageEditorTextBlockPoint(
   };
 }
 
+/** 跨文本块垂直移动光标时，落在目标文本块末尾。 */
+export function getAdjacentMessageEditorVerticalTextBlockPoint(
+  messages: MessageEditorMessage[],
+  registry: MessageEditorRegistry,
+  point: MessageEditorSelectionPoint,
+  direction: -1 | 1,
+): MessageEditorSelectionPoint | null {
+  return getAdjacentMessageEditorTextBlockPoint(
+    messages,
+    registry,
+    point,
+    direction,
+    Number.MAX_SAFE_INTEGER,
+  );
+}
+
 function findMessageIndex(
   messages: MessageEditorMessage[],
   blockId: string,

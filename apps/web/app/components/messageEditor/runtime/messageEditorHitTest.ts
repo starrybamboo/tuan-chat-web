@@ -97,6 +97,159 @@ function getOffsetWithinBlock(blockElement: HTMLElement, container: Node, offset
   return range.toString().length;
 }
 
+type MessageEditorCharacterRect = MessageEditorHitTestRect;
+
+function compareCharacterRectToPoint(rect: MessageEditorCharacterRect, clientX: number, clientY: number) {
+  if (clientY < rect.top) {
+    return 1;
+  }
+  if (clientY > rect.bottom) {
+    return -1;
+  }
+  if (clientX < rect.left) {
+    return 1;
+  }
+  if (clientX > rect.right) {
+    return -1;
+  }
+  return 0;
+}
+
+function getCaretDistance(rect: MessageEditorCharacterRect, caretX: number, clientX: number, clientY: number) {
+  const deltaX = clientX - caretX;
+  const deltaY = clientY < rect.top
+    ? rect.top - clientY
+    : clientY > rect.bottom
+      ? clientY - rect.bottom
+      : 0;
+  return deltaX * deltaX + deltaY * deltaY;
+}
+
+/**
+ * 在字符矩形按文档流排序的前提下，以 O(log n) 测量次数解析最近插入点。
+ */
+export function resolveMessageEditorCharacterOffsetFromPoint(options: {
+  clientX: number;
+  clientY: number;
+  getCharacterRect: (offset: number) => MessageEditorCharacterRect | null;
+  length: number;
+}) {
+  const { clientX, clientY, getCharacterRect, length } = options;
+  if (length <= 0) {
+    return 0;
+  }
+
+  const rectCache = new Map<number, MessageEditorCharacterRect | null>();
+  const readRect = (offset: number) => {
+    if (!rectCache.has(offset)) {
+      rectCache.set(offset, getCharacterRect(offset));
+    }
+    return rectCache.get(offset) ?? null;
+  };
+
+  let low = 0;
+  let high = length - 1;
+  while (low <= high) {
+    const middle = Math.floor((low + high) / 2);
+    const rect = readRect(middle);
+    if (!rect) {
+      break;
+    }
+    const comparison = compareCharacterRectToPoint(rect, clientX, clientY);
+    if (comparison === 0) {
+      return middle + (clientX > rect.left + (rect.right - rect.left) / 2 ? 1 : 0);
+    }
+    if (comparison < 0) {
+      low = middle + 1;
+    }
+    else {
+      high = middle - 1;
+    }
+  }
+
+  let bestOffset = Math.max(0, Math.min(low, length));
+  let bestDistance = Number.POSITIVE_INFINITY;
+  const candidateOffsets = new Set([
+    0,
+    length,
+    high - 1,
+    high,
+    high + 1,
+    low - 1,
+    low,
+    low + 1,
+  ]);
+  candidateOffsets.forEach((offset) => {
+    if (offset < 0 || offset > length) {
+      return;
+    }
+    const nextRect = offset < length ? readRect(offset) : null;
+    const previousRect = offset > 0 ? readRect(offset - 1) : null;
+    const distance = Math.min(
+      nextRect ? getCaretDistance(nextRect, nextRect.left, clientX, clientY) : Number.POSITIVE_INFINITY,
+      previousRect ? getCaretDistance(previousRect, previousRect.right, clientX, clientY) : Number.POSITIVE_INFINITY,
+    );
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestOffset = offset;
+    }
+  });
+  return bestOffset;
+}
+
+function collectTextNodes(node: Node, output: Text[]) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    output.push(node as Text);
+    return;
+  }
+  node.childNodes.forEach(child => collectTextNodes(child, output));
+}
+
+function getRectDistance(rect: MessageEditorCharacterRect, clientX: number, clientY: number) {
+  const deltaX = clientX < rect.left ? rect.left - clientX : clientX > rect.right ? clientX - rect.right : 0;
+  const deltaY = clientY < rect.top ? rect.top - clientY : clientY > rect.bottom ? clientY - rect.bottom : 0;
+  return deltaX * deltaX + deltaY * deltaY;
+}
+
+function resolveCaretOffsetFromTextGeometry(blockElement: HTMLElement, clientX: number, clientY: number) {
+  const textNodes: Text[] = [];
+  collectTextNodes(blockElement, textNodes);
+  let nearestNode: Text | null = null;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  textNodes.forEach((textNode) => {
+    if (!textNode.data.length) {
+      return;
+    }
+    const range = blockElement.ownerDocument.createRange();
+    range.selectNodeContents(textNode);
+    Array.from(range.getClientRects()).forEach((rect) => {
+      const distance = getRectDistance(rect, clientX, clientY);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestNode = textNode;
+      }
+    });
+  });
+  if (!nearestNode) {
+    return null;
+  }
+
+  const textNode = nearestNode as Text;
+  const localOffset = resolveMessageEditorCharacterOffsetFromPoint({
+    clientX,
+    clientY,
+    getCharacterRect(offset) {
+      const range = blockElement.ownerDocument.createRange();
+      range.setStart(textNode, offset);
+      range.setEnd(textNode, offset + 1);
+      const rect = range.getClientRects()[0];
+      return rect ?? null;
+    },
+    length: textNode.data.length,
+  });
+  return getOffsetWithinBlock(blockElement, textNode, localOffset);
+}
+
 function resolveCaretOffsetFromPoint(blockElement: HTMLElement, clientX: number, clientY: number) {
   const documentWithCaretApis = blockElement.ownerDocument as Document & {
     caretPositionFromPoint?: (x: number, y: number) => { offset: number; offsetNode: Node } | null;
@@ -113,7 +266,7 @@ function resolveCaretOffsetFromPoint(blockElement: HTMLElement, clientX: number,
     return getOffsetWithinBlock(blockElement, caretRange.startContainer, caretRange.startOffset);
   }
 
-  return null;
+  return resolveCaretOffsetFromTextGeometry(blockElement, clientX, clientY);
 }
 
 function isElementInsideRoot(root: HTMLElement, node: Node | null): node is Element {

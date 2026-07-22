@@ -539,20 +539,7 @@ export default function Topbar() {
                           <GearSixIcon className="size-4" />
                           设置
                         </Button>
-                        <div
-                          className={buttonClassName({
-                            variant: "ghost",
-                            size: "sm",
-                            className: "w-full justify-between gap-2 font-normal",
-                          })}
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className="scale-75">
-                              <ThemeSwitch />
-                            </div>
-                            主题切换
-                          </div>
-                        </div>
+                        <ThemeSwitch />
                         {isElectronEnv() && webgalLinkMode && !runModeEnabled && (
                           <WebgalStarter className="w-full">
                             <Button

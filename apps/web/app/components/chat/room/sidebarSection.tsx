@@ -40,7 +40,7 @@ export default function SidebarSection({
   const handleToggleExpanded = () => {
     onToggleExpanded();
   };
-  const sectionClassName = `px-1 ${withDivider ? "mt-0.5 border-t border-base-300/70 pt-1" : ""} ${className ?? ""}`;
+  const sectionClassName = `px-1 ${withDivider ? "mt-0.5 border-t border-white/40 pt-1 dark:border-white/10" : ""} ${className ?? ""}`;
   const headerClassName = "group flex items-center gap-1 rounded-md bg-base-300/55 px-2 py-1.5 text-[12.5px] font-semibold tracking-[0.08em] text-base-content/86";
   const iconButtonClassName = "inline-flex size-7 shrink-0 items-center justify-center rounded-md text-base-content/60 transition hover:bg-base-100/70 hover:text-base-content/88 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30";
   const actionButtonVisibilityClassName = actionVisibility === "always"

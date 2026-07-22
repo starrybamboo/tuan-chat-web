@@ -86,7 +86,7 @@ export default function RoomSidebarCategoryBody({
     <div
       className={`
         rounded-lg border
-        ${canEdit ? "border-base-300" : `border-transparent`}
+        ${canEdit ? "border-white/40 dark:border-white/10" : `border-transparent`}
         p-1 relative
       `}
       onDragOver={(e) => {

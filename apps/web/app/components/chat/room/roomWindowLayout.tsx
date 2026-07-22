@@ -62,10 +62,9 @@ type RoomWindowLayoutProps = {
   contentMode: RoomContentMode;
   onToggleContentMode: () => void;
   canViewDocContent: boolean;
-  initialDocMessages: Message[];
   onRequestDocImportTextPaste?: (text: string, insertAsPlainText: () => void) => void;
   onRemoteDocMessagesSaved?: (messages: Message[]) => void | Promise<void>;
-  chatHistory?: UseChatHistoryReturn;
+  chatHistory: UseChatHistoryReturn;
   toggleLeftDrawer: () => void;
   isSubWindowOpen?: boolean;
   onToggleSubWindow?: () => void;
@@ -90,7 +89,6 @@ export default function RoomWindowLayout({
   contentMode,
   onToggleContentMode,
   canViewDocContent,
-  initialDocMessages,
   onRequestDocImportTextPaste,
   onRemoteDocMessagesSaved,
   chatHistory,
@@ -201,7 +199,6 @@ export default function RoomWindowLayout({
                       docId={String(roomId)}
                       canViewDocs={canViewDocContent}
                       chatHistory={chatHistory}
-                      initialMessages={initialDocMessages}
                       onRequestImportTextPaste={onRequestDocImportTextPaste}
                       onRemoteMessagesSaved={onRemoteDocMessagesSaved}
                       showToolbar={false}

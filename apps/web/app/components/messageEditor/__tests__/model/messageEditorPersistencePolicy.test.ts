@@ -18,7 +18,6 @@ import {
   resolveMessageEditorLocalSnapshotDocId,
   resolveMessageEditorPersistenceDelayMs,
   resolveMessageEditorPersistenceTarget,
-  shouldPersistMessageEditorSnapshot,
   shouldSkipEmptyRoomMessageStreamSync,
   shouldSkipMessageEditorRoomStreamPersistence,
   toPatchOptimisticMessageInput,
@@ -28,6 +27,7 @@ import {
   createMessageEditorTextDraft,
   getMessageEditorBlockId,
   setMessageEditorUploadedMedia,
+  updateMessageEditorMediaSize,
   updateMessageEditorTextContent,
 } from "../../model/messageEditorTransforms";
 
@@ -48,22 +48,71 @@ function withRuntimeMessage(
 }
 
 describe("messageEditorPersistencePolicy", () => {
-  it("persists only ready writable dirty snapshots with changed fingerprints", () => {
-    const base = {
-      dirtySinceLoad: true,
-      docId: "doc-1",
-      lastSavedFingerprint: "old",
-      readOnly: false,
-      ready: true,
-      snapshotFingerprint: "new",
-    };
+  it("retains resized media layout when the confirmed response omits editor-only dimensions", () => {
+    const resizedVideo = withRuntimeMessage(updateMessageEditorMediaSize(setMessageEditorUploadedMedia(
+      createMessageEditorBlockDraft("video"),
+      {
+        fileId: 77,
+        fileName: "clip.webm",
+        height: 1080,
+        mediaType: "video",
+        size: 4096,
+        width: 1920,
+      },
+    ), {
+      height: 405,
+      width: 720,
+    }), {
+      messageId: 17,
+      position: 1,
+      roomId: 7,
+      status: 0,
+      syncId: 23,
+      userId: 1,
+    });
+    const confirmed = {
+      ...resizedVideo,
+      extra: {
+        videoMessage: {
+          fileId: 77,
+          fileName: "clip.webm",
+          height: 1080,
+          mediaType: "video",
+          size: 4096,
+          source: resizedVideo.extra?.videoMessage?.source,
+          width: 1920,
+        },
+      },
+      syncId: 24,
+    } as Message;
 
-    expect(shouldPersistMessageEditorSnapshot(base)).toBe(true);
-    expect(shouldPersistMessageEditorSnapshot({ ...base, ready: false })).toBe(false);
-    expect(shouldPersistMessageEditorSnapshot({ ...base, readOnly: true })).toBe(false);
-    expect(shouldPersistMessageEditorSnapshot({ ...base, docId: undefined })).toBe(false);
-    expect(shouldPersistMessageEditorSnapshot({ ...base, dirtySinceLoad: false })).toBe(false);
-    expect(shouldPersistMessageEditorSnapshot({ ...base, lastSavedFingerprint: "new" })).toBe(false);
+    const [merged] = mergeChangedRoomMessagesIntoEditorMessages({
+      changedMessages: [confirmed],
+      currentMessages: [resizedVideo],
+      operations: [{ message: resizedVideo, messageId: 17, op: "update", position: 1 }],
+    });
+
+    expect(merged.syncId).toBe(24);
+    expect((merged.extra?.videoMessage as { editorHeight?: number } | undefined)?.editorHeight).toBe(405);
+    expect((merged.extra?.videoMessage as { editorWidth?: number } | undefined)?.editorWidth).toBe(720);
+  });
+
+  it("matches reversed batch insert responses by content and position instead of array index", () => {
+    const first = createMessageEditorTextDraft({ content: "first" });
+    const second = createMessageEditorTextDraft({ content: "second" });
+    const merged = mergeChangedRoomMessagesIntoEditorMessages({
+      changedMessages: [
+        { content: "second", messageId: 202, messageType: MESSAGE_TYPE.TEXT, position: 2, roomId: 7, status: 0, syncId: 2, userId: 1 },
+        { content: "first", messageId: 201, messageType: MESSAGE_TYPE.TEXT, position: 1, roomId: 7, status: 0, syncId: 1, userId: 1 },
+      ],
+      currentMessages: [first, second],
+      operations: [
+        { clientId: getMessageEditorBlockId(first), message: first, op: "insert", position: 1 },
+        { clientId: getMessageEditorBlockId(second), message: second, op: "insert", position: 2 },
+      ],
+    });
+    expect((merged[0] as MessageEditorMessage & { messageId?: number }).messageId).toBe(201);
+    expect((merged[1] as MessageEditorMessage & { messageId?: number }).messageId).toBe(202);
   });
 
   it("uses local snapshots only when the document type allows them", () => {
@@ -286,7 +335,7 @@ describe("messageEditorPersistencePolicy", () => {
 
   it("resolves save delays for local snapshots and remote room sync", () => {
     expect(resolveMessageEditorPersistenceDelayMs({ isRoomDocument: false })).toBe(500);
-    expect(resolveMessageEditorPersistenceDelayMs({ isRoomDocument: true })).toBe(10000);
+    expect(resolveMessageEditorPersistenceDelayMs({ isRoomDocument: true })).toBe(2000);
   });
 
   it("resolves load fallback from seeded document messages or the current draft", () => {

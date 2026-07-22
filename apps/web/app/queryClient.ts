@@ -1,5 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 
+import { resetRoomHistoryQueryRuntime } from "@/components/chat/infra/localDb/roomHistoryQueryCache";
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -10,5 +12,6 @@ export const queryClient = new QueryClient({
 });
 
 export function resetTuanChatQueryCache(): void {
+  resetRoomHistoryQueryRuntime(queryClient);
   queryClient.clear();
 }

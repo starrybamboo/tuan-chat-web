@@ -5,11 +5,15 @@ import type { MessageEditorSelection } from "../runtime/messageEditorSelection";
 
 import {
   buildRoomMessagePatchOperations,
+  getMessageEditorAtomicBlockShellClassName,
   getMessageEditorPatchMutationMeta,
   isMessageEditorImportablePasteText,
   mergeChangedRoomMessagesIntoEditorMessages,
+  reconcileMessageEditorWorkingSourceMessages,
   resolveMessageEditorFileDropPoint,
   resolveMessageEditorPointerAutoScrollDelta,
+  resolveMessageEditorTextClickFocusPoint,
+  shouldHandleMessageEditorAtomicBlockKeyDown,
   shouldFocusEmptyTextBlockOnPointerDown,
   shouldKeepMessageEditorFocusRestore,
   shouldIgnoreDocumentSelectionEventTarget,
@@ -48,6 +52,25 @@ function createMockElement(options: {
 }
 
 describe("messageEditor document click guard", () => {
+  it("continues handling vertical arrows from a selected atomic block after its child prevents default", () => {
+    expect(shouldHandleMessageEditorAtomicBlockKeyDown({
+      altKey: false,
+      ctrlKey: false,
+      defaultPrevented: true,
+      key: "ArrowDown",
+      metaKey: false,
+      readOnly: false,
+    })).toBe(true);
+    expect(shouldHandleMessageEditorAtomicBlockKeyDown({
+      altKey: false,
+      ctrlKey: false,
+      defaultPrevented: false,
+      key: "ArrowDown",
+      metaKey: false,
+      readOnly: true,
+    })).toBe(false);
+  });
+
   it("在空文本块的左键按下阶段建立输入焦点", () => {
     expect(shouldFocusEmptyTextBlockOnPointerDown({
       content: "",
@@ -69,6 +92,73 @@ describe("messageEditor document click guard", () => {
       mouseButton: 0,
       readOnly: true,
     })).toBe(false);
+  });
+
+  it("keeps persisted block identity stable when the Query projection returns cloned messages", () => {
+    const current = Object.assign(createMessageEditorTextDraft({ content: "local" }), {
+      messageId: 101,
+      roomId: 7,
+    });
+    const incoming = {
+      ...current,
+      content: "local",
+    };
+
+    const reconciled = reconcileMessageEditorWorkingSourceMessages([current], [incoming]);
+
+    expect(getMessageEditorBlockId(incoming)).not.toBe(getMessageEditorBlockId(current));
+    expect(getMessageEditorBlockId(reconciled[0])).toBe(getMessageEditorBlockId(current));
+  });
+
+  it("restores a new paragraph block identity from its Query working projection render key", () => {
+    const current = materializeMessageEditorRoomWorkingMessages([
+      createMessageEditorTextDraft({ content: "" }),
+    ], 7)[0];
+    const incoming = structuredClone(current);
+
+    expect(getMessageEditorBlockId(incoming)).not.toBe(getMessageEditorBlockId(current));
+
+    const reconciled = reconcileMessageEditorWorkingSourceMessages([], [incoming]);
+
+    expect(getMessageEditorBlockId(reconciled[0])).toBe(getMessageEditorBlockId(current));
+  });
+
+  it("exposes edit and click cursors on interactive block shells", () => {
+    expect(getMessageEditorAtomicBlockShellClassName({
+      isActive: false,
+      isDragging: false,
+      isSelected: false,
+      readOnly: false,
+    })).toContain("cursor-pointer");
+    expect(getMessageEditorAtomicBlockShellClassName({
+      isActive: false,
+      isDragging: false,
+      isSelected: false,
+      readOnly: true,
+    })).toContain("cursor-default");
+    expect(getMessageEditorAtomicBlockShellClassName({
+      isActive: true,
+      isDragging: false,
+      isSelected: false,
+      readOnly: false,
+    })).not.toContain("ring-info/80");
+  });
+
+  it("保留普通消息点击命中的文本偏移", () => {
+    expect(resolveMessageEditorTextClickFocusPoint("target", {
+      blockId: "target",
+      offset: 3,
+    })).toEqual({
+      blockId: "target",
+      offset: 3,
+    });
+  });
+
+  it("仅在点击命中解析失败时回退到消息起点", () => {
+    expect(resolveMessageEditorTextClickFocusPoint("target", null)).toEqual({
+      blockId: "target",
+      offset: 0,
+    });
   });
 
   it("keeps a pending caret when the editable block focuses itself", () => {
@@ -161,14 +251,14 @@ describe("messageEditor document click guard", () => {
     expect(shouldStartMessageEditorAtomicBlockSelection(blankAtomicArea as unknown as EventTarget)).toBe(true);
   });
 
-  it("keeps atomic media and controls out of whitespace selection starts", () => {
+  it("allows an atomic image to start selection but keeps controls out", () => {
     const image = createMockElement({ tagName: "IMG" });
     const button = createMockElement({ tagName: "BUTTON" });
     const handleChild = createMockElement({
       closestSelectors: ["[data-me-block-handle]"],
     });
 
-    expect(shouldStartMessageEditorAtomicBlockSelection(image as unknown as EventTarget)).toBe(false);
+    expect(shouldStartMessageEditorAtomicBlockSelection(image as unknown as EventTarget)).toBe(true);
     expect(shouldStartMessageEditorAtomicBlockSelection(button as unknown as EventTarget)).toBe(false);
     expect(shouldStartMessageEditorAtomicBlockSelection(handleChild as unknown as EventTarget)).toBe(false);
   });

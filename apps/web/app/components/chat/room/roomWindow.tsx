@@ -285,11 +285,6 @@ function RoomWindow({
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
   const setWebgalOpen = useSideDrawerStore(state => state.setWebgalOpen);
-  const initialDocMessages = React.useMemo(() => {
-    return mainHistoryMessages
-      .map(item => item.message)
-      .filter((item): item is Message => Boolean(item));
-  }, [mainHistoryMessages]);
   const lastNonEmptyRoomMessagesRef = useRef<ChatMessageResponse[]>([]);
   useEffect(() => {
     if (mainHistoryMessages.length > 0) {
@@ -1246,7 +1241,6 @@ function RoomWindow({
               onToggleContentMode={handleToggleRoomContentMode}
               canViewDocContent={canViewDocContent}
               chatHistory={chatHistory}
-              initialDocMessages={initialDocMessages}
               onRequestDocImportTextPaste={handleRequestDocImportTextPaste}
               onRemoteDocMessagesSaved={handleRemoteDocMessagesSaved}
               toggleLeftDrawer={spaceContext.toggleLeftDrawer}

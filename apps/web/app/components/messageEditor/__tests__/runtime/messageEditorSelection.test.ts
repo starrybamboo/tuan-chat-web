@@ -9,6 +9,7 @@ import {
   createMessageEditorTextRunSelection,
   getAdjacentMessageEditorDocumentBlockPoint,
   getAdjacentMessageEditorTextBlockPoint,
+  getAdjacentMessageEditorVerticalTextBlockPoint,
   getMessageEditorSelectionText,
   moveMessageEditorDocumentPointByCharacter,
   moveMessageEditorTextPointByCharacter,
@@ -272,9 +273,9 @@ describe("messageEditorSelection", () => {
     expect(getAdjacentMessageEditorDocumentBlockPoint(messages, registry, {
       blockId: getMessageEditorBlockId(imageBlock),
       offset: 1,
-    }, 1, 1)).toEqual({
+    }, 1, Number.MAX_SAFE_INTEGER)).toEqual({
       blockId: getMessageEditorBlockId(third),
-      offset: 1,
+      offset: "cd".length,
     });
     expect(getAdjacentMessageEditorDocumentBlockPoint(messages, registry, {
       blockId: getMessageEditorBlockId(third),
@@ -316,6 +317,28 @@ describe("messageEditorSelection", () => {
     }, -1)).toEqual({
       blockId: getMessageEditorBlockId(first),
       offset: 1,
+    });
+  });
+
+  it("moves vertically across paragraph boundaries to the target message end", () => {
+    const first = createMessageEditorTextDraft({ content: "previous" });
+    const second = createMessageEditorTextDraft({ content: "next" });
+    const messages = [first, second];
+    const registry = createMessageEditorRegistry();
+
+    expect(getAdjacentMessageEditorVerticalTextBlockPoint(messages, registry, {
+      blockId: getMessageEditorBlockId(second),
+      offset: 0,
+    }, -1)).toEqual({
+      blockId: getMessageEditorBlockId(first),
+      offset: "previous".length,
+    });
+    expect(getAdjacentMessageEditorVerticalTextBlockPoint(messages, registry, {
+      blockId: getMessageEditorBlockId(first),
+      offset: "previous".length,
+    }, 1)).toEqual({
+      blockId: getMessageEditorBlockId(second),
+      offset: "next".length,
     });
   });
 });

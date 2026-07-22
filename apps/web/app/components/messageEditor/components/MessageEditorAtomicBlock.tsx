@@ -1,14 +1,19 @@
+import {
+  ArrowClockwiseIcon,
+  CircleNotchIcon,
+  FilmSlateIcon,
+  ImageBrokenIcon,
+  MusicNotesIcon,
+} from "@phosphor-icons/react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { CircleNotchIcon } from "@phosphor-icons/react";
-
-import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
+import CachedVideoMessage, { DEFAULT_CACHED_VIDEO_ASPECT_RATIO } from "@/components/chat/message/media/CachedVideoMessage";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import { FileInput } from "@/components/common/FormField";
 import { MediaImage } from "@/components/common/mediaImage";
 import { TrashIcon } from "@/icons";
-import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
+import { getImageMessageExtra, getSoundMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { MessageEditorMessage } from "../messageEditorTypes";
@@ -16,6 +21,7 @@ import type { MessageEditorMessage } from "../messageEditorTypes";
 import {
   getMessageEditorMediaFrameClassName,
   MESSAGE_EDITOR_DEFAULT_IMAGE_WIDTH_CLASS,
+  MESSAGE_EDITOR_DEFAULT_VIDEO_WIDTH_CLASS,
 } from "../messageEditorLayout";
 import { isMessageEditorFileDrag, isMessageEditorUploadableMediaMessage } from "../runtime/messageEditorFileDrop";
 
@@ -181,6 +187,11 @@ function resolveUploadedVideoUrl(message: MessageEditorMessage) {
   return resolveMessageMediaUrl(videoMessage, "low", "video");
 }
 
+function resolveUploadedAudioUrl(message: MessageEditorMessage) {
+  const soundMessage = getSoundMessageExtra(message.extra);
+  return resolveMessageMediaUrl(soundMessage, "low", "audio");
+}
+
 function resolveMediaDimensions(payload: unknown) {
   if (!payload || typeof payload !== "object") {
     return {};
@@ -290,7 +301,9 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
   const uploaded = hasUploadedMedia(message);
   const isImageBlock = message.messageType === MESSAGE_TYPE.IMG;
   const isVideoBlock = message.messageType === MESSAGE_TYPE.VIDEO;
+  const isAudioBlock = message.messageType === MESSAGE_TYPE.SOUND;
   const isResizableMediaBlock = isImageBlock || isVideoBlock;
+  const isEditorMediaBlock = isResizableMediaBlock || isAudioBlock;
   // 删除按钮的可访问名称，按块类型区分图片/视频/文件。
   const deleteBlockLabel = isImageBlock
     ? "删除图片块"
@@ -316,7 +329,11 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
       ? resolveUploadedVideoUrl(message)
       : "";
   const localPreviewUrl = useLocalPreviewUrl(isResizableMediaBlock ? localFile : undefined);
+  const localAudioPreviewUrl = useLocalPreviewUrl(isAudioBlock ? localFile : undefined);
   const mediaPreviewUrl = localPreviewUrl || uploadedMediaUrl;
+  const audioPreviewUrl = localAudioPreviewUrl || resolveUploadedAudioUrl(message);
+  const mediaResourceIdentity = isAudioBlock ? audioPreviewUrl : mediaPreviewUrl;
+  const [mediaLoadFailed, setMediaLoadFailed] = useState(false);
   const previewMessage = withLocalFile(message, localFile);
   const audioProgressLabel = message.messageType === MESSAGE_TYPE.SOUND
     ? formatAudioProgressLabel(message.extra?.soundMessage?.second)
@@ -329,14 +346,24 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
     }
     const width = typeof mediaDimensions?.width === "number" && mediaDimensions.width > 0 ? mediaDimensions.width : 0;
     const height = typeof mediaDimensions?.height === "number" && mediaDimensions.height > 0 ? mediaDimensions.height : 0;
-    return width > 0 && height > 0 ? height / width : 1;
-  }, [mediaDimensions?.height, mediaDimensions?.width, mediaEditorSize?.height, mediaEditorSize?.width]);
+    return width > 0 && height > 0
+      ? height / width
+      : isVideoBlock ? 1 / DEFAULT_CACHED_VIDEO_ASPECT_RATIO : 1;
+  }, [isVideoBlock, mediaDimensions?.height, mediaDimensions?.width, mediaEditorSize?.height, mediaEditorSize?.width]);
   const mediaIdentity = JSON.stringify(mediaPayload?.source ?? mediaPayload ?? {});
 
   useEffect(() => {
     setDisplayWidth(mediaEditorSizeRef.current.width ?? null);
     resizeSessionRef.current = null;
   }, [mediaIdentity]);
+
+  useEffect(() => {
+    setMediaLoadFailed(false);
+  }, [mediaResourceIdentity]);
+
+  const handleMediaLoadError = useCallback(() => {
+    setMediaLoadFailed(true);
+  }, []);
 
   const startUpload = useCallback((file: File) => {
     void onUpload(blockId, file);
@@ -548,14 +575,16 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
           <button
             type="button"
             className="
-              rounded-md border border-base-300/70 bg-base-100/92 px-2 py-1
-              text-xs text-base-content/75 shadow-sm transition
+              flex size-8 items-center justify-center rounded-md border border-base-300/70
+              bg-base-100/92 text-base-content/75 shadow-sm transition
               hover:border-info/40 hover:text-base-content
             "
             onMouseDown={event => event.preventDefault()}
             onClick={openFilePicker}
+            aria-label={uploadButtonLabel}
+            title={uploadButtonLabel}
           >
-            {uploadButtonLabel}
+            <ArrowClockwiseIcon className="size-4" aria-hidden="true" />
           </button>
         )}
         <button
@@ -563,21 +592,25 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
           aria-label={deleteBlockLabel}
           title={deleteBlockLabel}
           className="
-            rounded-md border border-base-300/70 bg-base-100/92 px-2 py-1
-            text-xs text-base-content/75 shadow-sm transition
+            flex size-8 items-center justify-center rounded-md border border-base-300/70
+            bg-base-100/92 text-base-content/75 shadow-sm transition
             hover:border-error/40 hover:text-error
           "
           onMouseDown={event => event.preventDefault()}
           onClick={deleteBlock}
         >
-          删除
+          <TrashIcon className="size-4" aria-hidden="true" />
         </button>
       </div>
     );
   };
 
   const renderEmptyUploadBlock = () => (
-    <div className={isImageBlock ? MESSAGE_EDITOR_DEFAULT_IMAGE_WIDTH_CLASS : ""}>
+    <div className={isImageBlock
+      ? MESSAGE_EDITOR_DEFAULT_IMAGE_WIDTH_CLASS
+      : isVideoBlock
+        ? MESSAGE_EDITOR_DEFAULT_VIDEO_WIDTH_CLASS
+        : ""}>
       <div className="mb-1 flex items-center justify-between gap-2">
         <div className="text-xs font-medium text-base-content/55">{uploadMeta.title}</div>
         {!readOnly && (
@@ -586,14 +619,14 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
             aria-label={deleteBlockLabel}
             title={deleteBlockLabel}
             className="
-              rounded-md border border-base-300 px-2 py-1 text-xs
+              flex size-8 items-center justify-center rounded-md border border-base-300
               text-base-content/70 transition
               hover:border-error/40 hover:text-error
             "
             onMouseDown={event => event.preventDefault()}
             onClick={deleteBlock}
           >
-            删除
+            <TrashIcon className="size-4" aria-hidden="true" />
           </button>
         )}
       </div>
@@ -613,12 +646,65 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
     </div>
   );
 
+  const renderBrokenMediaBlock = () => {
+    const mediaLabel = isImageBlock ? "图片" : isVideoBlock ? "视频" : "音频";
+    const BrokenMediaIcon = isImageBlock ? ImageBrokenIcon : isVideoBlock ? FilmSlateIcon : MusicNotesIcon;
+
+    return (
+      <div
+        className="
+          flex min-h-20 items-center gap-3 rounded-md border border-dashed
+          border-error/35 bg-error/5 px-4 py-3 text-sm
+        "
+        role="status"
+        aria-live="polite"
+      >
+        <BrokenMediaIcon className="size-6 shrink-0 text-error/75" aria-hidden="true" />
+        <div className="min-w-0 flex-1">
+          <div className="font-medium text-base-content/80">{mediaLabel}资源已损坏</div>
+          <div className="mt-0.5 text-xs text-base-content/55">请更换资源或删除此块</div>
+        </div>
+        {!readOnly && (
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              className="
+                flex size-8 items-center justify-center rounded-md border border-base-300 bg-base-100
+                text-base-content/75 transition hover:border-info/40 hover:text-base-content
+              "
+              onMouseDown={event => event.preventDefault()}
+              onClick={openFilePicker}
+              aria-label={uploadMeta.replaceLabel}
+              title={uploadMeta.replaceLabel}
+            >
+              <ArrowClockwiseIcon className="size-4" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="
+                flex size-8 items-center justify-center rounded-md border border-base-300 bg-base-100
+                text-base-content/75 transition hover:border-error/40 hover:text-error
+              "
+              onMouseDown={event => event.preventDefault()}
+              onClick={deleteBlock}
+              aria-label={deleteBlockLabel}
+              title={deleteBlockLabel}
+            >
+              <TrashIcon className="size-4" aria-hidden="true" />
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderUploadingMediaBlock = () => (
     <div
-      className="
+      className={`
         flex min-h-24 items-center justify-center gap-2 rounded-md border
         border-dashed border-info/35 bg-info/5 px-4 py-4 text-sm text-base-content/60
-      "
+        ${isVideoBlock ? MESSAGE_EDITOR_DEFAULT_VIDEO_WIDTH_CLASS : ""}
+      `}
       role="status"
       aria-live="polite"
     >
@@ -633,13 +719,16 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
 
     return (
       <div className="group/media flex flex-col gap-3">
-        {mediaPreviewUrl
+        {mediaLoadFailed
+          ? renderBrokenMediaBlock()
+          : mediaPreviewUrl
           ? (
               <div
                 ref={mediaFrameRef}
                 className={getMessageEditorMediaFrameClassName({
                   hasCustomWidth: displayWidth !== null,
                   isImage: isImageBlock,
+                  isVideo: isVideoBlock,
                 })}
                 style={displayWidth !== null ? { maxWidth: "100%", width: `${displayWidth}px` } : undefined}
               >
@@ -652,9 +741,9 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
                       pointer-events-none absolute right-0 top-1/2 z-10 flex
                       h-20 w-3 translate-x-1/2 -translate-y-1/2 cursor-ew-resize
                       items-center justify-center rounded-full border
-                      border-info bg-info opacity-100 shadow-sm
+                      border-warning bg-warning opacity-100 shadow-sm
                       transition duration-150
-                      hover:bg-info/85
+                      hover:bg-warning/85
                       group-hover/media:pointer-events-auto
                       group-hover/media:opacity-100
                       group-focus-within/media:pointer-events-auto
@@ -667,7 +756,7 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
                     aria-label={resizeLabel}
                     title={resizeLabel}
                   >
-                    <span className="h-8 w-0.5 rounded-full bg-info-content/80" />
+                    <span className="h-8 w-0.5 rounded-full bg-warning-content/85" />
                   </button>
                 )}
 
@@ -683,15 +772,18 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
                         className="
                           block h-auto w-full max-w-full object-contain
                         "
+                        onError={handleMediaLoadError}
                       />
                     )
                   : (
                       <CachedVideoMessage
+                        aspectRatio={1 / mediaAspectRatio}
                         cacheKey={`${blockId}:video`}
                         url={mediaPreviewUrl}
                         className="
-                          block h-auto w-full max-w-full bg-transparent object-contain
+                          block size-full bg-transparent object-contain
                         "
+                        onError={handleMediaLoadError}
                       />
                     )}
               </div>
@@ -759,28 +851,32 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
                                 <button
                                   type="button"
                                   className="
-                                    rounded-md border border-base-300 px-2 py-1
-                                    text-xs text-base-content/70 transition
+                                    flex size-8 items-center justify-center rounded-md border border-base-300
+                                    text-base-content/70 transition
                                     hover:border-info/40
                                     hover:text-base-content
                                   "
                                   onMouseDown={event => event.preventDefault()}
                                   onClick={openFilePicker}
+                                  aria-label={uploadButtonLabel}
+                                  title={uploadButtonLabel}
                                 >
-                                  {uploadButtonLabel}
+                                  <ArrowClockwiseIcon className="size-4" aria-hidden="true" />
                                 </button>
                               )}
                               <button
                                 type="button"
                                 className="
-                                  rounded-md border border-base-300 px-2 py-1
-                                  text-xs text-base-content/70 transition
+                                  flex size-8 items-center justify-center rounded-md border border-base-300
+                                  text-base-content/70 transition
                                   hover:border-error/40 hover:text-error
                                 "
                                 onMouseDown={event => event.preventDefault()}
                                 onClick={deleteBlock}
+                                aria-label={deleteBlockLabel}
+                                title={deleteBlockLabel}
                               >
-                                删除
+                                <TrashIcon className="size-4" aria-hidden="true" />
                               </button>
                             </div>
                           )}
@@ -799,13 +895,18 @@ export const MessageEditorAtomicBlock = memo(function MessageEditorAtomicBlock({
                         {isCenteredUploadBlock && message.messageType !== MESSAGE_TYPE.SOUND && renderFloatingUploadActions()}
                         {(message.messageType === MESSAGE_TYPE.SOUND || message.messageType === MESSAGE_TYPE.FILE)
                           && renderInlineUploadAction()}
-                        <MessageContentRenderer
-                          message={{
-                            ...previewMessage,
-                            content: previewMessage.content ?? "",
-                            messageType: previewMessage.messageType ?? 0,
-                          }}
-                        />
+                        {isEditorMediaBlock && mediaLoadFailed
+                          ? renderBrokenMediaBlock()
+                          : (
+                              <MessageContentRenderer
+                                message={{
+                                  ...previewMessage,
+                                  content: previewMessage.content ?? "",
+                                  messageType: previewMessage.messageType ?? 0,
+                                }}
+                                onMediaError={isAudioBlock ? handleMediaLoadError : undefined}
+                              />
+                            )}
                         {audioProgressLabel && <span className="sr-only">{audioProgressLabel}</span>}
                         {message.messageType === MESSAGE_TYPE.SOUND && renderInlineDeleteAction("删除音频块")}
                         {message.messageType === MESSAGE_TYPE.FILE && renderInlineDeleteAction("删除文件块")}

@@ -26,11 +26,19 @@ const objectUrlMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/components/chat/message/media/CachedVideoMessage", () => ({
-  default: ({ url }: { url: string }) => createElement("video", { "data-video-url": url }),
+  DEFAULT_CACHED_VIDEO_ASPECT_RATIO: 16 / 9,
+  default: ({ aspectRatio, url }: { aspectRatio?: number; url: string }) => {
+    return createElement("video", { "data-video-aspect-ratio": aspectRatio, "data-video-url": url });
+  },
 }));
 
 vi.mock("@/components/chat/message/media/AudioMessage", () => ({
-  default: ({ url }: { url: string }) => createElement("div", { "data-audio-url": url }),
+  default: ({ onError, url }: { onError?: () => void; url: string }) => {
+    return createElement("div", {
+      "data-audio-url": url,
+      "data-has-error-handler": Boolean(onError),
+    });
+  },
 }));
 
 describe("messageContentRenderer 聊天室媒体质量", () => {
@@ -123,8 +131,28 @@ describe("messageContentRenderer 聊天室媒体质量", () => {
     }));
 
     expect(videoHtml).toContain("https://media.tuan.chat/media/v1/files/034/34/video/low.webm");
+    expect(videoHtml).toContain('data-video-aspect-ratio="1.7777777777777777"');
     expect(audioHtml).toContain("https://media.tuan.chat/media/v1/files/012/12/audio/low.webm");
     expect(`${videoHtml}${audioHtml}`).not.toMatch(/\/(medium|high)\.webm/);
+  });
+
+  it("将音频资源失败回调交给播放器", () => {
+    const html = renderToStaticMarkup(createElement(MessageContentRenderer, {
+      onMediaError: () => {},
+      message: {
+        messageType: MESSAGE_TYPE.SOUND,
+        content: "",
+        roleId: 1,
+        avatarId: 1,
+        extra: {
+          soundMessage: {
+            source: { kind: "internal", fileId: 12 },
+          },
+        },
+      },
+    }));
+
+    expect(html).toContain('data-has-error-handler="true"');
   });
 
   it("文件消息只使用 low 档位", () => {

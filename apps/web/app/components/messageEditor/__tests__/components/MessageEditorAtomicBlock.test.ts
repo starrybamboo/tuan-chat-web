@@ -6,26 +6,45 @@ import { MessageEditorAtomicBlock } from "../../components/MessageEditorAtomicBl
 import { createMessageEditorBlockDraft, setMessageEditorUploadedMedia, updateMessageEditorMediaSize } from "../../model/messageEditorTransforms";
 
 vi.mock("@/components/chat/message/media/CachedVideoMessage", () => ({
-  default: ({ className, url }: { className?: string; url: string }) => {
+  DEFAULT_CACHED_VIDEO_ASPECT_RATIO: 16 / 9,
+  default: ({ aspectRatio, className, onError, url }: { aspectRatio?: number; className?: string; onError?: () => void; url: string }) => {
     return createElement("video", {
+      "data-video-aspect-ratio": aspectRatio,
       className,
+      "data-has-error-handler": Boolean(onError),
       src: url,
     });
   },
 }));
 
+vi.mock("@/components/chat/message/messageContentRenderer", () => ({
+  default: ({
+    message,
+    onMediaError,
+  }: {
+    message: { extra?: { fileMessage?: { fileName?: string } } };
+    onMediaError?: () => void;
+  }) => {
+    return createElement("div", {
+      "data-has-media-error-handler": Boolean(onMediaError),
+    }, message.extra?.fileMessage?.fileName);
+  },
+}));
+
 vi.mock("@/components/common/mediaImage", () => ({
-  MediaImage: ({ alt, className, decoding, loading, src }: {
+  MediaImage: ({ alt, className, decoding, loading, onError, src }: {
     alt?: string;
     className?: string;
     decoding?: "async" | "auto" | "sync";
     loading?: "eager" | "lazy";
+    onError?: () => void;
     src?: string;
   }) => {
     return createElement("img", {
       alt,
       className,
       decoding,
+      "data-has-error-handler": Boolean(onError),
       loading,
       src,
     });
@@ -61,7 +80,7 @@ describe("messageEditorAtomicBlock", () => {
     expect(html).not.toContain("<img");
   });
 
-  it("renders a local image preview while the upload is in progress", () => {
+  it("renders an upload status instead of a local image preview while the upload is in progress", () => {
     vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:pending-image");
     const file = new File(["image"], "preview.png", { type: "image/png" });
 
@@ -70,9 +89,9 @@ describe("messageEditorAtomicBlock", () => {
       uploading: true,
     });
 
-    expect(html).toContain('src="blob:pending-image"');
     expect(html).toContain("正在上传 preview.png...");
     expect(html).not.toContain("点击上传图片");
+    expect(html).not.toContain('src="blob:pending-image"');
   });
 
   it("keeps a local file card and retry state after upload failure", () => {
@@ -97,6 +116,7 @@ describe("messageEditorAtomicBlock", () => {
     expect(audioHtml).toContain("删除");
     expect(videoHtml).toContain("点击上传视频");
     expect(videoHtml).toContain("删除");
+    expect(videoHtml).toContain("w-2/3");
   });
 
   it("renders an uploaded image with replace, delete, and resize actions", () => {
@@ -117,6 +137,7 @@ describe("messageEditorAtomicBlock", () => {
     expect(html).toContain("https://media.tuan.chat/media/v1/files/045/45/image/medium.webp");
     expect(html).toContain('loading="lazy"');
     expect(html).toContain('decoding="async"');
+    expect(html).toContain('data-has-error-handler="true"');
   });
 
   it("renders an uploaded video with replace, delete, and resize actions", () => {
@@ -135,6 +156,9 @@ describe("messageEditorAtomicBlock", () => {
     expect(html).toContain("删除");
     expect(html).toContain("拖拽缩放视频");
     expect(html).toContain("https://media.tuan.chat/media/v1/files/047/47/video/low.webm");
+    expect(html).toContain('data-has-error-handler="true"');
+    expect(html).toContain('data-video-aspect-ratio="1.7777777777777777"');
+    expect(html).toContain("w-2/3");
   });
 
   it("restores the persisted resized width for image and video blocks", () => {
@@ -166,6 +190,8 @@ describe("messageEditorAtomicBlock", () => {
 
     expect(imageHtml).toContain("width:640px");
     expect(videoHtml).toContain("width:720px");
+    expect(videoHtml).not.toContain("w-2/3");
+    expect(videoHtml).toContain('data-video-aspect-ratio="1.7777777777777777"');
   });
 
   it("renders a tail delete action for uploaded audio blocks", () => {
@@ -181,6 +207,7 @@ describe("messageEditorAtomicBlock", () => {
 
     expect(audioHtml).toContain("删除音频块");
     expect(audioHtml).toContain("0:00 / 0:09");
+    expect(audioHtml).toContain('data-has-media-error-handler="true"');
     expect(audioHtml).not.toContain("更换音频");
   });
 

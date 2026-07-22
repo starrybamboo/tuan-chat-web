@@ -415,8 +415,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     <div
       className="
         flex flex-col gap-2 size-full flex-1 bg-base-200 min-h-0 min-w-0
-        rounded-tl-xl border-l border-t border-base-300
-        dark:border-base-300
+        rounded-tl-xl border-l border-t border-white/40 dark:border-white/10
       "
     >
         {isPrivateChatMode

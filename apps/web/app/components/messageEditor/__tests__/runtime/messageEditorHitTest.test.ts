@@ -3,6 +3,7 @@ import { vi } from "vitest";
 import { createMessageEditorTextDraft } from "../../model/messageEditorTransforms";
 import {
   pickMessageEditorTextHitEntry,
+  resolveMessageEditorCharacterOffsetFromPoint,
   resolveMessageEditorDropTarget,
   resolveMessageEditorTextPointFromClientPosition,
   resolveMessageEditorVisibleDropTarget,
@@ -28,6 +29,29 @@ function createEntry(blockId: string, top: number, bottom: number) {
 }
 
 describe("messageEditorHitTest", () => {
+  it("resolves a character offset from text geometry when browser caret APIs are unavailable", () => {
+    const rects = [
+      { bottom: 20, left: 10, right: 20, top: 10 },
+      { bottom: 20, left: 20, right: 30, top: 10 },
+      { bottom: 20, left: 30, right: 40, top: 10 },
+      { bottom: 40, left: 10, right: 20, top: 30 },
+      { bottom: 40, left: 20, right: 30, top: 30 },
+    ];
+
+    expect(resolveMessageEditorCharacterOffsetFromPoint({
+      clientX: 27,
+      clientY: 15,
+      getCharacterRect: offset => rects[offset] ?? null,
+      length: rects.length,
+    })).toBe(2);
+    expect(resolveMessageEditorCharacterOffsetFromPoint({
+      clientX: 18,
+      clientY: 35,
+      getCharacterRect: offset => rects[offset] ?? null,
+      length: rects.length,
+    })).toBe(4);
+  });
+
   it("resolves drag placement from a single directly-hit block", () => {
     const rect = { bottom: 60, left: 0, right: 100, top: 40 };
 

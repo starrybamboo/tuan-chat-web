@@ -10,6 +10,7 @@ export * from "./direct-messages";
 
 export const ROOM_MESSAGES_TABLE_NAME = "room_messages";
 export const ROOM_MESSAGE_PENDING_TABLE_NAME = "room_message_pending";
+export const ROOM_DOCUMENT_OVERLAY_TABLE_NAME = "room_document_overlays";
 
 export const ROOM_MESSAGE_SCHEMA_SQL = [
   `CREATE TABLE IF NOT EXISTS ${ROOM_MESSAGES_TABLE_NAME} (
@@ -33,6 +34,17 @@ export const ROOM_MESSAGE_SCHEMA_SQL = [
   )`,
   `CREATE INDEX IF NOT EXISTS room_message_pending_room_idx
     ON ${ROOM_MESSAGE_PENDING_TABLE_NAME} (room_id, pending_message_id)`,
+  `CREATE TABLE IF NOT EXISTS ${ROOM_DOCUMENT_OVERLAY_TABLE_NAME} (
+    user_id INTEGER NOT NULL,
+    room_id INTEGER NOT NULL,
+    revision INTEGER NOT NULL,
+    payload_json TEXT NOT NULL,
+    local_cache_pending INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, room_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS room_document_overlays_room_idx
+    ON ${ROOM_DOCUMENT_OVERLAY_TABLE_NAME} (room_id, revision)`,
 ] as const;
 
 export const MOBILE_QUERY_SNAPSHOTS_TABLE_NAME = "mobile_query_snapshots";
@@ -91,9 +103,25 @@ export type RoomMessageRepository = {
   getMessagesByRoomId: (roomId: number) => Promise<ChatMessageResponse[]>;
   getMessagesSinceSyncId: (roomId: number, syncId: number) => Promise<ChatMessageResponse[]>;
   markMessagesDeleted: (messageIds: number[]) => Promise<void>;
+  loadRoomDocumentOverlay: <T>(userId: number, roomId: number) => Promise<RoomDocumentOverlayEntry<T> | null>;
   promotePendingMessage: (pendingMessageId: number, confirmedMessage: ChatMessageResponse) => Promise<void>;
+  removeRoomDocumentOverlay: (userId: number, roomId: number) => Promise<void>;
   rollbackPendingMessages: (pendingMessageIds: number[]) => Promise<void>;
+  saveRoomDocumentOverlay: <T>(entry: RoomDocumentOverlayWriteInput<T>) => Promise<void>;
   upsertMessages: (messages: ChatMessageResponse[]) => Promise<void>;
+};
+
+export type RoomDocumentOverlayEntry<T> = {
+  localCachePending: boolean;
+  payload: T;
+  revision: number;
+  roomId: number;
+  updatedAt: number;
+  userId: number;
+};
+
+export type RoomDocumentOverlayWriteInput<T> = Omit<RoomDocumentOverlayEntry<T>, "updatedAt"> & {
+  updatedAt?: number;
 };
 
 export type SqliteValue = number | string | Uint8Array | null;
@@ -416,6 +444,7 @@ export function createRoomMessageRepository(driver: LocalDbSqliteDriver): RoomMe
       await inTransaction(async (transactionDriver) => {
         await transactionDriver.run(`DELETE FROM ${ROOM_MESSAGES_TABLE_NAME} WHERE room_id = ?`, [roomId]);
         await transactionDriver.run(`DELETE FROM ${ROOM_MESSAGE_PENDING_TABLE_NAME} WHERE room_id = ?`, [roomId]);
+        await transactionDriver.run(`DELETE FROM ${ROOM_DOCUMENT_OVERLAY_TABLE_NAME} WHERE room_id = ?`, [roomId]);
       });
     },
 
@@ -527,6 +556,43 @@ export function createRoomMessageRepository(driver: LocalDbSqliteDriver): RoomMe
       await upsertPreparedMessages(markRoomMessagesDeleted(fromRoomMessageRecords(rows), ids));
     },
 
+    async loadRoomDocumentOverlay<T>(userId: number, roomId: number) {
+      if (!Number.isInteger(userId) || userId <= 0 || !isPositiveRoomId(roomId)) return null;
+      await ensureSchema();
+      const rows = await driver.all<{
+        local_cache_pending: number;
+        payload_json: string;
+        revision: number;
+        room_id: number;
+        updated_at: number;
+        user_id: number;
+      }>(
+        `SELECT user_id, room_id, revision, payload_json, local_cache_pending, updated_at
+          FROM ${ROOM_DOCUMENT_OVERLAY_TABLE_NAME}
+          WHERE user_id = ? AND room_id = ? LIMIT 1`,
+        [userId, roomId],
+      );
+      const row = rows[0];
+      if (!row) return null;
+      try {
+        return {
+          localCachePending: row.local_cache_pending === 1,
+          payload: JSON.parse(row.payload_json) as T,
+          revision: row.revision,
+          roomId: row.room_id,
+          updatedAt: row.updated_at,
+          userId: row.user_id,
+        };
+      }
+      catch {
+        await driver.run(
+          `DELETE FROM ${ROOM_DOCUMENT_OVERLAY_TABLE_NAME} WHERE user_id = ? AND room_id = ?`,
+          [userId, roomId],
+        );
+        return null;
+      }
+    },
+
     async promotePendingMessage(pendingMessageId, confirmedMessage) {
       if (!Number.isInteger(pendingMessageId) || pendingMessageId >= 0) {
         return;
@@ -550,6 +616,15 @@ export function createRoomMessageRepository(driver: LocalDbSqliteDriver): RoomMe
       });
     },
 
+    async removeRoomDocumentOverlay(userId, roomId) {
+      if (!Number.isInteger(userId) || userId <= 0 || !isPositiveRoomId(roomId)) return;
+      await ensureSchema();
+      await driver.run(
+        `DELETE FROM ${ROOM_DOCUMENT_OVERLAY_TABLE_NAME} WHERE user_id = ? AND room_id = ?`,
+        [userId, roomId],
+      );
+    },
+
     async rollbackPendingMessages(pendingMessageIds) {
       const ids = normalizeMessageIds(pendingMessageIds).filter(id => id < 0);
       if (ids.length === 0) {
@@ -560,6 +635,30 @@ export function createRoomMessageRepository(driver: LocalDbSqliteDriver): RoomMe
         `DELETE FROM ${ROOM_MESSAGE_PENDING_TABLE_NAME}
           WHERE pending_message_id IN (${createPlaceholders(ids.length)})`,
         ids,
+      );
+    },
+
+    async saveRoomDocumentOverlay(entry) {
+      if (!Number.isInteger(entry.userId) || entry.userId <= 0 || !isPositiveRoomId(entry.roomId)) return;
+      await ensureSchema();
+      await driver.run(
+        `INSERT INTO ${ROOM_DOCUMENT_OVERLAY_TABLE_NAME}
+          (user_id, room_id, revision, payload_json, local_cache_pending, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?)
+          ON CONFLICT(user_id, room_id) DO UPDATE SET
+            revision = excluded.revision,
+            payload_json = excluded.payload_json,
+            local_cache_pending = excluded.local_cache_pending,
+            updated_at = excluded.updated_at
+          WHERE excluded.revision >= ${ROOM_DOCUMENT_OVERLAY_TABLE_NAME}.revision`,
+        [
+          entry.userId,
+          entry.roomId,
+          entry.revision,
+          toJsonString(entry.payload),
+          entry.localCachePending ? 1 : 0,
+          entry.updatedAt ?? Date.now(),
+        ],
       );
     },
 

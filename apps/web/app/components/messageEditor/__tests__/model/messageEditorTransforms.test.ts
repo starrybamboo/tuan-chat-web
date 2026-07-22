@@ -3,7 +3,7 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import {
   createMessageEditorBlockDraft,
   createMessageEditorTextDraft,
-  mergeMessageEditorMediaLayouts,
+  fillMissingMessageEditorMediaLayouts,
   parseMessageEditorMarkdownPreview,
   previewVisibleOffsetToMessageEditorRawOffset,
   setMessageEditorSpeakerMetadata,
@@ -173,7 +173,7 @@ describe("messageEditorTransforms", () => {
     });
     const sourceImageWithLayout = updateMessageEditorMediaSize(sourceImage, { width: 280, height: 158 });
     const sourceVideoWithLayout = updateMessageEditorMediaSize(sourceVideo, { width: 300, height: 169 });
-    const merged = mergeMessageEditorMediaLayouts([
+    const merged = fillMissingMessageEditorMediaLayouts([
       setMessageEditorUploadedMedia(createMessageEditorBlockDraft("image"), {
         fileId: 1,
         fileName: "cover.png",

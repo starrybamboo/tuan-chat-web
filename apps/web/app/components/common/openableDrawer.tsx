@@ -382,7 +382,7 @@ export function OpenAbleDrawer({
           >
             <div
               className={`
-                absolute top-0 h-full w-0.5 bg-info transition-colors
+                absolute top-0 h-full w-0.5 bg-base-300 dark:bg-white/10 transition-colors
                 group-hover/openable-resize-handle:bg-info/70
                 group-active/openable-resize-handle:bg-info
                 group-focus-visible/openable-resize-handle:bg-info

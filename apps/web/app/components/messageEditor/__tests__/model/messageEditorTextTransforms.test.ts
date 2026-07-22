@@ -219,6 +219,35 @@ describe("messageEditorTextTransforms", () => {
     });
   });
 
+  it("does not create a blank text block when an external file is dropped", () => {
+    const text = createMessageEditorTextDraft({ content: "正文" });
+    const media = createMessageEditorBlockDraft("image");
+
+    const afterText = insertMessageEditorBlockAtPoint([text], {
+      blockId: getMessageEditorBlockId(text),
+      createTrailingTextBlock: false,
+      kind: "image",
+      offset: 2,
+    });
+    const afterMedia = insertMessageEditorBlockAtPoint([media], {
+      blockId: getMessageEditorBlockId(media),
+      createTrailingTextBlock: false,
+      kind: "image",
+      offset: 1,
+    });
+
+    expect(afterText?.messages.map(message => message.messageType)).toEqual([
+      MESSAGE_TYPE.TEXT,
+      MESSAGE_TYPE.IMG,
+    ]);
+    expect(afterText?.focus).toBeNull();
+    expect(afterMedia?.messages.map(message => message.messageType)).toEqual([
+      MESSAGE_TYPE.IMG,
+      MESSAGE_TYPE.IMG,
+    ]);
+    expect(afterMedia?.focus).toBeNull();
+  });
+
   it("replaces a selected text range with an atomic block", () => {
     const source = createMessageEditorTextDraft({ content: "alphaomega" });
 

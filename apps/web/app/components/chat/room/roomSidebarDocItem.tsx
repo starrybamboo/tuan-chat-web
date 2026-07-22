@@ -171,7 +171,7 @@ export default function RoomSidebarDocItem({
       }}
     >
       <div className="
-        size-8 rounded-md bg-base-100 border border-base-300/60 flex
+        size-8 rounded-md border border-white/40 bg-base-100 dark:border-white/10 flex
         items-center justify-center relative overflow-hidden
       ">
         {displayCoverUrl
@@ -185,7 +185,7 @@ export default function RoomSidebarDocItem({
                 />
                 <span className="
                   absolute bottom-0.5 right-0.5 size-4 rounded bg-base-100/80
-                  flex items-center justify-center border border-base-300/60
+                  flex items-center justify-center border border-white/40 dark:border-white/10
                 ">
                   <FileTextIcon className="size-3 opacity-70" />
                 </span>

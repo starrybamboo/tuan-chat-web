@@ -40,7 +40,7 @@ export type SpaceMember = {
     avatarMediaType?: string;
     createTime?: string;
     updateTime?: string;
-    active?: boolean;
     observer?: boolean;
     leader?: boolean;
+    active?: boolean;
 };
