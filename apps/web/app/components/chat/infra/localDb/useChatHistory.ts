@@ -17,7 +17,7 @@ import {
 } from "@tuanchat/query/room-message-query-data";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { mergeMessageEditorMediaLayouts } from "@/components/messageEditor/model/messageEditorTransforms";
+import { fillMissingMessageEditorMediaLayouts } from "@/components/messageEditor/model/messageEditorTransforms";
 
 import type { ChatMessageResponse } from "../../../../../api";
 
@@ -126,7 +126,7 @@ function retainIncomingRoomMessageMediaLayouts(
     if (!currentMessage) {
       return item;
     }
-    const [message] = mergeMessageEditorMediaLayouts([item.message], [currentMessage]);
+    const [message] = fillMissingMessageEditorMediaLayouts([item.message], [currentMessage]);
     return message === item.message ? item : { ...item, message: message as ChatMessageResponse["message"] };
   });
 }

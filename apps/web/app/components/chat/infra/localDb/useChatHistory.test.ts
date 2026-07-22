@@ -59,7 +59,7 @@ describe("useChatHistory 乐观消息渲染 key", () => {
     expect(result.map(item => item.message.content)).toEqual(["本地内容", "远端新增"]);
   });
 
-  it("远端增量缺少 editor 尺寸时保留当前媒体块的本地布局", () => {
+  it("远端增量缺少 editor 尺寸时保留已持久化的本地媒体布局", () => {
     const local = createMessageResponse({
       extra: { videoMessage: { editorHeight: 405, editorWidth: 720, fileId: 7, height: 1080, width: 1920 } } as any,
       messageId: 7,
@@ -75,8 +75,27 @@ describe("useChatHistory 乐观消息渲染 key", () => {
     const [merged] = mergeIncomingRoomMessagesWithEditorWorkingState([local], [remote], new Set());
 
     expect(merged.message.syncId).toBe(8);
-    expect((merged.message.extra?.videoMessage as { editorHeight?: number; editorWidth?: number } | undefined)?.editorHeight).toBe(405);
-    expect((merged.message.extra?.videoMessage as { editorHeight?: number; editorWidth?: number } | undefined)?.editorWidth).toBe(720);
+    expect((merged.message.extra?.videoMessage as { editorHeight?: number; editorWidth?: number } | undefined))
+      .toMatchObject({ editorHeight: 405, editorWidth: 720 });
+  });
+
+  it("编辑器确认携带新尺寸时不会被 Query 中的旧布局覆盖", () => {
+    const current = createMessageResponse({
+      extra: { videoMessage: { editorHeight: 199, editorWidth: 354, fileId: 7, height: 1080, width: 1920 } } as any,
+      messageId: 7,
+      messageType: MESSAGE_TYPE.VIDEO,
+    });
+    const committed = createMessageResponse({
+      extra: { videoMessage: { editorHeight: 182, editorWidth: 324, fileId: 7, height: 1080, width: 1920 } } as any,
+      messageId: 7,
+      messageType: MESSAGE_TYPE.VIDEO,
+      syncId: 8,
+    });
+
+    const [merged] = mergeIncomingRoomMessagesWithEditorWorkingState([current], [committed], new Set());
+
+    expect((merged.message.extra?.videoMessage as { editorHeight?: number; editorWidth?: number } | undefined))
+      .toMatchObject({ editorHeight: 182, editorWidth: 324 });
   });
 
   it("保存确认到达 completeSave 前不会用旧值或 tombstone 覆盖 dirty 工作消息", () => {

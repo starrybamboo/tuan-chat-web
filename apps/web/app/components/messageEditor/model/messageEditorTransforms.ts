@@ -633,10 +633,8 @@ export function updateMessageEditorMediaSize(
   });
 }
 
-/**
- * 将本地文档视图的媒体布局覆盖回消息流，避免远端消息清洗掉 editor-only 尺寸后丢失缩放状态。
- */
-export function mergeMessageEditorMediaLayouts(
+/** 将本地文档视图的媒体布局补回缺失字段；消息自身携带的新尺寸优先。 */
+export function fillMissingMessageEditorMediaLayouts(
   messages: MessageEditorMessage[],
   layoutSourceMessages: MessageEditorMessage[],
 ): MessageEditorMessage[] {
@@ -674,8 +672,12 @@ export function mergeMessageEditorMediaLayouts(
     const currentPayload = getNestedExtraRecord(currentExtra, mediaRecord.extraKey) ?? {};
     const nextPayload = {
       ...currentPayload,
-      ...(layout.editorHeight ? { editorHeight: layout.editorHeight } : {}),
-      ...(layout.editorWidth ? { editorWidth: layout.editorWidth } : {}),
+      ...(toPositiveNumber(currentPayload.editorHeight) == null && layout.editorHeight
+        ? { editorHeight: layout.editorHeight }
+        : {}),
+      ...(toPositiveNumber(currentPayload.editorWidth) == null && layout.editorWidth
+        ? { editorWidth: layout.editorWidth }
+        : {}),
     };
     if (
       currentPayload.editorHeight === nextPayload.editorHeight

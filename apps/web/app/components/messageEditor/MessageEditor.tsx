@@ -88,7 +88,7 @@ import {
   getMessageEditorBlockId,
   isMessageEditorTextMessage,
   materializeMessageEditorRoomWorkingMessages,
-  mergeMessageEditorMediaLayouts,
+  fillMissingMessageEditorMediaLayouts,
   normalizeMessageEditorContent,
 } from "./model/messageEditorTransforms";
 import {
@@ -883,7 +883,7 @@ export default function MessageEditor({
       return;
     }
 
-    const nextMessages = mergeMessageEditorMediaLayouts(
+    const nextMessages = fillMissingMessageEditorMediaLayouts(
       sourceMessages,
       messagesRef.current,
     );

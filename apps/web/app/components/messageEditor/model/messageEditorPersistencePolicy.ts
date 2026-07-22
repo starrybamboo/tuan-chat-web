@@ -10,7 +10,7 @@ import {
   ensureMessageEditorMessages,
   getMessageEditorBlockId,
   inheritMessageEditorRuntimeBlockId,
-  mergeMessageEditorMediaLayouts,
+  fillMissingMessageEditorMediaLayouts,
   normalizeMessageEditorContent,
 } from "./messageEditorTransforms";
 
@@ -595,7 +595,7 @@ export function mergeChangedRoomMessagesIntoEditorMessages(params: {
 
   // The server is authoritative for message data, but does not retain editor-only
   // media layout fields. Restore them before the confirmed projection reaches SQLite.
-  return mergeMessageEditorMediaLayouts(merged, params.currentMessages);
+  return fillMissingMessageEditorMediaLayouts(merged, params.currentMessages);
 }
 
 /**

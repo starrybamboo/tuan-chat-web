@@ -70,7 +70,7 @@ export type Space = {
      * 当前返回实际命中的 commitId；在线视图为空
      */
     effectiveCommitId?: number;
-    active?: boolean;
-    deleted?: boolean;
     archived?: boolean;
+    deleted?: boolean;
+    active?: boolean;
 };

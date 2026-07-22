@@ -2,7 +2,7 @@ import type { MessageEditorMessage, MessageEditorRoomSyncProgress } from "../mes
 
 import {
   getMessageEditorBlockId,
-  mergeMessageEditorMediaLayouts,
+  fillMissingMessageEditorMediaLayouts,
 } from "../model/messageEditorTransforms";
 
 export type RoomDocumentEditSessionIdentity = Readonly<{ roomId: number; userId: number }>;
@@ -138,11 +138,8 @@ export class RoomDocumentEditSession {
   }
 
   acceptBase(messages: MessageEditorMessage[]) {
-    // Remote message projections do not retain editor-only media dimensions. Keep the
-    // local layout when a clean document receives a WebSocket/Query refresh.
-    const nextBaseMessages = mergeMessageEditorMediaLayouts(messages, this.workingMessages);
-    this.baseMessages = nextBaseMessages;
-    if (!this.isDirty() && !this.localCachePending) this.workingMessages = nextBaseMessages;
+    this.baseMessages = messages;
+    if (!this.isDirty() && !this.localCachePending) this.workingMessages = messages;
   }
 
   restore(snapshot: RoomDocumentEditSessionSnapshot, now: number) {
@@ -364,21 +361,24 @@ export class RoomDocumentEditSessionRunner {
 
   private async finalizeConfirmed(save: RoomDocumentCloudSave, confirmed: MessageEditorMessage[], cloudDurationMs: number) {
     const { clock, overlayRepository, session } = this.dependencies;
+    const confirmedWithLocalLayouts = confirmed.length > 0
+      ? fillMissingMessageEditorMediaLayouts(confirmed, save.messages)
+      : confirmed;
     session.beginLocalFinalize(clock.now(), cloudDurationMs);
     this.dependencies.onSnapshot(session.getSnapshot());
     const localStartedAt = clock.now();
     try {
       await this.dependencies.commitConfirmedMessages([
-        ...confirmed,
+        ...confirmedWithLocalLayouts,
         ...(session.getSnapshot().tombstones ?? []),
       ]);
       if (save.revision === session.getSnapshot().revision) {
         await overlayRepository.remove(session.identity);
         session.finishLocalSave(save.revision, clock.now() - localStartedAt);
-        session.acknowledge(save.revision, confirmed, cloudDurationMs);
+        session.acknowledge(save.revision, confirmedWithLocalLayouts, cloudDurationMs);
       }
       else {
-        session.acknowledge(save.revision, confirmed, cloudDurationMs);
+        session.acknowledge(save.revision, confirmedWithLocalLayouts, cloudDurationMs);
         await overlayRepository.save(session.getSnapshot());
         session.finishLocalSave(save.revision, clock.now() - localStartedAt);
       }
