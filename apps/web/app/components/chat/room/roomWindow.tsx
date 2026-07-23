@@ -3,7 +3,6 @@ import type { VirtuosoHandle } from "react-virtuoso";
 import { useQueryClient } from "@tanstack/react-query";
 import { patchInsertMessages } from "@tuanchat/query/chat";
 import { fetchClientMetadataBatchWithCache, fetchRoleAvatarListsBatchWithCache } from "@tuanchat/query/metadata";
-import { tuanchat } from "api/instance";
 import React, { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
@@ -40,7 +39,7 @@ import useRoomMessageScroll from "@/components/chat/room/useRoomMessageScroll";
 import useRoomOverlaysController from "@/components/chat/room/useRoomOverlaysController";
 import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
 import useWebPokeComposer from "@/components/chat/room/useWebPokeComposer";
-import { compareChatMessageResponsesByOrder, compareMessagesByOrder } from "@/components/chat/shared/messageOrder";
+import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { StateRuntimeProvider } from "@/components/chat/state/stateRuntimeContext";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
@@ -71,6 +70,7 @@ import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextP
 import { resolveRoleVoiceUrl } from "@/components/Role/roleVoiceMedia";
 import { copyBytesToBlobPart } from "@/utils/media/blobParts";
 import { UploadUtils } from "@/utils/media/UploadUtils";
+import { tuanchat } from "api/instance";
 
 import type { ChatMessageRequest, ChatMessageResponse, Message, SpaceMaterialPackageResponse } from "../../../../api";
 
@@ -285,36 +285,6 @@ function RoomWindow({
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
   const setWebgalOpen = useSideDrawerStore(state => state.setWebgalOpen);
-  const lastNonEmptyRoomMessagesRef = useRef<ChatMessageResponse[]>([]);
-  useEffect(() => {
-    if (mainHistoryMessages.length > 0) {
-      lastNonEmptyRoomMessagesRef.current = mainHistoryMessages;
-    }
-  }, [mainHistoryMessages]);
-  const handleRemoteDocMessagesSaved = useCallback(async (messages: Message[]) => {
-    const roomMessages = messages
-      .filter(message => message.roomId === roomId)
-      .sort(compareMessagesByOrder)
-      .map(message => ({ message }) as ChatMessageResponse);
-    if (roomMessages.length === 0) {
-      console.warn("[RoomWindow] skip merging room cache because doc patch returned no changed room messages", {
-        roomId,
-        returnedMessages: messages.length,
-      });
-      return;
-    }
-    await chatHistory?.addOrUpdateMessages(roomMessages);
-    const mergedById = new Map<number, ChatMessageResponse>();
-    for (const item of chatHistory?.messages.length ? chatHistory.messages : lastNonEmptyRoomMessagesRef.current) {
-      if (typeof item.message?.messageId === "number") {
-        mergedById.set(item.message.messageId, item);
-      }
-    }
-    for (const item of roomMessages) {
-      mergedById.set(item.message.messageId, item);
-    }
-    lastNonEmptyRoomMessagesRef.current = [...mergedById.values()].sort(compareChatMessageResponsesByOrder);
-  }, [chatHistory, roomId]);
   const canViewDocContent = Boolean(spaceContext.isSpaceOwner || hasHostPrivileges(curMember?.memberType));
   const handleToggleRoomContentMode = useCallback(() => {
     setSideDrawerState("none");
@@ -1242,7 +1212,6 @@ function RoomWindow({
               canViewDocContent={canViewDocContent}
               chatHistory={chatHistory}
               onRequestDocImportTextPaste={handleRequestDocImportTextPaste}
-              onRemoteDocMessagesSaved={handleRemoteDocMessagesSaved}
               toggleLeftDrawer={spaceContext.toggleLeftDrawer}
               isSubWindowOpen={isSubWindowOpen}
               onToggleSubWindow={onToggleSubWindow}

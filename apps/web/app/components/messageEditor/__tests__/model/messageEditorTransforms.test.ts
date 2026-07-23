@@ -4,6 +4,8 @@ import {
   createMessageEditorBlockDraft,
   createMessageEditorTextDraft,
   fillMissingMessageEditorMediaLayouts,
+  getMessageEditorBlockId,
+  normalizeMessageEditorDraft,
   parseMessageEditorMarkdownPreview,
   previewVisibleOffsetToMessageEditorRawOffset,
   setMessageEditorSpeakerMetadata,
@@ -218,6 +220,25 @@ describe("messageEditorTransforms", () => {
       content: "继续向前。",
       roleId: 12,
     });
+  });
+
+  it("derives stable block identity from confirmed messageId across Query clones", () => {
+    const first = normalizeMessageEditorDraft({ content: "same", messageId: 101, messageType: 1 });
+    const cloned = normalizeMessageEditorDraft({ content: "updated", messageId: 101, messageType: 1 });
+
+    expect(first).not.toBeNull();
+    expect(cloned).not.toBeNull();
+    expect(getMessageEditorBlockId(first!)).toBe(getMessageEditorBlockId(cloned!));
+  });
+
+  it("keeps one MessageDraft Query object stable without an active snapshot copy", () => {
+    const source = { content: "readme", messageType: 1 };
+    const first = normalizeMessageEditorDraft(source);
+    const second = normalizeMessageEditorDraft(source);
+
+    expect(first).not.toBeNull();
+    expect(second).not.toBeNull();
+    expect(getMessageEditorBlockId(first!)).toBe(getMessageEditorBlockId(second!));
   });
 
 });

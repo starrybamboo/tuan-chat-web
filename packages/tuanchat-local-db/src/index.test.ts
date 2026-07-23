@@ -16,7 +16,6 @@ import {
   MOBILE_QUERY_SNAPSHOT_SCHEMA_SQL,
   normalizeRoomMessagesForStorage,
   ROOM_MESSAGE_PENDING_TABLE_NAME,
-  ROOM_DOCUMENT_OVERLAY_TABLE_NAME,
   ROOM_MESSAGE_SCHEMA_SQL,
   toRoomMessageRecord,
 } from "./index";
@@ -220,31 +219,30 @@ describe("tuanchat local db room message helpers", () => {
     expect((await repository.getMessagesByRoomId(9)).map(item => item.message.messageId)).toEqual([1, 2]);
   });
 
-  it("按用户和房间持久化文档 overlay，旧 revision 不会覆盖新 revision", async () => {
-    const repository = await createMemoryRepository();
-    await repository.saveRoomDocumentOverlay({
-      localCachePending: false,
-      payload: { messages: [createMessage(1)] },
-      revision: 2,
-      roomId: 9,
-      userId: 7,
-    });
-    await repository.saveRoomDocumentOverlay({
-      localCachePending: true,
-      payload: { messages: [] },
-      revision: 1,
-      roomId: 9,
-      userId: 7,
-    });
+  it("初始化会幂等删除旧文档 overlay 且保留 confirmed/pending 生命周期", async () => {
+    const driver = await createMemoryDriver();
+    const initialRepository = createRoomMessageRepository(driver);
+    await initialRepository.upsertMessages([createMessage(1)]);
+    await initialRepository.addPendingMessages([createMessage(-1, { position: 2, syncId: -1 })]);
+    await driver.exec(`CREATE TABLE room_document_overlays (
+      user_id INTEGER NOT NULL,
+      room_id INTEGER NOT NULL,
+      revision INTEGER NOT NULL,
+      payload_json TEXT NOT NULL,
+      local_cache_pending INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL,
+      PRIMARY KEY (user_id, room_id)
+    )`);
 
-    expect(await repository.loadRoomDocumentOverlay(7, 9)).toMatchObject({
-      localCachePending: false,
-      payload: { messages: [createMessage(1)] },
-      revision: 2,
-    });
-    await repository.removeRoomDocumentOverlay(7, 9);
-    expect(await repository.loadRoomDocumentOverlay(7, 9)).toBeNull();
-    expect(ROOM_MESSAGE_SCHEMA_SQL.join("\n")).toContain(ROOM_DOCUMENT_OVERLAY_TABLE_NAME);
+    const migratedRepository = createRoomMessageRepository(driver);
+    expect((await migratedRepository.getMessagesByRoomId(9)).map(item => item.message.messageId)).toEqual([1, -1]);
+    expect(await driver.all<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'room_document_overlays'",
+    )).toEqual([]);
+
+    await migratedRepository.getMessagesByRoomId(9);
+    expect(ROOM_MESSAGE_SCHEMA_SQL.join("\n")).toContain("DROP TABLE IF EXISTS room_document_overlays");
+    expect(ROOM_MESSAGE_SCHEMA_SQL.join("\n")).not.toContain("CREATE TABLE IF NOT EXISTS room_document_overlays");
   });
 
   it("冷读时清理旧版正消息 ID pending overlay", async () => {

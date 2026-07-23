@@ -10,6 +10,8 @@ import {
 import type { ChatMessageResponse } from "../../../../../api";
 
 export type RoomHistoryRuntimeState = {
+  editorDeletedMessageIds: Set<number>;
+  editorDirtyMessageIds: Set<number>;
   messageIdAliases: Map<number, { toMessageId: number; updatedAt: number }>;
 };
 
@@ -25,6 +27,8 @@ export function getRoomHistoryRuntime(queryClient: QueryClient, roomId: number):
   let runtime = runtimeByRoom.get(roomId);
   if (!runtime) {
     runtime = {
+      editorDeletedMessageIds: new Set(),
+      editorDirtyMessageIds: new Set(),
       messageIdAliases: new Map(),
     };
     runtimeByRoom.set(roomId, runtime);

@@ -82,6 +82,22 @@ describe("roomMessageStreamApi", () => {
     expect(messages).toEqual([changed]);
   });
 
+  it("保留服务端响应原序供 operation 按下标回填", async () => {
+    const first = createMessage({ content: "first response", messageId: 31, position: 20, syncId: 131 });
+    const second = createMessage({ content: "second response", messageId: 32, position: 1, syncId: 132 });
+    patchRoomMessagesMock.mockResolvedValueOnce({ data: [first, second], success: true });
+
+    const messages = await patchRemoteRoomMessageStream({
+      operations: [
+        { message: { content: "a", messageType: 1 }, op: "insert" },
+        { message: { content: "b", messageType: 1 }, op: "insert" },
+      ],
+      roomId: 10,
+    });
+
+    expect(messages).toEqual([first, second]);
+  });
+
   it("显式传入 mutationMeta 时会透传到统一 patch 请求", async () => {
     patchRoomMessagesMock.mockResolvedValueOnce({
       data: [createMessage({ content: "saved", messageId: 2, syncId: 101 })],

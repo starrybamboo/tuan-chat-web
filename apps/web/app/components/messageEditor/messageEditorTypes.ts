@@ -34,3 +34,17 @@ export type MessageEditorMessage = Omit<Partial<Message>, "extra"> & {
   tcLocalSyncState?: MessageEditorLocalSyncState;
   tcMessageEditorDraft?: boolean;
 };
+
+/** 内容和持久化策略由调用方 adapter 提供，编辑器只提交交互事务。 */
+export type MessageEditorContentAdapter = {
+  applyChange(change: {
+    changedBlockIds: readonly string[];
+    messages: MessageEditorMessage[];
+    previousMessages: MessageEditorMessage[];
+    structureChanged: boolean;
+  }): MessageEditorMessage[];
+  identity: string;
+  messages: MessageEditorMessage[];
+  ready: boolean;
+  saveState: MessageEditorSaveState;
+};

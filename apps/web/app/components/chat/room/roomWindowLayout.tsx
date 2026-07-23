@@ -14,8 +14,6 @@ import RoomSideDrawers from "@/components/chat/room/roomSideDrawers";
 import SubRoomWindow from "@/components/chat/room/subRoomWindow";
 import WebgalPreviewDrawer from "@/components/chat/room/webgalPreviewDrawer";
 
-import type { Message } from "../../../../api";
-
 type ChatFrameProps = React.ComponentProps<typeof ChatFrame>;
 type RoomComposerPanelProps = React.ComponentProps<typeof RoomComposerPanel>;
 
@@ -63,7 +61,6 @@ type RoomWindowLayoutProps = {
   onToggleContentMode: () => void;
   canViewDocContent: boolean;
   onRequestDocImportTextPaste?: (text: string, insertAsPlainText: () => void) => void;
-  onRemoteDocMessagesSaved?: (messages: Message[]) => void | Promise<void>;
   chatHistory: UseChatHistoryReturn;
   toggleLeftDrawer: () => void;
   isSubWindowOpen?: boolean;
@@ -90,7 +87,6 @@ export default function RoomWindowLayout({
   onToggleContentMode,
   canViewDocContent,
   onRequestDocImportTextPaste,
-  onRemoteDocMessagesSaved,
   chatHistory,
   toggleLeftDrawer,
   isSubWindowOpen = false,
@@ -200,7 +196,6 @@ export default function RoomWindowLayout({
                       canViewDocs={canViewDocContent}
                       chatHistory={chatHistory}
                       onRequestImportTextPaste={onRequestDocImportTextPaste}
-                      onRemoteMessagesSaved={onRemoteDocMessagesSaved}
                       showToolbar={false}
                       tcHeaderTitle={roomName}
                       tcHeaderImageFileId={room?.avatarFileId}

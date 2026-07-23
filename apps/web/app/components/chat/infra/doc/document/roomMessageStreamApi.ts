@@ -1,6 +1,5 @@
 import type { MessageEditorMessage } from "@/components/messageEditor/messageEditorTypes";
 
-import { compareMessagesByOrder } from "@/components/chat/shared/messageOrder";
 import { normalizeMessageEditorDraft } from "@/components/messageEditor/model/messageEditorTransforms";
 import { tuanchat } from "api/instance";
 
@@ -100,8 +99,7 @@ function readRoomMessageStreamMessages(
   const messages = Array.isArray(response) ? response : [];
   return messages
     .map(extractRoomMessage)
-    .filter((message): message is Message => Boolean(message))
-    .sort(compareMessagesByOrder);
+    .filter((message): message is Message => Boolean(message));
 }
 
 export async function patchRemoteRoomMessageStream(params: {

@@ -132,73 +132,36 @@ function retainIncomingRoomMessageMediaLayouts(
 }
 
 /** 合并远端增量，同时保护编辑器仍标记为 dirty 的同 ID 消息。 */
-export function mergeIncomingRoomMessagesWithEditorWorkingState(
+export function mergeIncomingRoomMessagesWithEditorProtection(
   currentMessages: ChatMessageResponse[],
   incomingMessages: ChatMessageResponse[],
   dirtyMessageIds: ReadonlySet<number>,
+  deletedMessageIds: ReadonlySet<number> = new Set(),
 ) {
+  const currentById = new Map(currentMessages.map(item => [item.message.messageId, item]));
+  const preparedIncoming = incomingMessages
+    .filter(item => !deletedMessageIds.has(item.message.messageId))
+    .map((item) => {
+      if (!dirtyMessageIds.has(item.message.messageId)) return item;
+      const current = currentById.get(item.message.messageId);
+      if (!current) return item;
+      return {
+        ...current,
+        message: {
+          ...current.message,
+          createTime: item.message.createTime ?? current.message.createTime,
+          roomId: item.message.roomId,
+          syncId: item.message.syncId,
+          updateTime: item.message.updateTime ?? current.message.updateTime,
+          userId: item.message.userId,
+        },
+      };
+    });
   const mergeableMessages = retainIncomingRoomMessageMediaLayouts(
     currentMessages,
-    incomingMessages.filter((item) => {
-      const messageId = item.message?.messageId;
-      return typeof messageId !== "number" || !dirtyMessageIds.has(messageId);
-    }),
+    preparedIncoming,
   );
   return mergeRoomMessagesForLocalState(currentMessages, mergeableMessages);
-}
-
-/** 使用编辑器工作副本替换当前房间，其他房间的热态保持不变。 */
-export function replaceRoomMessagesWithEditorWorkingState(
-  currentMessages: ChatMessageResponse[],
-  workingMessages: ChatMessageResponse[],
-  roomId: number,
-) {
-  const retainedMessages = currentMessages.filter(item => item.message.roomId !== roomId);
-  return mergeRoomMessagesForLocalState(retainedMessages, workingMessages);
-}
-
-/** 服务端确认新增后，按稳定内容特征移除对应的编辑器负 ID 草稿。 */
-export function removeCommittedEditorDrafts(
-  currentMessages: ChatMessageResponse[],
-  committedMessages: ChatMessageResponse[],
-) {
-  const unmatchedCommitted = [...committedMessages];
-  let removedDraft = false;
-  const nextMessages = currentMessages.filter((item) => {
-    const message = item.message as ChatMessageResponse["message"] & { tcMessageEditorDraft?: boolean };
-    if (message.tcMessageEditorDraft !== true) {
-      return true;
-    }
-    const matchedIndex = unmatchedCommitted.findIndex((committed) => {
-      const next = committed.message;
-      return next.messageId > 0
-        && next.roomId === message.roomId
-        && next.position === message.position
-        && next.messageType === message.messageType
-        && next.roleId === message.roleId
-        && next.content === message.content;
-    });
-    if (matchedIndex < 0) {
-      return true;
-    }
-    unmatchedCommitted.splice(matchedIndex, 1);
-    removedDraft = true;
-    return false;
-  });
-  return removedDraft ? nextMessages : currentMessages;
-}
-
-/** 保存确认先合入非 dirty 消息；dirty 清理由 MessageEditor 完成保存对账后统一发布。 */
-export function mergeCommittedEditorMessagesWithWorkingState(
-  currentMessages: ChatMessageResponse[],
-  committedMessages: ChatMessageResponse[],
-  dirtyMessageIds: ReadonlySet<number>,
-) {
-  return mergeIncomingRoomMessagesWithEditorWorkingState(
-    removeCommittedEditorDrafts(currentMessages, committedMessages),
-    committedMessages,
-    dirtyMessageIds,
-  );
 }
 
 export type UseChatHistoryReturn = {
@@ -208,7 +171,6 @@ export type UseChatHistoryReturn = {
   error: Error | null;
   addOrUpdateMessage: (message: ChatMessageResponse) => Promise<void>;
   addOrUpdateMessages: (messages: ChatMessageResponse[]) => Promise<void>;
-  commitEditorMessages: (messages: ChatMessageResponse[]) => Promise<void>;
   applyOptimisticMessages: (messages: ChatMessageResponse[]) => ChatMessageResponse[];
   rollbackOptimisticMessages: (
     optimisticMessages: ChatMessageResponse[],
@@ -361,10 +323,12 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       const roomScopedMessages = messagesWithLocalLayouts.filter(msg => msg.message.roomId === currentRoomId);
       if (currentRoomId !== null && roomScopedMessages.length > 0) {
         updateRoomMessages(currentRoomId, (prevMessages) => {
-          const nextMessages = mergeIncomingRoomMessagesWithEditorWorkingState(
+          const runtime = getRoomHistoryRuntime(queryClient, currentRoomId);
+          const nextMessages = mergeIncomingRoomMessagesWithEditorProtection(
             prevMessages,
             roomScopedMessages,
-            new Set(),
+            runtime.editorDirtyMessageIds,
+            runtime.editorDeletedMessageIds,
           );
           if (prevMessages === nextMessages) {
             return prevMessages;
@@ -407,22 +371,6 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     },
     [getCurrentRoomMessages, queryClient, updateRoomMessages],
   );
-
-  const commitEditorMessages = useCallback(async (newMessages: ChatMessageResponse[]) => {
-    const currentRoomId = roomIdRef.current;
-    if (currentRoomId === null) {
-      return;
-    }
-    updateRoomMessages(
-      currentRoomId,
-      currentMessages => mergeCommittedEditorMessagesWithWorkingState(
-        currentMessages,
-        newMessages,
-        new Set(),
-      ),
-    );
-    await addOrUpdateMessages(newMessages);
-  }, [addOrUpdateMessages, queryClient, updateRoomMessages]);
 
 
   const applyOptimisticMessages = useCallback((newMessages: ChatMessageResponse[]) => {
@@ -671,7 +619,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     catch (err) {
       setError(err as Error);
     }
-  }, [queryClient, roomId, updateRoomMessages]);
+  }, [roomId, updateRoomMessages]);
 
   /**
    * 初始加载聊天记录
@@ -787,7 +735,6 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     error,
     addOrUpdateMessage, // 用于单条消息
     addOrUpdateMessages, // 用于批量消息
-    commitEditorMessages,
     applyOptimisticMessages,
     rollbackOptimisticMessages,
     removeMessageById,

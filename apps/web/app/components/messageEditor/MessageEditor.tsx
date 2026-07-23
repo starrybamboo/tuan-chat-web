@@ -17,9 +17,12 @@ import {
 } from "@/utils/media/mediaMetadata";
 import { UploadUtils } from "@/utils/media/UploadUtils";
 
-import type { Message } from "../../../api";
-import type { MessageEditorMessage, MessageEditorRoomSyncProgress, MessageEditorTcHeader } from "./messageEditorTypes";
-import type { MessageEditorRemotePatchSourceSurface } from "./model/messageEditorPersistencePolicy";
+import type {
+  MessageEditorContentAdapter,
+  MessageEditorMessage,
+  MessageEditorRoomSyncProgress,
+  MessageEditorTcHeader,
+} from "./messageEditorTypes";
 import type { MessageEditorSlashMenuState } from "./model/messageEditorSlash";
 import type { MessageEditorSpeakerMenuItem } from "./model/messageEditorSpeaker";
 import type { MessageEditorSpeakerAvatarMenuItem } from "./model/messageEditorSpeakerAvatar";
@@ -64,12 +67,6 @@ import {
   MESSAGE_EDITOR_SPEAKER_HANDLE_CLASS,
   MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS,
 } from "./messageEditorLayout";
-import {
-  buildRoomMessagePatchOperations,
-  getMessageEditorPatchMutationMeta,
-  mergeChangedRoomMessagesIntoEditorMessages,
-  reconcileMessageEditorRuntimeBlockIds,
-} from "./model/messageEditorPersistencePolicy";
 import { resolveMessageEditorSlashMenuState } from "./model/messageEditorSlash";
 import {
   buildMessageEditorSpeakerMenuItems,
@@ -87,8 +84,6 @@ import {
   ensureMessageEditorMessages,
   getMessageEditorBlockId,
   isMessageEditorTextMessage,
-  materializeMessageEditorRoomWorkingMessages,
-  fillMissingMessageEditorMediaLayouts,
   normalizeMessageEditorContent,
 } from "./model/messageEditorTransforms";
 import {
@@ -133,6 +128,7 @@ import {
 // ==== Props 与局部编排类型 ====
 
 type MessageEditorProps = {
+  adapter: MessageEditorContentAdapter;
   className?: string;
   coverUrl?: string;
   docId?: string;
@@ -140,20 +136,11 @@ type MessageEditorProps = {
   intentPrewarm?: boolean;
   onRequestImportTextPaste?: (text: string, insertAsPlainText: () => void) => void;
   onRequestClearRoomDocument?: () => void;
-  onRemoteMessagesSaved?: (messages: Message[]) => void | Promise<void>;
-  onRoomSaveAcknowledged?: (revision: number, messages: Message[]) => void;
-  onRoomSaveFailed?: (revision: number, blockIds: readonly string[]) => void;
   roomDocumentSyncState?: "clean" | "syncing" | "error" | "ambiguous";
   roomDocumentSyncProgress?: MessageEditorRoomSyncProgress;
   roomDocumentProblemBlockIds?: ReadonlySet<string>;
   roomDocumentDeletedCount?: number;
   readOnly?: boolean;
-  remotePatchSourceSurface?: MessageEditorRemotePatchSourceSurface;
-  /** 房间文档由 RoomDocumentEditSession 持有 working overlay；不进入旧 coordinator。 */
-  roomDocument?: {
-    messages: MessageEditorMessage[];
-    onEdit: (messages: MessageEditorMessage[]) => void;
-  };
   spaceId?: number;
   tcHeader?: MessageEditorTcHeader;
   title?: string;
@@ -244,6 +231,27 @@ export function shouldFocusEmptyTextBlockOnPointerDown(options: {
   return !options.readOnly && options.mouseButton === 0 && normalizeMessageEditorContent(options.content).length === 0;
 }
 
+export function focusEmptyTextBlockBeforeIme(options: {
+  active: boolean;
+  content: string;
+  mouseButton: number;
+  readOnly: boolean;
+}, actions: {
+  activate: () => void;
+  focusActiveEditor: () => void;
+}) {
+  if (!shouldFocusEmptyTextBlockOnPointerDown(options)) {
+    return false;
+  }
+
+  actions.activate();
+  if (options.active) {
+    // mousedown 已被选区逻辑 preventDefault；激活块不会重新挂载，必须在同一事件中补回焦点。
+    actions.focusActiveEditor();
+  }
+  return true;
+}
+
 // ==== 公共 helper 与远端持久化桥接 ====
 
 export function isMessageEditorImportablePasteText(text: string): boolean {
@@ -252,29 +260,10 @@ export function isMessageEditorImportablePasteText(text: string): boolean {
 
 export { extractMessageEditorSlashQuery } from "./model/messageEditorSlash";
 
-export {
-  buildRoomMessagePatchOperations,
-  getMessageEditorPatchMutationMeta,
-  mergeChangedRoomMessagesIntoEditorMessages,
-};
 // ==== 文本规范化与布局 class helper ====
 
 function normalizeEditableText(value: string) {
   return value.replace(/\r\n?/g, "\n").replace(/\u00A0/g, " ");
-}
-
-/** 保持 Query 工作投影中同一持久化消息的运行时 blockId 稳定。 */
-export function reconcileMessageEditorWorkingSourceMessages(
-  currentMessages: MessageEditorMessage[],
-  incomingMessages: MessageEditorMessage[],
-) {
-  const normalizedMessages = ensureMessageEditorMessages(incomingMessages);
-  return currentMessages.length === 0
-    ? normalizedMessages
-    : reconcileMessageEditorRuntimeBlockIds({
-        currentMessages,
-        incomingMessages: normalizedMessages,
-      });
 }
 
 function useMessageEditorEventCallback<Args extends unknown[], Result>(
@@ -480,22 +469,18 @@ function resolveUndoRedoShortcut(event: Pick<KeyboardEvent | React.KeyboardEvent
 // ==== MessageEditor 中心编排器 ====
 
 export default function MessageEditor({
+  adapter,
   className,
   coverUrl,
   docId,
   excerpt: _excerpt,
   onRequestImportTextPaste,
   onRequestClearRoomDocument,
-  onRemoteMessagesSaved,
-  onRoomSaveAcknowledged,
-  onRoomSaveFailed,
   readOnly = false,
-  remotePatchSourceSurface = "message_editor",
   spaceId,
   tcHeader,
   title,
   workspaceId,
-  roomDocument,
   roomDocumentSyncState,
   roomDocumentSyncProgress,
   roomDocumentProblemBlockIds,
@@ -518,40 +503,11 @@ export default function MessageEditor({
   const resolvedSpaceId = typeof spaceId === "number" && Number.isFinite(spaceId) && spaceId > 0 ? spaceId : undefined;
   const resolvedWorkspaceId = workspaceId?.trim() || undefined;
   const resolvedDocRoomId = resolvedDocId && /^\d+$/.test(resolvedDocId) ? Number(resolvedDocId) : undefined;
-  const emptyEditorMessages = useMemo(() => ensureMessageEditorMessages([]), []);
-  const roomDocumentMessages = roomDocument?.messages;
-  const workingMessagesSnapshotRef = useRef<{
-    identity: string;
-    messages: MessageEditorMessage[];
-  }>({ identity: "", messages: [] });
-  const normalizedWorkingMessages = useMemo(
-    () => {
-      if (!roomDocumentMessages) {
-        workingMessagesSnapshotRef.current = { identity: "", messages: [] };
-        return undefined;
-      }
-
-      const identity = resolvedDocId ?? "";
-      const previousMessages = workingMessagesSnapshotRef.current.identity === identity
-        ? workingMessagesSnapshotRef.current.messages
-        : [];
-      const nextMessages = reconcileMessageEditorWorkingSourceMessages(
-        previousMessages,
-        roomDocumentMessages,
-      );
-      workingMessagesSnapshotRef.current = { identity, messages: nextMessages };
-      return nextMessages;
-    },
-    [resolvedDocId, roomDocumentMessages],
-  );
-  const usesSharedWorkingMessages = normalizedWorkingMessages !== undefined;
   const isRoomDocument = Boolean(
     resolvedDocRoomId
     && resolvedSpaceId
     && (!resolvedWorkspaceId || resolvedWorkspaceId.startsWith("space:")),
   );
-  const shouldUseLocalSnapshot = Boolean(resolvedDocId && !isRoomDocument);
-  const sourceMessages = normalizedWorkingMessages ?? emptyEditorMessages;
   // ==== Runtime refs 与 DOM registry ====
   const editorRootRef = useRef<HTMLDivElement | null>(null);
   const blockRefsRef = useRef(new Map<string, HTMLDivElement>());
@@ -589,20 +545,9 @@ export default function MessageEditor({
   const [pendingMediaUploads, setPendingMediaUploads] = useState<Map<string, PendingMessageEditorMediaUpload>>(new Map());
   const pendingMediaUploadsRef = useRef(new Map<string, PendingMessageEditorMediaUpload>());
   const pendingMediaUploadRequestIdRef = useRef(0);
-  const [ready, setReady] = useState(!resolvedDocId || isRoomDocument);
+  const ready = adapter.ready;
   // ==== Runtime 单例与加载镜像 ====
   const registry = useMemo(() => createMessageEditorRegistry(), []);
-  const loadSeedMessagesRef = useRef(sourceMessages);
-  const loadSeedKeyRef = useRef<string | null>(null);
-
-  // ==== 加载 seed ====
-  useEffect(() => {
-    const loadSeedKey = `${resolvedDocId ?? ""}|${isRoomDocument ? "room" : "local"}`;
-    if (loadSeedKeyRef.current !== loadSeedKey) {
-      loadSeedKeyRef.current = loadSeedKey;
-      loadSeedMessagesRef.current = sourceMessages;
-    }
-  }, [isRoomDocument, resolvedDocId, sourceMessages]);
 
   useEffect(() => {
     const root = editorScrollRoot;
@@ -818,48 +763,18 @@ export default function MessageEditor({
     };
   }, [resolveHistoryFocus]);
 
-  const prepareWorkingMessages = useCallback((
-    nextMessages: MessageEditorMessage[],
-    options: { structureChanged?: boolean },
-  ) => {
-    return resolvedDocRoomId && usesSharedWorkingMessages
-      ? materializeMessageEditorRoomWorkingMessages(nextMessages, resolvedDocRoomId, options)
-      : nextMessages;
-  }, [resolvedDocRoomId, usesSharedWorkingMessages]);
-
   const {
-    acceptPersistedSnapshot: commitPersistedDocumentSnapshot,
     commitTransaction: commitEditorTransaction,
     getCurrentMessages,
-    loadPersistedSnapshot,
     messages,
     messagesRef,
-    rebasePersistedSnapshot,
-    resetSaveState,
     restoreSnapshot: commitDocumentSnapshot,
     saveState,
   } = useMessageEditorMessageMutations({
+    adapter,
     createHistoryEntry,
-    docId: resolvedDocId,
     historyManager: historyManagerRef.current,
-    seedMessages: sourceMessages,
-    isRoomDocument,
-    onRemoteMessagesSaved,
-    onRoomSaveAcknowledged,
-    onRoomSaveFailed,
-    prepareWorkingMessages,
-    publishOptimisticRoomMessages: !usesSharedWorkingMessages,
     readOnly,
-    ready,
-    remotePatchSourceSurface,
-    roomId: resolvedDocRoomId,
-    roomDocument: normalizedWorkingMessages && roomDocument
-      ? {
-          messages: normalizedWorkingMessages,
-          onEdit: roomDocument.onEdit,
-        }
-      : undefined,
-    shouldUseLocalSnapshot,
   });
   const selectionDocument = useMemo(() => createMessageEditorSelectionDocument(messages), [messages]);
   const messageByBlockId = selectionDocument.messageByBlockId;
@@ -877,26 +792,6 @@ export default function MessageEditor({
     pendingMediaUploadsRef.current = nextPendingUploads;
     setPendingMediaUploads(nextPendingUploads);
   }, [messages]);
-
-  useEffect(() => {
-    if (!ready || !resolvedDocId || !isRoomDocument) {
-      return;
-    }
-
-    const nextMessages = fillMissingMessageEditorMediaLayouts(
-      sourceMessages,
-      messagesRef.current,
-    );
-    rebasePersistedSnapshot(nextMessages);
-  }, [
-    isRoomDocument,
-    messagesRef,
-    ready,
-    rebasePersistedSnapshot,
-    resolvedDocId,
-    sourceMessages,
-    saveState,
-  ]);
 
   const resetHistory = useCallback(() => {
     historyManagerRef.current.reset();
@@ -1094,45 +989,10 @@ export default function MessageEditor({
   }, [activeBlockId, messages, ready, restorePendingSelection]);
 
   useEffect(() => {
-    let cancelled = false;
     stageFocusRestore(null);
     hideToolbar();
-
-    if (isRoomDocument) {
-      const nextMessages = ensureMessageEditorMessages(loadSeedMessagesRef.current);
-      resetHistory();
-      commitPersistedDocumentSnapshot(nextMessages);
-      resetSaveState();
-      setReady(true);
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    queueMicrotask(() => {
-      if (!cancelled) {
-        setReady(false);
-      }
-    });
-
-    void (async () => {
-      await Promise.resolve();
-      const nextMessages = await loadPersistedSnapshot(loadSeedMessagesRef.current);
-
-      if (cancelled) {
-        return;
-      }
-
-      resetHistory();
-      commitPersistedDocumentSnapshot(nextMessages);
-      resetSaveState();
-      setReady(true);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [commitPersistedDocumentSnapshot, hideToolbar, isRoomDocument, loadPersistedSnapshot, resetHistory, resetSaveState, resolvedDocId, shouldUseLocalSnapshot, stageFocusRestore]);
+    resetHistory();
+  }, [adapter.identity, hideToolbar, resetHistory, stageFocusRestore]);
 
   // ==== 选区、历史与用户 action dispatch ====
   const resolveEditorSelection = useCallback((preferSaved = false) => {
@@ -1797,14 +1657,18 @@ export default function MessageEditor({
     startTextPointerSelection(anchor, event, () => {
       focusClickPoint();
     });
-    if (shouldFocusEmptyTextBlockOnPointerDown({
+    focusEmptyTextBlockBeforeIme({
+      active: activeBlockId === blockId,
       content: message?.content ?? "",
       mouseButton: event.button,
       readOnly,
-    })) {
-      focusClickPoint();
-    }
-  }, [activateTextPoint, messageByBlockId, readOnly, resolveTextSelectionPointFromClientPosition, startTextPointerSelection]);
+    }, {
+      activate: focusClickPoint,
+      focusActiveEditor: () => {
+        textStyleInputRef.current?.focus({ moveCursorToEnd: false });
+      },
+    });
+  }, [activateTextPoint, activeBlockId, messageByBlockId, readOnly, resolveTextSelectionPointFromClientPosition, startTextPointerSelection]);
 
   const handleAtomicBlockMouseDown = useCallback((blockId: string, event: React.MouseEvent<HTMLDivElement>) => {
     if (readOnly || event.button !== 0 || !shouldStartMessageEditorAtomicBlockSelection(event.target)) {

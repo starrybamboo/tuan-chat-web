@@ -1,429 +1,98 @@
 import type { MutableRefObject } from "react";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
-import type { Message } from "../../../../api";
-import type { MessageEditorMessage, MessageEditorSaveState } from "../messageEditorTypes";
-import type { MessageEditorRemotePatchSourceSurface } from "../model/messageEditorPersistencePolicy";
+import type {
+  MessageEditorContentAdapter,
+  MessageEditorMessage,
+  MessageEditorSaveState,
+} from "../messageEditorTypes";
 import type { MessageEditorEditTransaction } from "../runtime/messageEditorActions";
 import type {
   MessageEditorHistoryEntry,
   MessageEditorHistoryManager,
 } from "../runtime/messageEditorHistoryManager";
-import type {
-  MessageEditorPersistenceContext,
-  MessageEditorSaveTransaction,
-} from "../runtime/messageEditorPersistenceCoordinator";
 
-import {
-  reconcileMessageEditorRuntimeBlockIds,
-  resolveMessageEditorPersistenceDelayMs,
-} from "../model/messageEditorPersistencePolicy";
-import { ensureMessageEditorMessages, getMessageEditorBlockId } from "../model/messageEditorTransforms";
-import { MessageEditorPersistenceCoordinator } from "../runtime/messageEditorPersistenceCoordinator";
-import {
-  executeMessageEditorPersistenceStrategy,
-  loadMessageEditorPersistedSnapshot,
-} from "../runtime/messageEditorPersistenceStrategies";
+import { ensureMessageEditorMessages } from "../model/messageEditorTransforms";
 
 type MessageEditorMessageMutationsParams = {
+  adapter: MessageEditorContentAdapter;
   createHistoryEntry: (messages: MessageEditorMessage[]) => MessageEditorHistoryEntry;
-  docId?: string;
   historyManager: MessageEditorHistoryManager;
-  isRoomDocument: boolean;
-  onRemoteMessagesSaved?: (messages: Message[]) => void | Promise<void>;
-  onRoomSaveAcknowledged?: (revision: number, messages: Message[]) => void;
-  onRoomSaveFailed?: (revision: number, blockIds: readonly string[]) => void;
-  prepareWorkingMessages: (
-    messages: MessageEditorMessage[],
-    options: { structureChanged?: boolean },
-  ) => MessageEditorMessage[];
-  publishOptimisticRoomMessages: boolean;
   readOnly: boolean;
-  ready: boolean;
-  remotePatchSourceSurface: MessageEditorRemotePatchSourceSurface;
-  roomId?: number;
-  roomDocument?: {
-    messages: MessageEditorMessage[];
-    onEdit: (messages: MessageEditorMessage[]) => void;
-  };
-  seedMessages: MessageEditorMessage[];
-  shouldUseLocalSnapshot: boolean;
-};
-
-type CommitDocumentSnapshotOptions = {
-  preserveRuntimeBlockIds?: boolean;
-  updateState?: boolean;
-};
-
-type RunSaveTransactionOptions = {
-  persistenceIdentity: string;
-  updateEditorState: boolean;
 };
 
 type MessageEditorMessageMutationsResult = {
-  acceptPersistedSnapshot: (
-    messages: MessageEditorMessage[],
-    options?: CommitDocumentSnapshotOptions,
-  ) => MessageEditorMessage[];
   commitTransaction: <T>(transaction: MessageEditorEditTransaction<T>) => T;
   getCurrentMessages: () => MessageEditorMessage[];
-  loadPersistedSnapshot: (seedMessages: MessageEditorMessage[]) => Promise<MessageEditorMessage[]>;
   messages: MessageEditorMessage[];
   messagesRef: MutableRefObject<MessageEditorMessage[]>;
-  rebasePersistedSnapshot: (messages: MessageEditorMessage[]) => boolean;
-  resetSaveState: () => void;
   restoreSnapshot: (messages: MessageEditorMessage[]) => MessageEditorMessage[];
   saveState: MessageEditorSaveState;
 };
 
-/**
- * MessageEditor 的消息操作门面。
- *
- * 编辑事务仍由调用方声明；持久化 lifecycle 交给 coordinator，local/room IO 与
- * 乐观缓存补偿交给 strategy，组件本身不感知存储目标和批处理细节。
- */
+/** MessageEditor 的受控事务门面；内容与保存语义完全由 adapter 持有。 */
 export default function useMessageEditorMessageMutations({
+  adapter,
   createHistoryEntry,
-  docId,
   historyManager,
-  isRoomDocument,
-  onRemoteMessagesSaved,
-  onRoomSaveAcknowledged,
-  onRoomSaveFailed,
-  prepareWorkingMessages,
-  publishOptimisticRoomMessages,
   readOnly,
-  ready,
-  remotePatchSourceSurface,
-  roomId,
-  roomDocument,
-  seedMessages,
-  shouldUseLocalSnapshot,
 }: MessageEditorMessageMutationsParams): MessageEditorMessageMutationsResult {
-  const updateRoomDocument = roomDocument?.onEdit;
-  const seedMessagesRef = useRef<MessageEditorMessage[] | null>(null);
-  if (!seedMessagesRef.current) {
-    seedMessagesRef.current = ensureMessageEditorMessages(roomDocument?.messages ?? seedMessages);
-  }
-  const [localMessages, setLocalMessages] = useState<MessageEditorMessage[]>(
-    () => updateRoomDocument ? [] : seedMessagesRef.current!,
+  const messages = useMemo(
+    () => ensureMessageEditorMessages(adapter.messages),
+    [adapter.messages],
   );
-  const messages = roomDocument?.messages ?? localMessages;
-  const [saveRequestRevision, requestDeferredSave] = useState(0);
-  const [saveState, setSaveState] = useState<MessageEditorSaveState>("idle");
-  const activeSavePromiseRef = useRef<Promise<void> | null>(null);
-  const persistenceIdentityRef = useRef<string | null>(null);
-  const persistenceIdentityRevisionRef = useRef(0);
-  const mountedRef = useRef(false);
-  const messagesRef = useRef<MessageEditorMessage[]>(seedMessagesRef.current);
-  const coordinatorRef = useRef<MessageEditorPersistenceCoordinator | null>(null);
-  if (!coordinatorRef.current) {
-    coordinatorRef.current = new MessageEditorPersistenceCoordinator(seedMessagesRef.current);
-  }
-  const coordinator = coordinatorRef.current;
-
-  const persistenceContext = useMemo<MessageEditorPersistenceContext>(() => ({
-    docId,
-    isRoomDocument,
-    readOnly,
-    ready,
-    roomId,
-    shouldUseLocalSnapshot,
-  }), [docId, isRoomDocument, readOnly, ready, roomId, shouldUseLocalSnapshot]);
-  const persistenceIdentity = JSON.stringify([docId, isRoomDocument, roomId]);
-
-  const commitCanonicalDocumentSnapshot = useCallback((
-    nextMessages: MessageEditorMessage[],
-    options: CommitDocumentSnapshotOptions = {},
-  ) => {
-    messagesRef.current = nextMessages;
-    if (options.updateState !== false) {
-      if (updateRoomDocument) {
-        updateRoomDocument(nextMessages);
-      }
-      else {
-        setLocalMessages(nextMessages);
-      }
-    }
-    return nextMessages;
-  }, [updateRoomDocument]);
-
-  const acceptPersistedSnapshot = useCallback((
-    nextMessages: MessageEditorMessage[],
-    options: CommitDocumentSnapshotOptions = {},
-  ) => {
-    if (roomDocument) {
-      return messagesRef.current;
-    }
-    const reconciledMessages = options.preserveRuntimeBlockIds
-      ? reconcileMessageEditorRuntimeBlockIds({
-          currentMessages: messagesRef.current,
-          incomingMessages: nextMessages,
-        })
-      : nextMessages;
-    const acceptedMessages = commitCanonicalDocumentSnapshot(
-      coordinator.acceptPersistedSnapshot(reconciledMessages),
-      options,
-    );
-    setSaveState("idle");
-    return acceptedMessages;
-  }, [commitCanonicalDocumentSnapshot, coordinator, roomDocument]);
-
-  const restoreSnapshot = useCallback((nextMessages: MessageEditorMessage[]) => {
-    const normalizedMessages = prepareWorkingMessages(nextMessages, { structureChanged: true });
-    if (roomDocument) {
-      commitCanonicalDocumentSnapshot(normalizedMessages);
-      setSaveState("dirty");
-      return normalizedMessages;
-    }
-    const restoredMessages = commitCanonicalDocumentSnapshot(coordinator.markDocumentChanged(
-      normalizedMessages,
-      ready,
-      { compareImmediately: true },
-    ));
-    setSaveState(coordinator.hasDirtyChanges() ? "dirty" : "idle");
-    return restoredMessages;
-  }, [commitCanonicalDocumentSnapshot, coordinator, prepareWorkingMessages, ready, roomDocument]);
-
-  const commitTransaction = useCallback(<T,>(transaction: MessageEditorEditTransaction<T>) => {
-    if (transaction.changed) {
-      const previous = messagesRef.current;
-      historyManager.pushUndoEntry(
-        () => createHistoryEntry(previous),
-        transaction.historyKind,
-        transaction.historyGroupKey,
-      );
-      const nextMessages = prepareWorkingMessages(
-        transaction.messages,
-        { structureChanged: transaction.structureChanged },
-      );
-      if (roomDocument) {
-        commitCanonicalDocumentSnapshot(nextMessages);
-        setSaveState("dirty");
-        return transaction.result;
-      }
-      commitCanonicalDocumentSnapshot(coordinator.markDocumentChanged(
-        nextMessages,
-        ready,
-        {
-          changedBlockIds: transaction.changedBlockIds,
-          structureChanged: transaction.structureChanged,
-        },
-      ));
-      setSaveState("dirty");
-    }
-    return transaction.result;
-  }, [commitCanonicalDocumentSnapshot, coordinator, createHistoryEntry, historyManager, prepareWorkingMessages, ready, roomDocument]);
-
-  const getCurrentMessages = useCallback(() => messagesRef.current, []);
-  const rebasePersistedSnapshot = useCallback((nextMessages: MessageEditorMessage[]) => {
-    if (roomDocument) return false;
-    return coordinator.rebasePersistedSnapshot(nextMessages);
-  }, [coordinator, roomDocument]);
-  const resetSaveState = useCallback(() => setSaveState("idle"), []);
-  const loadPersistedSnapshot = useCallback((nextSeedMessages: MessageEditorMessage[]) => {
-    return loadMessageEditorPersistedSnapshot({
-      currentMessages: messagesRef.current,
-      docId,
-      isRoomDocument,
-      seededInitialMessages: nextSeedMessages,
-      shouldUseLocalSnapshot,
-    });
-  }, [docId, isRoomDocument, shouldUseLocalSnapshot]);
-
-  const runSaveTransaction = useCallback(async (
-    transaction: MessageEditorSaveTransaction,
-    options: RunSaveTransactionOptions,
-  ) => {
-    try {
-      const result = await executeMessageEditorPersistenceStrategy(transaction, {
-        onRemoteMessagesSaved,
-        publishOptimisticRoomMessages,
-        remotePatchSourceSurface,
-      });
-      const completedState = coordinator.completeSave(transaction, result, messagesRef.current);
-      if (transaction.plan.kind === "remote") {
-        onRoomSaveAcknowledged?.(transaction.submittedRevision, result.savedMessages as Message[]);
-      }
-      const canUpdateEditorState = options.updateEditorState
-        && mountedRef.current
-        && persistenceIdentityRef.current === options.persistenceIdentity;
-      if (completedState && canUpdateEditorState) {
-        commitCanonicalDocumentSnapshot(completedState.nextMessages);
-        setSaveState(completedState.dirtySinceSave ? "dirty" : "saved");
-      }
-    }
-    catch (error) {
-      console.error("[MessageEditor] persist snapshot failed", error);
-      if (
-        coordinator.isGenerationActive(transaction.generation)
-        && options.updateEditorState
-        && mountedRef.current
-        && persistenceIdentityRef.current === options.persistenceIdentity
-      ) {
-        setSaveState("error");
-      }
-      if (transaction.plan.kind === "remote") {
-        const blockIds = transaction.plan.operations.flatMap(operation => {
-          if (operation.clientId) return [operation.clientId];
-          const message = transaction.submittedMessages.find(item => item.messageId === operation.messageId);
-          return message ? [getMessageEditorBlockId(message)] : [];
-        });
-        onRoomSaveFailed?.(transaction.submittedRevision, blockIds);
-      }
-    }
-    finally {
-      const shouldRequestDeferredSave = coordinator.finishSave(transaction);
-      if (
-        shouldRequestDeferredSave
-        && options.updateEditorState
-        && mountedRef.current
-        && persistenceIdentityRef.current === options.persistenceIdentity
-      ) {
-        requestDeferredSave(previous => previous + 1);
-      }
-    }
-  }, [commitCanonicalDocumentSnapshot, coordinator, onRemoteMessagesSaved, onRoomSaveAcknowledged, onRoomSaveFailed, publishOptimisticRoomMessages, remotePatchSourceSurface]);
-
-  const trackSaveTransaction = useCallback((
-    transaction: MessageEditorSaveTransaction,
-    options: RunSaveTransactionOptions,
-  ) => {
-    const savePromise = runSaveTransaction(transaction, options);
-    activeSavePromiseRef.current = savePromise;
-    void savePromise.finally(() => {
-      if (activeSavePromiseRef.current === savePromise) {
-        activeSavePromiseRef.current = null;
-      }
-    });
-    return savePromise;
-  }, [runSaveTransaction]);
-
-  const unloadOptionsRef = useRef({
-    context: persistenceContext,
-    onRemoteMessagesSaved,
-    publishOptimisticRoomMessages,
-    remotePatchSourceSurface,
-  });
-  useEffect(() => {
-    unloadOptionsRef.current = {
-      context: persistenceContext,
-      onRemoteMessagesSaved,
-      publishOptimisticRoomMessages,
-      remotePatchSourceSurface,
-    };
-  }, [onRemoteMessagesSaved, persistenceContext, publishOptimisticRoomMessages, remotePatchSourceSurface]);
+  const messagesRef = useRef<MessageEditorMessage[]>(messages);
 
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
 
-  useEffect(() => {
-    if (roomDocument) {
-      return;
-    }
-    if (!coordinator.shouldScheduleSave(persistenceContext)) {
-      return;
-    }
+  const applyMessages = useCallback((
+    nextMessages: MessageEditorMessage[],
+    metadata: { changedBlockIds: readonly string[]; structureChanged: boolean },
+  ) => {
+    if (readOnly) return messagesRef.current;
+    const accepted = adapter.applyChange({
+      changedBlockIds: metadata.changedBlockIds,
+      messages: nextMessages,
+      previousMessages: messagesRef.current,
+      structureChanged: metadata.structureChanged,
+    });
+    messagesRef.current = ensureMessageEditorMessages(accepted);
+    return messagesRef.current;
+  }, [adapter, readOnly]);
 
-    const timer = window.setTimeout(() => {
-      const startResult = coordinator.beginSave(messages, persistenceContext);
-      if (startResult.kind === "skipped") {
-        if (startResult.reason === "empty-room") {
-          console.warn("[MessageEditor] skip empty room message-stream sync to avoid clearing content");
-        }
-        return;
-      }
-      if (startResult.kind !== "started") {
-        return;
-      }
+  const commitTransaction = useCallback(<T,>(transaction: MessageEditorEditTransaction<T>) => {
+    if (!transaction.changed || readOnly) return transaction.result;
+    const previous = messagesRef.current;
+    historyManager.pushUndoEntry(
+      () => createHistoryEntry(previous),
+      transaction.historyKind,
+      transaction.historyGroupKey,
+    );
+    applyMessages(transaction.messages, {
+      changedBlockIds: transaction.changedBlockIds,
+      structureChanged: transaction.structureChanged,
+    });
+    return transaction.result;
+  }, [applyMessages, createHistoryEntry, historyManager, readOnly]);
 
-      setSaveState("saving");
-      void trackSaveTransaction(startResult.transaction, {
-        persistenceIdentity,
-        updateEditorState: true,
-      });
-    }, resolveMessageEditorPersistenceDelayMs({ isRoomDocument }));
+  const restoreSnapshot = useCallback((nextMessages: MessageEditorMessage[]) => {
+    return applyMessages(nextMessages, {
+      changedBlockIds: nextMessages.map(message => String(message.messageId ?? "")),
+      structureChanged: true,
+    });
+  }, [applyMessages]);
 
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [coordinator, isRoomDocument, messages, persistenceContext, persistenceIdentity, roomDocument, saveRequestRevision, trackSaveTransaction]);
-
-  useEffect(() => {
-    if (roomDocument) {
-      return;
-    }
-    mountedRef.current = true;
-    if (persistenceIdentityRef.current !== persistenceIdentity) {
-      persistenceIdentityRef.current = persistenceIdentity;
-      persistenceIdentityRevisionRef.current += 1;
-    }
-    const persistenceIdentityRevision = persistenceIdentityRevisionRef.current;
-
-    return () => {
-      mountedRef.current = false;
-      const flushMessages = ensureMessageEditorMessages(messagesRef.current);
-      const flushOptions = unloadOptionsRef.current;
-
-      void (async () => {
-        await activeSavePromiseRef.current;
-        await Promise.resolve();
-        const persistenceIdentityChanged
-          = persistenceIdentityRevisionRef.current !== persistenceIdentityRevision;
-        // StrictMode 会重建同一持久化身份的 effect；这种开发期探测不应真正保存。
-        if (mountedRef.current && !persistenceIdentityChanged) {
-          return;
-        }
-
-        const {
-          context,
-          onRemoteMessagesSaved: publish,
-          publishOptimisticRoomMessages: publishOptimistic,
-          remotePatchSourceSurface: sourceSurface,
-        } = flushOptions;
-        coordinator.markDocumentChanged(flushMessages, true, { compareImmediately: true });
-        const startResult = coordinator.beginSave(flushMessages, {
-          ...context,
-          ready: true,
-        });
-        if (startResult.kind === "skipped" && startResult.reason === "empty-room") {
-          console.warn("[MessageEditor] skip empty room message-stream flush to avoid clearing content");
-          return;
-        }
-        if (startResult.kind !== "started") {
-          return;
-        }
-
-        try {
-          const result = await executeMessageEditorPersistenceStrategy(startResult.transaction, {
-            onRemoteMessagesSaved: publish,
-            publishOptimisticRoomMessages: publishOptimistic,
-            remotePatchSourceSurface: sourceSurface,
-          });
-          coordinator.completeSave(startResult.transaction, result, messagesRef.current);
-        }
-        catch (error) {
-          console.warn("[MessageEditor] flush message persistence failed", error);
-        }
-        finally {
-          coordinator.finishSave(startResult.transaction);
-        }
-      })();
-    };
-  }, [coordinator, persistenceIdentity, roomDocument]);
+  const getCurrentMessages = useCallback(() => messagesRef.current, []);
 
   return {
-    acceptPersistedSnapshot,
     commitTransaction,
     getCurrentMessages,
-    loadPersistedSnapshot,
     messages,
     messagesRef,
-    rebasePersistedSnapshot,
-    resetSaveState,
     restoreSnapshot,
-    saveState,
+    saveState: adapter.saveState,
   };
 }

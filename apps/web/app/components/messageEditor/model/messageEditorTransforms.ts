@@ -57,7 +57,7 @@ type MessageEditorMediaRecord = {
 };
 
 const runtimeBlockIds = new WeakMap<object, string>();
-let roomWorkingMessageIdSeed = -Math.max(1, Date.now() * 1000);
+let roomLocalMessageIdSeed = -Math.max(1, Date.now() * 1000);
 
 function createMessageEditorEntityId(prefix = "block"): string {
   const randomPart = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
@@ -284,7 +284,11 @@ function normalizeMessageType(value: unknown): number {
 function inheritRuntimeBlockId<T extends MessageEditorMessage>(source: unknown, target: T): T {
   const sourceId = isRecord(source) ? runtimeBlockIds.get(source) : undefined;
   const targetKey = target as unknown as object;
-  runtimeBlockIds.set(targetKey, sourceId ?? runtimeBlockIds.get(targetKey) ?? createMessageEditorEntityId("block"));
+  const blockId = sourceId ?? runtimeBlockIds.get(targetKey) ?? createMessageEditorEntityId("block");
+  if (isRecord(source) && !sourceId) {
+    runtimeBlockIds.set(source, blockId);
+  }
+  runtimeBlockIds.set(targetKey, blockId);
   return target;
 }
 
@@ -315,9 +319,9 @@ export function getMessageEditorBlockId(message: MessageEditorMessage): string {
   return nextId;
 }
 
-function nextMessageEditorRoomWorkingId() {
-  const nextId = roomWorkingMessageIdSeed;
-  roomWorkingMessageIdSeed -= 1;
+function nextMessageEditorRoomLocalId() {
+  const nextId = roomLocalMessageIdSeed;
+  roomLocalMessageIdSeed -= 1;
   return nextId;
 }
 
@@ -381,14 +385,20 @@ export function normalizeMessageEditorDraft(rawMessage: unknown): MessageEditorM
   if (editorBlockId) {
     return assignRuntimeBlockId(nextMessage, editorBlockId);
   }
+  const persistedMessageId = typeof rawMessage.messageId === "number" && rawMessage.messageId > 0
+    ? rawMessage.messageId
+    : null;
+  if (persistedMessageId !== null) {
+    return assignRuntimeBlockId(nextMessage, `room-message:${persistedMessageId}`);
+  }
   return inheritRuntimeBlockId(rawMessage, nextMessage);
 }
 
 /**
- * 将房间编辑器的新块补成 chatHistory 可直接渲染的内存消息。
- * 负 ID 仅用于本地工作视图，持久化策略仍会把 tcMessageEditorDraft 作为 insert。
+ * 将房间编辑器事务中的新块补成 Query 可直接渲染的内存消息。
+ * 负 ID 在 Query、operation 和提交前 pending 中共用，不引入另一份消息数组。
  */
-export function materializeMessageEditorRoomWorkingMessages(
+export function materializeMessageEditorRoomQueryMessages(
   messages: MessageEditorMessage[],
   roomId: number,
   options: { structureChanged?: boolean } = {},
@@ -402,7 +412,7 @@ export function materializeMessageEditorRoomWorkingMessages(
       : undefined;
     const isEditorDraft = message.tcMessageEditorDraft === true || currentMessageId === undefined || currentMessageId === 0;
     const messageId = isEditorDraft
-      ? currentMessageId && currentMessageId < 0 ? currentMessageId : nextMessageEditorRoomWorkingId()
+      ? currentMessageId && currentMessageId < 0 ? currentMessageId : nextMessageEditorRoomLocalId()
       : currentMessageId!;
     const position = options.structureChanged || typeof message.position !== "number"
       ? index + 1

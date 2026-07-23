@@ -1,7 +1,5 @@
 import type {
   DirectMessageRepository,
-  RoomDocumentOverlayEntry,
-  RoomDocumentOverlayWriteInput,
   RoomMessageRepository,
   RoomMessageSqliteDriver,
   SqliteValue,
@@ -772,16 +770,9 @@ export async function addOrUpdateMessagesBatch(messages: ChatMessageResponse[]):
   await repository.upsertMessages(messages);
 }
 
-export async function loadRoomDocumentOverlay<T>(userId: number, roomId: number): Promise<RoomDocumentOverlayEntry<T> | null> {
-  return (await getRoomMessageRepository()).loadRoomDocumentOverlay<T>(userId, roomId);
-}
-
-export async function saveRoomDocumentOverlay<T>(entry: RoomDocumentOverlayWriteInput<T>): Promise<void> {
-  await (await getRoomMessageRepository()).saveRoomDocumentOverlay(entry);
-}
-
-export async function removeRoomDocumentOverlay(userId: number, roomId: number): Promise<void> {
-  await (await getRoomMessageRepository()).removeRoomDocumentOverlay(userId, roomId);
+/** patch API 返回的权威确认投影可以覆盖旧 tombstone。 */
+export async function replaceConfirmedRoomMessages(messages: ChatMessageResponse[]): Promise<void> {
+  await (await getRoomMessageRepository()).replaceConfirmedMessages(messages);
 }
 
 export async function addPendingRoomMessages(messages: ChatMessageResponse[]): Promise<void> {

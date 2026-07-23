@@ -7,11 +7,8 @@ import type { ChatMessageResponse } from "../../../../../api";
 
 import {
   getRoomHistoryFetchStartSyncId,
-  mergeCommittedEditorMessagesWithWorkingState,
-  mergeIncomingRoomMessagesWithEditorWorkingState,
+  mergeIncomingRoomMessagesWithEditorProtection,
   mergeLoadedRoomHistory,
-  removeCommittedEditorDrafts,
-  replaceRoomMessagesWithEditorWorkingState,
 } from "./useChatHistory";
 
 function createMessageResponse(overrides: Partial<ChatMessageResponse["message"]>): ChatMessageResponse {
@@ -34,29 +31,43 @@ function createMessageResponse(overrides: Partial<ChatMessageResponse["message"]
 }
 
 describe("useChatHistory 乐观消息渲染 key", () => {
-  it("本地编辑写入 chatHistory 后聊天视图可立即读取工作内容", () => {
-    const persisted = createMessageResponse({ content: "保存前", messageId: 1 });
-    const working = createMessageResponse({ content: "本地编辑", messageId: 1 });
-
-    const result = replaceRoomMessagesWithEditorWorkingState([persisted], [working], 10);
-
-    expect(result).toHaveLength(1);
-    expect(result[0].message.content).toBe("本地编辑");
-    expect(result[0].message).toBe(working.message);
-  });
-
-  it("远端不同消息正常合入，同一 dirty 消息保留本地内容", () => {
-    const localDirty = createMessageResponse({ content: "本地内容", messageId: 1, position: 1 });
-    const remoteConflict = createMessageResponse({ content: "远端冲突", messageId: 1, position: 1 });
+  it("远端不同消息正常合入，同一 dirty 消息保留本地编辑字段并吸收确认字段", () => {
+    const localDirty = createMessageResponse({ content: "本地内容", messageId: 1, position: 1, syncId: 1 });
+    const remoteConflict = createMessageResponse({ content: "远端冲突", messageId: 1, position: 9, syncId: 8 });
     const remoteOther = createMessageResponse({ content: "远端新增", messageId: 2, position: 2, syncId: 2 });
 
-    const result = mergeIncomingRoomMessagesWithEditorWorkingState(
+    const result = mergeIncomingRoomMessagesWithEditorProtection(
       [localDirty],
       [remoteConflict, remoteOther],
       new Set([1]),
     );
 
     expect(result.map(item => item.message.content)).toEqual(["本地内容", "远端新增"]);
+    expect(result.find(item => item.message.messageId === 1)?.message).toMatchObject({
+      content: "本地内容",
+      position: 1,
+      syncId: 8,
+    });
+  });
+
+  it("待删除消息不会被 WebSocket 或补拉结果重新放回 Query", () => {
+    const incoming = createMessageResponse({ content: "远端旧值", messageId: 1, syncId: 9 });
+
+    expect(mergeIncomingRoomMessagesWithEditorProtection(
+      [],
+      [incoming],
+      new Set([1]),
+      new Set([1]),
+    )).toEqual([]);
+  });
+
+  it("没有本地 operation 的 synced 消息接受服务端完整校准", () => {
+    const current = createMessageResponse({ content: "旧内容", messageId: 1, position: 1, syncId: 1 });
+    const incoming = createMessageResponse({ content: "服务端内容", messageId: 1, position: 3, syncId: 9 });
+
+    const [merged] = mergeIncomingRoomMessagesWithEditorProtection([current], [incoming], new Set());
+
+    expect(merged.message).toMatchObject({ content: "服务端内容", position: 3, syncId: 9 });
   });
 
   it("远端增量缺少 editor 尺寸时保留已持久化的本地媒体布局", () => {
@@ -72,7 +83,7 @@ describe("useChatHistory 乐观消息渲染 key", () => {
       syncId: 8,
     });
 
-    const [merged] = mergeIncomingRoomMessagesWithEditorWorkingState([local], [remote], new Set());
+    const [merged] = mergeIncomingRoomMessagesWithEditorProtection([local], [remote], new Set());
 
     expect(merged.message.syncId).toBe(8);
     expect((merged.message.extra?.videoMessage as { editorHeight?: number; editorWidth?: number } | undefined))
@@ -92,47 +103,10 @@ describe("useChatHistory 乐观消息渲染 key", () => {
       syncId: 8,
     });
 
-    const [merged] = mergeIncomingRoomMessagesWithEditorWorkingState([current], [committed], new Set());
+    const [merged] = mergeIncomingRoomMessagesWithEditorProtection([current], [committed], new Set());
 
     expect((merged.message.extra?.videoMessage as { editorHeight?: number; editorWidth?: number } | undefined))
       .toMatchObject({ editorHeight: 182, editorWidth: 324 });
-  });
-
-  it("保存确认到达 completeSave 前不会用旧值或 tombstone 覆盖 dirty 工作消息", () => {
-    const localDirty = createMessageResponse({ content: "继续编辑后的内容", messageId: 1 });
-    const staleCommit = createMessageResponse({ content: "保存请求中的旧内容", messageId: 1, status: 1 });
-    const dirtyMessageIds = new Set([1]);
-
-    const result = mergeCommittedEditorMessagesWithWorkingState(
-      [localDirty],
-      [staleCommit],
-      dirtyMessageIds,
-    );
-
-    expect(result).toEqual([localDirty]);
-    expect(dirtyMessageIds).toEqual(new Set([1]));
-  });
-
-  it("服务端确认新增时模糊移除对应的编辑器负 ID 草稿", () => {
-    const draft = createMessageResponse({
-      content: "新增段落",
-      messageId: -100,
-      position: 2,
-      roleId: 30,
-      syncId: -100,
-      tcMessageEditorDraft: true,
-      userId: 0,
-    } as Partial<ChatMessageResponse["message"]>);
-    const committed = createMessageResponse({
-      content: "新增段落",
-      messageId: 101,
-      position: 2,
-      roleId: 30,
-      syncId: 101,
-      userId: 99,
-    });
-
-    expect(removeCommittedEditorDrafts([draft], [committed])).toEqual([]);
   });
 
   it("webSocket 真消息替换乐观消息时继承本地渲染 key", () => {
