@@ -6,12 +6,12 @@ import type { UseChatHistoryReturn } from "@/components/chat/infra/localDb/useCh
 
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
 import useChatFrameMessages from "@/components/chat/hooks/useChatFrameMessages";
-import { useRoomMessageEditorAdapter } from "@/components/chat/hooks/useRoomMessageEditorAdapter";
 import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
 import RoomWindowLoadingState from "@/components/chat/room/roomWindowLoadingState";
 import { IconButton } from "@/components/common/IconButton";
 import { StateView } from "@/components/common/StateView";
 import MessageEditor from "@/components/messageEditor/MessageEditor";
+import { useRoomMessageEditorAdapter } from "@/components/messageEditor/useRoomMessageEditorAdapter";
 import FriendsListPanel from "@/components/privateChat/components/FriendsListPanel";
 import NewFriendsPanel from "@/components/privateChat/components/NewFriendsPanel";
 import RightChatView from "@/components/privateChat/RightChatView";

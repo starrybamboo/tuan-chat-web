@@ -1,20 +1,20 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { ChatMessageResponse, Message } from "../../../../api";
+import type { ChatMessageResponse, Message } from "../../../api";
+import type { RoomMessageEditSyncStatus } from "../chat/infra/localDb/roomMessageEditSync";
 import type {
   MessageEditorContentAdapter,
   MessageEditorMessage,
   MessageEditorRoomSyncProgress,
-} from "../../messageEditor/messageEditorTypes";
-import type { RoomMessageEditSyncStatus } from "../infra/localDb/roomMessageEditSync";
+} from "./messageEditorTypes";
 
+import { getRoomMessagesFromQueryCache } from "../chat/infra/localDb/roomHistoryQueryCache";
+import { getRoomMessageEditorSyncEntry } from "../chat/infra/localDb/roomMessageEditSyncRegistry";
 import {
   fillMissingMessageEditorMediaLayouts,
   materializeMessageEditorRoomQueryMessages,
-} from "../../messageEditor/document/messageEditorTransforms";
-import { getRoomMessagesFromQueryCache } from "../infra/localDb/roomHistoryQueryCache";
-import { getRoomMessageEditorSyncEntry } from "../infra/localDb/roomMessageEditSyncRegistry";
+} from "./document/messageEditorTransforms";
 
 const INITIAL_STATUS: RoomMessageEditSyncStatus = {
   phase: "idle",
