@@ -8,55 +8,59 @@ import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea"
 import { RoomContext } from "@/components/chat/core/roomContext";
 import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
 import { parseImportedChatText } from "@/components/chat/utils/importChatText";
-import { appToast } from "@/components/common/appToast/appToast";
 import { useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
-import {
-  readImageDimensions,
-  readMediaDuration,
-  readVideoDimensions,
-} from "@/utils/media/mediaMetadata";
-import { UploadUtils } from "@/utils/media/UploadUtils";
 
+import type {
+  MessageEditorCommands,
+  MessageEditorCommandTransaction,
+} from "./document/messageEditorCommands";
+import type {
+  MessageEditorHistoryEntry,
+  MessageEditorHistoryFocus,
+} from "./document/messageEditorHistoryManager";
+import type {
+  MessageEditorInsertBlockResult,
+  MessageEditorSelectionTextResult,
+} from "./document/messageEditorTextTransforms";
+import type {
+  MessageEditorInsertableBlockKind,
+  MessageEditorUploadedMediaPayload,
+} from "./document/messageEditorTransforms";
 import type {
   MessageEditorContentAdapter,
   MessageEditorMessage,
   MessageEditorRoomSyncProgress,
   MessageEditorTcHeader,
 } from "./messageEditorTypes";
-import type { MessageEditorSlashMenuState } from "./model/messageEditorSlash";
-import type { MessageEditorSpeakerMenuItem } from "./model/messageEditorSpeaker";
-import type { MessageEditorSpeakerAvatarMenuItem } from "./model/messageEditorSpeakerAvatar";
-import type {
-  MessageEditorInsertBlockResult,
-  MessageEditorSelectionTextResult,
-} from "./model/messageEditorTextTransforms";
-import type { MessageEditorInsertableBlockKind } from "./model/messageEditorTransforms";
-import type {
-  MessageEditorActions,
-  MessageEditorEditTransaction,
-} from "./runtime/messageEditorActions";
-import type {
-  MessageEditorHistoryEntry,
-  MessageEditorHistoryFocus,
-} from "./runtime/messageEditorHistoryManager";
-import type { MessageEditorSelection, MessageEditorSelectionPoint } from "./runtime/messageEditorSelection";
+import type { MessageEditorSelection, MessageEditorSelectionPoint } from "./selection/messageEditorSelection";
+import type { MessageEditorSlashMenuState } from "./slash/messageEditorSlash";
+import type { MessageEditorSpeakerMenuItem } from "./speaker/messageEditorSpeaker";
+import type { MessageEditorSpeakerAvatarMenuItem } from "./speaker/messageEditorSpeakerAvatar";
 
 import { useGetRoleAvatarsQuery } from "../../../api/hooks/RoleAndAvatarHooks";
-import { MessageEditorBlockRow } from "./components/MessageEditorBlockRow";
+import {
+  getMessageEditorClipboardFiles,
+  getMessageEditorMediaBlockKindForFile,
+  getMessageEditorMediaBlockKindForMessage,
+  isMessageEditorFileDrag,
+  isMessageEditorUploadableMediaMessage,
+} from "./block/messageEditorFileDrop";
+import { useMessageEditorMediaUploads } from "./block/useMessageEditorMediaUploads";
+import { MessageEditorHistoryManager } from "./document/messageEditorHistoryManager";
+import {
+  ensureMessageEditorMessages,
+  getMessageEditorBlockId,
+  isMessageEditorTextMessage,
+  normalizeMessageEditorContent,
+} from "./document/messageEditorTransforms";
+import { useMessageEditorCommands } from "./document/useMessageEditorCommands";
+import useMessageEditorMessageMutations from "./document/useMessageEditorMessageMutations";
+import { MessageEditorBlockRow } from "./MessageEditorBlockRow";
 import {
   MessageEditorFloatingHeader,
   MessageEditorHeader,
   shouldShowMessageEditorFloatingHeader,
-} from "./components/MessageEditorHeader";
-import { MessageEditorSlashMenu } from "./components/MessageEditorSlashMenu";
-import { MessageEditorSpeakerAvatarMenu } from "./components/MessageEditorSpeakerAvatarMenu";
-import { MessageEditorSpeakerHeader } from "./components/MessageEditorSpeakerHeader";
-import { MessageEditorSpeakerMenu } from "./components/MessageEditorSpeakerMenu";
-import {
-  MessageEditorVirtualizedBlockList,
-  type MessageEditorVirtualizedBlockListHandle,
-} from "./components/MessageEditorVirtualizedBlockList";
-import useMessageEditorMessageMutations from "./hooks/useMessageEditorMessageMutations";
+} from "./MessageEditorHeader";
 import {
   MESSAGE_EDITOR_BLOCK_GUTTER_CLASS,
   MESSAGE_EDITOR_BLOCK_DRAG_SURFACE_CLASS,
@@ -67,49 +71,18 @@ import {
   MESSAGE_EDITOR_SPEAKER_HANDLE_CLASS,
   MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS,
 } from "./messageEditorLayout";
-import { resolveMessageEditorSlashMenuState } from "./model/messageEditorSlash";
-import {
-  buildMessageEditorSpeakerMenuItems,
-  extractMessageEditorSpeakerCommandMatch,
-  hasMessageEditorSpeaker,
-  isMessageEditorSpeakerMenuCommitKey,
-  resolveMessageEditorSpeakerRoles,
-  splitMessageEditorSpeakerCommandQuery,
-} from "./model/messageEditorSpeaker";
-import {
-  buildMessageEditorSpeakerAvatarClearMenuItems,
-  buildMessageEditorSpeakerAvatarMenuItems,
-} from "./model/messageEditorSpeakerAvatar";
-import {
-  ensureMessageEditorMessages,
-  getMessageEditorBlockId,
-  isMessageEditorTextMessage,
-  normalizeMessageEditorContent,
-} from "./model/messageEditorTransforms";
-import {
-  estimateMessageEditorBlockHeight,
-} from "./model/messageEditorVirtualizationPolicy";
-import { createMessageEditorActions } from "./runtime/messageEditorActions";
-import { MessageEditorBlockDragSession } from "./runtime/messageEditorBlockDragSession";
-import {
-  getMessageEditorClipboardFiles,
-  getMessageEditorMediaBlockKindForFile,
-  getMessageEditorMediaBlockKindForMessage,
-  isMessageEditorFileDrag,
-  isMessageEditorUploadableMediaMessage,
-} from "./runtime/messageEditorFileDrop";
-import { MessageEditorHistoryManager } from "./runtime/messageEditorHistoryManager";
+import { createMessageEditorRegistry } from "./messageEditorRegistry";
+import { MessageEditorBlockDragSession } from "./selection/messageEditorBlockDragSession";
 import {
   resolveMessageEditorBlockIdFromNode,
   resolveMessageEditorDropTarget,
   resolveMessageEditorTextPointFromClientPosition,
   resolveMessageEditorVisibleDropTarget,
-} from "./runtime/messageEditorHitTest";
+} from "./selection/messageEditorHitTest";
 import {
   MessageEditorPointerSelectionSession,
   resolveMessageEditorPointerAutoScrollDelta,
-} from "./runtime/messageEditorPointerSelectionSession";
-import { createMessageEditorRegistry } from "./runtime/messageEditorRegistry";
+} from "./selection/messageEditorPointerSelectionSession";
 import {
   createMessageEditorDocumentSelectionFromDocument,
   createMessageEditorSelection,
@@ -123,7 +96,31 @@ import {
   resolveMessageEditorSelectionFromNative,
   resolveMessageEditorSelectionFromRange,
   restoreMessageEditorSelection,
-} from "./runtime/messageEditorSelection";
+} from "./selection/messageEditorSelection";
+import { resolveMessageEditorSlashMenuState } from "./slash/messageEditorSlash";
+import { MessageEditorSlashMenu } from "./slash/MessageEditorSlashMenu";
+import {
+  buildMessageEditorSpeakerMenuItems,
+  extractMessageEditorSpeakerCommandMatch,
+  hasMessageEditorSpeaker,
+  isMessageEditorSpeakerMenuCommitKey,
+  resolveMessageEditorSpeakerRoles,
+  splitMessageEditorSpeakerCommandQuery,
+} from "./speaker/messageEditorSpeaker";
+import {
+  buildMessageEditorSpeakerAvatarClearMenuItems,
+  buildMessageEditorSpeakerAvatarMenuItems,
+} from "./speaker/messageEditorSpeakerAvatar";
+import { MessageEditorSpeakerAvatarMenu } from "./speaker/MessageEditorSpeakerAvatarMenu";
+import { MessageEditorSpeakerHeader } from "./speaker/MessageEditorSpeakerHeader";
+import { MessageEditorSpeakerMenu } from "./speaker/MessageEditorSpeakerMenu";
+import {
+  estimateMessageEditorBlockHeight,
+} from "./virtualize/messageEditorVirtualizationPolicy";
+import {
+  MessageEditorVirtualizedBlockList,
+  type MessageEditorVirtualizedBlockListHandle,
+} from "./virtualize/MessageEditorVirtualizedBlockList";
 
 // ==== Props 与局部编排类型 ====
 
@@ -156,12 +153,6 @@ type MessageEditorDragState = {
 type MessageEditorResolvedDragTarget = {
   position: "before" | "after";
   targetBlockId: string;
-}
-
-type PendingMessageEditorMediaUpload = {
-  error?: string;
-  file: File;
-  requestId: number;
 }
 
 export function resolveMessageEditorFileDropPoint(
@@ -258,7 +249,7 @@ export function isMessageEditorImportablePasteText(text: string): boolean {
   return parseImportedChatText(text).messages.length > 0;
 }
 
-export { extractMessageEditorSlashQuery } from "./model/messageEditorSlash";
+export { extractMessageEditorSlashQuery } from "./slash/messageEditorSlash";
 
 // ==== 文本规范化与布局 class helper ====
 
@@ -491,7 +482,7 @@ export default function MessageEditor({
   /**
    * 状态拓扑：
    * - messages 是渲染源，messagesRef 是事件回调和控制器读取的同步镜像。
-   * - actions 声明用户心智级编辑意图，所有事务都经 commitEditorTransaction 写入文档、历史与 dirty 标记。
+   * - commands 声明用户心智级编辑意图，所有事务都经 commitEditorTransaction 写入文档、历史与 dirty 标记。
    * - historyManagerRef 封装 undo / redo / typing merge 规则，避免历史栈 invariant 散落在 React refs 中。
    * - activeBlockId、crossBlockSelection、restoreSelectionRef 构成焦点层，低层由 applyFocusTarget 提交，高层由 activate* command 编排。
    * - useMessageEditorMessageMutations 统一提交消息事务，并封装 dirty、批处理、乐观更新和持久化对账。
@@ -514,10 +505,8 @@ export default function MessageEditor({
   const blockShellRefsRef = useRef(new Map<string, HTMLDivElement>());
   const blockSlotRefsRef = useRef(new Map<string, HTMLDivElement>());
   const virtualizedBlockListRef = useRef<MessageEditorVirtualizedBlockListHandle | null>(null);
-  const actionsRef = useRef<MessageEditorActions | null>(null);
   const textStyleInputRef = useRef<ChatInputAreaHandle | null>(null);
   const historyManagerRef = useRef(new MessageEditorHistoryManager());
-  const uploadUtils = useMemo(() => new UploadUtils(), []);
   const restoreSelectionRef = useRef<MessageEditorFocusRestore | null>(null);
   const pointerSelectionSessionRef = useRef<MessageEditorPointerSelectionSession | null>(null);
   const blockDragSessionRef = useRef<MessageEditorBlockDragSession | null>(null);
@@ -542,9 +531,6 @@ export default function MessageEditor({
   const [editorScrollRoot, setEditorScrollRoot] = useState<HTMLDivElement | null>(null);
   const [showFloatingHeader, setShowFloatingHeader] = useState(false);
   const [composingBlockId, setComposingBlockId] = useState<string | null>(null);
-  const [pendingMediaUploads, setPendingMediaUploads] = useState<Map<string, PendingMessageEditorMediaUpload>>(new Map());
-  const pendingMediaUploadsRef = useRef(new Map<string, PendingMessageEditorMediaUpload>());
-  const pendingMediaUploadRequestIdRef = useRef(0);
   const ready = adapter.ready;
   // ==== Runtime 单例与加载镜像 ====
   const registry = useMemo(() => createMessageEditorRegistry(), []);
@@ -779,32 +765,16 @@ export default function MessageEditor({
   const selectionDocument = useMemo(() => createMessageEditorSelectionDocument(messages), [messages]);
   const messageByBlockId = selectionDocument.messageByBlockId;
 
-  useEffect(() => {
-    const blockIds = new Set(messages.map(getMessageEditorBlockId));
-    const hasRemovedUpload = [...pendingMediaUploadsRef.current.keys()].some(blockId => !blockIds.has(blockId));
-    if (!hasRemovedUpload) {
-      return;
-    }
-
-    const nextPendingUploads = new Map(
-      [...pendingMediaUploadsRef.current].filter(([blockId]) => blockIds.has(blockId)),
-    );
-    pendingMediaUploadsRef.current = nextPendingUploads;
-    setPendingMediaUploads(nextPendingUploads);
-  }, [messages]);
-
   const resetHistory = useCallback(() => {
     historyManagerRef.current.reset();
   }, []);
 
-  useEffect(() => {
-    actionsRef.current = createMessageEditorActions({
-      createHistoryEntry,
-      historyManager: historyManagerRef.current,
-      registry,
-      getMessages: getCurrentMessages,
-    });
-  }, [createHistoryEntry, getCurrentMessages, registry]);
+  const commandsRef = useMessageEditorCommands({
+    createHistoryEntry,
+    getMessages: getCurrentMessages,
+    historyManager: historyManagerRef.current,
+    registry,
+  });
 
   const { savedSelectionRef, hideToolbar } = useFloatingSelectionToolbar({
     suspend: isPointerSelecting || crossBlockSelectionPreview !== null || crossBlockSelection !== null,
@@ -819,7 +789,7 @@ export default function MessageEditor({
         return null;
       }
       return root;
-    }, [registry]),
+    }, [messagesRef, registry]),
   });
 
   const clearSelectionInteractionState = useCallback(() => {
@@ -1020,7 +990,7 @@ export default function MessageEditor({
 
     const resolved = resolveMessageEditorSelectionFromRange(root, messagesRef.current, registry, saved.range);
     return resolved;
-  }, [crossBlockSelection, registry, savedSelectionRef]);
+  }, [crossBlockSelection, messagesRef, registry, savedSelectionRef]);
 
   const crossBlockSelectionText = useMemo(() => {
     return crossBlockSelection
@@ -1113,41 +1083,54 @@ export default function MessageEditor({
   }, [activateTextPoint, clearEditorInteractionState, commitRestoredDocumentSelection, registry]);
 
   const executeFocusAction = useCallback((
-    action: (actions: MessageEditorActions) => MessageEditorEditTransaction<{ blockId: string; caret: number } | null> | null,
+    command: (commands: MessageEditorCommands) => MessageEditorCommandTransaction<{ blockId: string; caret: number } | null> | null,
     options: { clearWhenMissing?: boolean; hideToolbar?: boolean } = {},
   ) => {
-    const actions = actionsRef.current;
-    const transaction = actions ? action(actions) : null;
+    const commands = commandsRef.current;
+    const transaction = commands ? command(commands) : null;
     const focus = transaction ? commitEditorTransaction(transaction) : null;
     return commitCommandFocusResult(focus, options);
-  }, [commitCommandFocusResult, commitEditorTransaction]);
+  }, [commandsRef, commitCommandFocusResult, commitEditorTransaction]);
 
   const executeSelectionEditAction = useCallback((
-    action: (actions: MessageEditorActions) => MessageEditorEditTransaction<MessageEditorSelectionTextResult> | null,
+    command: (commands: MessageEditorCommands) => MessageEditorCommandTransaction<MessageEditorSelectionTextResult> | null,
     options: { restoreExpandedSelection?: boolean } = {},
   ) => {
-    const actions = actionsRef.current;
-    const transaction = actions ? action(actions) : null;
+    const commands = commandsRef.current;
+    const transaction = commands ? command(commands) : null;
     const result = transaction ? commitEditorTransaction(transaction) : null;
     return applySelectionEditResult(result, options);
-  }, [applySelectionEditResult, commitEditorTransaction]);
+  }, [applySelectionEditResult, commandsRef, commitEditorTransaction]);
 
   const executeMutationAction = useCallback((
-    action: (actions: MessageEditorActions) => MessageEditorEditTransaction<void>,
+    command: (commands: MessageEditorCommands) => MessageEditorCommandTransaction<void>,
   ) => {
-    const actions = actionsRef.current;
-    if (!actions) {
+    const commands = commandsRef.current;
+    if (!commands) {
       return false;
     }
-    commitEditorTransaction(action(actions));
+    commitEditorTransaction(command(commands));
     return true;
-  }, [commitEditorTransaction]);
+  }, [commandsRef, commitEditorTransaction]);
+
+  const handleMediaUploaded = useCallback((blockId: string, payload: MessageEditorUploadedMediaPayload) => {
+    executeMutationAction(commands => commands.replaceMedia(blockId, payload));
+  }, [executeMutationAction]);
+
+  const {
+    clear: clearPendingMediaUpload,
+    pendingUploads: pendingMediaUploads,
+    upload: uploadMediaForBlock,
+  } = useMessageEditorMediaUploads({
+    messages,
+    onUploaded: handleMediaUploaded,
+  });
 
   const executeInsertBlockAction = useCallback((
-    action: (actions: MessageEditorActions) => MessageEditorEditTransaction<MessageEditorInsertBlockResult> | null,
+    command: (commands: MessageEditorCommands) => MessageEditorCommandTransaction<MessageEditorInsertBlockResult> | null,
   ) => {
-    const actions = actionsRef.current;
-    const transaction = actions ? action(actions) : null;
+    const commands = commandsRef.current;
+    const transaction = commands ? command(commands) : null;
     const result = transaction ? commitEditorTransaction(transaction) : null;
     if (!result) {
       return null;
@@ -1156,7 +1139,7 @@ export default function MessageEditor({
     clearSelectionInteractionState();
     commitCommandFocusResult(result.focus);
     return result;
-  }, [clearSelectionInteractionState, commitCommandFocusResult, commitEditorTransaction]);
+  }, [clearSelectionInteractionState, commandsRef, commitCommandFocusResult, commitEditorTransaction]);
 
   const commitBlockReorder = useCallback((reorder: MessageEditorDragState) => {
     const currentMessages = ensureMessageEditorMessages(messagesRef.current);
@@ -1191,7 +1174,7 @@ export default function MessageEditor({
       : null;
     commitCommandFocusResult(focus, { clearWhenMissing: true });
     return true;
-  }, [commitCommandFocusResult, executeMutationAction, registry, resolveEditorSelection]);
+  }, [commitCommandFocusResult, executeMutationAction, messagesRef, registry, resolveEditorSelection]);
 
   const restoreHistoryEntry = useCallback((entry: MessageEditorHistoryEntry) => {
     commitDocumentSnapshot(entry.messages);
@@ -1206,15 +1189,15 @@ export default function MessageEditor({
   }, [activateTextPoint, clearEditorInteractionState, commitDocumentSnapshot]);
 
   const performHistoryAction = useCallback((action: "redo" | "undo") => {
-    const actions = actionsRef.current;
-    const transaction = action === "undo" ? actions?.undo() : actions?.redo();
+    const commands = commandsRef.current;
+    const transaction = action === "undo" ? commands?.undo() : commands?.redo();
     if (!transaction) {
       return false;
     }
 
     restoreHistoryEntry(transaction.entry);
     return true;
-  }, [restoreHistoryEntry]);
+  }, [commandsRef, restoreHistoryEntry]);
 
   const handleUndoRedoShortcut = useCallback((event: Pick<KeyboardEvent | React.KeyboardEvent, "altKey" | "ctrlKey" | "key" | "metaKey" | "preventDefault" | "shiftKey" | "stopPropagation">) => {
     const action = resolveUndoRedoShortcut(event);
@@ -1513,7 +1496,7 @@ export default function MessageEditor({
       blockId,
       caret: normalizeMessageEditorContent(currentMessage?.content ?? state.remainder).length,
     });
-  }, [clearSpeakerAvatarMenu, commitCommandFocusResult, executeMutationAction]);
+  }, [clearSpeakerAvatarMenu, commitCommandFocusResult, executeMutationAction, messagesRef]);
 
   const handleSelectSpeakerAvatarItem = useCallback((item: MessageEditorSpeakerAvatarMenuItem) => {
     if (!speakerAvatarMenuState) {
@@ -1564,7 +1547,7 @@ export default function MessageEditor({
       registry,
       root,
     });
-  }, [messageByBlockId, registry]);
+  }, [messageByBlockId, messagesRef, registry]);
 
   const startTextPointerSelection = useCallback((
     anchor: MessageEditorSelectionPoint,
@@ -1638,7 +1621,7 @@ export default function MessageEditor({
     });
     pointerSelectionSessionRef.current = session;
     session.start();
-  }, [clearCrossBlockSelection, clearSelectionInteractionState, commitCrossBlockSelection, readOnly, registry, resolveTextSelectionPointFromClientPosition, selectionDocument]);
+  }, [clearCrossBlockSelection, clearSelectionInteractionState, commitCrossBlockSelection, commitCrossBlockSelectionPreview, readOnly, registry, resolveTextSelectionPointFromClientPosition, selectionDocument]);
 
   const handleTextMouseDown = useCallback((blockId: string, event: React.MouseEvent<HTMLDivElement>) => {
     const anchor = resolveTextSelectionPointFromClientPosition(event.clientX, event.clientY, blockId);
@@ -1786,7 +1769,7 @@ export default function MessageEditor({
       }
       document.removeEventListener("mouseup", handleDocumentMouseUp);
     };
-  }, [commitCrossBlockSelection, crossBlockSelection, isPointerSelecting, readOnly, registry]);
+  }, [commitCrossBlockSelection, crossBlockSelection, isPointerSelecting, messagesRef, readOnly, registry]);
 
   const copySelectionTextToClipboard = useCallback((selection: MessageEditorSelection) => {
     const text = getMessageEditorSelectionText(messagesRef.current, selection);
@@ -1809,7 +1792,7 @@ export default function MessageEditor({
     textarea.select();
     document.execCommand("copy");
     textarea.remove();
-  }, []);
+  }, [messagesRef]);
 
   useEffect(() => {
     if (readOnly || !crossBlockSelection) {
@@ -1897,15 +1880,19 @@ export default function MessageEditor({
       document.removeEventListener("keydown", handleDocumentKeyDown);
     };
   }, [
+    activateBlockSelection,
+    activateTextPoint,
     clearCrossBlockSelection,
+    commitSelectionBoundaryCollapse,
+    commitSelectionFocusExtension,
+    commitSelectionTextReplacement,
     copySelectionTextToClipboard,
     crossBlockSelection,
-    activateTextPoint,
     handleUndoRedoShortcut,
+    messagesRef,
     readOnly,
     registry,
-    commitSelectionTextReplacement,
-    activateBlockSelection,
+    selectionDocument,
   ]);
 
   useEffect(() => {
@@ -2182,6 +2169,7 @@ export default function MessageEditor({
     activeSpeakerAvatarSelectionIndex,
     appendSpeakerAvatarSearchCharacter,
     activateTextPoint,
+    commitSelectionFocusExtension,
     deleteSpeakerAvatarSearchCharacter,
     dismissSlashCommandMenu,
     dismissSpeakerCommandMenu,
@@ -2193,8 +2181,10 @@ export default function MessageEditor({
     moveSlashCommandSelection,
     moveSpeakerCommandSelection,
     moveSpeakerAvatarCommandSelection,
+    messagesRef,
     registry,
     activateBlockSelection,
+    selectionDocument,
     slashMenuState,
     speakerAvatarMenuItems,
     speakerAvatarMenuState,
@@ -2394,123 +2384,13 @@ export default function MessageEditor({
     );
   }, [dragState?.draggedBlockId, handleBlockDragEnd, handleBlockDragStart, readOnly]);
 
-  const uploadMediaFileForKind = useCallback(async (kind: MessageEditorInsertableBlockKind, file: File) => {
-    if (kind === "image") {
-      const [uploadedImage, dimensions] = await Promise.all([
-        uploadUtils.uploadDualImage(file),
-        readImageDimensions(file),
-      ]);
-      return {
-        fileId: uploadedImage.fileId,
-        fileName: file.name,
-        mediaType: uploadedImage.mediaType,
-        size: file.size,
-        width: dimensions.width,
-        height: dimensions.height,
-      };
-    }
-
-    if (kind === "file") {
-      const uploadedFile = await uploadUtils.uploadFileAsset(file);
-      return {
-        fileId: uploadedFile.fileId,
-        fileName: file.name,
-        mediaType: uploadedFile.mediaType,
-        size: file.size,
-      };
-    }
-
-    if (kind === "audio") {
-      const [uploadedAudio, second] = await Promise.all([
-        uploadUtils.uploadAudioAsset(file),
-        readMediaDuration(file),
-      ]);
-      if (second == null) {
-        throw new Error("无法读取音频时长，请换用可识别的音频文件后重试。");
-      }
-      return {
-        fileId: uploadedAudio.fileId,
-        fileName: file.name,
-        mediaType: uploadedAudio.mediaType,
-        size: file.size,
-        second,
-      };
-    }
-
-    if (kind === "video") {
-      const [uploadedVideo, dimensions, second] = await Promise.all([
-        uploadUtils.uploadVideo(file),
-        readVideoDimensions(file),
-        readMediaDuration(file),
-      ]);
-      return {
-        fileId: uploadedVideo.fileId,
-        fileName: file.name,
-        mediaType: uploadedVideo.mediaType,
-        size: file.size,
-        second,
-        width: dimensions.width,
-        height: dimensions.height,
-      };
-    }
-
-    throw new Error("不支持该媒体类型");
-  }, [uploadUtils]);
-
-  const uploadMediaForBlock = useCallback(async (
-    blockId: string,
-    kind: MessageEditorInsertableBlockKind,
-    file: File,
-  ) => {
-    const requestId = ++pendingMediaUploadRequestIdRef.current;
-    const pendingUpload = { file, requestId } satisfies PendingMessageEditorMediaUpload;
-    pendingMediaUploadsRef.current.set(blockId, pendingUpload);
-    setPendingMediaUploads(current => new Map(current).set(blockId, pendingUpload));
-
-    try {
-      const payload = await uploadMediaFileForKind(kind, file);
-      if (pendingMediaUploadsRef.current.get(blockId)?.requestId !== requestId) {
-        return;
-      }
-
-      executeMutationAction(actions => actions.replaceMedia(blockId, payload));
-      pendingMediaUploadsRef.current.delete(blockId);
-      setPendingMediaUploads(current => {
-        if (!current.has(blockId)) {
-          return current;
-        }
-        const next = new Map(current);
-        next.delete(blockId);
-        return next;
-      });
-    } catch (error) {
-      if (pendingMediaUploadsRef.current.get(blockId)?.requestId !== requestId) {
-        return;
-      }
-
-      const errorMessage = (error instanceof Error ? error.message : String(error)) || "媒体上传失败";
-      const failedUpload = { ...pendingUpload, error: errorMessage } satisfies PendingMessageEditorMediaUpload;
-      pendingMediaUploadsRef.current.set(blockId, failedUpload);
-      setPendingMediaUploads(current => new Map(current).set(blockId, failedUpload));
-      appToast.error(errorMessage);
-    }
-  }, [executeMutationAction, uploadMediaFileForKind]);
-
   const handleDeleteAtomicBlock = useCallback((blockId: string) => {
-    pendingMediaUploadsRef.current.delete(blockId);
-    setPendingMediaUploads(current => {
-      if (!current.has(blockId)) {
-        return current;
-      }
-      const next = new Map(current);
-      next.delete(blockId);
-      return next;
-    });
+    clearPendingMediaUpload(blockId);
     executeFocusAction(actions => actions.deleteBlock(blockId), {
       clearWhenMissing: true,
       hideToolbar: true,
     });
-  }, [executeFocusAction]);
+  }, [clearPendingMediaUpload, executeFocusAction]);
 
   const handleUploadAtomicBlock = useCallback(async (blockId: string, file: File) => {
     const currentMessage = messagesRef.current.find(message => getMessageEditorBlockId(message) === blockId);
@@ -2664,7 +2544,7 @@ export default function MessageEditor({
     event.preventDefault();
     commitBlockReorder(dragState);
     setDragState(null);
-  }, [commitBlockReorder, disposeBlockDragSession, dragState, fileDropTarget, insertMediaFileAtPoint, readOnly, resolveDragTarget]);
+  }, [commitBlockReorder, disposeBlockDragSession, dragState, fileDropTarget, insertMediaFileAtPoint, messagesRef, readOnly, resolveDragTarget]);
 
   const resolveFilePasteTargetBlockId = useCallback(() => {
     const currentMessages = messagesRef.current;
@@ -2691,7 +2571,7 @@ export default function MessageEditor({
 
     const activeMessage = currentMessages.find(message => getMessageEditorBlockId(message) === activeBlockId);
     return isMessageEditorUploadableMediaMessage(activeMessage ?? undefined) ? activeBlockId : null;
-  }, [activeBlockId, crossBlockSelection]);
+  }, [activeBlockId, crossBlockSelection, messagesRef]);
 
   useEffect(() => {
     if (readOnly) {

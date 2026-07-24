@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import type { MessageEditorSelection } from "../runtime/messageEditorSelection";
+import type { MessageEditorSelection } from "../selection/messageEditorSelection";
 
+import {
+  createMessageEditorBlockDraft,
+  createMessageEditorTextDraft,
+  getMessageEditorBlockId,
+} from "../document/messageEditorTransforms";
 import {
   focusEmptyTextBlockBeforeIme,
   getMessageEditorAtomicBlockShellClassName,
@@ -15,11 +20,6 @@ import {
   shouldIgnoreDocumentSelectionEventTarget,
   shouldStartMessageEditorAtomicBlockSelection,
 } from "../MessageEditor";
-import {
-  createMessageEditorBlockDraft,
-  createMessageEditorTextDraft,
-  getMessageEditorBlockId,
-} from "../model/messageEditorTransforms";
 
 type MockElement = {
   closest?: (selector: string) => MockElement | null;

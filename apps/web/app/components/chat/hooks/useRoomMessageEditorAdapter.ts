@@ -12,7 +12,7 @@ import type { RoomMessageEditSyncStatus } from "../infra/localDb/roomMessageEdit
 import {
   fillMissingMessageEditorMediaLayouts,
   materializeMessageEditorRoomQueryMessages,
-} from "../../messageEditor/model/messageEditorTransforms";
+} from "../../messageEditor/document/messageEditorTransforms";
 import { getRoomMessagesFromQueryCache } from "../infra/localDb/roomHistoryQueryCache";
 import { getRoomMessageEditorSyncEntry } from "../infra/localDb/roomMessageEditSyncRegistry";
 

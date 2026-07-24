@@ -8,7 +8,7 @@ import {
   syncChatMentionSelectionState,
 } from "@/components/chat/input/chatMentionNode";
 import { insertPlainTextWithUndo } from "@/components/chat/input/undoablePlainText";
-import { getMessageEditorClipboardFiles } from "@/components/messageEditor/runtime/messageEditorFileDrop";
+import { getMessageEditorClipboardFiles } from "@/components/messageEditor/block/messageEditorFileDrop";
 import { getEditorRange } from "@/utils/getSelectionCoords";
 
 import type { UserRole } from "../../../../api";

@@ -1,6 +1,6 @@
 import type { MessageEditorMessage } from "@/components/messageEditor/messageEditorTypes";
 
-import { normalizeMessageEditorDraft } from "@/components/messageEditor/model/messageEditorTransforms";
+import { normalizeMessageEditorDraft } from "@/components/messageEditor/document/messageEditorTransforms";
 import { tuanchat } from "api/instance";
 
 import type {

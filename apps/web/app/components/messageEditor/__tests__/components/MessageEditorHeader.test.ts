@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   resolveMessageEditorHeaderState,
   shouldShowMessageEditorFloatingHeader,
-} from "../../components/MessageEditorHeader";
+} from "../../MessageEditorHeader";
 
 describe("MessageEditorHeader", () => {
   it("优先使用显式标题和封面，并清理文档 ID", () => {

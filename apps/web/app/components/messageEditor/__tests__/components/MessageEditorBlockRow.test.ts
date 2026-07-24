@@ -5,14 +5,14 @@ import { vi } from "vitest";
 import {
   MessageEditorBlockRow,
   shouldCaptureMessageEditorAtomicMediaArrowKey,
-} from "../../components/MessageEditorBlockRow";
-import { createMessageEditorBlockDraft } from "../../model/messageEditorTransforms";
+} from "../../MessageEditorBlockRow";
+import { createMessageEditorBlockDraft } from "../../document/messageEditorTransforms";
 
-vi.mock("../../components/MessageEditorAtomicBlock", () => ({
+vi.mock("../../media/MessageEditorAtomicBlock", () => ({
   MessageEditorAtomicBlock: () => createElement("div", { "data-atomic-block": "true" }),
 }));
 
-vi.mock("../../components/MessageEditorTextBlock", () => ({
+vi.mock("../../text/MessageEditorTextBlock", () => ({
   MessageEditorTextBlock: () => createElement("div", { "data-text-block": "true" }),
 }));
 

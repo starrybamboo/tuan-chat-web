@@ -17,7 +17,7 @@ import {
 } from "@tuanchat/query/room-message-query-data";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { fillMissingMessageEditorMediaLayouts } from "@/components/messageEditor/model/messageEditorTransforms";
+import { fillMissingMessageEditorMediaLayouts } from "@/components/messageEditor/document/messageEditorTransforms";
 
 import type { ChatMessageResponse } from "../../../../../api";
 

@@ -1,7 +1,7 @@
 import React from "react";
 
-import { useUserReadMeMessageAdapter } from "@/components/messageEditor/hooks/useUserReadMeMessageAdapter";
 import MessageEditor from "@/components/messageEditor/MessageEditor";
+import { useUserReadMeMessageAdapter } from "@/components/messageEditor/useUserReadMeMessageAdapter";
 
 type UserReadMeProps = {
   userId: number;

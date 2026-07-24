@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   toUserReadMeMessageDraft,
   UserReadMeSaveCoordinator,
-} from "../../hooks/useUserReadMeMessageAdapter";
+} from "../../useUserReadMeMessageAdapter";
 
 function draft(content: string): MessageDraft {
   return { content, messageType: 1 };
